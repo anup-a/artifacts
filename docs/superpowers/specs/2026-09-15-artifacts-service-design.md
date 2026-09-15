@@ -25,7 +25,7 @@ First customer: developers running agents. The agent is the console.
 | Publisher identity | API keys minted with an email. Self-host: single `ADMIN_TOKEN`. |
 | Versioning | Content-addressed versions, rollback via API, keep last 20 on managed. |
 | Stack | Go server (single binary), Postgres or SQLite, S3-compatible or local disk. Node CLI. Vanilla-JS comments runtime. |
-| Managed deploy | Fly.io (2 machines) + Neon Postgres + Cloudflare R2, Cloudflare in front. |
+| Managed deploy | Hetzner CX22 running the self-host container + Neon Postgres (free) + Cloudflare R2 (free), Cloudflare in front. ~$4/month. Fly.io is the documented upgrade path for HA. |
 | v1 scope | Publish loop and comments in the same release (approach 1). |
 
 ## 3. Architecture
@@ -56,21 +56,30 @@ viewer browser ─▶ CDN ─▶ GET /a/<id>/[v/<n>/]<path>   (server streams fr
 ### 3b. Managed deployment
 
 ```
-Cloudflare (DNS, TLS, WAF + rate limit on /c/*, cache /a/* and /_rt/*)
+Cloudflare free plan (DNS, TLS, WAF + rate limit on /c/*, cache /a/* and /_rt/*)
    ├─ share.<domain> ─┐
-   └─ api.<domain>   ─┴─▶ Fly.io: 2 × shared-1x 512 MB (fra, sin), autostop/autostart
-                              ├─▶ Neon Postgres
-                              └─▶ Cloudflare R2 bucket (S3 API, zero egress)
+   └─ api.<domain>   ─┴─▶ Hetzner CX22 (2 vCPU, 4 GB, 20 TB egress), docker compose,
+                          the same image as self-host with DB=postgres STORAGE=s3
+                              ├─▶ Neon Postgres (free tier, scale-to-zero)
+                              └─▶ Cloudflare R2 bucket (S3 API, free 10 GB, zero egress)
 ```
 
-- Deploy pipeline: GitHub Actions on tag `v*` → build image → push GHCR
-  (`ghcr.io/<org>/artifacts`, this is the self-host image) → `fly deploy --image`.
+- The VPS holds no state. Rebuilding it is: install Docker, copy `.env`,
+  `docker compose up -d`. Documented in `deploy/RUNBOOK.md`.
+- Deploy pipeline: GitHub Actions on tag `v*` → build multi-arch image →
+  push GHCR (`ghcr.io/<org>/artifacts`, this is also the self-host image) →
+  SSH to the box → `docker compose pull && docker compose up -d`. Deploys
+  cause a few seconds of downtime; acceptable at launch.
 - Migrations embedded in the binary, run idempotently at boot.
-- Health: `GET /healthz` (DB ping + storage HEAD). Logs: JSON to stdout.
-- Launch cost under $15/month. First paid step is Neon at $19.
-- Secrets: `DATABASE_URL`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`,
-  `S3_SECRET_KEY`, `KEY_SIGNING_SECRET`, `PUBLIC_SHARE_ORIGIN`,
-  `PUBLIC_API_ORIGIN`.
+- Health: `GET /healthz` (DB ping + storage HEAD), polled by Cloudflare or
+  a free uptime monitor. Logs: JSON to stdout, `docker logs`.
+- Cost: ~$4/month (Hetzner) until Neon or R2 outgrow free. Alternative at $0:
+  Oracle Cloud Always-Free ARM VM with `DB=sqlite STORAGE=local`.
+- Upgrade path when HA matters: same image on Fly.io, 2 machines
+  (`deploy/fly.toml` kept in the repo); nothing else changes.
+- Secrets in `.env` on the box: `DATABASE_URL`, `S3_ENDPOINT`, `S3_BUCKET`,
+  `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `KEY_SIGNING_SECRET`,
+  `PUBLIC_SHARE_ORIGIN`, `PUBLIC_API_ORIGIN`.
 
 ### 3c. Self-host
 
@@ -273,6 +282,6 @@ artifacts/
   runtime/                   comments.js source + build (esbuild) → embedded
   cli/                       Node package `artifacts`
   skill/SKILL.md
-  deploy/fly.toml  deploy/docker-compose.yml  Dockerfile
+  deploy/docker-compose.yml  deploy/RUNBOOK.md  deploy/fly.toml  Dockerfile
   docs/superpowers/specs/
 ```
