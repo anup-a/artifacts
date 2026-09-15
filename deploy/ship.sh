@@ -7,14 +7,18 @@
 # The image travels over ssh rather than through a registry, so the box needs
 # no credentials for the private repo. deploy/.env.free holds the box's
 # secrets and is never committed.
+#
+# PLATFORM must match the box's architecture: linux/amd64 for an ordinary
+# x86 VPS, linux/arm64 for an Ampere/Graviton one.
 set -euo pipefail
 TARGET="${1:?usage: ship.sh user@host}"
+PLATFORM="${PLATFORM:-linux/amd64}"
 cd "$(dirname "$0")/.."
 ENV_FILE="deploy/.env.free"
 [ -f "$ENV_FILE" ] || { echo "missing $ENV_FILE"; exit 1; }
 
-echo "==> building linux/arm64 image"
-docker build --platform linux/arm64 -t artifacts:local .
+echo "==> building $PLATFORM image"
+docker build --platform "$PLATFORM" -t artifacts:local .
 
 echo "==> copying image to $TARGET"
 docker save artifacts:local | gzip | ssh "$TARGET" 'gunzip | sudo docker load'

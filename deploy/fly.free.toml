@@ -1,0 +1,50 @@
+# Validation deployment on Fly: one machine, sqlite on a Fly volume, local
+# blob storage on that same volume, and Fly's edge terminating TLS for both
+# hostnames. No Neon, no R2, no Caddy.
+#
+# Deploy from the repo root:
+#   fly deploy --config deploy/fly.free.toml
+#
+# TRUST_PROXY_HEADERS is safe here because the machine has no public address
+# of its own: every request arrives through Fly's proxy, which overwrites
+# X-Forwarded-For with the real peer.
+
+app = "artifacts-share"
+primary_region = "bom"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  ADDR = ":8080"
+  DB = "sqlite"
+  STORAGE = "local"
+  DATA_DIR = "/data"
+  PUBLIC_SHARE_ORIGIN = "https://share.creatica.app"
+  PUBLIC_API_ORIGIN = "https://api.share.creatica.app"
+  TRUST_PROXY_HEADERS = "true"
+
+# ADMIN_TOKEN is not here on purpose: it is set with `fly secrets set`.
+
+# Both hostnames reach the same app; the server routes on path, not on host.
+[mounts]
+  source = "artifacts_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # sqlite has a single writer and the volume attaches to one machine, so the
+  # app must never be scaled horizontally or stopped out from under a publish.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

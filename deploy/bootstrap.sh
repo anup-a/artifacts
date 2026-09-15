@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Prepares a fresh Ubuntu box (Oracle Always Free ARM) to run the free-tier
-# stack. Run it once, from a laptop:
+# Prepares a fresh Ubuntu box to run the validation stack. Run it once, from
+# a laptop:
 #
 #   ./deploy/bootstrap.sh ubuntu@<box ip>
 #
@@ -13,13 +13,15 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq docker.io docker-compose-plugin iptables-persistent
 
-# Oracle's Ubuntu image ships an INPUT chain that REJECTs everything past ssh,
-# so 80/443 have to be accepted explicitly and the rules made to survive a
-# reboot. (The VCN security list still has to allow them too; that part is in
-# the OCI console.)
+# Some cloud images (Oracle's especially) ship an INPUT chain that REJECTs
+# everything past ssh, so 80/443 have to be accepted explicitly and the rules
+# made to survive a reboot. Insert above the REJECT where there is one; on a
+# box with an empty chain the insert fails and appending is equivalent.
+# (A provider-side firewall, if any, still has to allow them too.)
 for port in 80 443; do
-  iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null ||
-    iptables -I INPUT 6 -p tcp --dport "$port" -j ACCEPT
+  iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null && continue
+  iptables -I INPUT 6 -p tcp --dport "$port" -j ACCEPT 2>/dev/null ||
+    iptables -A INPUT -p tcp --dport "$port" -j ACCEPT
 done
 netfilter-persistent save
 

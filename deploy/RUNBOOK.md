@@ -4,30 +4,38 @@ Operational reference for running `artifacts` on the managed deployment
 (Hetzner CX22 + Cloudflare + Neon + R2, per §3b of the
 [design spec](../docs/superpowers/specs/2026-09-15-artifacts-service-design.md)).
 
-## Free validation box (Oracle Always Free, ARM)
+## Validation deployment (Fly)
 
-The cheapest way to put the product in front of real users: one Ampere A1 VM,
-sqlite on its local disk, one `ADMIN_TOKEN`, and Caddy terminating TLS with
-Let's Encrypt. No Neon, no R2, no Cloudflare. Same binary and same API as the
+The cheapest way to put the product in front of real users: one Fly machine,
+sqlite and blobs on a Fly volume, one `ADMIN_TOKEN`, and Fly's edge terminating
+TLS. No Neon, no R2, no Cloudflare, no Caddy. Same binary and same API as the
 managed deployment, so moving up later is a change of env vars.
 
-Hostnames (`deploy/.env.free`, gitignored): `share.creatica.app` for pages and
-`api.share.creatica.app` for the API.
+Hostnames: `share.creatica.app` for pages and `api.share.creatica.app` for the
+API. Both point at the same app; the server routes on path, not on host.
 
-One-time, in the OCI console: create the VM (Ubuntu, Ampere A1, the ssh key in
-`~/.ssh/artifacts_oracle.pub`) and allow 80/443 in its VCN security list.
-Then, at the registrar: an `A` record for each hostname pointing at the box IP.
-
-From a laptop:
+First time:
 
 ```
-./deploy/bootstrap.sh ubuntu@<box ip>   # docker, host firewall, /opt/artifacts
-./deploy/ship.sh      ubuntu@<box ip>   # build, copy image over ssh, up, health check
+fly auth login
+fly apps create artifacts-share
+fly volumes create artifacts_data --region bom --size 1 --app artifacts-share
+fly secrets set ADMIN_TOKEN=<token> --app artifacts-share
+fly deploy --config deploy/fly.free.toml
 ```
 
-`ship.sh` carries the image over ssh instead of a registry, so the box needs no
-credentials for the private repo. Re-run it to deploy a new version; it is the
-whole deploy loop.
+Then the certificates and DNS. `fly certs add` prints the records to create:
+
+```
+fly certs add share.creatica.app     --app artifacts-share
+fly certs add api.share.creatica.app --app artifacts-share
+```
+
+At the registrar, a `CNAME` for each hostname pointing at
+`artifacts-share.fly.dev`, plus the `_acme-challenge` records Fly asks for.
+`fly certs check <hostname>` reports when the certificate is issued.
+
+After that, `fly deploy --config deploy/fly.free.toml` is the whole deploy loop.
 
 Smoke it with the CLI:
 
@@ -35,6 +43,22 @@ Smoke it with the CLI:
 echo "$ADMIN_TOKEN" | npx artifacts login --api https://api.share.creatica.app
 npx artifacts publish ./site --title "Hello"
 ```
+
+## Validation box on a plain VPS (alternative)
+
+`bootstrap.sh` and `ship.sh` deploy the same stack to any Ubuntu box over ssh,
+with Caddy terminating TLS instead of Fly's edge. Secrets live in
+`deploy/.env.free` (gitignored).
+
+```
+./deploy/bootstrap.sh ubuntu@<box ip>   # docker, host firewall, /opt/artifacts
+./deploy/ship.sh      ubuntu@<box ip>   # build, copy image over ssh, up, health check
+```
+
+`ship.sh` carries the image over ssh instead of a registry, so the box needs no
+credentials for the private repo. Set `PLATFORM=linux/arm64` for an Ampere or
+Graviton box; it defaults to `linux/amd64`. DNS is an `A` record per hostname
+pointing at the box IP.
 
 ## Managed box (Hetzner CX22)
 
