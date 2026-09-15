@@ -1,5 +1,7 @@
 name: ci
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
 jobs:
   go:
     runs-on: ubuntu-latest
@@ -8,7 +10,8 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_PASSWORD: pg
-        ports: ["5432:5432"]
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s
@@ -17,33 +20,57 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with: { go-version: "1.26" }
-      - run: go vet ./...
-      - run: test -z "$(gofmt -l .)" || { gofmt -l .; echo "run gofmt"; exit 1; }
-      - run: |
+        with:
+          go-version: "1.26"
+      - name: vet
+        run: go vet ./...
+      - name: gofmt
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then gofmt -l .; echo "run gofmt"; exit 1; fi
+      - name: start minio
+        run: |
           docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=a -e MINIO_ROOT_PASSWORD=aaaaaaaa minio/minio server /data
           for _ in $(seq 1 30); do curl -sf http://localhost:9000/minio/health/live >/dev/null && break; sleep 1; done
-      - run: |
           curl -sO https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x mc
           ./mc alias set m http://localhost:9000 a aaaaaaaa && ./mc mb m/t
-      - run: TEST_S3=1 S3_ENDPOINT=localhost:9000 S3_BUCKET=t S3_ACCESS_KEY=a S3_SECRET_KEY=aaaaaaaa S3_USE_SSL=false go test -race -coverprofile=cover.out ./...
-      - run: go tool cover -func=cover.out | tail -1
+      - name: test (sqlite + s3)
+        env:
+          TEST_S3: "1"
+          S3_ENDPOINT: localhost:9000
+          S3_BUCKET: t
+          S3_ACCESS_KEY: a
+          S3_SECRET_KEY: aaaaaaaa
+          S3_USE_SSL: "false"
+        run: go test -race -coverprofile=cover.out ./...
+      - name: coverage
+        run: go tool cover -func=cover.out | tail -1
       # The store suite again, this time against real Postgres, so the
       # dialect-specific SQL (placeholders, upserts, locking) is covered.
-      - run: TEST_PG_URL=postgres://postgres:pg@localhost:5432/postgres?sslmode=disable go test -race ./internal/store/
-      - run: ./scripts/smoke.sh
+      - name: test (postgres)
+        env:
+          TEST_PG_URL: "postgres://postgres:pg@localhost:5432/postgres?sslmode=disable"
+        run: go test -race ./internal/store/
+      - name: smoke
+        run: ./scripts/smoke.sh
   image:
     needs: go
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    permissions: { packages: write, contents: read }
+    permissions:
+      packages: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
-        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }},ghcr.io/${{ github.repository }}:latest
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest
