@@ -1,0 +1,20 @@
+{
+  "name": "artifacts",
+  "version": "0.1.0",
+  "description": "Publish a page, share the URL, read the comments on it.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "artifacts": "bin/artifacts.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}
