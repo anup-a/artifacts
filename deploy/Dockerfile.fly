@@ -1,0 +1,26 @@
+# Same server, same build, running as root.
+#
+# A Fly volume is a freshly formatted ext4 mounted at /data, owned by root.
+# The distroless nonroot uid (65532) that the normal image runs as cannot
+# create a file in it, so the server dies on its first migration with
+# "unable to open database file (14)". Nothing in fly.toml can set the mount's
+# ownership, and the distroless image has no shell to chown it at startup.
+#
+# Running as root is a small concession here and nowhere else: a Fly machine
+# is a single-tenant VM running only this process, so root inside it grants an
+# attacker nothing beyond what compromising the server already would. Every
+# other deployment keeps the nonroot image in the repo root Dockerfile.
+
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/artifacts-server ./cmd/artifacts-server
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/artifacts-server /artifacts-server
+ENV DATA_DIR=/data ADDR=:8080
+EXPOSE 8080
+USER root
+ENTRYPOINT ["/artifacts-server"]

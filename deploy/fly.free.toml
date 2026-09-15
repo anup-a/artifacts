@@ -12,8 +12,11 @@
 app = "artifacts-share"
 primary_region = "bom"
 
+# Not the repo-root Dockerfile: a Fly volume mounts root-owned, and the
+# nonroot uid that image runs as cannot create the sqlite file in it.
+# deploy/Dockerfile.fly explains the trade-off.
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "deploy/Dockerfile.fly"
 
 [env]
   ADDR = ":8080"
