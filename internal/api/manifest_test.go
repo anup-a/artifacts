@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/anup-a/artifacts/internal/config"
@@ -35,6 +36,30 @@ func TestManifestRejects(t *testing.T) {
 			t.Errorf("%s: expected error", name)
 		} else if e.Status != 400 && e.Status != 413 {
 			t.Errorf("%s: status %d", name, e.Status)
+		}
+	}
+}
+
+// TestManifestRejectsControlCharsInPath covers paths that look clean to
+// path.Clean but carry a control character, e.g. a NUL used to confuse a
+// downstream consumer about the real extension.
+func TestManifestRejectsControlCharsInPath(t *testing.T) {
+	for name, p := range map[string]string{
+		"nul":     "index.html\x00.png",
+		"newline": "index.html\n",
+		"del":     "index\x7f.html",
+	} {
+		quoted, err := json.Marshal(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw := `{"files":[{"path":"index.html","sha256":"` + sha64("a") + `","size":1},` +
+			`{"path":` + string(quoted) + `,"sha256":"` + sha64("b") + `","size":1}]}`
+		_, e := parseManifest([]byte(raw), lim)
+		if e == nil {
+			t.Errorf("%s (%q): expected an error", name, p)
+		} else if e.Status != 400 {
+			t.Errorf("%s: status %d, want 400", name, e.Status)
 		}
 	}
 }

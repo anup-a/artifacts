@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/anup-a/artifacts/internal/apierr"
@@ -72,8 +75,32 @@ func (s *server) threadView(r *http.Request, id string) (threadView, *apierr.Err
 	return vs[0], nil
 }
 
+// tagRe matches anything that looks like an HTML tag. Comment bodies and author
+// names are PLAIN TEXT: the runtime renders them as text nodes, never as markup.
+// Stripping tags here keeps the stored value honest so any future consumer that
+// is less careful than the runtime still cannot be made to execute markup.
+var tagRe = regexp.MustCompile("<[^>]*>")
+
+// hasControl reports whether s contains a control character. allowWS permits the
+// two whitespace controls that are meaningful in a multi-line body.
+func hasControl(s string, allowWS bool) bool {
+	for _, r := range s {
+		if !unicode.IsControl(r) {
+			continue
+		}
+		if allowWS && (r == '\n' || r == '\t') {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 func (s *server) validName(n string) (string, *apierr.Error) {
-	n = strings.TrimSpace(n)
+	if hasControl(n, false) {
+		return "", apierr.Invalid("author_name must not contain control characters")
+	}
+	n = strings.TrimSpace(tagRe.ReplaceAllString(n, ""))
 	if n == "" || utf8.RuneCountInString(n) > 80 {
 		return "", apierr.Invalid("author_name must be 1..80 characters")
 	}
@@ -81,16 +108,19 @@ func (s *server) validName(n string) (string, *apierr.Error) {
 }
 
 func (s *server) validBody(b string) (string, *apierr.Error) {
-	b = strings.TrimSpace(b)
+	if hasControl(b, true) {
+		return "", apierr.Invalid("body must not contain control characters")
+	}
+	b = strings.TrimSpace(tagRe.ReplaceAllString(b, ""))
 	if b == "" || len(b) > s.Cfg.Limits.CommentBytes {
-		return "", apierr.Invalid("body must be 1.." + itoa(s.Cfg.Limits.CommentBytes) + " bytes")
+		return "", apierr.Invalid("body must be 1.." + strconv.Itoa(s.Cfg.Limits.CommentBytes) + " bytes")
 	}
 	return b, nil
 }
 
 func (s *server) validAnchor(raw json.RawMessage) (string, *apierr.Error) {
 	if len(raw) == 0 || len(raw) > s.Cfg.Limits.AnchorBytes {
-		return "", apierr.Invalid("anchor must be a JSON object up to " + itoa(s.Cfg.Limits.AnchorBytes) + " bytes")
+		return "", apierr.Invalid("anchor must be a JSON object up to " + strconv.Itoa(s.Cfg.Limits.AnchorBytes) + " bytes")
 	}
 	var a struct {
 		Kind  string `json:"kind"`
@@ -152,8 +182,6 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, limit int64, dst any) *a
 
 func newThreadID() string  { return "th_" + ids.NewArtifactID() }
 func newCommentID() string { return "cm_" + ids.NewArtifactID() }
-
-func itoa(n int) string { return strconvItoa(n) }
 
 // idempotency remembers viewer thread creations for 10 minutes, per process.
 type idempotency struct {

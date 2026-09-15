@@ -80,6 +80,14 @@ func validPath(p string) string {
 	if path.Clean(p) != p || strings.HasPrefix(p, "../") || p == ".." || strings.Contains(p, "/../") {
 		return "must be a clean path without .."
 	}
+	// Control characters survive path.Clean but can mislead anything that later
+	// parses the name (a NUL-truncating consumer sees "index.html", not
+	// "index.html\x00.png").
+	for _, r := range p {
+		if r < 0x20 || r == 0x7f {
+			return "must not contain control characters"
+		}
+	}
 	return ""
 }
 
