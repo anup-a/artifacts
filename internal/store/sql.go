@@ -1,0 +1,417 @@
+package store
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type sqlStore struct {
+	db      *sql.DB
+	dialect string
+}
+
+// q rewrites ? placeholders to $1.. for postgres.
+func (s *sqlStore) q(query string) string {
+	if s.dialect != "postgres" {
+		return query
+	}
+	var b strings.Builder
+	n := 0
+	for _, r := range query {
+		if r == '?' {
+			n++
+			b.WriteString("$" + strconv.Itoa(n))
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func (s *sqlStore) Migrate(ctx context.Context) error { return runMigrations(ctx, s.db) }
+func (s *sqlStore) Ping(ctx context.Context) error    { return s.db.PingContext(ctx) }
+func (s *sqlStore) Close() error                      { return s.db.Close() }
+
+func notFound(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	return err
+}
+
+func (s *sqlStore) CreateKey(ctx context.Context, hash, email string) (Key, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return Key{}, err
+	}
+	defer tx.Rollback()
+	var next int64
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id),0)+1 FROM keys`).Scan(&next); err != nil {
+		return Key{}, err
+	}
+	now := time.Now().UTC()
+	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO keys(id,key_sha256,email,created_at) VALUES (?,?,?,?)`), next, hash, email, now); err != nil {
+		return Key{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return Key{}, err
+	}
+	return Key{ID: next, Email: email, CreatedAt: now}, nil
+}
+
+func (s *sqlStore) KeyByHash(ctx context.Context, hash string) (Key, error) {
+	var k Key
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT id,email,created_at,revoked_at FROM keys WHERE key_sha256=?`), hash).
+		Scan(&k.ID, &k.Email, &k.CreatedAt, &k.RevokedAt)
+	return k, notFound(err)
+}
+
+func (s *sqlStore) CreateArtifact(ctx context.Context, a Artifact) error {
+	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO artifacts(id,key_id,title,current_version,created_at,updated_at) VALUES (?,?,?,?,?,?)`),
+		a.ID, a.KeyID, a.Title, a.CurrentVersion, a.CreatedAt, a.UpdatedAt)
+	return err
+}
+
+const artifactCols = `id,key_id,title,current_version,created_at,updated_at,deleted_at`
+
+func scanArtifact(row interface{ Scan(...any) error }) (Artifact, error) {
+	var a Artifact
+	err := row.Scan(&a.ID, &a.KeyID, &a.Title, &a.CurrentVersion, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt)
+	return a, notFound(err)
+}
+
+func (s *sqlStore) Artifact(ctx context.Context, id string) (Artifact, error) {
+	return scanArtifact(s.db.QueryRowContext(ctx, s.q(`SELECT `+artifactCols+` FROM artifacts WHERE id=?`), id))
+}
+
+func (s *sqlStore) ListArtifacts(ctx context.Context, keyID int64, limit int, before time.Time) ([]Artifact, error) {
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT `+artifactCols+` FROM artifacts WHERE key_id=? AND deleted_at IS NULL AND created_at<? ORDER BY created_at DESC LIMIT ?`), keyID, before, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Artifact
+	for rows.Next() {
+		a, err := scanArtifact(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+func (s *sqlStore) CountArtifacts(ctx context.Context, keyID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM artifacts WHERE key_id=? AND deleted_at IS NULL`), keyID).Scan(&n)
+	return n, err
+}
+
+func (s *sqlStore) UpdateTitle(ctx context.Context, id, title string) error {
+	_, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET title=?, updated_at=? WHERE id=?`), title, time.Now().UTC(), id)
+	return err
+}
+
+func (s *sqlStore) SoftDelete(ctx context.Context, id string, at time.Time) error {
+	_, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET deleted_at=?, updated_at=? WHERE id=? AND deleted_at IS NULL`), at, at, id)
+	return err
+}
+
+func (s *sqlStore) AddVersion(ctx context.Context, v Version, files []File) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO versions(artifact_id,version,created_at,bytes,file_count) VALUES (?,?,?,?,?)`),
+		v.ArtifactID, v.Version, v.CreatedAt, v.Bytes, v.FileCount); err != nil {
+		return err
+	}
+	for _, f := range files {
+		if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO files(artifact_id,version,path,sha256,size,content_type) VALUES (?,?,?,?,?,?)`),
+			v.ArtifactID, v.Version, f.Path, f.SHA256, f.Size, f.ContentType); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, s.q(`UPDATE blobs SET refcount=refcount+1 WHERE sha256=?`), f.SHA256); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, s.q(`UPDATE artifacts SET current_version=?, updated_at=? WHERE id=?`), v.Version, v.CreatedAt, v.ArtifactID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (s *sqlStore) Versions(ctx context.Context, artifactID string) ([]Version, error) {
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT artifact_id,version,created_at,bytes,file_count FROM versions WHERE artifact_id=? ORDER BY version`), artifactID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Version
+	for rows.Next() {
+		var v Version
+		if err := rows.Scan(&v.ArtifactID, &v.Version, &v.CreatedAt, &v.Bytes, &v.FileCount); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+func (s *sqlStore) Files(ctx context.Context, artifactID string, version int) ([]File, error) {
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT path,sha256,size,content_type FROM files WHERE artifact_id=? AND version=? ORDER BY path`), artifactID, version)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []File
+	for rows.Next() {
+		var f File
+		if err := rows.Scan(&f.Path, &f.SHA256, &f.Size, &f.ContentType); err != nil {
+			return nil, err
+		}
+		out = append(out, f)
+	}
+	return out, rows.Err()
+}
+
+func (s *sqlStore) PruneVersions(ctx context.Context, artifactID string, keep int) ([]int, error) {
+	vs, err := s.Versions(ctx, artifactID)
+	if err != nil {
+		return nil, err
+	}
+	if len(vs) <= keep {
+		return nil, nil
+	}
+	protected := map[int]bool{}
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT DISTINCT version FROM threads WHERE artifact_id=? AND status='open'`), artifactID)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var v int
+		if err := rows.Scan(&v); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		protected[v] = true
+	}
+	rows.Close()
+	// Only the oldest (len(vs)-keep) versions are eligible for pruning; a
+	// protected one among them is skipped in place (not replaced by a newer
+	// version), so it stays retained beyond the requested keep count.
+	excess := len(vs) - keep
+	candidates := vs[:excess]
+	var pruned []int
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	for _, v := range candidates {
+		if protected[v.Version] {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, s.q(`UPDATE blobs SET refcount=refcount-1 WHERE sha256 IN (SELECT sha256 FROM files WHERE artifact_id=? AND version=?)`), artifactID, v.Version); err != nil {
+			return nil, err
+		}
+		if _, err := tx.ExecContext(ctx, s.q(`DELETE FROM files WHERE artifact_id=? AND version=?`), artifactID, v.Version); err != nil {
+			return nil, err
+		}
+		if _, err := tx.ExecContext(ctx, s.q(`DELETE FROM versions WHERE artifact_id=? AND version=?`), artifactID, v.Version); err != nil {
+			return nil, err
+		}
+		pruned = append(pruned, v.Version)
+	}
+	return pruned, tx.Commit()
+}
+
+func (s *sqlStore) UpsertBlob(ctx context.Context, sha string, size int64) error {
+	var q string
+	if s.dialect == "postgres" {
+		q = `INSERT INTO blobs(sha256,size,refcount,created_at) VALUES (?,?,0,?) ON CONFLICT (sha256) DO NOTHING`
+	} else {
+		q = `INSERT OR IGNORE INTO blobs(sha256,size,refcount,created_at) VALUES (?,?,0,?)`
+	}
+	_, err := s.db.ExecContext(ctx, s.q(q), sha, size, time.Now().UTC())
+	return err
+}
+
+func (s *sqlStore) HasBlobs(ctx context.Context, shas []string) (map[string]bool, error) {
+	out := map[string]bool{}
+	if len(shas) == 0 {
+		return out, nil
+	}
+	ph := strings.TrimSuffix(strings.Repeat("?,", len(shas)), ",")
+	args := make([]any, len(shas))
+	for i, v := range shas {
+		args[i] = v
+	}
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT sha256 FROM blobs WHERE sha256 IN (`+ph+`)`), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var sha string
+		if err := rows.Scan(&sha); err != nil {
+			return nil, err
+		}
+		out[sha] = true
+	}
+	return out, rows.Err()
+}
+
+func (s *sqlStore) ZeroRefBlobs(ctx context.Context, olderThan time.Time) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT sha256 FROM blobs WHERE refcount<=0 AND created_at<?`), olderThan)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var sha string
+		if err := rows.Scan(&sha); err != nil {
+			return nil, err
+		}
+		out = append(out, sha)
+	}
+	return out, rows.Err()
+}
+
+func (s *sqlStore) DeleteBlob(ctx context.Context, sha string) error {
+	_, err := s.db.ExecContext(ctx, s.q(`DELETE FROM blobs WHERE sha256=? AND refcount<=0`), sha)
+	return err
+}
+
+func (s *sqlStore) CreateThread(ctx context.Context, t Thread, first Comment) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO threads(id,artifact_id,version,anchor_json,status,anchor_status,created_at) VALUES (?,?,?,?,?,?,?)`),
+		t.ID, t.ArtifactID, t.Version, t.AnchorJSON, t.Status, t.AnchorStatus, t.CreatedAt); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO comments(id,thread_id,author_name,author_kind,body,created_at) VALUES (?,?,?,?,?,?)`),
+		first.ID, first.ThreadID, first.AuthorName, first.AuthorKind, first.Body, first.CreatedAt); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+const threadCols = `id,artifact_id,version,anchor_json,status,anchor_status,created_at,resolved_at`
+
+func scanThread(row interface{ Scan(...any) error }) (Thread, error) {
+	var t Thread
+	err := row.Scan(&t.ID, &t.ArtifactID, &t.Version, &t.AnchorJSON, &t.Status, &t.AnchorStatus, &t.CreatedAt, &t.ResolvedAt)
+	return t, notFound(err)
+}
+
+func (s *sqlStore) Thread(ctx context.Context, id string) (Thread, error) {
+	return scanThread(s.db.QueryRowContext(ctx, s.q(`SELECT `+threadCols+` FROM threads WHERE id=?`), id))
+}
+
+func (s *sqlStore) Threads(ctx context.Context, artifactID, status string, since time.Time, version int) ([]Thread, error) {
+	q := `SELECT ` + threadCols + ` FROM threads WHERE artifact_id=? AND created_at>=?`
+	args := []any{artifactID, since}
+	if status != "" {
+		q += ` AND status=?`
+		args = append(args, status)
+	}
+	if version > 0 {
+		q += ` AND version=?`
+		args = append(args, version)
+	}
+	q += ` ORDER BY created_at`
+	rows, err := s.db.QueryContext(ctx, s.q(q), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Thread
+	for rows.Next() {
+		t, err := scanThread(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+func (s *sqlStore) Comments(ctx context.Context, threadIDs []string) (map[string][]Comment, error) {
+	out := map[string][]Comment{}
+	if len(threadIDs) == 0 {
+		return out, nil
+	}
+	ph := strings.TrimSuffix(strings.Repeat("?,", len(threadIDs)), ",")
+	args := make([]any, len(threadIDs))
+	for i, v := range threadIDs {
+		args[i] = v
+	}
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT id,thread_id,author_name,author_kind,body,created_at FROM comments WHERE thread_id IN (`+ph+`) ORDER BY created_at`), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var c Comment
+		if err := rows.Scan(&c.ID, &c.ThreadID, &c.AuthorName, &c.AuthorKind, &c.Body, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		out[c.ThreadID] = append(out[c.ThreadID], c)
+	}
+	return out, rows.Err()
+}
+
+func (s *sqlStore) AddComment(ctx context.Context, c Comment) error {
+	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO comments(id,thread_id,author_name,author_kind,body,created_at) VALUES (?,?,?,?,?,?)`),
+		c.ID, c.ThreadID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt)
+	return err
+}
+
+func (s *sqlStore) ResolveThread(ctx context.Context, id string, at time.Time) error {
+	res, err := s.db.ExecContext(ctx, s.q(`UPDATE threads SET status='resolved', resolved_at=? WHERE id=?`), at, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *sqlStore) SetAnchorStatus(ctx context.Context, threadID, status string) error {
+	_, err := s.db.ExecContext(ctx, s.q(`UPDATE threads SET anchor_status=? WHERE id=?`), status, threadID)
+	return err
+}
+
+func (s *sqlStore) CountOpenThreads(ctx context.Context, artifactID string) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM threads WHERE artifact_id=? AND status='open'`), artifactID).Scan(&n)
+	return n, err
+}
+
+func (s *sqlStore) CountThreadsByVersion(ctx context.Context, artifactID string) (map[int]int, error) {
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT version, COUNT(*) FROM threads WHERE artifact_id=? GROUP BY version`), artifactID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int]int{}
+	for rows.Next() {
+		var v, n int
+		if err := rows.Scan(&v, &n); err != nil {
+			return nil, err
+		}
+		out[v] = n
+	}
+	return out, rows.Err()
+}
