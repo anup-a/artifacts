@@ -19,23 +19,42 @@ First time:
 ```
 fly auth login
 fly apps create artifacts-share
-fly volumes create artifacts_data --region bom --size 1 --app artifacts-share
+fly volumes create artifacts_data --region sin --size 1 --app artifacts-share
 fly secrets set ADMIN_TOKEN=<token> --app artifacts-share
 fly deploy --config deploy/fly.free.toml
 ```
 
-Then the certificates and DNS. `fly certs add` prints the records to create:
+Then the certificates and DNS:
 
 ```
 fly certs add share.creatica.app     --app artifacts-share
 fly certs add api.share.creatica.app --app artifacts-share
+fly certs setup <hostname> --app artifacts-share   # prints every DNS option
 ```
 
-At the registrar, a `CNAME` for each hostname pointing at
-`artifacts-share.fly.dev`, plus the `_acme-challenge` records Fly asks for.
-`fly certs check <hostname>` reports when the certificate is issued.
+At the DNS provider, one `CNAME` per hostname pointing at
+`<prefix>.artifacts-share.fly.dev` (the prefix comes from `fly certs setup`).
+That single record both routes traffic and proves ownership, because it
+resolves to the app's AAAA. `fly certs check <hostname>` reports when the
+certificate is issued.
 
 After that, `fly deploy --config deploy/fly.free.toml` is the whole deploy loop.
+
+### When the remote builder is unreachable
+
+On a network where Fly's Depot builder fails its TLS handshake
+(`authentication handshake failed: EOF`), build locally and deploy the image:
+
+```
+fly auth docker
+docker buildx build --platform linux/amd64 \
+  -f deploy/Dockerfile.fly -t registry.fly.io/artifacts-share:<tag> --push .
+fly deploy --config deploy/fly.free.toml --image registry.fly.io/artifacts-share:<tag>
+```
+
+`buildx` is required: the classic builder cannot cross-build, and emulating an
+amd64 toolchain on an arm64 Mac crashes the Go runtime. `Dockerfile.fly` builds
+natively and cross-compiles, so nothing is emulated.
 
 Smoke it with the CLI:
 

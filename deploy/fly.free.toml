@@ -10,13 +10,17 @@
 # X-Forwarded-For with the real peer.
 
 app = "artifacts-share"
-primary_region = "bom"
+# Singapore, not Mumbai: Fly no longer lists `bom` in `fly platform regions`,
+# and sin is the nearest region it does offer.
+primary_region = "sin"
 
 # Not the repo-root Dockerfile: a Fly volume mounts root-owned, and the
 # nonroot uid that image runs as cannot create the sqlite file in it.
 # deploy/Dockerfile.fly explains the trade-off.
 [build]
-  dockerfile = "deploy/Dockerfile.fly"
+  # Relative to this file, not to the repo root. The build context is still the
+  # directory `fly deploy` runs in, which must be the repo root.
+  dockerfile = "Dockerfile.fly"
 
 [env]
   ADDR = ":8080"

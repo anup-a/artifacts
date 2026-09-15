@@ -11,12 +11,18 @@
 # attacker nothing beyond what compromising the server already would. Every
 # other deployment keeps the nonroot image in the repo root Dockerfile.
 
-FROM golang:1.26-alpine AS build
+# --platform=$BUILDPLATFORM keeps the build stage on the builder's own
+# architecture and lets Go cross-compile to $TARGETARCH. Emulating an amd64
+# toolchain on an arm64 Mac instead makes the Go runtime crash outright
+# ("fatal error" in go mod download under qemu), and it would be slow anyway.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
+ARG TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/artifacts-server ./cmd/artifacts-server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags="-s -w" -o /out/artifacts-server ./cmd/artifacts-server
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/artifacts-server /artifacts-server
