@@ -26,6 +26,10 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("POST /api/artifacts/preflight", s.withAuth(s.preflight))
 	mux.HandleFunc("POST /api/artifacts", s.withAuth(s.createArtifact))
 	mux.HandleFunc("PUT /api/artifacts/{id}", s.withAuth(s.updateArtifact))
+	mux.HandleFunc("GET /api/artifacts/{id}", s.withAuth(s.getArtifact))
+	mux.HandleFunc("DELETE /api/artifacts/{id}", s.withAuth(s.deleteArtifact))
+	mux.HandleFunc("GET /api/artifacts/{id}/versions", s.withAuth(s.listVersions))
+	mux.HandleFunc("POST /api/artifacts/{id}/rollback/{version}", s.withAuth(s.rollback))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
@@ -51,9 +55,4 @@ func (s *server) health(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write([]byte("ok"))
-}
-
-// listArtifacts is replaced with the real implementation in Task 8.
-func (s *server) listArtifacts(w http.ResponseWriter, r *http.Request) {
-	apierr.WriteJSON(w, 200, map[string]any{"artifacts": []any{}})
 }

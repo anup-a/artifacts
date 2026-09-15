@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/store"
 )
+
+func stringsReader(s string) *strings.Reader { return strings.NewReader(s) }
 
 // newTestServer boots sqlite+local in a temp dir. managed=false uses ADMIN_TOKEN "admin-token".
 func newTestServer(t *testing.T, managed bool) (*httptest.Server, Deps, string) {

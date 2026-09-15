@@ -38,17 +38,19 @@ func main() {
 		log.Error("blob", "err", err)
 		os.Exit(1)
 	}
-	h, err := api.NewHandler(api.Deps{
+	deps := api.Deps{
 		Cfg: cfg, Store: st, Blobs: bl, Now: func() time.Time { return time.Now().UTC() },
 		PublishLimiter: ratelimit.New(cfg.Limits.PublishPerMin),
 		CommentLimiter: ratelimit.New(cfg.Limits.CommentsPerMin),
 		KeyLimiter:     ratelimit.New(5),
 		Runtime:        runtime.CommentsJS,
-	})
+	}
+	h, err := api.NewHandler(deps)
 	if err != nil {
 		log.Error("handler", "err", err)
 		os.Exit(1)
 	}
+	go api.RunGC(ctx, deps, time.Hour)
 	log.Info("listening", "addr", cfg.Addr, "db", cfg.DB, "storage", cfg.Storage)
 	srv := &http.Server{Addr: cfg.Addr, Handler: h, ReadHeaderTimeout: 10 * time.Second}
 	if err := srv.ListenAndServe(); err != nil {
