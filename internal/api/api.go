@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/blob"
@@ -25,11 +26,16 @@ type Deps struct {
 type server struct {
 	Deps
 	adminKey *store.Key // set in self-host mode
+	idem     idempotency
 }
+
+func strconvItoa(n int) string { return strconv.Itoa(n) }
 
 type keyCtx struct{}
 
-func withKey(ctx context.Context, k store.Key) context.Context { return context.WithValue(ctx, keyCtx{}, k) }
+func withKey(ctx context.Context, k store.Key) context.Context {
+	return context.WithValue(ctx, keyCtx{}, k)
+}
 
 // KeyFrom returns the authenticated key placed by the auth middleware.
 func KeyFrom(ctx context.Context) (store.Key, bool) {

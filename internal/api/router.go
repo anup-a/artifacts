@@ -31,6 +31,13 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("DELETE /api/artifacts/{id}", s.withAuth(s.deleteArtifact))
 	mux.HandleFunc("GET /api/artifacts/{id}/versions", s.withAuth(s.listVersions))
 	mux.HandleFunc("POST /api/artifacts/{id}/rollback/{version}", s.withAuth(s.rollback))
+	mux.HandleFunc("POST /c/{id}/comments", s.viewerCreateThread)
+	mux.HandleFunc("GET /c/{id}/comments", s.viewerList)
+	mux.HandleFunc("POST /c/{id}/comments/{thread}/reply", s.viewerReply)
+	mux.HandleFunc("POST /c/{id}/comments/{thread}/seen", s.viewerSeen)
+	mux.HandleFunc("GET /api/artifacts/{id}/comments", s.withAuth(s.ownerListComments))
+	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/reply", s.withAuth(s.ownerReply))
+	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/resolve", s.withAuth(s.ownerResolve))
 	(&serve.Handler{Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime, ShareOrigin: d.Cfg.ShareOrigin}).Register(mux)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
