@@ -105,6 +105,44 @@ func TestPruneSkipsOpenThreads(t *testing.T) {
 	}
 }
 
+func TestPruneDecrementsPerFileRow(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	k, _ := s.CreateKey(ctx, "h", "e")
+	now := time.Now().UTC()
+	a := Artifact{ID: "prunedup00001", KeyID: k.ID, CreatedAt: now, UpdatedAt: now}
+	_ = s.CreateArtifact(ctx, a)
+	_ = s.UpsertBlob(ctx, "dup", 1)
+	_ = s.UpsertBlob(ctx, "other", 1)
+	// v1 has two files sharing the same sha256 ("dup").
+	if err := s.AddVersion(ctx, Version{ArtifactID: a.ID, Version: 1, CreatedAt: now.Add(time.Second), Bytes: 2, FileCount: 2},
+		[]File{
+			{Path: "index.html", SHA256: "dup", Size: 1, ContentType: "text/html"},
+			{Path: "copy.html", SHA256: "dup", Size: 1, ContentType: "text/html"},
+		}); err != nil {
+		t.Fatal(err)
+	}
+	// v2 has a different sha so v1 is prunable when keep=1.
+	if err := s.AddVersion(ctx, Version{ArtifactID: a.ID, Version: 2, CreatedAt: now.Add(2 * time.Second), Bytes: 1, FileCount: 1},
+		[]File{{Path: "other.html", SHA256: "other", Size: 1, ContentType: "text/html"}}); err != nil {
+		t.Fatal(err)
+	}
+	pruned, err := s.PruneVersions(ctx, a.ID, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pruned) != 1 || pruned[0] != 1 {
+		t.Fatalf("pruned %v, want [1]", pruned)
+	}
+	zero, err := s.ZeroRefBlobs(ctx, time.Now().Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(zero) != 1 || zero[0] != "dup" {
+		t.Fatalf("ZeroRefBlobs = %v, want [\"dup\"]", zero)
+	}
+}
+
 func TestThreadsAndComments(t *testing.T) {
 	ctx := context.Background()
 	s := newStore(t)

@@ -49,6 +49,14 @@ func (s *sqlStore) CreateKey(ctx context.Context, hash, email string) (Key, erro
 		return Key{}, err
 	}
 	defer tx.Rollback()
+	if s.dialect == "postgres" {
+		// SQLite is serialized via SetMaxOpenConns(1), so the MAX(id)+1 read below
+		// can't race there; on Postgres it can, so take an exclusive table lock
+		// first to serialize concurrent CreateKey calls and avoid a duplicate id.
+		if _, err := tx.ExecContext(ctx, `LOCK TABLE keys IN EXCLUSIVE MODE`); err != nil {
+			return Key{}, err
+		}
+	}
 	var next int64
 	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id),0)+1 FROM keys`).Scan(&next); err != nil {
 		return Key{}, err
@@ -217,7 +225,10 @@ func (s *sqlStore) PruneVersions(ctx context.Context, artifactID string, keep in
 		if protected[v.Version] {
 			continue
 		}
-		if _, err := tx.ExecContext(ctx, s.q(`UPDATE blobs SET refcount=refcount-1 WHERE sha256 IN (SELECT sha256 FROM files WHERE artifact_id=? AND version=?)`), artifactID, v.Version); err != nil {
+		// Decrement per file row (mirroring the per-row increment in AddVersion), not
+		// per distinct sha, so a version with two files sharing one sha (same content,
+		// different paths) doesn't leak a refcount.
+		if _, err := tx.ExecContext(ctx, s.q(`UPDATE blobs SET refcount = refcount - (SELECT COUNT(*) FROM files f WHERE f.artifact_id=? AND f.version=? AND f.sha256=blobs.sha256) WHERE sha256 IN (SELECT sha256 FROM files WHERE artifact_id=? AND version=?)`), artifactID, v.Version, artifactID, v.Version); err != nil {
 			return nil, err
 		}
 		if _, err := tx.ExecContext(ctx, s.q(`DELETE FROM files WHERE artifact_id=? AND version=?`), artifactID, v.Version); err != nil {
