@@ -170,3 +170,20 @@ func TestRuntimeEtag304(t *testing.T) {
 		t.Fatalf("304 Cache-Control missing or wrong: %s", res2.Header.Get("Cache-Control"))
 	}
 }
+
+func TestServeSkill(t *testing.T) {
+	srv, _, _ := fixture(t)
+	res, body := get(t, srv.URL+"/skill.md", nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "text/markdown; charset=utf-8" {
+		t.Fatalf("content type %s", ct)
+	}
+	// The skill is only useful if it still teaches the publish and comment loop.
+	for _, want := range []string{"npx artifacts publish", "npx artifacts comments", "npx artifacts resolve"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("skill is missing %q", want)
+		}
+	}
+}

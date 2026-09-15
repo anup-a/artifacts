@@ -12,6 +12,7 @@ import (
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/artifacts/skill"
 )
 
 type Handler struct {
@@ -26,6 +27,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	sum := sha256.Sum256(h.Runtime)
 	h.runtimeETag = `"` + hex.EncodeToString(sum[:]) + `"`
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
+	mux.HandleFunc("GET /skill.md", h.skill)
 	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.pinned)
 	mux.HandleFunc("GET /a/{id}/{path...}", h.current)
 	mux.HandleFunc("GET /a/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +44,14 @@ func (h *Handler) runtime(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 	w.Write(h.Runtime)
+}
+
+// skill serves the agent skill. It is short, public and changes only with a
+// deploy, so a small cache window is enough and no ETag dance is needed.
+func (h *Handler) skill(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
+	w.Write(skill.Markdown)
 }
 
 func (h *Handler) current(w http.ResponseWriter, r *http.Request) {

@@ -32,6 +32,53 @@ curl -sf -H "$H" -F "manifest=$MAN" -F "$SHA=@index.html" localhost:8080/api/art
 
 Open the returned `url` in a browser to view the published page.
 
+## CLI
+
+The `cli/` directory is the `artifacts` npm package. It has no dependencies and
+runs straight from npm:
+
+```
+export ARTIFACTS_API=http://localhost:8080 ARTIFACTS_TOKEN=change-me
+npx artifacts publish ./site --title "Hello" --json
+# => {"id":"...","url":"http://localhost:8080/a/.../","version":1,"files":2,"bytes":1841,"uploaded":2}
+```
+
+| Command | What it does |
+| --- | --- |
+| `login --api <url> [--token <key>]` | Verifies the key, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
+| `publish <dir\|file.html> [--id <id>] [--title <t>]` | Uploads only the blobs the server is missing and publishes a new version |
+| `get <id>` | URL, title, current version, open comment count |
+| `list` | Artifacts for the key |
+| `versions <id>` | Version history with per-version comment counts |
+| `rollback <id> <version>` | Republishes an old version as the newest one |
+| `comments <id> [--open\|--all] [--since <rfc3339>]` | Threads with their anchor status and comments |
+| `reply <id> <thread> "<text>"` | Posts an owner reply on a thread |
+| `resolve <id> <thread>` | Marks a thread resolved |
+| `delete <id>` | Soft-deletes the artifact; the URL stops working |
+
+Config comes from `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else
+`~/.artifacts/config.json`. Every command takes `--json` and then prints exactly
+one JSON object on stdout; errors print one JSON object on stderr and exit
+non-zero (2 for usage and configuration problems, 1 for a failed call).
+
+Publishing a directory writes `<dir>/.artifacts.json` with the artifact id and
+the API it belongs to, so the next `publish` of that directory updates the same
+URL. `--id` overrides it, and the link file is ignored when it names a different
+API. `.git`, `node_modules` and `.artifacts.json` are never uploaded. A single
+`.html` file is published as `index.html`.
+
+Tests: `cd cli && npm test` (unit plus an e2e suite that builds and drives the
+real server).
+
+## Agent skill
+
+[`skill/SKILL.md`](skill/SKILL.md) teaches an agent the whole loop: publish,
+hand over the URL, poll `comments --open --json`, reply, republish, resolve. It
+also carries the page design constraints (self-contained HTML, relative asset
+paths, the CDNs the page CSP allows). It is embedded in the binary and served at
+`GET /skill.md` on the share origin, so an agent can fetch it from a running
+deployment.
+
 ## API
 
 Base: `PUBLIC_API_ORIGIN`. Auth: `Authorization: Bearer <key>` on all

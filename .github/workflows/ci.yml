@@ -83,8 +83,23 @@ jobs:
           fi
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
+  cli:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # The CLI e2e suite builds and runs the real server.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: npm test
   image:
-    needs: [go, runtime]
+    needs: [go, runtime, cli]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
