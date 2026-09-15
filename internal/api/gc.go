@@ -22,17 +22,20 @@ func RunGC(ctx context.Context, d Deps, every time.Duration) {
 	}
 }
 
+// gcOnce deletes zero-ref blobs, removing DB row before physical bytes to ensure a failure leaks rather than corrupts.
 func gcOnce(ctx context.Context, d Deps, olderThan time.Time) error {
 	shas, err := d.Store.ZeroRefBlobs(ctx, olderThan)
 	if err != nil {
 		return err
 	}
 	for _, sha := range shas {
-		if err := d.Blobs.Delete(ctx, sha); err != nil {
-			return err
-		}
+		// Delete DB row first; if this succeeds and physical delete fails, we leak bytes (safe).
 		if err := d.Store.DeleteBlob(ctx, sha); err != nil {
 			return err
+		}
+		// Delete physical bytes; if this fails, log and continue to avoid partial cleanup.
+		if err := d.Blobs.Delete(ctx, sha); err != nil {
+			slog.Warn("gc: blob delete failed; bytes leaked", "sha", sha, "err", err)
 		}
 	}
 	return nil
