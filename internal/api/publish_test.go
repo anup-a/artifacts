@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +12,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/anup-a/artifacts/internal/ids"
 )
 
 type pubFile struct{ Path, Body string }
@@ -122,6 +125,65 @@ func TestPublishErrors(t *testing.T) {
 	code, _ = do(t, publishReq(t, "PUT", srv.URL+"/api/artifacts/nope00000000", tok, "", []pubFile{{"index.html", "x"}}, nil))
 	if code != 404 {
 		t.Fatalf("unknown id: %d", code)
+	}
+}
+
+func TestCreateMissingBlobLeavesNoRow(t *testing.T) {
+	srv, d, tok := newTestServer(t, false)
+	// missing blob part: create should fail without leaving an orphan artifact row
+	files := []pubFile{{"index.html", "x"}}
+	code, body := do(t, publishReq(t, "POST", srv.URL+"/api/artifacts", tok, "", files, []string{}))
+	if code != 400 || !strings.Contains(fmt.Sprint(body), "missing blob") {
+		t.Fatalf("%d %v", code, body)
+	}
+	req, _ := http.NewRequest("GET", srv.URL+"/api/artifacts", nil)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	code, listBody := do(t, req)
+	if code != 200 {
+		t.Fatalf("list: %d %v", code, listBody)
+	}
+	if arr, ok := listBody["artifacts"].([]any); !ok || len(arr) != 0 {
+		t.Fatalf("expected 0 artifacts, got %v", listBody)
+	}
+	key, err := d.Store.KeyByHash(context.Background(), ids.HashKey("admin:"+tok))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := d.Store.CountArtifacts(context.Background(), key.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		t.Fatalf("expected 0 artifacts counted against quota, got %d", n)
+	}
+}
+
+func TestPublishBodyTooLarge(t *testing.T) {
+	srv, _, tok := newTestServer(t, false) // VersionBytes = 1<<20 in test cfg -> cap is 2 MiB
+	blobBody := "0123456789"               // declared size 10
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	man, _ := json.Marshal(map[string]any{"files": []map[string]any{{"path": "index.html", "sha256": sha(blobBody), "size": len(blobBody)}}})
+	p, _ := mw.CreateFormField("manifest")
+	p.Write(man)
+	fw, _ := mw.CreateFormFile(sha(blobBody), "index.html")
+	fw.Write([]byte(blobBody))
+	// Blob part carries far more bytes than its declared size (10), so after
+	// storePart reads (and checksums) exactly those first 10 bytes via
+	// io.LimitReader, the multipart reader must skip the remaining ~2.5 MiB
+	// while scanning for the boundary on the next NextPart() call, crossing the cap.
+	oversized := bytes.Repeat([]byte("a"), 2_500_000)
+	fw.Write(oversized)
+	mw.Close()
+	req, _ := http.NewRequest("POST", srv.URL+"/api/artifacts", &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+tok)
+	code, body := do(t, req)
+	if code != 413 {
+		t.Fatalf("expected 413, got %d %v", code, body)
+	}
+	if errObj, ok := body["error"].(map[string]any); !ok || errObj["code"] != "PAYLOAD_TOO_LARGE" {
+		t.Fatalf("expected PAYLOAD_TOO_LARGE, got %v", body)
 	}
 }
 

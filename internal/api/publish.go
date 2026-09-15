@@ -55,6 +55,12 @@ func (s *server) preflight(w http.ResponseWriter, r *http.Request) {
 	apierr.WriteJSON(w, 200, map[string]any{"missing": missing})
 }
 
+// missingBlobErr formats the shared "missing blob" INVALID_ARGUMENT error used
+// by both the create and update/rollback publish paths.
+func missingBlobErr(missing []string) *apierr.Error {
+	return apierr.Invalid(fmt.Sprintf("missing blob %s (and %d more): upload it in this request", missing[0], len(missing)-1))
+}
+
 func (s *server) missingBlobs(ctx context.Context, m manifest) ([]string, *apierr.Error) {
 	shas := make([]string, 0, len(m.Files))
 	for _, f := range m.Files {
@@ -106,6 +112,10 @@ func (s *server) readPublish(w http.ResponseWriter, r *http.Request) (manifest, 
 			break
 		}
 		if err != nil {
+			var mbe *http.MaxBytesError
+			if errors.As(err, &mbe) {
+				return m, nil, apierr.TooLarge("request body exceeds the version size limit")
+			}
 			return m, nil, apierr.Invalid("malformed multipart body")
 		}
 		if e := s.storePart(r.Context(), p, sizes, uploaded); e != nil {
@@ -129,6 +139,10 @@ func (s *server) storePart(ctx context.Context, p *multipart.Part, sizes map[str
 		if errors.Is(err, blob.ErrChecksum) {
 			return apierr.Invalid("checksum mismatch for part " + sha)
 		}
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			return apierr.TooLarge("request body exceeds the version size limit")
+		}
 		return apierr.Internal(err)
 	}
 	if err := s.Store.UpsertBlob(ctx, sha, size); err != nil {
@@ -145,7 +159,7 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 		return 0, e
 	}
 	if len(missing) > 0 {
-		return 0, apierr.Invalid(fmt.Sprintf("missing blob %s (and %d more): upload it in this request", missing[0], len(missing)-1))
+		return 0, missingBlobErr(missing)
 	}
 	files := make([]store.File, 0, len(m.Files))
 	var total int64
@@ -186,6 +200,15 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 	m, _, e := s.readPublish(w, r)
 	if e != nil {
 		apierr.Write(w, r, e)
+		return
+	}
+	missing, e := s.missingBlobs(r.Context(), m)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	if len(missing) > 0 {
+		apierr.Write(w, r, missingBlobErr(missing))
 		return
 	}
 	now := s.Now()
