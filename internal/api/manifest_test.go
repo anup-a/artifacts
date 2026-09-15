@@ -20,15 +20,15 @@ func TestManifestOK(t *testing.T) {
 
 func TestManifestRejects(t *testing.T) {
 	cases := map[string]string{
-		"no index":   `{"files":[{"path":"a.html","sha256":"` + sha64("a") + `","size":1}]}`,
-		"dotdot":     `{"files":[{"path":"../index.html","sha256":"` + sha64("a") + `","size":1}]}`,
-		"abs":        `{"files":[{"path":"/index.html","sha256":"` + sha64("a") + `","size":1}]}`,
-		"bad sha":    `{"files":[{"path":"index.html","sha256":"XYZ","size":1}]}`,
-		"too big":    `{"files":[{"path":"index.html","sha256":"` + sha64("a") + `","size":101}]}`,
-		"too many":   `{"files":[{"path":"index.html","sha256":"` + sha64("a") + `","size":1},{"path":"b","sha256":"` + sha64("b") + `","size":1},{"path":"c","sha256":"` + sha64("c") + `","size":1},{"path":"d","sha256":"` + sha64("d") + `","size":1}]}`,
-		"dup path":   `{"files":[{"path":"index.html","sha256":"` + sha64("a") + `","size":1},{"path":"index.html","sha256":"` + sha64("b") + `","size":1}]}`,
-		"empty":      `{"files":[]}`,
-		"not json":   `{`,
+		"no index": `{"files":[{"path":"a.html","sha256":"` + sha64("a") + `","size":1}]}`,
+		"dotdot":   `{"files":[{"path":"../index.html","sha256":"` + sha64("a") + `","size":1}]}`,
+		"abs":      `{"files":[{"path":"/index.html","sha256":"` + sha64("a") + `","size":1}]}`,
+		"bad sha":  `{"files":[{"path":"index.html","sha256":"XYZ","size":1}]}`,
+		"too big":  `{"files":[{"path":"index.html","sha256":"` + sha64("a") + `","size":101}]}`,
+		"too many": `{"files":[{"path":"index.html","sha256":"` + sha64("a") + `","size":1},{"path":"b","sha256":"` + sha64("b") + `","size":1},{"path":"c","sha256":"` + sha64("c") + `","size":1},{"path":"d","sha256":"` + sha64("d") + `","size":1}]}`,
+		"dup path": `{"files":[{"path":"index.html","sha256":"` + sha64("a") + `","size":1},{"path":"index.html","sha256":"` + sha64("b") + `","size":1}]}`,
+		"empty":    `{"files":[]}`,
+		"not json": `{`,
 	}
 	for name, raw := range cases {
 		if _, e := parseManifest([]byte(raw), lim); e == nil {
