@@ -11,7 +11,7 @@ import (
 )
 
 func (s *server) viewerLimit(w http.ResponseWriter, r *http.Request) bool {
-	ok, retry := s.CommentLimiter.Allow("ip:" + clientIP(r))
+	ok, retry := s.CommentLimiter.Allow("ip:" + clientIP(r, s.Cfg.TrustProxyHeaders))
 	if !ok {
 		apierr.Write(w, r, apierr.RateLimited(retry))
 	}
@@ -174,9 +174,16 @@ func (s *server) viewerList(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
+	// Viewers may only ask for open threads or all of them (mirrors the owner
+	// list, which additionally allows "resolved").
 	status := "open"
-	if r.URL.Query().Get("status") == "all" {
+	switch r.URL.Query().Get("status") {
+	case "", "open":
+	case "all":
 		status = ""
+	default:
+		apierr.Write(w, r, apierr.Invalid("status must be open or all"))
+		return
 	}
 	version := 0
 	if v := r.URL.Query().Get("version"); v != "" {

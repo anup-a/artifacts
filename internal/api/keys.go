@@ -14,7 +14,7 @@ func (s *server) createKey(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("endpoint"))
 		return
 	}
-	if ok, retry := s.KeyLimiter.Allow("ip:" + clientIP(r)); !ok {
+	if ok, retry := s.KeyLimiter.Allow("ip:" + clientIP(r, s.Cfg.TrustProxyHeaders)); !ok {
 		apierr.Write(w, r, apierr.RateLimited(retry))
 		return
 	}

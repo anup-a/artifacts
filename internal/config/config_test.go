@@ -46,6 +46,17 @@ func TestLimitOverride(t *testing.T) {
 	}
 }
 
+func TestTrustProxyHeadersDefaultsOff(t *testing.T) {
+	c, _ := FromEnv(env(map[string]string{"ADMIN_TOKEN": "x"}))
+	if c.TrustProxyHeaders {
+		t.Fatal("TRUST_PROXY_HEADERS must default to false")
+	}
+	on, _ := FromEnv(env(map[string]string{"ADMIN_TOKEN": "x", "TRUST_PROXY_HEADERS": "true"}))
+	if !on.TrustProxyHeaders {
+		t.Fatal("TRUST_PROXY_HEADERS=true should enable it")
+	}
+}
+
 func TestOriginsDefaultToAddr(t *testing.T) {
 	c, _ := FromEnv(env(map[string]string{"ADMIN_TOKEN": "x"}))
 	if c.ShareOrigin != "http://localhost:8080" || c.APIOrigin != "http://localhost:8080" {

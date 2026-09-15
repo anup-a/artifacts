@@ -33,7 +33,12 @@ type Config struct {
 	KeySecret   string
 	ShareOrigin string
 	APIOrigin   string
-	Limits      Limits
+	// TrustProxyHeaders makes rate limiting read CF-Connecting-IP /
+	// X-Forwarded-For. Enable it only when the server is reachable exclusively
+	// through a proxy that overwrites those headers; otherwise a client can
+	// spoof them and escape per-IP limits.
+	TrustProxyHeaders bool
+	Limits            Limits
 }
 
 func FromEnv(getenv func(string) string) (Config, error) {
@@ -58,6 +63,8 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		KeySecret:   getenv("KEY_SIGNING_SECRET"),
 		ShareOrigin: get("PUBLIC_SHARE_ORIGIN", "http://localhost:8080"),
 		APIOrigin:   get("PUBLIC_API_ORIGIN", "http://localhost:8080"),
+
+		TrustProxyHeaders: get("TRUST_PROXY_HEADERS", "false") == "true",
 	}
 	var err error
 	if c.Limits, err = limitsFromEnv(getenv); err != nil {

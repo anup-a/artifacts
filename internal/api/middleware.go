@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"net"
 	"net/http"
 	"strings"
 
@@ -49,17 +50,26 @@ func (s *server) withAuth(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// clientIP honours Cloudflare / proxy headers, falling back to RemoteAddr.
-func clientIP(r *http.Request) string {
-	if v := r.Header.Get("CF-Connecting-IP"); v != "" {
-		return v
+// clientIP identifies the caller for rate-limit bucketing.
+//
+// Proxy headers are attacker-controlled on a directly-reachable server, so a
+// client could mint a fresh bucket per request just by varying X-Forwarded-For.
+// They are therefore consulted only when trustProxy is set (TRUST_PROXY_HEADERS),
+// which is correct only when the server is reachable exclusively through a proxy
+// that overwrites them (e.g. Cloudflare). Otherwise the transport peer address
+// wins.
+func clientIP(r *http.Request, trustProxy bool) string {
+	if trustProxy {
+		if v := r.Header.Get("CF-Connecting-IP"); v != "" {
+			return strings.TrimSpace(v)
+		}
+		if v := r.Header.Get("X-Forwarded-For"); v != "" {
+			return strings.TrimSpace(strings.Split(v, ",")[0])
+		}
 	}
-	if v := r.Header.Get("X-Forwarded-For"); v != "" {
-		return strings.TrimSpace(strings.Split(v, ",")[0])
-	}
-	host := r.RemoteAddr
-	if i := strings.LastIndex(host, ":"); i > 0 {
-		host = host[:i]
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
 	}
 	return host
 }
