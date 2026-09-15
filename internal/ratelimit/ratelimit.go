@@ -46,7 +46,7 @@ func (l *Limiter) Allow(key string) (bool, int) {
 		e.count++
 		return true, 0
 	}
-	retry := int(time.Minute - now.Sub(e.windowStart)) / int(time.Second)
+	retry := int(time.Minute-now.Sub(e.windowStart)) / int(time.Second)
 	if retry < 1 {
 		retry = 1
 	}

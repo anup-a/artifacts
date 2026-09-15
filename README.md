@@ -54,7 +54,8 @@ share origin take no auth; the artifact id is the capability.
 | `POST` | `/api/artifacts/:id/comments/:thread/resolve` | Marks resolved. |
 | `POST` | `/c/:id/comments` | Viewer. `{author_name, body, anchor, version}` → thread. `Idempotency-Key` header honoured. |
 | `POST` | `/c/:id/comments/:thread/reply` | Viewer. `{author_name, body}`. |
-| `GET` | `/c/:id/comments?version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does. |
+| `POST` | `/c/:id/comments/:thread/seen` | Viewer beacon. `{version, anchor_status}` → 204. Records where the runtime re-anchored the thread; ignored unless `version` is the current one. |
+| `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does. |
 | `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`. |
 | `GET` | `/healthz` | |
 
@@ -85,6 +86,7 @@ per key, 200 artifacts per unverified key, 20 versions kept, 2 KB comment body,
 | `KEY_SIGNING_SECRET` | (empty) | Managed mode: presence enables issuing keys via `POST /api/keys`. |
 | `PUBLIC_SHARE_ORIGIN` | `http://localhost:8080` | Origin used for generated artifact/comment links and CORS. |
 | `PUBLIC_API_ORIGIN` | `http://localhost:8080` | Origin used for API links and CORS. |
+| `TRUST_PROXY_HEADERS` | `false` | Bucket per-IP rate limits by `CF-Connecting-IP` / `X-Forwarded-For` instead of the peer address. Set `true` **only** when the server is reachable exclusively through a proxy that overwrites those headers (the managed box behind Cloudflare does). Leaving it on for a directly-reachable server lets anyone bypass IP rate limits by varying the header. |
 | `LIMIT_VERSION_BYTES` | `26214400` (25 MB) | Max bytes per published version. |
 | `LIMIT_FILES` | `500` | Max files per version. |
 | `LIMIT_VERSIONS_KEPT` | `20` | Older versions are GC'd beyond this. |

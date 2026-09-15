@@ -125,7 +125,8 @@ take no auth; the artifact id is the capability.
 | `POST` | `/api/artifacts/:id/comments/:thread/resolve` | Marks resolved. |
 | `POST` | `/c/:id/comments` | Viewer. `{author_name, body, anchor, version}` → thread. `Idempotency-Key` header honoured. |
 | `POST` | `/c/:id/comments/:thread/reply` | Viewer. `{author_name, body}`. |
-| `GET` | `/c/:id/comments?version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does (section 6). |
+| `POST` | `/c/:id/comments/:thread/seen` | Viewer beacon. `{version, anchor_status}` → 204. Reports where the runtime re-anchored the thread (section 6); ignored unless `version` is the current one. |
+| `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does (section 6). |
 | `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`. |
 | `GET` | `/healthz` | |
 

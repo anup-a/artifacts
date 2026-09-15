@@ -2,7 +2,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export ADMIN_TOKEN=smoke ADDR=:8091 DATA_DIR="$(mktemp -d)" PUBLIC_SHARE_ORIGIN=http://localhost:8091 PUBLIC_API_ORIGIN=http://localhost:8091
-go run ./cmd/artifacts-server & PID=$!
+# Build first and run the binary: `go run` execs the server as a child, so the
+# trap below would kill the go wrapper and leave the server holding the port,
+# making a second run of this script fail.
+go build -o "$DATA_DIR/server" ./cmd/artifacts-server
+"$DATA_DIR/server" & PID=$!
 trap 'kill $PID' EXIT
 for _ in $(seq 1 50); do curl -sf localhost:8091/healthz >/dev/null && break; sleep 0.2; done
 H='Authorization: Bearer smoke'

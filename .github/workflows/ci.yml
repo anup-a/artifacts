@@ -3,11 +3,23 @@ on: [push, pull_request]
 jobs:
   go:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: pg
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with: { go-version: "1.26" }
       - run: go vet ./...
+      - run: test -z "$(gofmt -l .)" || { gofmt -l .; echo "run gofmt"; exit 1; }
       - run: |
           docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=a -e MINIO_ROOT_PASSWORD=aaaaaaaa minio/minio server /data
           for _ in $(seq 1 30); do curl -sf http://localhost:9000/minio/health/live >/dev/null && break; sleep 1; done
@@ -16,6 +28,9 @@ jobs:
           ./mc alias set m http://localhost:9000 a aaaaaaaa && ./mc mb m/t
       - run: TEST_S3=1 S3_ENDPOINT=localhost:9000 S3_BUCKET=t S3_ACCESS_KEY=a S3_SECRET_KEY=aaaaaaaa S3_USE_SSL=false go test -race -coverprofile=cover.out ./...
       - run: go tool cover -func=cover.out | tail -1
+      # The store suite again, this time against real Postgres, so the
+      # dialect-specific SQL (placeholders, upserts, locking) is covered.
+      - run: TEST_PG_URL=postgres://postgres:pg@localhost:5432/postgres?sslmode=disable go test -race ./internal/store/
       - run: ./scripts/smoke.sh
   image:
     needs: go

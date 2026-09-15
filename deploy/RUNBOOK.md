@@ -27,11 +27,15 @@ PUBLIC_SHARE_ORIGIN=https://share.<domain>
 PUBLIC_API_ORIGIN=https://api.<domain>
 ```
 
-`/opt/artifacts/docker-compose.yml` is identical to the self-host compose
-file (`deploy/docker-compose.yml`), except environment values come from
-`.env` instead of being inlined:
+The managed box uses `deploy/docker-compose.managed.yml` (NOT the self-host
+`deploy/docker-compose.yml`, which is sqlite + local disk + `ADMIN_TOKEN`).
+Every value in it comes from `.env`; it sets `TRUST_PROXY_HEADERS=true`
+because the box is reachable only through Cloudflare, and it deliberately
+sets no `ADMIN_TOKEN` — keys are issued per user and signed with
+`KEY_SIGNING_SECRET`.
 
 ```
+cp deploy/docker-compose.managed.yml /opt/artifacts/docker-compose.yml
 cd /opt/artifacts
 docker compose --env-file .env up -d
 ```

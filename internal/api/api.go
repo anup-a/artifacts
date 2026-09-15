@@ -3,7 +3,6 @@ package api
 
 import (
 	"context"
-	"strconv"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/blob"
@@ -28,8 +27,6 @@ type server struct {
 	adminKey *store.Key // set in self-host mode
 	idem     idempotency
 }
-
-func strconvItoa(n int) string { return strconv.Itoa(n) }
 
 type keyCtx struct{}
 
