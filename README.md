@@ -34,12 +34,14 @@ Open the returned `url` in a browser to view the published page.
 
 ## CLI
 
-The `cli/` directory is the `artifacts` npm package. It has no dependencies and
-runs straight from npm:
+The `cli/` directory is the CLI package. It has no dependencies. It is not
+published to npm yet, so install it from the repo (`npx artifacts` would fetch
+an unrelated package that owns that name):
 
 ```
+npm install -g ./cli
 export ARTIFACTS_API=http://localhost:8080 ARTIFACTS_TOKEN=change-me
-npx artifacts publish ./site --title "Hello" --json
+artifacts publish ./site --title "Hello" --json
 # => {"id":"...","url":"http://localhost:8080/a/.../","version":1,"files":2,"bytes":1841,"uploaded":2}
 ```
 

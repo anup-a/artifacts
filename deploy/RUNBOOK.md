@@ -59,8 +59,9 @@ natively and cross-compiles, so nothing is emulated.
 Smoke it with the CLI:
 
 ```
-echo "$ADMIN_TOKEN" | npx artifacts login --api https://api.share.creatica.app
-npx artifacts publish ./site --title "Hello"
+npm install -g ./cli   # not on npm yet; `npx artifacts` is someone else's package
+echo "$ADMIN_TOKEN" | artifacts login --api https://api.share.creatica.app
+artifacts publish ./site --title "Hello"
 ```
 
 ## Validation box on a plain VPS (alternative)

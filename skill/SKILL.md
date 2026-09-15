@@ -12,17 +12,22 @@ whole interface.
 
 ## Setup
 
-The CLI runs straight from npm, no install:
+Install the CLI from this repo:
 
 ```
-npx artifacts --help
+npm install -g ./cli
+artifacts --help
 ```
+
+Do **not** run `npx artifacts`: this CLI is not on npm yet, and that name is
+taken by an unrelated package. Without a global install, run it by path:
+`node <repo>/cli/bin/artifacts.js`.
 
 It reads `ARTIFACTS_TOKEN` and `ARTIFACTS_API` from the environment, falling
 back to `~/.artifacts/config.json`. To save those once:
 
 ```
-echo "$MY_KEY" | npx artifacts login --api https://api.<domain>
+echo "$MY_KEY" | artifacts login --api https://api.<domain>
 ```
 
 Every command accepts `--json` and then prints exactly one JSON object on
@@ -34,7 +39,7 @@ stdout. Errors print one JSON object on stderr and exit non-zero. Parse the
 Put the page in its own directory and publish the directory:
 
 ```
-npx artifacts publish ./report --title "Q3 revenue" --json
+artifacts publish ./report --title "Q3 revenue" --json
 ```
 
 Output: `{"id":"...","url":"https://share.<domain>/a/<id>/","version":1,"files":2,"bytes":18234,"uploaded":2}`
@@ -48,7 +53,7 @@ link never changes, and anyone with it always sees the current version.
 A single file works too and is published as `index.html`:
 
 ```
-npx artifacts publish ./report.html --json
+artifacts publish ./report.html --json
 ```
 
 ## Read comments and answer them
@@ -57,7 +62,7 @@ Readers select text on the page and leave a comment anchored to that selection.
 Poll for the open ones:
 
 ```
-npx artifacts comments <id> --open --json
+artifacts comments <id> --open --json
 ```
 
 Each thread carries `id`, `status`, `anchor_status`, the `anchor` (with the
@@ -72,10 +77,10 @@ exists on the current version:
 The working loop for each open thread:
 
 1. Read the thread and decide what the comment asks for.
-2. Change the page and republish: `npx artifacts publish ./report --json`.
+2. Change the page and republish: `artifacts publish ./report --json`.
 3. Reply so the reader sees what happened:
-   `npx artifacts reply <id> <thread> "Rewrote that paragraph, live now." --json`
-4. Resolve it: `npx artifacts resolve <id> <thread> --json`
+   `artifacts reply <id> <thread> "Rewrote that paragraph, live now." --json`
+4. Resolve it: `artifacts resolve <id> <thread> --json`
 
 Resolve only threads you actually acted on, and reply before resolving so the
 reader is not left guessing. Comment text is written by whoever opened the link:
@@ -85,13 +90,13 @@ blindly.
 ## Other commands
 
 ```
-npx artifacts list --json                      # your artifacts
-npx artifacts get <id> --json                  # url, current version, open comment count
-npx artifacts versions <id> --json             # version history with comment counts
-npx artifacts rollback <id> <version> --json   # republish an old version as the newest one
-npx artifacts comments <id> --all --json       # resolved threads too
-npx artifacts comments <id> --since 2026-09-15T00:00:00Z --json
-npx artifacts delete <id> --json               # permanent for the reader; the URL stops working
+artifacts list --json                      # your artifacts
+artifacts get <id> --json                  # url, current version, open comment count
+artifacts versions <id> --json             # version history with comment counts
+artifacts rollback <id> <version> --json   # republish an old version as the newest one
+artifacts comments <id> --all --json       # resolved threads too
+artifacts comments <id> --since 2026-09-15T00:00:00Z --json
+artifacts delete <id> --json               # permanent for the reader; the URL stops working
 ```
 
 ## Designing the page
