@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"net/http"
 	"strings"
@@ -23,14 +24,15 @@ func requestID(next http.Handler) http.Handler {
 
 func (s *server) withAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tok := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if tok == "" || tok == r.Header.Get("Authorization") {
+		authHeader := r.Header.Get("Authorization")
+		tok := strings.TrimPrefix(authHeader, "Bearer ")
+		if tok == "" || tok == authHeader {
 			apierr.Write(w, r, apierr.Unauthorized())
 			return
 		}
 		var k store.Key
 		if s.adminKey != nil {
-			if tok != s.Cfg.AdminToken {
+			if subtle.ConstantTimeCompare([]byte(tok), []byte(s.Cfg.AdminToken)) != 1 {
 				apierr.Write(w, r, apierr.Unauthorized())
 				return
 			}

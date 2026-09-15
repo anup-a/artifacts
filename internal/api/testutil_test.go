@@ -42,7 +42,7 @@ func newTestServer(t *testing.T, managed bool) (*httptest.Server, Deps, string) 
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(h)
-	t.Cleanup(srv.Close)
 	t.Cleanup(func() { st.Close() })
+	t.Cleanup(srv.Close)
 	return srv, d, "admin-token"
 }
