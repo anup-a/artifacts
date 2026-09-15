@@ -2,15 +2,22 @@ package store
 
 import (
 	"context"
-	"path/filepath"
+	"errors"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/config"
 )
 
+// newStore returns a migrated store. When TEST_PG_URL is set every test in this
+// package runs against that Postgres instead of sqlite, so the dialect-specific
+// SQL (placeholder rewriting, upserts, locking) is exercised for real.
 func newStore(t *testing.T) Store {
 	t.Helper()
+	if url := os.Getenv("TEST_PG_URL"); url != "" {
+		return newPGStore(t, url)
+	}
 	cfg := config.Config{DB: "sqlite", DataDir: t.TempDir()}
 	s, err := Open(context.Background(), cfg)
 	if err != nil {
@@ -19,7 +26,27 @@ func newStore(t *testing.T) Store {
 	if err := s.Migrate(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	_ = filepath.Join
+	return s
+}
+
+// newPGStore opens TEST_PG_URL, migrates it, and truncates every table so each
+// test starts from an empty schema.
+func newPGStore(t *testing.T, url string) Store {
+	t.Helper()
+	ctx := context.Background()
+	cfg := config.Config{DB: "postgres", DatabaseURL: url}
+	s, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Migrate(ctx); err != nil {
+		t.Fatalf("migrate postgres: %v", err)
+	}
+	db := s.(*sqlStore).db
+	if _, err := db.ExecContext(ctx, `TRUNCATE comments, threads, files, versions, artifacts, blobs, keys RESTART IDENTITY CASCADE`); err != nil {
+		t.Fatalf("truncate: %v", err)
+	}
+	t.Cleanup(func() { s.Close() })
 	return s
 }
 
@@ -140,6 +167,98 @@ func TestPruneDecrementsPerFileRow(t *testing.T) {
 	}
 	if len(zero) != 1 || zero[0] != "dup" {
 		t.Fatalf("ZeroRefBlobs = %v, want [\"dup\"]", zero)
+	}
+}
+
+func TestAddVersionRejectsMissingBlob(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	k, _ := s.CreateKey(ctx, "h", "e")
+	now := time.Now().UTC()
+	a := Artifact{ID: "noblob000001", KeyID: k.ID, CreatedAt: now, UpdatedAt: now}
+	if err := s.CreateArtifact(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	err := s.AddVersion(ctx, Version{ArtifactID: a.ID, Version: 1, CreatedAt: now, Bytes: 1, FileCount: 1},
+		[]File{{Path: "index.html", SHA256: "ghost", Size: 1, ContentType: "text/html"}})
+	if !errors.Is(err, ErrBlobMissing) {
+		t.Fatalf("AddVersion err = %v, want ErrBlobMissing", err)
+	}
+	got, err := s.Artifact(ctx, a.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.CurrentVersion != 0 {
+		t.Fatalf("current_version = %d, want 0 (transaction must roll back)", got.CurrentVersion)
+	}
+	vs, _ := s.Versions(ctx, a.ID)
+	if len(vs) != 0 {
+		t.Fatalf("versions = %d, want 0", len(vs))
+	}
+}
+
+func TestZeroRefBlobsSkipsReferencedBlobs(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	k, _ := s.CreateKey(ctx, "h", "e")
+	now := time.Now().UTC()
+	a := Artifact{ID: "refcount0001", KeyID: k.ID, CreatedAt: now, UpdatedAt: now}
+	_ = s.CreateArtifact(ctx, a)
+	_ = s.UpsertBlob(ctx, "live", 1)
+	if err := s.AddVersion(ctx, Version{ArtifactID: a.ID, Version: 1, CreatedAt: now, Bytes: 1, FileCount: 1},
+		[]File{{Path: "index.html", SHA256: "live", Size: 1, ContentType: "text/html"}}); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate refcount drift: the counter says zero but a files row still
+	// points at the blob. GC must not collect it.
+	db := s.(*sqlStore).db
+	if _, err := db.ExecContext(ctx, s.(*sqlStore).q(`UPDATE blobs SET refcount=0 WHERE sha256=?`), "live"); err != nil {
+		t.Fatal(err)
+	}
+	zero, err := s.ZeroRefBlobs(ctx, time.Now().Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sha := range zero {
+		if sha == "live" {
+			t.Fatal("ZeroRefBlobs returned a blob still referenced by a files row")
+		}
+	}
+}
+
+func TestResolveAllThreadsUnblocksPrune(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	k, _ := s.CreateKey(ctx, "h", "e")
+	now := time.Now().UTC()
+	a := Artifact{ID: "resolveall01", KeyID: k.ID, CreatedAt: now, UpdatedAt: now}
+	_ = s.CreateArtifact(ctx, a)
+	_ = s.UpsertBlob(ctx, "s", 1)
+	if err := s.AddVersion(ctx, Version{ArtifactID: a.ID, Version: 1, CreatedAt: now, Bytes: 1, FileCount: 1},
+		[]File{{Path: "index.html", SHA256: "s", Size: 1, ContentType: "text/html"}}); err != nil {
+		t.Fatal(err)
+	}
+	_ = s.CreateThread(ctx, Thread{ID: "tr1", ArtifactID: a.ID, Version: 1, AnchorJSON: "{}", Status: "open", AnchorStatus: "unknown", CreatedAt: now},
+		Comment{ID: "cr1", ThreadID: "tr1", AuthorName: "x", AuthorKind: "viewer", Body: "hi", CreatedAt: now})
+	if pruned, _ := s.PruneVersions(ctx, a.ID, 0); len(pruned) != 0 {
+		t.Fatalf("open thread should protect v1, pruned %v", pruned)
+	}
+	if err := s.ResolveAllThreads(ctx, a.ID, now); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := s.CountOpenThreads(ctx, a.ID); n != 0 {
+		t.Fatalf("open threads = %d, want 0", n)
+	}
+	pruned, err := s.PruneVersions(ctx, a.ID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pruned) != 1 || pruned[0] != 1 {
+		t.Fatalf("pruned %v, want [1]", pruned)
+	}
+	zero, _ := s.ZeroRefBlobs(ctx, time.Now().Add(time.Hour))
+	if len(zero) != 1 || zero[0] != "s" {
+		t.Fatalf("ZeroRefBlobs = %v, want [\"s\"]", zero)
 	}
 }
 

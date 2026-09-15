@@ -9,6 +9,11 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
+// ErrBlobMissing is returned by AddVersion when a manifest file references a
+// sha256 with no blobs row, so the refcount increment would silently vanish
+// and the version would point at bytes nothing keeps alive.
+var ErrBlobMissing = errors.New("blob missing")
+
 type Key struct {
 	ID        int64
 	Email     string
@@ -85,6 +90,7 @@ type Store interface {
 	Comments(ctx context.Context, threadIDs []string) (map[string][]Comment, error)
 	AddComment(ctx context.Context, c Comment) error
 	ResolveThread(ctx context.Context, id string, at time.Time) error
+	ResolveAllThreads(ctx context.Context, artifactID string, at time.Time) error
 	SetAnchorStatus(ctx context.Context, threadID, status string) error
 	CountOpenThreads(ctx context.Context, artifactID string) (int, error)
 	CountThreadsByVersion(ctx context.Context, artifactID string) (map[int]int, error)

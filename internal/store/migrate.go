@@ -13,7 +13,10 @@ import (
 //go:embed migrations/*.sql
 var migrationFS embed.FS
 
-func runMigrations(ctx context.Context, db *sql.DB) error {
+// runMigrations applies embedded migrations in filename order. rewrite adapts
+// the `?` placeholders in the bookkeeping statements to the target dialect
+// (identity for sqlite, `$n` for postgres); without it Postgres rejects `?`.
+func runMigrations(ctx context.Context, db *sql.DB, rewrite func(string) string) error {
 	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY)`); err != nil {
 		return err
 	}
@@ -32,7 +35,7 @@ func runMigrations(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("migration name %q: %w", name, err)
 		}
 		var n int
-		if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations WHERE version = ?`, ver).Scan(&n); err != nil {
+		if err := db.QueryRowContext(ctx, rewrite(`SELECT COUNT(*) FROM schema_migrations WHERE version = ?`), ver).Scan(&n); err != nil {
 			return err
 		}
 		if n > 0 {
@@ -50,7 +53,7 @@ func runMigrations(ctx context.Context, db *sql.DB) error {
 			tx.Rollback()
 			return fmt.Errorf("migration %s: %w", name, err)
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations(version) VALUES (?)`, ver); err != nil {
+		if _, err := tx.ExecContext(ctx, rewrite(`INSERT INTO schema_migrations(version) VALUES (?)`), ver); err != nil {
 			tx.Rollback()
 			return err
 		}

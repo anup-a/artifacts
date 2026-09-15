@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -32,7 +33,7 @@ func (s *sqlStore) q(query string) string {
 	return b.String()
 }
 
-func (s *sqlStore) Migrate(ctx context.Context) error { return runMigrations(ctx, s.db) }
+func (s *sqlStore) Migrate(ctx context.Context) error { return runMigrations(ctx, s.db, s.q) }
 func (s *sqlStore) Ping(ctx context.Context) error    { return s.db.PingContext(ctx) }
 func (s *sqlStore) Close() error                      { return s.db.Close() }
 
@@ -144,8 +145,17 @@ func (s *sqlStore) AddVersion(ctx context.Context, v Version, files []File) erro
 			v.ArtifactID, v.Version, f.Path, f.SHA256, f.Size, f.ContentType); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, s.q(`UPDATE blobs SET refcount=refcount+1 WHERE sha256=?`), f.SHA256); err != nil {
+		res, err := tx.ExecContext(ctx, s.q(`UPDATE blobs SET refcount=refcount+1 WHERE sha256=?`), f.SHA256)
+		if err != nil {
 			return err
+		}
+		// No blobs row means the increment hit nothing: the version would
+		// reference bytes with no refcount keeping them alive, so GC could
+		// reclaim them out from under it. Fail the whole transaction.
+		if n, err := res.RowsAffected(); err != nil {
+			return err
+		} else if n == 0 {
+			return fmt.Errorf("%w: %s", ErrBlobMissing, f.SHA256)
 		}
 	}
 	if _, err := tx.ExecContext(ctx, s.q(`UPDATE artifacts SET current_version=?, updated_at=? WHERE id=?`), v.Version, v.CreatedAt, v.ArtifactID); err != nil {
@@ -279,7 +289,9 @@ func (s *sqlStore) HasBlobs(ctx context.Context, shas []string) (map[string]bool
 }
 
 func (s *sqlStore) ZeroRefBlobs(ctx context.Context, olderThan time.Time) ([]string, error) {
-	rows, err := s.db.QueryContext(ctx, s.q(`SELECT sha256 FROM blobs WHERE refcount<=0 AND created_at<?`), olderThan)
+	// The NOT EXISTS clause is a belt-and-braces guard against refcount drift:
+	// a blob is collectable only if no files row still points at it.
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT sha256 FROM blobs WHERE refcount<=0 AND created_at<? AND NOT EXISTS (SELECT 1 FROM files f WHERE f.sha256 = blobs.sha256)`), olderThan)
 	if err != nil {
 		return nil, err
 	}
@@ -397,6 +409,14 @@ func (s *sqlStore) ResolveThread(ctx context.Context, id string, at time.Time) e
 		return ErrNotFound
 	}
 	return nil
+}
+
+// ResolveAllThreads closes every open thread of an artifact. Used on delete:
+// open threads pin their version against pruning, and once the artifact is
+// gone (410) nobody can resolve them, so the blobs would be unreclaimable.
+func (s *sqlStore) ResolveAllThreads(ctx context.Context, artifactID string, at time.Time) error {
+	_, err := s.db.ExecContext(ctx, s.q(`UPDATE threads SET status='resolved', resolved_at=? WHERE artifact_id=? AND status='open'`), at, artifactID)
+	return err
 }
 
 func (s *sqlStore) SetAnchorStatus(ctx context.Context, threadID, status string) error {
