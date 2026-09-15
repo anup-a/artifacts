@@ -19,6 +19,18 @@ ID=$(echo "$RES" | sed -E 's/.*"id":"([^"]+)".*/\1/')
 echo "published $ID"
 curl -sf "localhost:8091/a/$ID/" | grep -q 'data-artifact' || { echo "runtime not injected"; exit 1; }
 curl -sf "localhost:8091/a/$ID/" | grep -q 'hello world' || { echo "body missing"; exit 1; }
+# The embedded runtime must be the real build, not a stub. Matching on a class
+# the bundle only defines once it actually paints highlights.
+rt=$(curl -fsS "localhost:8091/_rt/comments.js")
+case "$rt" in
+  *artifacts-hl*) ;;
+  *) echo "FAIL: served runtime is not the real bundle"; exit 1 ;;
+esac
+if [ "${#rt}" -lt 2000 ]; then
+  echo "FAIL: runtime bundle looks truncated (${#rt} bytes)"
+  exit 1
+fi
+echo "runtime bundle served: ${#rt} bytes"
 TH=$(curl -sf -H 'Content-Type: application/json' -d '{"author_name":"Smoke","body":"typo","anchor":{"kind":"text","quote":"hello"},"version":1}' "localhost:8091/c/$ID/comments")
 TID=$(echo "$TH" | sed -E 's/.*"id":"(th_[^"]+)".*/\1/')
 curl -sf -H "$H" "localhost:8091/api/artifacts/$ID/comments" | grep -q "$TID" || { echo "owner cannot see comment"; exit 1; }

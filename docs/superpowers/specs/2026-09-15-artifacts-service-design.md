@@ -127,6 +127,7 @@ take no auth; the artifact id is the capability.
 | `POST` | `/c/:id/comments/:thread/reply` | Viewer. `{author_name, body}`. |
 | `POST` | `/c/:id/comments/:thread/seen` | Viewer beacon. `{version, anchor_status}` → 204. Reports where the runtime re-anchored the thread (section 6); ignored unless `version` is the current one. |
 | `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does (section 6). |
+| `GET` | `/c/:id/meta` | Viewer. `{current_version, versions:[n]}` so the runtime can render a version switcher (section 7) without a publisher key. |
 | `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`. |
 | `GET` | `/healthz` | |
 

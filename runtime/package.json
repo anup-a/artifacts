@@ -1,0 +1,14 @@
+{
+  "name": "@artifacts/runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "esbuild": "^0.24.0"
+  }
+}

@@ -56,6 +56,7 @@ share origin take no auth; the artifact id is the capability.
 | `POST` | `/c/:id/comments/:thread/reply` | Viewer. `{author_name, body}`. |
 | `POST` | `/c/:id/comments/:thread/seen` | Viewer beacon. `{version, anchor_status}` → 204. Records where the runtime re-anchored the thread; ignored unless `version` is the current one. |
 | `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does. |
+| `GET` | `/c/:id/meta` | Viewer. `{current_version, versions:[n]}` so the runtime can render a version switcher. |
 | `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`. |
 | `GET` | `/healthz` | |
 
@@ -67,6 +68,31 @@ Errors: `{"error":{"code","message","request_id"}}`. Codes:
 Limits (managed free tier): 25 MB per version, 500 files, 10 publishes/min
 per key, 200 artifacts per unverified key, 20 versions kept, 2 KB comment body,
 20 comments/min per IP on `/c/*`.
+
+## Comments runtime
+
+Every served HTML page gets `<script src="/_rt/comments.js" data-artifact="…" data-version="…" defer>`
+injected before `</body>`. The runtime is vanilla JS with no dependencies, lives
+entirely in a shadow root, and fails closed: if the comments API is unreachable
+the page renders exactly as published.
+
+Viewers can select text or point at an element to leave an anchored comment under
+a display name; no account is involved. Anchors are re-resolved in the browser on
+every load and reported back as `attached`, `drifted` or `orphaned`, which is what
+`GET /api/artifacts/:id/comments` shows the publisher.
+
+Working on it:
+
+```bash
+cd runtime
+npm install
+npm test        # node:test units for anchor matching
+npm run build   # esbuild -> dist/comments.js (committed, 25 KB budget)
+npm run e2e     # Playwright against a real server
+```
+
+`runtime/dist/comments.js` is committed so `go build` never needs Node. CI rebuilds
+it and fails if the checked-in copy is stale.
 
 ## Environment reference
 
