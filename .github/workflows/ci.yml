@@ -29,17 +29,23 @@ jobs:
           if [ -n "$(gofmt -l .)" ]; then gofmt -l .; echo "run gofmt"; exit 1; fi
       - name: start minio
         run: |
-          docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=a -e MINIO_ROOT_PASSWORD=aaaaaaaa minio/minio server /data
+          # quay.io, not Docker Hub: anonymous Hub pulls are denied from GitHub
+          # runners ("pull access denied for minio/minio"). quay.io is MinIO's
+          # own second registry and needs no login.
+          docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin quay.io/minio/minio server /data
           for _ in $(seq 1 30); do curl -sf http://localhost:9000/minio/health/live >/dev/null && break; sleep 1; done
-          curl -sO https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x mc
-          ./mc alias set m http://localhost:9000 a aaaaaaaa && ./mc mb m/t
+          # dl.min.io now returns 410 Gone for every mc build, so the client comes
+          # from its container. Both commands run in one container because the
+          # alias is written into that container's config.
+          docker run --rm --network host --entrypoint sh quay.io/minio/mc -c \
+            "mc alias set m http://localhost:9000 minioadmin minioadmin && mc mb m/artifacts-test"
       - name: test (sqlite + s3)
         env:
           TEST_S3: "1"
           S3_ENDPOINT: localhost:9000
-          S3_BUCKET: t
-          S3_ACCESS_KEY: a
-          S3_SECRET_KEY: aaaaaaaa
+          S3_BUCKET: artifacts-test
+          S3_ACCESS_KEY: minioadmin
+          S3_SECRET_KEY: minioadmin
           S3_USE_SSL: "false"
         run: go test -race -coverprofile=cover.out ./...
       - name: coverage
