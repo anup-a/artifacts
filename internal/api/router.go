@@ -33,6 +33,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("POST /api/artifacts/{id}/rollback/{version}", s.withAuth(s.rollback))
 	mux.HandleFunc("POST /c/{id}/comments", s.viewerCreateThread)
 	mux.HandleFunc("GET /c/{id}/comments", s.viewerList)
+	mux.HandleFunc("GET /c/{id}/meta", s.viewerMeta)
 	mux.HandleFunc("POST /c/{id}/comments/{thread}/reply", s.viewerReply)
 	mux.HandleFunc("POST /c/{id}/comments/{thread}/seen", s.viewerSeen)
 	mux.HandleFunc("GET /api/artifacts/{id}/comments", s.withAuth(s.ownerListComments))

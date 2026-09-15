@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -206,4 +207,27 @@ func (s *server) viewerList(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	apierr.WriteJSON(w, 200, map[string]any{"threads": views})
+}
+
+// viewerMeta exposes the version list to anonymous viewers so the runtime can
+// render a version switcher. The artifact id is the capability here, exactly as
+// it is for the thread list; no publisher-only fields are included.
+func (s *server) viewerMeta(w http.ResponseWriter, r *http.Request) {
+	a, e := s.loadArtifactForViewer(r, r.PathValue("id"))
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	vs, err := s.Store.Versions(r.Context(), a.ID)
+	if err != nil {
+		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	ns := make([]int, 0, len(vs))
+	for _, v := range vs {
+		ns = append(ns, v.Version)
+	}
+	sort.Ints(ns)
+	w.Header().Set("Cache-Control", "no-store")
+	apierr.WriteJSON(w, 200, map[string]any{"current_version": a.CurrentVersion, "versions": ns})
 }

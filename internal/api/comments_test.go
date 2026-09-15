@@ -118,3 +118,33 @@ func TestCommentRateLimit(t *testing.T) {
 		t.Fatalf("%d %v (limit applies before thread lookup)", code, body)
 	}
 }
+
+func TestViewerMeta(t *testing.T) {
+	srv, _, tok := newTestServer(t, false)
+	_, b := do(t, publishReq(t, "POST", srv.URL+"/api/artifacts", tok, "", []pubFile{{"index.html", "<p>v1</p>"}}, nil))
+	id := b["id"].(string)
+	do(t, publishReq(t, "PUT", srv.URL+"/api/artifacts/"+id, tok, "", []pubFile{{"index.html", "<p>v2</p>"}}, nil))
+
+	code, m := do(t, jsonReq(t, "GET", srv.URL+"/c/"+id+"/meta", "", nil))
+	if code != 200 {
+		t.Fatalf("code %d: %v", code, m)
+	}
+	if m["current_version"].(float64) != 2 {
+		t.Fatalf("current_version: %v", m)
+	}
+	vs := m["versions"].([]any)
+	if len(vs) != 2 || vs[0].(float64) != 1 || vs[1].(float64) != 2 {
+		t.Fatalf("versions: %v", vs)
+	}
+
+	// Unknown artifact is a 404, not a 500.
+	if code, _ := do(t, jsonReq(t, "GET", srv.URL+"/c/nosuchid00000/meta", "", nil)); code != 404 {
+		t.Fatalf("unknown id: %d", code)
+	}
+
+	// Deleted artifact is gone for viewers.
+	do(t, authReq(t, "DELETE", srv.URL+"/api/artifacts/"+id, tok))
+	if code, _ := do(t, jsonReq(t, "GET", srv.URL+"/c/"+id+"/meta", "", nil)); code != 410 {
+		t.Fatalf("deleted: %d", code)
+	}
+}
