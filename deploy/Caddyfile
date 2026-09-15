@@ -1,0 +1,16 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# Both hostnames reach the same server: it routes on path, not on host.
+# Caddy terminates TLS and is the only thing bound to the public interface,
+# which is what makes TRUST_PROXY_HEADERS=true safe on this box: nothing can
+# reach the app without passing through here and having X-Forwarded-For
+# rewritten to the real peer.
+{$SHARE_HOST} {
+	reverse_proxy artifacts:8080
+}
+
+{$API_HOST} {
+	reverse_proxy artifacts:8080
+}

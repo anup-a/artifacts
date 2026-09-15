@@ -1,3 +1,4 @@
 .superpowers/
 data/
 cover.out
+deploy/.env.free

@@ -4,6 +4,38 @@ Operational reference for running `artifacts` on the managed deployment
 (Hetzner CX22 + Cloudflare + Neon + R2, per §3b of the
 [design spec](../docs/superpowers/specs/2026-09-15-artifacts-service-design.md)).
 
+## Free validation box (Oracle Always Free, ARM)
+
+The cheapest way to put the product in front of real users: one Ampere A1 VM,
+sqlite on its local disk, one `ADMIN_TOKEN`, and Caddy terminating TLS with
+Let's Encrypt. No Neon, no R2, no Cloudflare. Same binary and same API as the
+managed deployment, so moving up later is a change of env vars.
+
+Hostnames (`deploy/.env.free`, gitignored): `share.creatica.app` for pages and
+`api.share.creatica.app` for the API.
+
+One-time, in the OCI console: create the VM (Ubuntu, Ampere A1, the ssh key in
+`~/.ssh/artifacts_oracle.pub`) and allow 80/443 in its VCN security list.
+Then, at the registrar: an `A` record for each hostname pointing at the box IP.
+
+From a laptop:
+
+```
+./deploy/bootstrap.sh ubuntu@<box ip>   # docker, host firewall, /opt/artifacts
+./deploy/ship.sh      ubuntu@<box ip>   # build, copy image over ssh, up, health check
+```
+
+`ship.sh` carries the image over ssh instead of a registry, so the box needs no
+credentials for the private repo. Re-run it to deploy a new version; it is the
+whole deploy loop.
+
+Smoke it with the CLI:
+
+```
+echo "$ADMIN_TOKEN" | npx artifacts login --api https://api.share.creatica.app
+npx artifacts publish ./site --title "Hello"
+```
+
 ## Managed box (Hetzner CX22)
 
 ```

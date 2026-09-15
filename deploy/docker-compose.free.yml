@@ -1,0 +1,35 @@
+# Single free box (Oracle Always Free ARM), used to validate the product:
+# sqlite + local disk, one ADMIN_TOKEN, Caddy for automatic TLS. Postgres and
+# object storage come later via docker-compose.managed.yml.
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      SHARE_HOST: ${SHARE_HOST:?set SHARE_HOST in .env}
+      API_HOST: ${API_HOST:?set API_HOST in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+  artifacts:
+    # Default is the image ship.sh loads onto the box, so the box never needs
+    # registry credentials for the private repo.
+    image: ${ARTIFACTS_IMAGE:-artifacts:local}
+    environment:
+      DB: sqlite
+      STORAGE: local
+      DATA_DIR: /data
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env}
+      PUBLIC_SHARE_ORIGIN: https://${SHARE_HOST:?set SHARE_HOST in .env}
+      PUBLIC_API_ORIGIN: https://${API_HOST:?set API_HOST in .env}
+      TRUST_PROXY_HEADERS: "true"
+    # No published port: only Caddy may reach it.
+    expose: ["8080"]
+    volumes: ["./data:/data"]
+    restart: unless-stopped
+volumes:
+  caddy_data:
+  caddy_config:
