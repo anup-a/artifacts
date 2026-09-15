@@ -34,27 +34,34 @@ func (h *Handler) Register(mux *http.ServeMux) {
 }
 
 func (h *Handler) runtime(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Header().Set("ETag", h.runtimeETag)
 	if r.Header.Get("If-None-Match") == h.runtimeETag {
 		w.WriteHeader(304)
 		return
 	}
 	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-	w.Header().Set("ETag", h.runtimeETag)
 	w.Write(h.Runtime)
 }
 
 func (h *Handler) current(w http.ResponseWriter, r *http.Request) {
+	h.securityHeaders(w)
 	h.serve(w, r, r.PathValue("id"), 0, r.PathValue("path"))
 }
 
 func (h *Handler) pinned(w http.ResponseWriter, r *http.Request) {
+	h.securityHeaders(w)
 	v, err := strconv.Atoi(r.PathValue("version"))
 	if err != nil || v < 1 {
 		apierr.Write(w, r, apierr.NotFound("version"))
 		return
 	}
 	h.serve(w, r, r.PathValue("id"), v, r.PathValue("path"))
+}
+
+func (h *Handler) securityHeaders(w http.ResponseWriter) {
+	w.Header().Set("Content-Security-Policy", h.csp())
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 }
 
 func (h *Handler) csp() string {
@@ -106,8 +113,6 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	if isHTML {
 		etag = `"` + f.SHA256 + "-rt-" + strconv.Itoa(version) + `"`
 	}
-	w.Header().Set("Content-Security-Policy", h.csp())
-	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("ETag", etag)
 	if pinnedReq {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")

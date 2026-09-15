@@ -111,3 +111,62 @@ func TestServeNotFoundGoneEtag(t *testing.T) {
 		t.Fatalf("runtime %d %s", res.StatusCode, body)
 	}
 }
+
+func TestErrorResponsesCarrySecurityHeaders(t *testing.T) {
+	srv, st, id := fixture(t)
+
+	// Test 404 for missing file
+	res, _ := get(t, srv.URL+"/a/"+id+"/nope.html", nil)
+	if res.StatusCode != 404 || res.Header.Get("Content-Security-Policy") == "" || res.Header.Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("missing file 404: status=%d, csp=%s, nosniff=%s", res.StatusCode, res.Header.Get("Content-Security-Policy"), res.Header.Get("X-Content-Type-Options"))
+	}
+
+	// Test 404 for missing artifact
+	res, _ = get(t, srv.URL+"/a/zzzzzzzzzzzz/", nil)
+	if res.StatusCode != 404 || res.Header.Get("Content-Security-Policy") == "" || res.Header.Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("missing artifact 404: status=%d, csp=%s, nosniff=%s", res.StatusCode, res.Header.Get("Content-Security-Policy"), res.Header.Get("X-Content-Type-Options"))
+	}
+
+	// Test 404 for missing version
+	res, _ = get(t, srv.URL+"/a/"+id+"/v/9/", nil)
+	if res.StatusCode != 404 || res.Header.Get("Content-Security-Policy") == "" || res.Header.Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("missing version 404: status=%d, csp=%s, nosniff=%s", res.StatusCode, res.Header.Get("Content-Security-Policy"), res.Header.Get("X-Content-Type-Options"))
+	}
+
+	// Test 410 after SoftDelete
+	_ = st.SoftDelete(context.Background(), id, time.Now())
+	res, _ = get(t, srv.URL+"/a/"+id+"/", nil)
+	if res.StatusCode != 410 || res.Header.Get("Content-Security-Policy") == "" || res.Header.Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("deleted artifact 410: status=%d, csp=%s, nosniff=%s", res.StatusCode, res.Header.Get("Content-Security-Policy"), res.Header.Get("X-Content-Type-Options"))
+	}
+}
+
+func TestRuntimeEtag304(t *testing.T) {
+	srv, _, _ := fixture(t)
+
+	// First request should return 200 with ETag and Cache-Control
+	res, _ := get(t, srv.URL+"/_rt/comments.js", nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("expected 200, got %d", res.StatusCode)
+	}
+	etag := res.Header.Get("ETag")
+	cacheControl := res.Header.Get("Cache-Control")
+	if etag == "" || cacheControl == "" {
+		t.Fatalf("missing ETag or Cache-Control: etag=%s, cache=%s", etag, cacheControl)
+	}
+	if cacheControl != "public, max-age=31536000, immutable" {
+		t.Fatalf("wrong cache control: %s", cacheControl)
+	}
+
+	// Second request with If-None-Match should return 304 with same ETag and Cache-Control
+	res2, _ := get(t, srv.URL+"/_rt/comments.js", map[string]string{"If-None-Match": etag})
+	if res2.StatusCode != 304 {
+		t.Fatalf("expected 304, got %d", res2.StatusCode)
+	}
+	if res2.Header.Get("ETag") != etag {
+		t.Fatalf("304 ETag mismatch: got %s, expected %s", res2.Header.Get("ETag"), etag)
+	}
+	if res2.Header.Get("Cache-Control") != "public, max-age=31536000, immutable" {
+		t.Fatalf("304 Cache-Control missing or wrong: %s", res2.Header.Get("Cache-Control"))
+	}
+}
