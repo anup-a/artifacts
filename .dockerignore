@@ -1,0 +1,4 @@
+data/
+cli/node_modules/
+.git/
+docs/

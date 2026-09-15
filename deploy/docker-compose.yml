@@ -1,0 +1,13 @@
+services:
+  artifacts:
+    image: ghcr.io/anup-a/artifacts:latest
+    ports: ["8080:8080"]
+    environment:
+      DB: sqlite
+      STORAGE: local
+      DATA_DIR: /data
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env}
+      PUBLIC_SHARE_ORIGIN: ${PUBLIC_SHARE_ORIGIN:-http://localhost:8080}
+      PUBLIC_API_ORIGIN: ${PUBLIC_API_ORIGIN:-http://localhost:8080}
+    volumes: ["./data:/data"]
+    restart: unless-stopped
