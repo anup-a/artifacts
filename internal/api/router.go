@@ -23,6 +23,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("POST /api/keys", s.createKey)
 	mux.HandleFunc("GET /api/artifacts", s.withAuth(s.listArtifacts))
+	mux.HandleFunc("POST /api/artifacts/preflight", s.withAuth(s.preflight))
+	mux.HandleFunc("POST /api/artifacts", s.withAuth(s.createArtifact))
+	mux.HandleFunc("PUT /api/artifacts/{id}", s.withAuth(s.updateArtifact))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
