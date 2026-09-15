@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -169,6 +168,9 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 	}
 	v := store.Version{ArtifactID: a.ID, Version: a.CurrentVersion + 1, CreatedAt: s.Now(), Bytes: total, FileCount: len(files)}
 	if err := s.Store.AddVersion(ctx, v, files); err != nil {
+		if errors.Is(err, store.ErrBlobMissing) {
+			return 0, apierr.Invalid("missing blob")
+		}
 		return 0, apierr.Internal(err)
 	}
 	if m.Title != "" && m.Title != a.Title {
@@ -248,5 +250,3 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "url": s.artifactURL(a.ID), "version": v})
 }
-
-var _ = json.Marshal
