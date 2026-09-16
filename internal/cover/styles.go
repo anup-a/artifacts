@@ -5,10 +5,13 @@ import "strings"
 // Pattern opacities stay between 6 and 10 percent so the background never
 // competes with the title.
 const (
-	dotOpacity   = "0.10"
-	lineOpacity  = "0.07"
-	ringOpacity  = "0.07"
-	washOpacity  = "0.08"
+	dotOpacity  = "0.10"
+	lineOpacity = "0.07"
+	ringOpacity = "0.07"
+	// The wash is the one style that carries the project colour, so it is
+	// allowed to be more present: a corner-anchored bloom that fades across
+	// most of the card, as in the approved mockup.
+	washOpacity  = "0.18"
 	dotPitch     = 24
 	gridPitch    = 48
 	linePitch    = 28
@@ -16,9 +19,9 @@ const (
 	ringCount    = 14
 	ringCenterX  = Width + 60
 	ringCenterY  = Height + 60
-	washCenterX  = Width - 120
-	washCenterY  = 80
-	washRadius   = 620
+	washCenterX  = Width
+	washCenterY  = 0
+	washRadius   = 1080
 	patternUnits = `patternUnits="userSpaceOnUse"`
 )
 

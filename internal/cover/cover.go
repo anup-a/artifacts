@@ -34,8 +34,11 @@ type Card struct {
 	Style string
 }
 
-// styles ships in this order; PickStyle indexes into it by hash of the id.
+// styles ships in this order. All are selectable; only defaultStyles are
+// handed out automatically, because dots, grid and wash are the three that
+// read well at tile size (lines and rings go muddy, plain is a choice).
 var styles = []string{"dots", "grid", "lines", "wash", "rings", "plain"}
+var defaultStyles = []string{"dots", "grid", "wash"}
 
 // Styles returns the generator names in their canonical order.
 func Styles() []string {
@@ -55,7 +58,7 @@ func Valid(name string) bool {
 // PickStyle derives the style for an artifact from its id, so an artifact
 // keeps the same cover across renders and server restarts.
 func PickStyle(id string) string {
-	return styles[hash64(id)%uint64(len(styles))]
+	return defaultStyles[hash64(id)%uint64(len(defaultStyles))]
 }
 
 // Colours of the card. The ground is near white and the pattern is the
