@@ -89,11 +89,11 @@ func TestKeysAndArtifacts(t *testing.T) {
 	if !has["s1"] || has["zz"] {
 		t.Fatalf("%v", has)
 	}
-	list, _ := s.ListArtifacts(ctx, k.ID, 10, time.Now().Add(time.Hour))
+	list, _ := s.ListArtifacts(ctx, k.TenantID, ArtifactFilter{Limit: 10, Before: time.Now().Add(time.Hour)})
 	if len(list) != 1 {
 		t.Fatalf("list %d", len(list))
 	}
-	n, _ := s.CountArtifacts(ctx, k.ID)
+	n, _ := s.CountArtifacts(ctx, k.TenantID)
 	if n != 1 {
 		t.Fatal("count")
 	}

@@ -1,0 +1,8 @@
+{{define "content"}}
+<div class="card narrow">
+  <h1>{{.Data.Status}} {{.Title}}</h1>
+  <p>{{.Data.Message}}</p>
+  {{if and .Data.RequestID (lt .Data.Status 500)}}<p class="muted">Request id <code>{{.Data.RequestID}}</code></p>{{end}}
+  <p><a href="/app/">Back to the app</a></p>
+</div>
+{{end}}

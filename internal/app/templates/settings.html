@@ -1,0 +1,38 @@
+{{define "content"}}
+<div class="page-head"><h1>Settings</h1></div>
+{{if .Data.Error}}<p class="alert">{{.Data.Error}}</p>{{end}}
+<section class="card">
+  <h2>Workspace</h2>
+  <form method="post" action="/app/settings/tenant" class="stack">
+    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+    <label for="name">Name</label>
+    <div class="row"><input id="name" type="text" name="name" required maxlength="64" value="{{.Viewer.Tenant.Name}}"><button type="submit" class="btn">Save</button></div>
+  </form>
+  <dl class="props">
+    <dt>Kind</dt><dd>{{.Viewer.Tenant.Kind}}</dd>
+    <dt>Plan</dt><dd>{{.Viewer.Tenant.Plan}}</dd>
+    <dt>Id</dt><dd><code>{{.Viewer.Tenant.ID}}</code></dd>
+  </dl>
+</section>
+{{if not .Viewer.Integrator}}
+<section class="card">
+  <h2>Create an integrator workspace</h2>
+  <p class="muted">An integrator workspace attributes artifacts to your end users and can mint portal links for them.</p>
+  <form method="post" action="/app/settings/integrator" class="row">
+    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+    <input type="text" name="name" required maxlength="64" placeholder="Workspace name" aria-label="Workspace name">
+    <button type="submit" class="btn primary">Create</button>
+  </form>
+</section>
+{{end}}
+<section class="card">
+  <h2>Sign-in methods</h2>
+  <dl class="props">
+    {{range .Data.Identities}}<dt>{{.Provider}}</dt><dd>{{.Subject}}</dd>{{end}}
+  </dl>
+  <form method="post" action="/app/logout">
+    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+    <button type="submit" class="btn">Sign out</button>
+  </form>
+</section>
+{{end}}

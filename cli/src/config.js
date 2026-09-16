@@ -22,7 +22,7 @@ function readFile(home) {
 
 // Env wins over the file so CI can override a developer's saved token.
 export function resolveConfig({ env = process.env, home = homedir() } = {}) {
-  const file = readFile(home);
+  const file = env.ARTIFACTS_TOKEN && env.ARTIFACTS_API ? {} : readFile(home);
   const token = env.ARTIFACTS_TOKEN || file.token || "";
   const api = trimSlash(env.ARTIFACTS_API || file.api || "");
   if (!token || !api) {

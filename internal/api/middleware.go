@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -31,23 +32,29 @@ func (s *server) withAuth(next http.HandlerFunc) http.HandlerFunc {
 			apierr.Write(w, r, apierr.Unauthorized())
 			return
 		}
-		var k store.Key
-		if s.adminKey != nil {
-			if subtle.ConstantTimeCompare([]byte(tok), []byte(s.Cfg.AdminToken)) != 1 {
-				apierr.Write(w, r, apierr.Unauthorized())
-				return
-			}
-			k = *s.adminKey
-		} else {
-			got, err := s.Store.KeyByHash(r.Context(), ids.HashKey(tok))
-			if err != nil || got.RevokedAt != nil {
-				apierr.Write(w, r, apierr.Unauthorized())
-				return
-			}
-			k = got
+		k, ok := s.authenticate(r, tok)
+		if !ok {
+			apierr.Write(w, r, apierr.Unauthorized())
+			return
 		}
 		next(w, r.WithContext(withKey(r.Context(), k)))
 	}
+}
+
+// authenticate resolves a bearer token to a key. ADMIN_TOKEN, when configured,
+// is accepted next to keys created in the app; revoked keys are rejected.
+func (s *server) authenticate(r *http.Request, tok string) (store.Key, bool) {
+	if s.adminKey != nil && subtle.ConstantTimeCompare([]byte(tok), []byte(s.Cfg.AdminToken)) == 1 {
+		return *s.adminKey, true
+	}
+	k, err := s.Store.KeyByHash(r.Context(), ids.HashKey(tok))
+	if err != nil || k.RevokedAt != nil {
+		return store.Key{}, false
+	}
+	if err := s.Store.TouchKey(r.Context(), k.ID, s.Now()); err != nil {
+		slog.Warn("touch key", "key", k.ID, "err", err)
+	}
+	return k, true
 }
 
 // clientIP identifies the caller for rate-limit bucketing.

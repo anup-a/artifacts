@@ -22,15 +22,16 @@ type Error struct {
 func (e *Error) Error() string { return e.Code + ": " + e.Message }
 func (e *Error) Unwrap() error { return e.cause }
 
-func Invalid(msg string) *Error   { return &Error{"INVALID_ARGUMENT", 400, msg, 0, nil} }
-func Unauthorized() *Error        { return &Error{"UNAUTHORIZED", 401, "missing or invalid API key", 0, nil} }
-func Forbidden() *Error           { return &Error{"FORBIDDEN", 403, "not allowed", 0, nil} }
-func NotFound(what string) *Error { return &Error{"NOT_FOUND", 404, what + " not found", 0, nil} }
-func Gone() *Error                { return &Error{"GONE", 410, "artifact deleted", 0, nil} }
-func TooLarge(msg string) *Error  { return &Error{"PAYLOAD_TOO_LARGE", 413, msg, 0, nil} }
-func RateLimited(sec int) *Error  { return &Error{"RATE_LIMITED", 429, "rate limited", sec, nil} }
-func Quota(msg string) *Error     { return &Error{"QUOTA_EXCEEDED", 429, msg, 0, nil} }
-func Internal(err error) *Error   { return &Error{"INTERNAL", 500, "internal error", 0, err} }
+func Invalid(msg string) *Error     { return &Error{"INVALID_ARGUMENT", 400, msg, 0, nil} }
+func Unauthorized() *Error          { return &Error{"UNAUTHORIZED", 401, "missing or invalid API key", 0, nil} }
+func Forbidden(msg string) *Error   { return &Error{"FORBIDDEN", 403, msg, 0, nil} }
+func Unavailable(msg string) *Error { return &Error{"UNAVAILABLE", 503, msg, 0, nil} }
+func NotFound(what string) *Error   { return &Error{"NOT_FOUND", 404, what + " not found", 0, nil} }
+func Gone() *Error                  { return &Error{"GONE", 410, "artifact deleted", 0, nil} }
+func TooLarge(msg string) *Error    { return &Error{"PAYLOAD_TOO_LARGE", 413, msg, 0, nil} }
+func RateLimited(sec int) *Error    { return &Error{"RATE_LIMITED", 429, "rate limited", sec, nil} }
+func Quota(msg string) *Error       { return &Error{"QUOTA_EXCEEDED", 429, msg, 0, nil} }
+func Internal(err error) *Error     { return &Error{"INTERNAL", 500, "internal error", 0, err} }
 
 type ctxKey struct{}
 

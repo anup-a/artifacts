@@ -51,6 +51,10 @@ before(async () => {
       STORAGE: "local",
       DATA_DIR: dir,
       ADMIN_TOKEN: TOKEN,
+      KEY_SIGNING_SECRET: "",
+      EMAIL_PROVIDER: "",
+      GITHUB_CLIENT_ID: "",
+      GITHUB_CLIENT_SECRET: "",
       ADDR: `127.0.0.1:${PORT}`,
       PUBLIC_SHARE_ORIGIN: BASE,
       PUBLIC_API_ORIGIN: BASE,
@@ -92,6 +96,7 @@ test("publish a directory, then republish it in place", async () => {
   assert.equal(first.files, 2);
   assert.equal(first.uploaded, 2);
   assert.equal(first.url, `${BASE}/a/${first.id}/`);
+  assert.equal(first.end_user, null);
 
   // The link file is what makes the next publish an update rather than a new artifact.
   assert.deepEqual(JSON.parse(readFileSync(join(dir, ".artifacts.json"), "utf8")), { id: first.id, api: BASE });
@@ -134,6 +139,41 @@ test("get, list and versions report the published artifact", () => {
   json(["publish", dir]);
   const vs = json(["versions", pub.id]);
   assert.deepEqual(vs.versions.map((v) => v.version), [1, 2]);
+});
+
+test("publish and list attribute artifacts to opaque end users", () => {
+  const dir = siteDir("<h1>customer report</h1>");
+  const externalID = "customer/42?scope=1";
+  const pub = json(["publish", dir, "--title", "Customer report", "--end-user", externalID]);
+  assert.equal(pub.end_user, externalID);
+  const filtered = json(["list", "--end-user", externalID]);
+  assert.deepEqual(filtered.artifacts.map((artifact) => artifact.id), [pub.id]);
+  assert.equal(filtered.artifacts[0].end_user, externalID);
+  assert.deepEqual(json(["list", "--end-user", "another-customer"]).artifacts, []);
+
+  const updated = json(["publish", dir]);
+  assert.equal(updated.end_user, externalID);
+  const reassigned = run(["publish", dir, "--end-user", "another-customer", "--json"]);
+  assert.equal(reassigned.code, 1);
+  assert.equal(JSON.parse(reassigned.stderr).error.code, "FORBIDDEN");
+});
+
+test("whoami identifies the admin tenant without revealing the bearer key", () => {
+  const identity = json(["whoami"]);
+  assert.equal(identity.tenant.id, "admin");
+  assert.equal(identity.tenant.kind, "personal");
+  assert.equal(typeof identity.tenant.name, "string");
+  assert.equal(typeof identity.key.id, "number");
+  assert.equal(typeof identity.key.name, "string");
+  assert.equal(JSON.stringify(identity).includes(TOKEN), false);
+});
+
+test("the removed key creation endpoint returns 404", async () => {
+  const response = await fetch(`${BASE}/api/keys`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "removed@example.test" }),
+  });
+  assert.equal(response.status, 404);
 });
 
 test("rollback republishes an older version as a new one", async () => {

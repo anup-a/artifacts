@@ -1,0 +1,25 @@
+{{define "content"}}
+<div class="portal">
+  <div class="page-head"><h1>Artifacts from {{.Data.Tenant.Name}}</h1></div>
+  {{if .Data.Rows}}
+  <table class="table">
+    <thead><tr><th>Title</th><th>Id</th><th class="num">Version</th><th class="num">Open comments</th><th>Updated</th><th></th></tr></thead>
+    <tbody>
+    {{range .Data.Rows}}
+    <tr>
+      <td class="title">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">{{.Artifact.ID}}</span>{{end}}</td>
+      <td><code>{{.Artifact.ID}}</code></td>
+      <td class="num">v{{.Artifact.CurrentVersion}}</td>
+      <td class="num">{{.Artifact.OpenComments}}</td>
+      <td class="when">{{when .Artifact.UpdatedAt}}</td>
+      <td class="actions"><a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open</a></td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <div class="empty"><p>No artifacts yet.</p></div>
+  {{end}}
+  <p class="muted footer">This link expires {{when .Data.ExpiresAt}} UTC.</p>
+</div>
+{{end}}

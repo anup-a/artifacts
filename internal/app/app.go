@@ -1,0 +1,186 @@
+// Package app is the browser dashboard: sign-in, artifacts, end users, API
+// keys, usage, settings, and the read-only end-user portal.
+package app
+
+import (
+	"context"
+	"errors"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/anup-a/artifacts/internal/auth"
+	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/ratelimit"
+	"github.com/anup-a/artifacts/internal/store"
+)
+
+// Handler serves everything under /app and /p.
+type Handler struct {
+	Store    store.Store
+	Cfg      config.Config
+	Now      func() time.Time
+	Sessions *auth.Sessions
+	GitHub   *auth.GitHub // nil when GitHub sign-in is not configured
+	Magic    *auth.MagicLinks
+	// Limiters default in Register when nil: sign-in mail 5/h per address and
+	// 20/h per IP, key creation 20/h per tenant, portal links 60/min per tenant.
+	EmailLimiter, IPLimiter, KeyLimiter, PortalLimiter *ratelimit.Limiter
+
+	static *statics
+}
+
+// New wires the auth pieces from the config. Callers may still swap fields
+// (a fake GitHub, a capturing mail sender) before Register.
+func New(st store.Store, cfg config.Config, now func() time.Time) *Handler {
+	h := &Handler{Store: st, Cfg: cfg, Now: now}
+	h.Sessions = &auth.Sessions{Store: st, Now: now, Secure: auth.SecureOrigin(cfg.APIOrigin)}
+	if cfg.GitHubClientID != "" {
+		h.GitHub = &auth.GitHub{ClientID: cfg.GitHubClientID, ClientSecret: cfg.GitHubClientSecret,
+			RedirectURL: cfg.APIOrigin + "/app/login/github/callback", Store: st, Now: now}
+	}
+	if cfg.EmailProvider != "" {
+		var send auth.Sender = auth.LogSender{}
+		if cfg.EmailProvider == "resend" {
+			send = auth.ResendSender{APIKey: cfg.ResendAPIKey, From: cfg.EmailFrom}
+		}
+		h.Magic = &auth.MagicLinks{Store: st, Now: now, Send: send, Origin: cfg.APIOrigin}
+	}
+	return h
+}
+
+// Register mounts the routes. Every response under /app and /p carries the
+// strict headers from spec section 11.
+func (h *Handler) Register(mux *http.ServeMux) {
+	h.static = newStatics()
+	if h.EmailLimiter == nil {
+		h.EmailLimiter = ratelimit.NewWindow(5, time.Hour)
+	}
+	if h.IPLimiter == nil {
+		h.IPLimiter = ratelimit.NewWindow(20, time.Hour)
+	}
+	if h.KeyLimiter == nil {
+		h.KeyLimiter = ratelimit.NewWindow(20, time.Hour)
+	}
+	if h.PortalLimiter == nil {
+		h.PortalLimiter = ratelimit.New(60)
+	}
+	mux.HandleFunc("GET /app/static/{name}", h.static.serve)
+	mux.HandleFunc("GET /p/{token}", h.headers(h.portal))
+
+	mux.HandleFunc("GET /app/login", h.public(h.loginPage))
+	mux.HandleFunc("GET /app/login/github", h.public(h.githubStart))
+	mux.HandleFunc("GET /app/login/github/callback", h.public(h.githubCallback))
+	mux.HandleFunc("POST /app/login/email", h.public(h.emailStart))
+	mux.HandleFunc("GET /app/login/email/verify", h.public(h.emailVerify))
+
+	mux.HandleFunc("GET /app/{$}", h.private(func(w http.ResponseWriter, r *http.Request, _ *viewer) {
+		http.Redirect(w, r, "/app/artifacts", http.StatusFound)
+	}))
+	mux.HandleFunc("GET /app/artifacts", h.private(h.artifacts))
+	mux.HandleFunc("POST /app/artifacts/{id}/delete", h.private(h.deleteArtifact))
+	mux.HandleFunc("GET /app/end-users", h.private(h.endUsers))
+	mux.HandleFunc("POST /app/end-users/{external_id}/portal-link", h.private(h.portalLink))
+	mux.HandleFunc("GET /app/keys", h.private(h.keys))
+	mux.HandleFunc("POST /app/keys", h.private(h.createKey))
+	mux.HandleFunc("POST /app/keys/{id}/revoke", h.private(h.revokeKey))
+	mux.HandleFunc("GET /app/usage", h.private(h.usage))
+	mux.HandleFunc("GET /app/settings", h.private(h.settings))
+	mux.HandleFunc("POST /app/settings/tenant", h.private(h.renameTenant))
+	mux.HandleFunc("POST /app/settings/integrator", h.private(h.createIntegrator))
+	mux.HandleFunc("POST /app/switch-tenant", h.private(h.switchTenant))
+	mux.HandleFunc("POST /app/logout", h.private(h.logout))
+	mux.HandleFunc("/app/", h.headers(func(w http.ResponseWriter, r *http.Request) {
+		h.renderError(w, r, 404, "That page does not exist.")
+	}))
+}
+
+// viewer is the signed-in user as seen by one request.
+type viewer struct {
+	Session store.Session
+	User    store.User
+	Tenant  store.Tenant
+	Tenants []store.Tenant
+}
+
+func (v *viewer) Integrator() bool { return v.Tenant.Kind == "integrator" }
+func (v *viewer) CSRF() string     { return auth.CSRFToken(v.Session.ID) }
+
+const csp = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; frame-ancestors 'none'"
+
+// headers adds the browser hardening headers to every app response.
+func (h *Handler) headers(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		hd := w.Header()
+		hd.Set("Content-Security-Policy", csp)
+		hd.Set("X-Frame-Options", "DENY")
+		hd.Set("Referrer-Policy", "same-origin")
+		hd.Set("X-Content-Type-Options", "nosniff")
+		hd.Set("Cache-Control", "no-store")
+		next(w, r)
+	}
+}
+
+// public serves sign-in routes: no session, but a 503 page when no provider
+// is configured.
+func (h *Handler) public(next http.HandlerFunc) http.HandlerFunc {
+	return h.headers(func(w http.ResponseWriter, r *http.Request) {
+		if !h.Cfg.WebEnabled() {
+			h.renderError(w, r, 503, "Sign-in is not configured on this server.")
+			return
+		}
+		next(w, r)
+	})
+}
+
+// private loads the session and, for POSTs, checks the CSRF field.
+func (h *Handler) private(next func(http.ResponseWriter, *http.Request, *viewer)) http.HandlerFunc {
+	return h.public(func(w http.ResponseWriter, r *http.Request) {
+		v, err := h.load(r.Context(), w, r)
+		if errors.Is(err, auth.ErrNoSession) {
+			http.Redirect(w, r, "/app/login", http.StatusFound)
+			return
+		}
+		if err != nil {
+			h.fail(w, r, err)
+			return
+		}
+		if r.Method == "POST" {
+			if err := r.ParseForm(); err != nil {
+				h.renderError(w, r, 400, "The form could not be read.")
+				return
+			}
+			if !auth.CheckCSRF(v.Session.ID, r.PostForm.Get("csrf")) {
+				h.renderError(w, r, 403, "The form has expired. Go back, reload the page and try again.")
+				return
+			}
+		}
+		next(w, r, v)
+	})
+}
+
+func (h *Handler) load(ctx context.Context, w http.ResponseWriter, r *http.Request) (*viewer, error) {
+	sess, err := h.Sessions.Load(ctx, w, r)
+	if err != nil {
+		return nil, err
+	}
+	u, err := h.Store.User(ctx, sess.UserID)
+	if err != nil {
+		return nil, err
+	}
+	t, err := h.Store.Tenant(ctx, sess.TenantID)
+	if err != nil {
+		return nil, err
+	}
+	all, err := h.Store.TenantsForUser(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &viewer{Session: sess, User: u, Tenant: t, Tenants: all}, nil
+}
+
+// fail logs an unexpected error and shows the generic 500 page.
+func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
+	slog.Error("app", "path", r.URL.Path, "err", err)
+	h.renderError(w, r, 500, "")
+}

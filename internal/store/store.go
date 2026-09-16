@@ -15,15 +15,23 @@ var ErrNotFound = errors.New("not found")
 var ErrBlobMissing = errors.New("blob missing")
 
 type Key struct {
-	ID        int64
-	Email     string
-	CreatedAt time.Time
-	RevokedAt *time.Time
+	ID         int64
+	TenantID   string
+	Name       string
+	Prefix     string
+	LastUsedAt *time.Time
+	Email      string
+	CreatedAt  time.Time
+	RevokedAt  *time.Time
 }
 
 type Artifact struct {
 	ID             string
 	KeyID          int64
+	TenantID       string
+	EndUserID      *string
+	EndUser        *string
+	OpenComments   int
 	Title          string
 	CurrentVersion int
 	CreatedAt      time.Time
@@ -67,13 +75,15 @@ type Comment struct {
 }
 
 type Store interface {
+	TenantStore
+	AuthStore
 	Migrate(ctx context.Context) error
 	CreateKey(ctx context.Context, hash, email string) (Key, error)
 	KeyByHash(ctx context.Context, hash string) (Key, error)
 	CreateArtifact(ctx context.Context, a Artifact) error
 	Artifact(ctx context.Context, id string) (Artifact, error)
-	ListArtifacts(ctx context.Context, keyID int64, limit int, before time.Time) ([]Artifact, error)
-	CountArtifacts(ctx context.Context, keyID int64) (int, error)
+	ListArtifacts(ctx context.Context, tenantID string, filter ArtifactFilter) ([]Artifact, error)
+	CountArtifacts(ctx context.Context, tenantID string) (int, error)
 	UpdateTitle(ctx context.Context, id, title string) error
 	SoftDelete(ctx context.Context, id string, at time.Time) error
 	AddVersion(ctx context.Context, v Version, files []File) error

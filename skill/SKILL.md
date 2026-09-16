@@ -7,8 +7,17 @@ description: Use when you have built an HTML page, report, dashboard or visualiz
 
 `artifacts` hosts a self-contained HTML page at a shareable URL and collects
 anchored comments from whoever opens it. You publish, hand over the link, and
-then poll for comments and answer them. There is no web console: the CLI is the
-whole interface.
+then poll for comments and answer them. The CLI is the whole interface for an
+agent; the person you work for uses the web dashboard to create API keys and
+to look at what was published.
+
+## Getting a key
+
+Keys are created in the dashboard, never over the API. Ask the person to open
+`https://api.<domain>/app/login`, sign in (GitHub or an emailed link), and
+create a named key at `https://api.<domain>/app/keys`. The full key is shown
+once; they hand it to you as `ARTIFACTS_TOKEN`. A self-hosted, API-only server
+may instead give you its `ADMIN_TOKEN`, which works the same way.
 
 ## Setup
 
@@ -90,6 +99,7 @@ blindly.
 ## Other commands
 
 ```
+artifacts whoami --json                    # which workspace and key you are using
 artifacts list --json                      # your artifacts
 artifacts get <id> --json                  # url, current version, open comment count
 artifacts versions <id> --json             # version history with comment counts
@@ -98,6 +108,25 @@ artifacts comments <id> --all --json       # resolved threads too
 artifacts comments <id> --since 2026-09-15T00:00:00Z --json
 artifacts delete <id> --json               # permanent for the reader; the URL stops working
 ```
+
+## Publishing on behalf of a customer
+
+If the key belongs to an integrator workspace (`whoami` reports
+`"kind":"integrator"`), you can tag each artifact with the customer it is for
+and hand that customer a page listing everything published for them:
+
+```
+artifacts publish ./report --end-user customer-42 --json
+artifacts list --end-user customer-42 --json
+artifacts portal-link customer-42 --json   # {"url":"https://api.<domain>/p/...","expires_at":"..."}
+```
+
+`--end-user` is an opaque ID you choose, 1 to 128 printable ASCII characters.
+An artifact keeps its end user: republishing it under a different one fails
+with 403. Portal links need no sign-in, show only that end user's artifacts,
+and expire after seven days; request a fresh one rather than reusing an old
+one. Personal workspaces have no end users, and `portal-link` returns 404
+there.
 
 ## Designing the page
 

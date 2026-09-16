@@ -20,7 +20,9 @@ export async function get(cfg, { positional }) {
 }
 
 export async function list(cfg, { flags }) {
-  const res = await apiJson(cfg, "GET", "/api/artifacts", { query: { limit: flags.limit, cursor: flags.cursor } });
+  const res = await apiJson(cfg, "GET", "/api/artifacts", {
+    query: { limit: flags.limit, cursor: flags.cursor, end_user: flags["end-user"] },
+  });
   const rows = res.artifacts || [];
   return {
     json: res,

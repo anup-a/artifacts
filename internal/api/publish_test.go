@@ -149,7 +149,7 @@ func TestCreateMissingBlobLeavesNoRow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	n, err := d.Store.CountArtifacts(context.Background(), key.ID)
+	n, err := d.Store.CountArtifacts(context.Background(), key.TenantID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestPublishBodyTooLarge(t *testing.T) {
 }
 
 func TestPublishQuota(t *testing.T) {
-	srv, _, tok := newTestServer(t, false) // ArtifactsPerKey = 5 in test cfg
+	srv, _, tok := newTestServer(t, false) // ArtifactsPerTenant = 5 in test cfg
 	for i := range 5 {
 		code, _ := do(t, publishReq(t, "POST", srv.URL+"/api/artifacts", tok, "", []pubFile{{"index.html", fmt.Sprint("n", i)}}, nil))
 		if code != 201 {

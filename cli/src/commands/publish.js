@@ -10,7 +10,7 @@ function manifestOf(files, title) {
 
 export async function publish(cfg, { positional, flags }) {
   const target = positional[0];
-  if (!target) throw usage("usage: artifacts publish <dir|file.html> [--id <id>] [--title <t>]");
+  if (!target) throw usage("usage: artifacts publish <dir|file.html> [--id <id>] [--title <t>] [--end-user <id>]");
 
   const { files, dir } = collectFiles(target);
   const manifest = manifestOf(files, flags.title);
@@ -36,16 +36,18 @@ export async function publish(cfg, { positional, flags }) {
     form.append(f.sha256, new Blob([f.body]), f.sha256);
   }
 
+  const headers = {};
+  if (flags["end-user"] !== undefined) headers["X-Artifact-End-User"] = flags["end-user"];
   const res = id
-    ? await apiJson(cfg, "PUT", `/api/artifacts/${encodeURIComponent(id)}`, { body: form })
-    : await apiJson(cfg, "POST", "/api/artifacts", { body: form });
+    ? await apiJson(cfg, "PUT", `/api/artifacts/${encodeURIComponent(id)}`, { body: form, headers })
+    : await apiJson(cfg, "POST", "/api/artifacts", { body: form, headers });
   if (!res || !res.id) throw new CliError("publish returned no artifact id", { code: "INTERNAL" });
 
   writeLink(dir, { id: res.id, api: cfg.api });
 
   const bytes = files.reduce((n, f) => n + f.size, 0);
   return {
-    json: { id: res.id, url: res.url, version: res.version, files: files.length, bytes, uploaded: sent.size },
+    json: { id: res.id, url: res.url, version: res.version, end_user: res.end_user, files: files.length, bytes, uploaded: sent.size },
     human: [`${res.url}`, `version ${res.version}, ${files.length} files, ${bytes} bytes, ${sent.size} uploaded`],
   };
 }

@@ -1,0 +1,14 @@
+{{define "content"}}
+<div class="page-head"><h1>Usage</h1></div>
+{{range .Data.Months}}
+<section class="usage">
+  <h2>{{.Label}} <span class="muted">{{.Month.Format "January 2006"}} UTC</span></h2>
+  <div class="stats">
+    <div class="stat"><span class="value">{{num .Publishes}}</span><span class="label">Publishes</span></div>
+    <div class="stat"><span class="value">{{bytes .StorageBytes}}</span><span class="label">Storage</span></div>
+    <div class="stat"><span class="value">{{num .PageViews}}</span><span class="label">Page views</span></div>
+    <div class="stat"><span class="value">{{num .OpenComments}}</span><span class="label">Open comments</span></div>
+  </div>
+</section>
+{{end}}
+{{end}}

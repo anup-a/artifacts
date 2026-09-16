@@ -1,0 +1,35 @@
+{{define "content"}}
+<div class="page-head"><h1>End users</h1></div>
+{{if .Data.Link}}
+<div class="callout">
+  <p>Portal link for <code>{{.Data.Link.ExternalID}}</code>, valid until {{when .Data.Link.ExpiresAt}} UTC.</p>
+  <p class="copyrow"><input type="text" readonly value="{{.Data.Link.URL}}" id="portal-url" aria-label="Portal link"><button type="button" class="btn" data-copy="#portal-url">Copy</button></p>
+</div>
+{{end}}
+{{if .Data.Rows}}
+<table class="table">
+  <thead><tr><th>External id</th><th class="num">Artifacts</th><th>First seen</th><th>Last seen</th><th></th></tr></thead>
+  <tbody>
+  {{range .Data.Rows}}
+  <tr>
+    <td><a href="/app/artifacts?end_user={{.ExternalID}}"><code>{{.ExternalID}}</code></a></td>
+    <td class="num">{{.ArtifactCount}}</td>
+    <td class="when">{{when .FirstSeenAt}}</td>
+    <td class="when">{{when .LastSeenAt}}</td>
+    <td class="actions">
+      <form method="post" action="/app/end-users/{{path .ExternalID}}/portal-link" class="inline">
+        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+        <button type="submit" class="btn small">Portal link</button>
+      </form>
+    </td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<div class="empty">
+  <h2>No end users yet</h2>
+  <p>Publish with <code>--end-user &lt;id&gt;</code> (or the <code>X-Artifact-End-User</code> header) and each id shows up here with its artifacts.</p>
+</div>
+{{end}}
+{{end}}

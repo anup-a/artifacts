@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/store"
@@ -20,7 +19,8 @@ func (s *server) artifactView(r *http.Request, a store.Artifact) (map[string]any
 	}
 	return map[string]any{
 		"id": a.ID, "title": a.Title, "url": s.artifactURL(a.ID), "current_version": a.CurrentVersion,
-		"versions_count": len(vs), "open_comments": open, "created_at": a.CreatedAt, "updated_at": a.UpdatedAt,
+		"versions_count": len(vs), "open_comments": open, "end_user": a.EndUser,
+		"created_at": a.CreatedAt, "updated_at": a.UpdatedAt,
 	}, nil
 }
 
@@ -40,25 +40,25 @@ func (s *server) getArtifact(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) listArtifacts(w http.ResponseWriter, r *http.Request) {
 	k, _ := KeyFrom(r.Context())
-	limit := 50
-	if v := r.URL.Query().Get("limit"); v != "" {
+	q := r.URL.Query()
+	f := store.ArtifactFilter{Limit: 50, EndUser: q.Get("end_user")}
+	if v := q.Get("limit"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 || n > 200 {
 			apierr.Write(w, r, apierr.Invalid("limit must be 1..200"))
 			return
 		}
-		limit = n
+		f.Limit = n
 	}
-	before := time.Now().UTC().Add(time.Hour)
-	if v := r.URL.Query().Get("cursor"); v != "" {
-		ts, err := time.Parse(time.RFC3339Nano, v)
+	if v := q.Get("cursor"); v != "" {
+		ts, id, err := store.ParseArtifactCursor(v)
 		if err != nil {
 			apierr.Write(w, r, apierr.Invalid("cursor is invalid"))
 			return
 		}
-		before = ts
+		f.Before, f.BeforeID = ts, id
 	}
-	rows, err := s.Store.ListArtifacts(r.Context(), k.ID, limit, before)
+	rows, err := s.Store.ListArtifacts(r.Context(), k.TenantID, f)
 	if err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
@@ -73,8 +73,8 @@ func (s *server) listArtifacts(w http.ResponseWriter, r *http.Request) {
 		out = append(out, v)
 	}
 	resp := map[string]any{"artifacts": out}
-	if len(rows) == limit {
-		resp["next_cursor"] = rows[len(rows)-1].CreatedAt.UTC().Format(time.RFC3339Nano)
+	if len(rows) == f.Limit {
+		resp["next_cursor"] = store.ArtifactCursor(rows[len(rows)-1])
 	}
 	apierr.WriteJSON(w, 200, resp)
 }
@@ -92,7 +92,7 @@ func (s *server) deleteArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	// Open threads protect their version from pruning, and after the delete the
 	// artifact answers 410 so nobody can resolve them. Resolve them here or the
-	// versions — and the blobs behind them — are retained forever.
+	// versions, and the blobs behind them, are retained forever.
 	if err := s.Store.ResolveAllThreads(r.Context(), a.ID, now); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
