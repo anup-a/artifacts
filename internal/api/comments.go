@@ -183,7 +183,18 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, limit int64, dst any) *a
 func newThreadID() string  { return "th_" + ids.NewArtifactID() }
 func newCommentID() string { return "cm_" + ids.NewArtifactID() }
 
-// idempotency remembers viewer thread creations for 10 minutes, per process.
+const (
+	// idemTTL is how long a viewer thread creation is remembered.
+	idemTTL = 10 * time.Minute
+	// idemSweepThreshold is the map size above which a put sweeps expired
+	// entries. Below it the map is small enough that the per-read expiry
+	// check keeps memory flat on its own.
+	idemSweepThreshold = 1024
+)
+
+// idempotency remembers viewer thread creations for idemTTL, per process.
+// Entries expire on read, and a put sweeps the whole map once it grows past
+// idemSweepThreshold so keys that are never read again cannot accumulate.
 type idempotency struct {
 	mu    sync.Mutex
 	items map[string]idemEntry
@@ -197,13 +208,15 @@ type idemEntry struct {
 func (i *idempotency) get(key string, now time.Time) (string, bool) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	for k, e := range i.items {
-		if now.Sub(e.at) > 10*time.Minute {
-			delete(i.items, k)
-		}
-	}
 	e, ok := i.items[key]
-	return e.threadID, ok
+	if !ok {
+		return "", false
+	}
+	if now.Sub(e.at) > idemTTL {
+		delete(i.items, key)
+		return "", false
+	}
+	return e.threadID, true
 }
 
 func (i *idempotency) put(key, threadID string, now time.Time) {
@@ -212,5 +225,24 @@ func (i *idempotency) put(key, threadID string, now time.Time) {
 	if i.items == nil {
 		i.items = map[string]idemEntry{}
 	}
+	if len(i.items) >= idemSweepThreshold {
+		i.sweepLocked(now)
+	}
 	i.items[key] = idemEntry{threadID, now}
+}
+
+// sweepLocked drops every expired entry. The caller must hold i.mu.
+func (i *idempotency) sweepLocked(now time.Time) {
+	for k, e := range i.items {
+		if now.Sub(e.at) > idemTTL {
+			delete(i.items, k)
+		}
+	}
+}
+
+// size reports how many entries are held, expired ones included.
+func (i *idempotency) size() int {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return len(i.items)
 }
