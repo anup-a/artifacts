@@ -93,7 +93,7 @@ func hash64(s string) uint64 {
 // Layout constants: title block vertically centred, everything left-aligned
 // at textX, footer and accent bar on the bottom margin.
 const (
-	textX        = 80
+	textX = 80
 	// 68px keeps the title readable when the whole card is shown at a
 	// 233px-wide dashboard tile (about 13px there); 26 characters of it
 	// still fit inside the 1200px canvas with the 80px margin.
