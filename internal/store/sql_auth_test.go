@@ -47,6 +47,65 @@ func TestSignInLinksVerifiedEmails(t *testing.T) {
 	}
 }
 
+func TestFirstSignInClaimsAdminTenant(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	t.Cleanup(func() { s.Close() })
+	k, err := s.CreateKey(ctx, "admin-hash", "admin@local")
+	if err != nil || k.TenantID != "admin" {
+		t.Fatalf("admin key: %+v %v", k, err)
+	}
+	now := time.Now().UTC().Truncate(time.Second)
+	u, tenant, err := s.SignIn(ctx, "github", "99", "owner@example.test", "Owner", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tenant.ID != "admin" {
+		t.Fatalf("first sign-in minted %s instead of claiming admin", tenant.ID)
+	}
+	if u.Email != "owner@example.test" {
+		t.Fatal(u.Email)
+	}
+}
+
+func TestClaimOrphanAdminMovesCLIArtifacts(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	t.Cleanup(func() { s.Close() })
+	now := time.Now().UTC().Truncate(time.Second)
+	_, personal, err := s.SignIn(ctx, "github", "1", "owner@example.test", "Owner", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, err := s.CreateKey(ctx, "admin-hash", "admin@local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := Artifact{ID: "cli0000000001", KeyID: k.ID, Title: "CLI page", CreatedAt: now, UpdatedAt: now}
+	if err := s.CreateArtifact(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Artifact(ctx, a.ID)
+	if err != nil || got.TenantID != "admin" {
+		t.Fatalf("precondition: %+v %v", got, err)
+	}
+	if err := s.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.Artifact(ctx, a.ID)
+	if err != nil || got.TenantID != personal.ID {
+		t.Fatalf("artifact stayed on %q: %v", got.TenantID, err)
+	}
+	moved, err := s.KeyByHash(ctx, "admin-hash")
+	if err != nil || moved.TenantID != personal.ID {
+		t.Fatalf("admin key stayed on %q: %v", moved.TenantID, err)
+	}
+	list, err := s.ListArtifacts(ctx, personal.ID, ArtifactFilter{Limit: 10})
+	if err != nil || len(list) != 1 || list[0].ID != a.ID {
+		t.Fatalf("dashboard list: %d %v", len(list), err)
+	}
+}
+
 func TestSessionStorageAndMembership(t *testing.T) {
 	ctx := context.Background()
 	s := newStore(t)
