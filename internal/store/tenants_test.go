@@ -20,7 +20,7 @@ func TestTenantKeysAndEndUsers(t *testing.T) {
 	if err != nil || tenant.Kind != "personal" || tenant.Plan != "free" {
 		t.Fatalf("tenant: %v %+v", err, tenant)
 	}
-	now := time.Now().UTC()
+	now := time.Now().UTC().Truncate(time.Second) // postgres keeps microseconds, sqlite keeps what it is given
 	second, err := s.CreateTenantKey(ctx, k.TenantID, "second-hash", k.Email, "Rotation", "ak_abcdef", now)
 	if err != nil || second.TenantID != k.TenantID {
 		t.Fatalf("rotation: %v", err)
