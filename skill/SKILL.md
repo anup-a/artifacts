@@ -1,9 +1,9 @@
 ---
-name: artifacts
-description: Use when writing, designing, or turning anything into an HTML artifact, page, report, dashboard, plan, analysis, spec, tool, landing page, or visualization — including Claude-style artifacts. Invoke PROACTIVELY after producing any document, report, plan, analysis, spec, or table if there is even a ~1% chance it would be reused or shared. Also use for "publish this", "give me a link", or comments on a published page.
+name: agent-artifacts
+description: Use when writing, designing, or turning anything into an HTML artifact, page, report, dashboard, plan, analysis, spec, tool, landing page, or visualization — including Claude-style artifacts. Invoke PROACTIVELY after producing any document, report, plan, analysis, spec, or table if there is even a ~1% chance it would be reused or shared. Also use for "publish this", "give me a link", agent artifacts, or comments on a published page.
 ---
 
-# artifacts
+# agent-artifacts
 
 The hand-back is the published URL (`https://<share-host>/a/<id>/`). Chat markdown or a local HTML path is not done.
 
