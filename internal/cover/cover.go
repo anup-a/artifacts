@@ -38,7 +38,7 @@ type Card struct {
 // handed out automatically, because dots, grid and wash are the three that
 // read well at tile size (lines and rings go muddy, plain is a choice).
 var styles = []string{"dots", "grid", "lines", "wash", "rings", "plain"}
-var defaultStyles = []string{"dots", "grid", "wash"}
+var defaultStyles = []string{"dots", "grid"}
 
 // Styles returns the generator names in their canonical order.
 func Styles() []string {
@@ -94,11 +94,11 @@ func hash64(s string) uint64 {
 // at textX, footer and accent bar on the bottom margin.
 const (
 	textX = 80
-	// 68px keeps the title readable when the whole card is shown at a
-	// 233px-wide dashboard tile (about 13px there); 26 characters of it
-	// still fit inside the 1200px canvas with the 80px margin.
-	titleSize    = 68
-	titleLeading = 80
+	// 62px keeps the title readable when the whole card is shown at a
+	// 233px-wide dashboard tile (about 12px there) and is the largest size
+	// at which 26 bold characters still fit inside the 80px margins.
+	titleSize    = 62
+	titleLeading = 74
 	maxLineChars = 26
 	maxLines     = 3
 	projectSize  = 24
@@ -116,9 +116,10 @@ func Render(c Card) []byte {
 	if !Valid(style) {
 		style = PickStyle(c.ID)
 	}
-	// The wash is a tint of the project colour. Without a project that tint
-	// would be grey, which reads as a smudge, so such cards use dots instead.
-	if style == "wash" && strings.TrimSpace(c.Project) == "" {
+	// "wash" means the tint alone; without a project there is no colour to
+	// tint with and a grey gradient reads as a smudge, so those cards get dots.
+	hasProject := strings.TrimSpace(c.Project) != ""
+	if style == "wash" && !hasProject {
 		style = "dots"
 	}
 	title := c.Title
@@ -131,6 +132,9 @@ func Render(c Card) []byte {
 	b.WriteString(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img">`)
 	b.WriteString(`<title>` + html.EscapeString(title) + `</title>`)
 	b.WriteString(`<rect width="1200" height="630" fill="` + ground + `"/>`)
+	if hasProject {
+		drawWash(&b, accent)
+	}
 	drawPattern(&b, style, accent)
 	drawText(&b, title, c.Project, footer(c.Host, c.PublishedAt), accent)
 	b.WriteString(`</svg>`)
