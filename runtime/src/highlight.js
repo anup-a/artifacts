@@ -7,8 +7,8 @@ const CLASS = "artifacts-hl";
 const ATTR = "data-artifacts-thread";
 
 const COLORS = {
-  attached: "rgba(255, 213, 79, 0.45)",
-  drifted: "rgba(255, 138, 101, 0.40)",
+  attached: "rgba(255, 213, 79, 0.38)",
+  drifted: "rgba(255, 138, 101, 0.32)",
 };
 
 let styleEl = null;
@@ -17,14 +17,16 @@ function ensureStyle() {
   if (styleEl && styleEl.isConnected) return;
   styleEl = document.createElement("style");
   styleEl.setAttribute("data-artifacts", "highlight");
+  // Passive marks are a soft tint with a hairline underline; the active one is
+  // saturated and ringed so the eye lands on it straight from the panel.
   styleEl.textContent = `
-.${CLASS}{background:${COLORS.attached};cursor:pointer;border-radius:2px;
-box-shadow:0 0 0 1px rgba(0,0,0,.06);transition:background .12s ease}
+.${CLASS}{background:${COLORS.attached};color:inherit;cursor:pointer;border-radius:2px;
+box-shadow:0 1px 0 rgba(224,168,0,.9);transition:background .12s ease,box-shadow .12s ease}
 .${CLASS}[data-status="drifted"]{background:${COLORS.drifted};
-outline:1px dashed rgba(191,54,12,.55)}
-.${CLASS}:hover{background:rgba(255,193,7,.65)}
-.${CLASS}[data-active="1"]{background:rgba(255,193,7,.85);
-box-shadow:0 0 0 2px rgba(191,120,0,.55)}`;
+box-shadow:0 1px 0 rgba(191,54,12,.7)}
+.${CLASS}:hover{background:rgba(255,193,7,.6)}
+.${CLASS}[data-active="1"]{background:rgba(255,193,7,.8);
+box-shadow:0 0 0 2px rgba(224,168,0,.95),0 0 0 5px rgba(224,168,0,.2)}`;
   document.head.appendChild(styleEl);
 }
 

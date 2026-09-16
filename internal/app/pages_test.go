@@ -50,7 +50,10 @@ func TestArtifactsListFilterAndDelete(t *testing.T) {
 	e.publish("aaaaaaaaaaaa", "Quarterly report", "")
 	e.publish("bbbbbbbbbbbb", "", "")
 	res := e.get("/app/artifacts")
-	want(t, res, 200, "Quarterly report", "http://share.test/a/aaaaaaaaaaaa/", "bbbbbbbbbbbb", `data-confirm`)
+	want(t, res, 200, "Quarterly report", "http://share.test/a/aaaaaaaaaaaa/", "bbbbbbbbbbbb", `href="/app/artifacts/aaaaaaaaaaaa"`, "Confirm delete")
+	if strings.Contains(res.Body, "window.confirm") || strings.Contains(res.Body, "data-confirm") {
+		t.Fatal("native confirm dialog still used")
+	}
 	if strings.Contains(res.Body, "<th>End user</th>") {
 		t.Fatal("personal tenant shows end user column")
 	}
@@ -124,7 +127,7 @@ func TestKeysCreateListRevoke(t *testing.T) {
 	}
 	id := regexp.MustCompile(`/app/keys/(\d+)/revoke`).FindStringSubmatch(res.Body)
 	wantRedirect(t, e.post("/app/keys/"+id[1]+"/revoke", "/app/keys", nil), "/app/keys")
-	want(t, e.get("/app/keys"), 200, `class="revoked"`, "Revoked 2026-09-16")
+	want(t, e.get("/app/keys"), 200, `class="revoked"`, "Revoked", `title="2026-09-16 12:00 UTC"`)
 	wantRedirect(t, e.post("/app/keys/"+id[1]+"/revoke", "/app/keys", nil), "/app/keys") // idempotent
 	want(t, e.post("/app/keys/abc/revoke", "/app/keys", nil), 404)
 	want(t, e.post("/app/keys/999/revoke", "/app/keys", nil), 404)
@@ -171,7 +174,7 @@ func TestEndUsersAndPortal(t *testing.T) {
 			t.Fatalf("portal leaks %q", s)
 		}
 	}
-	if p.Header.Get("Content-Security-Policy") != csp {
+	if p.Header.Get("Content-Security-Policy") != e.h.csp() {
 		t.Fatal("portal lacks CSP")
 	}
 	want(t, e.do(fresh, "GET", "/p/not-a-token", nil), 404, "invalid or has expired")
@@ -187,7 +190,7 @@ func TestSettingsRenameSwitchAndIntegratorRules(t *testing.T) {
 	e.signIn("a@x.io")
 	res := e.get("/app/settings")
 	want(t, res, 200, "Create an integrator workspace", "<dt>email</dt><dd>a@x.io</dd>", "personal")
-	if strings.Contains(res.Body, "data-autosubmit") {
+	if strings.Contains(res.Body, `class="switcher"`) {
 		t.Fatal("switcher shown with a single tenant")
 	}
 	want(t, e.post("/app/settings/tenant", "/app/settings", url.Values{"name": {""}}), 400, "1 to 64 characters")
@@ -203,7 +206,7 @@ func TestSettingsRenameSwitchAndIntegratorRules(t *testing.T) {
 		t.Fatalf("tenant %+v", acme)
 	}
 	res = e.get("/app/settings")
-	want(t, res, 200, "data-autosubmit", "My space (personal)", "Acme (integrator)")
+	want(t, res, 200, `class="switcher"`, "My space", "Acme", `action="/app/switch-tenant"`)
 	if strings.Contains(res.Body, "Create an integrator workspace") {
 		t.Fatal("integrator form shown on integrator tenant")
 	}

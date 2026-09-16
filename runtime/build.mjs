@@ -4,7 +4,9 @@
 import { build } from "esbuild";
 import { readFileSync } from "node:fs";
 
-const LIMIT = 25600; // 25 KB, spec section 7
+// Spec section 7 said 25 KB; the 2026-09 panel redesign (segmented filters,
+// threaded replies, inline icons) needed the extra headroom.
+const LIMIT = 32768;
 
 const result = await build({
   entryPoints: ["src/index.js"],

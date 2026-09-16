@@ -78,7 +78,11 @@ func (h *Handler) Register(mux *http.ServeMux) {
 		http.Redirect(w, r, "/app/artifacts", http.StatusFound)
 	}))
 	mux.HandleFunc("GET /app/artifacts", h.private(h.artifacts))
+	mux.HandleFunc("GET /app/artifacts/{id}", h.private(h.artifactDetail))
 	mux.HandleFunc("POST /app/artifacts/{id}/delete", h.private(h.deleteArtifact))
+	mux.HandleFunc("POST /app/artifacts/{id}/rollback/{version}", h.private(h.rollbackArtifact))
+	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/resolve", h.private(h.resolveThread))
+	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/reply", h.private(h.replyThread))
 	mux.HandleFunc("GET /app/end-users", h.private(h.endUsers))
 	mux.HandleFunc("POST /app/end-users/{external_id}/portal-link", h.private(h.portalLink))
 	mux.HandleFunc("GET /app/keys", h.private(h.keys))
@@ -108,11 +112,17 @@ func (v *viewer) CSRF() string     { return auth.CSRFToken(v.Session.ID) }
 
 const csp = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; frame-ancestors 'none'"
 
+// csp adds the share origin as the only allowed frame source, so the artifact
+// detail page can preview the published page.
+func (h *Handler) csp() string {
+	return csp + "; frame-src 'self' " + h.Cfg.ShareOrigin
+}
+
 // headers adds the browser hardening headers to every app response.
 func (h *Handler) headers(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hd := w.Header()
-		hd.Set("Content-Security-Policy", csp)
+		hd.Set("Content-Security-Policy", h.csp())
 		hd.Set("X-Frame-Options", "DENY")
 		hd.Set("Referrer-Policy", "same-origin")
 		hd.Set("X-Content-Type-Options", "nosniff")

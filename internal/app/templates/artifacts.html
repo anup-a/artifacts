@@ -1,51 +1,89 @@
-{{define "content"}}
-<div class="page-head">
-  <h1>Artifacts</h1>
-  <form method="get" action="/app/artifacts" class="inline">
-    {{if .Data.EndUser}}<input type="hidden" name="end_user" value="{{.Data.EndUser}}">{{end}}
-    <input type="search" name="q" value="{{.Data.Query}}" placeholder="Search titles" aria-label="Search titles">
-    <button type="submit" class="btn">Search</button>
-  </form>
-</div>
-{{if .Data.EndUser}}
-<p class="filter">Showing artifacts of end user <code>{{.Data.EndUser}}</code>. <a href="/app/artifacts">Clear</a></p>
+{{define "topbar"}}
+<h1 class="page-title">Artifacts</h1>
+<form method="get" action="/app/artifacts" class="search" role="search">
+  {{if .Data.EndUser}}<input type="hidden" name="end_user" value="{{.Data.EndUser}}">{{end}}
+  {{template "icon" "search"}}
+  <input type="search" name="q" value="{{.Data.Query}}" placeholder="Search titles…" aria-label="Search titles">
+</form>
 {{end}}
+
+{{define "content"}}
+{{if .Data.EndUser}}
+<p class="filter-bar">Showing artifacts of end user <code>{{.Data.EndUser}}</code> <a class="link" href="/app/artifacts">Clear filter</a></p>
+{{end}}
+
 {{if .Data.Rows}}
+<div class="table-card">
 <table class="table">
   <thead><tr>
-    <th>Title</th><th>Id</th>{{if .Viewer.Integrator}}<th>End user</th>{{end}}<th class="num">Version</th><th class="num">Open comments</th><th>Updated</th><th></th>
+    <th>Title</th><th>Id</th>{{if .Viewer.Integrator}}<th>End user</th>{{end}}<th class="num">Version</th><th class="num">Comments</th><th>Updated</th><th class="actions"></th>
   </tr></thead>
   <tbody>
   {{range .Data.Rows}}
   <tr>
-    <td class="title">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">{{.Artifact.ID}}</span>{{end}}</td>
-    <td><code>{{.Artifact.ID}}</code></td>
-    {{if $.Viewer.Integrator}}<td>{{if .Artifact.EndUser}}<a href="/app/artifacts?end_user={{str .Artifact.EndUser}}">{{str .Artifact.EndUser}}</a>{{end}}</td>{{end}}
-    <td class="num">v{{.Artifact.CurrentVersion}}</td>
-    <td class="num">{{.Artifact.OpenComments}}</td>
-    <td class="when">{{when .Artifact.UpdatedAt}}</td>
+    <td class="c-title">
+      <a class="row-title" href="/app/artifacts/{{.Artifact.ID}}">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</a>
+    </td>
+    <td class="c-id">
+      <span class="chip"><code>{{.Artifact.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{.Artifact.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
+    </td>
+    {{if $.Viewer.Integrator}}<td class="c-user">{{if .Artifact.EndUser}}<a class="link" href="/app/artifacts?end_user={{str .Artifact.EndUser}}">{{str .Artifact.EndUser}}</a>{{else}}<span class="muted">—</span>{{end}}</td>{{end}}
+    <td class="num"><span class="badge mono">v{{.Artifact.CurrentVersion}}</span></td>
+    <td class="num">{{if .Artifact.OpenComments}}<a class="count is-open" href="/app/artifacts/{{.Artifact.ID}}#comments" title="Open comments">{{template "icon" "comment"}}{{.Artifact.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}</td>
+    <td class="when"><time datetime="{{.Artifact.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="{{when .Artifact.UpdatedAt}} UTC">{{ago .Artifact.UpdatedAt $.Now}}</time></td>
     <td class="actions">
-      <a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open</a>
-      <form method="post" action="/app/artifacts/{{.Artifact.ID}}/delete" class="inline" data-confirm="Delete this artifact? Its link stops working immediately.">
-        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-        <button type="submit" class="btn small danger">Delete</button>
-      </form>
+      <div class="row-actions">
+        <a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
+        <details class="menu-wrap">
+          <summary class="icon-btn" aria-label="More actions" title="More">{{template "icon" "more"}}</summary>
+          <div class="menu right" role="menu">
+            <button type="button" class="menu-item" data-copy-text="{{.URL}}" role="menuitem">{{template "icon" "link"}}<span class="menu-item-text">Copy link</span></button>
+            <a class="menu-item" href="/app/artifacts/{{.Artifact.ID}}" role="menuitem">{{template "icon" "artifacts"}}<span class="menu-item-text">View details</span></a>
+            <div class="menu-sep"></div>
+            <details class="confirm">
+              <summary class="menu-item danger" role="menuitem">{{template "icon" "trash"}}<span class="menu-item-text">Delete…</span></summary>
+              <form method="post" action="/app/artifacts/{{.Artifact.ID}}/delete" class="confirm-body">
+                <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+                <p>The share link stops working immediately.</p>
+                <button type="submit" class="btn small danger solid">Confirm delete</button>
+              </form>
+            </details>
+          </div>
+        </details>
+      </div>
     </td>
   </tr>
   {{end}}
   </tbody>
 </table>
-{{if .Data.Next}}<p class="pager"><a class="btn" href="/app/artifacts?cursor={{.Data.Next}}{{if .Data.EndUser}}&amp;end_user={{.Data.EndUser}}{{end}}{{if .Data.Query}}&amp;q={{.Data.Query}}{{end}}">Older</a></p>{{end}}
+<div class="table-foot">
+  <span>{{len .Data.Rows}} {{plural (len .Data.Rows) "artifact" "artifacts"}}{{if .Data.Next}} on this page{{end}}</span>
+  {{if .Data.Next}}<a class="btn small" href="/app/artifacts?cursor={{.Data.Next}}{{if .Data.EndUser}}&amp;end_user={{.Data.EndUser}}{{end}}{{if .Data.Query}}&amp;q={{.Data.Query}}{{end}}">Older</a>{{end}}
+</div>
+</div>
+
 {{else if or .Data.Query .Data.EndUser}}
-<div class="empty"><p>No artifacts match.</p></div>
+<div class="empty">
+  <span class="empty-icon">{{template "icon" "search"}}</span>
+  <h2>No artifacts match</h2>
+  <p>Try a different search, or <a class="link" href="/app/artifacts">show everything</a>.</p>
+</div>
+
 {{else}}
 <div class="empty">
+  <span class="empty-icon">{{template "icon" "artifacts"}}</span>
   <h2>Nothing published yet</h2>
-  <p>Two ways to get an artifact here:</p>
-  <ol>
-    <li>Install the CLI, create a key on the <a href="/app/keys">API keys</a> page, then run <code>artifacts publish ./site</code>.</li>
-    <li>Give your agent <a href="{{.Data.APIOrigin}}/skill.md">{{.Data.APIOrigin}}/skill.md</a> and it will publish for you.</li>
-  </ol>
+  <p>Two ways to get your first artifact here.</p>
+  <div class="empty-steps">
+    <div class="step">
+      <span class="step-n">1</span>
+      <div><strong>From your terminal.</strong> Create a key on the <a class="link" href="/app/keys">API keys</a> page, then run <code>artifacts login</code> and <code>artifacts publish ./site</code>.</div>
+    </div>
+    <div class="step">
+      <span class="step-n">2</span>
+      <div><strong>From an agent.</strong> Give it <a class="link" href="{{.Data.APIOrigin}}/skill.md">{{.Data.APIOrigin}}/skill.md</a> and it publishes for you.</div>
+    </div>
+  </div>
 </div>
 {{end}}
 {{end}}

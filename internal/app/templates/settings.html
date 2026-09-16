@@ -1,38 +1,54 @@
 {{define "content"}}
-<div class="page-head"><h1>Settings</h1></div>
-{{if .Data.Error}}<p class="alert">{{.Data.Error}}</p>{{end}}
+{{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
+
 <section class="card">
-  <h2>Workspace</h2>
-  <form method="post" action="/app/settings/tenant" class="stack">
+  <div class="card-head">
+    <h2>Workspace</h2>
+    <span class="muted">Shown in the sidebar and on customer portals.</span>
+  </div>
+  <form method="post" action="/app/settings/tenant" class="field-row">
     <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-    <label for="name">Name</label>
-    <div class="row"><input id="name" type="text" name="name" required maxlength="64" value="{{.Viewer.Tenant.Name}}"><button type="submit" class="btn">Save</button></div>
+    <label class="field">
+      <span class="field-label">Name</span>
+      <input id="name" type="text" name="name" required maxlength="64" value="{{.Viewer.Tenant.Name}}">
+    </label>
+    <button type="submit" class="btn">Save</button>
   </form>
   <dl class="props">
-    <dt>Kind</dt><dd>{{.Viewer.Tenant.Kind}}</dd>
-    <dt>Plan</dt><dd>{{.Viewer.Tenant.Plan}}</dd>
-    <dt>Id</dt><dd><code>{{.Viewer.Tenant.ID}}</code></dd>
+    <dt>Kind</dt><dd><span class="badge">{{.Viewer.Tenant.Kind}}</span></dd>
+    <dt>Plan</dt><dd><span class="badge">{{.Viewer.Tenant.Plan}}</span></dd>
+    <dt>Id</dt><dd><span class="chip"><code>{{.Viewer.Tenant.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{.Viewer.Tenant.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span></dd>
   </dl>
 </section>
+
 {{if not .Viewer.Integrator}}
 <section class="card">
-  <h2>Create an integrator workspace</h2>
-  <p class="muted">An integrator workspace attributes artifacts to your end users and can mint portal links for them.</p>
-  <form method="post" action="/app/settings/integrator" class="row">
+  <div class="card-head">
+    <h2>Create an integrator workspace</h2>
+    <span class="muted">An integrator workspace attributes artifacts to your end users and can mint portal links for them.</span>
+  </div>
+  <form method="post" action="/app/settings/integrator" class="field-row">
     <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-    <input type="text" name="name" required maxlength="64" placeholder="Workspace name" aria-label="Workspace name">
-    <button type="submit" class="btn primary">Create</button>
+    <label class="field">
+      <span class="field-label">Workspace name</span>
+      <input type="text" name="name" required maxlength="64" placeholder="e.g. Acme Inc">
+    </label>
+    <button type="submit" class="btn primary">Create workspace</button>
   </form>
 </section>
 {{end}}
+
 <section class="card">
-  <h2>Sign-in methods</h2>
+  <div class="card-head">
+    <h2>Sign-in methods</h2>
+    <span class="muted">Signed in as {{.Viewer.User.Email}}.</span>
+  </div>
   <dl class="props">
     {{range .Data.Identities}}<dt>{{.Provider}}</dt><dd>{{.Subject}}</dd>{{end}}
   </dl>
   <form method="post" action="/app/logout">
     <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-    <button type="submit" class="btn">Sign out</button>
+    <button type="submit" class="btn">{{template "icon" "logout"}} Sign out</button>
   </form>
 </section>
 {{end}}

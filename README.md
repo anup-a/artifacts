@@ -45,7 +45,10 @@ ID and secret. Without a provider, `/app/*` returns 503 and the API still works.
 
 Open `PUBLIC_API_ORIGIN/app/login`, sign in, and create a named API key at
 `PUBLIC_API_ORIGIN/app/keys`. The full key is shown once. The dashboard lists
-artifacts, lets you delete them, rotate keys, inspect usage, and rename the
+artifacts, and each artifact has a detail page at `/app/artifacts/{id}` with
+its share link, a preview, the kept versions (with one-click rollback), and
+the comment threads, where you can reply as the owner and resolve them. It
+also lets you delete artifacts, rotate keys, inspect usage, and rename the
 workspace. Any active key in a workspace can manage all of its artifacts.
 Revoking one key does not affect artifacts or other keys in that workspace.
 

@@ -8,31 +8,45 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
 )
 
-//go:embed templates/*.html
+//go:embed templates/*.html templates/partials/*.html
 var templateFS embed.FS
 
-var pageNames = []string{"login", "check_inbox", "artifacts", "end_users", "keys", "usage", "settings", "portal", "error"}
+var pageNames = []string{"login", "check_inbox", "artifacts", "artifact", "end_users", "keys", "usage", "settings", "portal", "error"}
 
-// pages holds one template set per page, each sharing layout.html.
+// pages holds one template set per page, each sharing layout.html and the
+// partials (icon sprite, shared rows).
 var pages = func() map[string]*template.Template {
 	out := map[string]*template.Template{}
 	for _, name := range pageNames {
-		out[name] = template.Must(template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+name+".html"))
+		out[name] = template.Must(template.New("layout.html").Funcs(funcs).ParseFS(templateFS,
+			"templates/layout.html", "templates/partials/*.html", "templates/"+name+".html"))
 	}
 	return out
 }()
 
 var funcs = template.FuncMap{
 	"when":  formatTime,
+	"ago":   relativeTime,
 	"bytes": formatBytes,
 	"num":   formatNumber,
 	"str":   deref,
 	"path":  url.PathEscape,
+	"plural": func(n int, one, many string) string {
+		if n == 1 {
+			return one
+		}
+		return many
+	},
+	// dict pairs the page with one item so a partial can reach both.
+	"dict": func(p page, item any) map[string]any {
+		return map[string]any{"Page": p, "Item": item}
+	},
 }
 
 func deref(p *string) string {
@@ -49,11 +63,30 @@ type page struct {
 	Viewer *viewer
 	CSS    string
 	JS     string
+	Now    time.Time // reference point for relative times
 	Data   any
 }
 
+// Section is the nav entry the current path belongs to, so the detail page
+// still highlights Artifacts.
+func (p page) Section() string {
+	switch {
+	case strings.HasPrefix(p.Path, "/app/artifacts"):
+		return "artifacts"
+	case strings.HasPrefix(p.Path, "/app/end-users"):
+		return "end-users"
+	case strings.HasPrefix(p.Path, "/app/keys"):
+		return "keys"
+	case strings.HasPrefix(p.Path, "/app/usage"):
+		return "usage"
+	case strings.HasPrefix(p.Path, "/app/settings"):
+		return "settings"
+	}
+	return ""
+}
+
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, name, title string, v *viewer, data any) {
-	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, Data: data}
+	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: data}
 	var buf bytes.Buffer
 	if err := pages[name].ExecuteTemplate(&buf, "layout.html", p); err != nil {
 		h.fail(w, r, fmt.Errorf("render %s: %w", name, err))
@@ -77,7 +110,7 @@ func (h *Handler) renderError(w http.ResponseWriter, r *http.Request, status int
 		msg = "Something went wrong on our side. Try again in a moment."
 	}
 	d := errorData{Status: status, Message: msg, RequestID: apierr.RequestID(r.Context())}
-	p := page{Title: http.StatusText(status), Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Data: d}
+	p := page{Title: http.StatusText(status), Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: d}
 	var buf bytes.Buffer
 	if err := pages["error"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
 		http.Error(w, msg, status)
@@ -93,6 +126,30 @@ func formatTime(t time.Time) string {
 		return ""
 	}
 	return t.UTC().Format("2006-01-02 15:04")
+}
+
+// relativeTime renders t against now as "just now", "5m ago", "2h ago",
+// "3d ago" or, beyond a month, the date. Future times read "in …".
+func relativeTime(t, now time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	d := now.Sub(t)
+	prefix, suffix := "", " ago"
+	if d < 0 {
+		d, prefix, suffix = -d, "in ", ""
+	}
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return fmt.Sprintf("%s%dm%s", prefix, int(d/time.Minute), suffix)
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%s%dh%s", prefix, int(d/time.Hour), suffix)
+	case d < 30*24*time.Hour:
+		return fmt.Sprintf("%s%dd%s", prefix, int(d/(24*time.Hour)), suffix)
+	}
+	return t.UTC().Format("Jan 2, 2006")
 }
 
 func formatBytes(n int64) string {

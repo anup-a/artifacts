@@ -20,15 +20,21 @@ type Handler struct {
 	Blobs       blob.Store
 	Runtime     []byte
 	ShareOrigin string
+	// APIOrigin hosts the dashboard, which previews published pages in an
+	// iframe. It is the only origin besides the share origin allowed to frame.
+	APIOrigin string
 	// OnView, when set, is called once per page view of an artifact's current
 	// index.html (200 or 304). Pinned versions and assets do not count.
 	OnView      func(artifactID string)
 	runtimeETag string
+	runtimeRev  string // short content hash, cache-busts the injected script URL
 }
 
 func (h *Handler) Register(mux *http.ServeMux) {
 	sum := sha256.Sum256(h.Runtime)
-	h.runtimeETag = `"` + hex.EncodeToString(sum[:]) + `"`
+	hexSum := hex.EncodeToString(sum[:])
+	h.runtimeETag = `"` + hexSum + `"`
+	h.runtimeRev = hexSum[:12]
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
 	mux.HandleFunc("GET /skill.md", h.skill)
 	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.pinned)
@@ -80,7 +86,16 @@ func (h *Handler) securityHeaders(w http.ResponseWriter) {
 func (h *Handler) csp() string {
 	return "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
 		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; " +
-		"img-src 'self' data: blob: https:; connect-src 'self' " + h.ShareOrigin + "; frame-ancestors 'none'"
+		"img-src 'self' data: blob: https:; connect-src 'self' " + h.ShareOrigin + "; frame-ancestors " + h.frameAncestors()
+}
+
+// frameAncestors allows the dashboard to embed a published page for preview
+// and nothing else: 'self' covers the share origin, APIOrigin the dashboard.
+func (h *Handler) frameAncestors() string {
+	if h.APIOrigin == "" || h.APIOrigin == h.ShareOrigin {
+		return "'self'"
+	}
+	return "'self' " + h.APIOrigin
 }
 
 // serve resolves the file for (id, version, path) and streams it. version 0 = current.
@@ -156,5 +171,5 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	w.Write(Inject(body, id, version))
+	w.Write(Inject(body, id, version, h.runtimeRev))
 }

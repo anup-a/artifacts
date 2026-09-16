@@ -1,25 +1,36 @@
 {{define "content"}}
 <div class="portal">
-  <div class="page-head"><h1>Artifacts from {{.Data.Tenant.Name}}</h1></div>
+  <header class="portal-head">
+    <span class="brand">{{template "icon" "mark"}}<span>Artifacts</span></span>
+    <div>
+      <h1>Artifacts from {{.Data.Tenant.Name}}</h1>
+      <p class="muted">Shared with you, read-only. This link expires {{when .Data.ExpiresAt}} UTC.</p>
+    </div>
+  </header>
   {{if .Data.Rows}}
+  <div class="table-card">
   <table class="table">
-    <thead><tr><th>Title</th><th>Id</th><th class="num">Version</th><th class="num">Open comments</th><th>Updated</th><th></th></tr></thead>
+    <thead><tr><th>Title</th><th>Id</th><th class="num">Version</th><th class="num">Comments</th><th>Updated</th><th class="actions"></th></tr></thead>
     <tbody>
     {{range .Data.Rows}}
     <tr>
-      <td class="title">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">{{.Artifact.ID}}</span>{{end}}</td>
-      <td><code>{{.Artifact.ID}}</code></td>
-      <td class="num">v{{.Artifact.CurrentVersion}}</td>
-      <td class="num">{{.Artifact.OpenComments}}</td>
-      <td class="when">{{when .Artifact.UpdatedAt}}</td>
-      <td class="actions"><a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open</a></td>
+      <td class="c-title"><a class="row-title" href="{{.URL}}" target="_blank" rel="noopener">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</a></td>
+      <td><span class="chip"><code>{{.Artifact.ID}}</code></span></td>
+      <td class="num"><span class="badge mono">v{{.Artifact.CurrentVersion}}</span></td>
+      <td class="num"><span class="count{{if .Artifact.OpenComments}} is-open{{else}} muted{{end}}">{{template "icon" "comment"}}{{.Artifact.OpenComments}}</span></td>
+      <td class="when"><time title="{{when .Artifact.UpdatedAt}} UTC">{{ago .Artifact.UpdatedAt $.Now}}</time></td>
+      <td class="actions"><a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a></td>
     </tr>
     {{end}}
     </tbody>
   </table>
+  </div>
   {{else}}
-  <div class="empty"><p>No artifacts yet.</p></div>
+  <div class="empty">
+    <span class="empty-icon">{{template "icon" "artifacts"}}</span>
+    <h2>No artifacts yet</h2>
+    <p>Anything published for you will show up here.</p>
+  </div>
   {{end}}
-  <p class="muted footer">This link expires {{when .Data.ExpiresAt}} UTC.</p>
 </div>
 {{end}}
