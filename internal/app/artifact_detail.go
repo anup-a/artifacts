@@ -165,6 +165,33 @@ func (h *Handler) rollbackArtifact(w http.ResponseWriter, r *http.Request, v *vi
 	http.Redirect(w, r, "/app/artifacts/"+a.ID, http.StatusFound)
 }
 
+// setCommentsEnabled is the Comments switch on the detail page: enabled=1
+// turns the viewer runtime on, enabled=0 off. Existing threads are untouched.
+func (h *Handler) setCommentsEnabled(w http.ResponseWriter, r *http.Request, v *viewer) {
+	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
+	if err != nil {
+		h.storeErr(w, r, err, "That artifact does not exist.")
+		return
+	}
+	var on bool
+	switch r.PostForm.Get("enabled") {
+	case "1":
+		on = true
+	case "0":
+		on = false
+	default:
+		h.renderError(w, r, 400, "The form could not be read.")
+		return
+	}
+	if on != a.CommentsEnabled {
+		if err := h.Store.SetCommentsEnabled(r.Context(), a.ID, on); err != nil {
+			h.fail(w, r, err)
+			return
+		}
+	}
+	http.Redirect(w, r, "/app/artifacts/"+a.ID+"#comments", http.StatusFound)
+}
+
 // ownedThread loads a thread that belongs to one of the viewer's artifacts.
 func (h *Handler) ownedThread(r *http.Request, v *viewer) (store.Artifact, store.Thread, error) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))

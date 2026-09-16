@@ -29,7 +29,7 @@
     </td>
     {{if $.Viewer.Integrator}}<td class="c-user">{{if .Artifact.EndUser}}<a class="link" href="/app/artifacts?end_user={{str .Artifact.EndUser}}">{{str .Artifact.EndUser}}</a>{{else}}<span class="muted">—</span>{{end}}</td>{{end}}
     <td class="num"><span class="badge mono">v{{.Artifact.CurrentVersion}}</span></td>
-    <td class="num">{{if .Artifact.OpenComments}}<a class="count is-open" href="/app/artifacts/{{.Artifact.ID}}#comments" title="Open comments">{{template "icon" "comment"}}{{.Artifact.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}</td>
+    <td class="num c-comments">{{if .Artifact.OpenComments}}<a class="count is-open" href="/app/artifacts/{{.Artifact.ID}}#comments" title="Open comments">{{template "icon" "comment"}}{{.Artifact.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}{{if not .Artifact.CommentsEnabled}} <span class="badge off" title="Comments are off for this artifact">off</span>{{end}}</td>
     <td class="when"><time datetime="{{.Artifact.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="{{when .Artifact.UpdatedAt}} UTC">{{ago .Artifact.UpdatedAt $.Now}}</time></td>
     <td class="actions">
       <div class="row-actions">

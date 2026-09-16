@@ -222,6 +222,35 @@ textarea { resize: vertical; line-height: 1.45; }
 .badge.mono { font-family: var(--mono); font-size: 11px; }
 .badge.ok { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
 .badge.warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+.badge.off { color: var(--muted); background: transparent; border-color: var(--line-strong); text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; }
+.c-comments .badge.off { margin-left: 6px; }
+
+/* ---- Switch (form POST, no JS) ----------------------------------- */
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 12px 14px; margin-bottom: 14px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg);
+}
+.setting-text { min-width: 0; font-size: 13.5px; }
+.setting-text strong { display: block; font-weight: 500; color: var(--fg); margin-bottom: 2px; }
+.setting-text p { font-size: 13px; }
+.switch-form { display: inline-flex; align-items: center; gap: 10px; flex: none; }
+.switch-state { font-size: 12.5px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 22px; text-align: right; }
+.switch {
+  position: relative; width: 36px; height: 20px; padding: 0; flex: none;
+  border: 1px solid transparent; border-radius: 999px; background: var(--faint); cursor: pointer;
+  transition: background .15s;
+}
+.switch:hover { background: var(--muted); }
+.switch-knob {
+  position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s;
+}
+.switch.is-on { background: var(--accent); }
+.switch.is-on:hover { filter: brightness(.94); }
+.switch.is-on .switch-knob { transform: translateX(16px); }
+.card-note { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; margin-bottom: 14px; }
+.card-note .ic { margin-top: 2px; flex: none; }
 .chip { display: inline-flex; align-items: center; gap: 2px; }
 .chip code { border-radius: 4px 0 0 4px; border-right: 0; }
 .chip-copy {

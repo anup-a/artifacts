@@ -5,16 +5,19 @@ import (
 	"strings"
 )
 
+// CreateArtifact inserts the row. comments_enabled is left to its column
+// default (on) so every caller starts with comments; SetCommentsEnabled turns
+// them off.
 func (s *sqlStore) CreateArtifact(ctx context.Context, a Artifact) error {
 	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO artifacts(id,key_id,tenant_id,end_user_id,title,current_version,created_at,updated_at) VALUES (?,?,COALESCE(NULLIF(?,''),(SELECT tenant_id FROM keys WHERE id=?)),?,?,?,?,?)`), a.ID, a.KeyID, a.TenantID, a.KeyID, a.EndUserID, a.Title, a.CurrentVersion, a.CreatedAt, a.UpdatedAt)
 	return err
 }
 
-const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open')`
+const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open')`
 
 func scanArtifact(row interface{ Scan(...any) error }) (Artifact, error) {
 	var a Artifact
-	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments)
+	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments)
 	return a, notFound(err)
 }
 func (s *sqlStore) Artifact(ctx context.Context, id string) (Artifact, error) {

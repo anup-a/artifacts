@@ -77,13 +77,30 @@
       <h2>Comments</h2>
       <span class="muted">{{len .Data.Open}} open · {{len .Data.Resolved}} resolved</span>
     </div>
+
+    <div class="setting-row" id="comments-setting">
+      <div class="setting-text">
+        <strong>Viewer comments</strong>
+        <p class="muted">Show the comment panel on the published page and accept new threads from anyone with the link.</p>
+      </div>
+      <form method="post" action="/app/artifacts/{{$a.ID}}/comments-enabled" class="switch-form">
+        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+        <input type="hidden" name="enabled" value="{{if $a.CommentsEnabled}}0{{else}}1{{end}}">
+        <span class="switch-state">{{if $a.CommentsEnabled}}On{{else}}Off{{end}}</span>
+        <button type="submit" class="switch{{if $a.CommentsEnabled}} is-on{{end}}" role="switch" aria-checked="{{if $a.CommentsEnabled}}true{{else}}false{{end}}" aria-label="Viewer comments" title="{{if $a.CommentsEnabled}}Turn comments off{{else}}Turn comments on{{end}}"><span class="switch-knob"></span></button>
+      </form>
+    </div>
+
+    {{if not $a.CommentsEnabled}}
+    <p class="card-note muted">{{template "icon" "comment"}}Comments are off for this artifact. Viewers do not see the comment panel; existing threads stay here.</p>
+    {{end}}
     {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
 
     {{if .Data.Open}}
     <div class="threads">
       {{range .Data.Open}}{{template "thread" (dict $ .)}}{{end}}
     </div>
-    {{else}}
+    {{else if $a.CommentsEnabled}}
     <p class="card-empty">No open comments. Viewers select text on the page and leave notes; they show up here.</p>
     {{end}}
 

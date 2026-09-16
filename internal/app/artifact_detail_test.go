@@ -113,6 +113,58 @@ func TestArtifactDetailComments(t *testing.T) {
 	want(t, e.post("/app/artifacts/"+b.ID+"/comments/th_two/reply", "/app/artifacts/aaaaaaaaaaaa", url.Values{"body": {"x"}}), 404)
 }
 
+func TestArtifactDetailCommentsSwitch(t *testing.T) {
+	e := fixture(t)
+	e.signIn("a@x.io")
+	a := e.publish("aaaaaaaaaaaa", "Quarterly report", "")
+	e.version(a.ID, 1, 100)
+	e.thread(a.ID, "th_one", "Typo in the heading")
+	detail := "/app/artifacts/aaaaaaaaaaaa"
+	action := detail + "/comments-enabled"
+
+	// On by default: the switch offers to turn it off, no note, no "off" tag.
+	res := e.get(detail)
+	want(t, res, 200, `action="`+action+`"`, `name="enabled" value="0"`, `class="switch is-on"`, `aria-checked="true"`, ">On<")
+	if strings.Contains(res.Body, "Comments are off") {
+		t.Fatal("note shown while comments are on")
+	}
+	res = e.get("/app/artifacts")
+	want(t, res, 200)
+	if strings.Contains(res.Body, `class="badge off"`) {
+		t.Fatal("off tag shown while comments are on")
+	}
+
+	// Turn off: redirect back to the comments card, note appears, threads stay.
+	wantRedirect(t, e.post(action, detail, url.Values{"enabled": {"0"}}), detail+"#comments")
+	got, err := e.st.Artifact(context.Background(), a.ID)
+	if err != nil || got.CommentsEnabled {
+		t.Fatalf("after off: %+v %v", got, err)
+	}
+	res = e.get(detail)
+	want(t, res, 200, "Comments are off for this artifact", "existing threads stay here", "Typo in the heading",
+		`name="enabled" value="1"`, `aria-checked="false"`, ">Off<")
+	if strings.Contains(res.Body, `class="switch is-on"`) || strings.Contains(res.Body, "No open comments") {
+		t.Fatal("switch still on, or the viewers hint shown, while comments are off")
+	}
+	want(t, e.get("/app/artifacts"), 200, `class="badge off"`)
+	// Owner actions still work on old threads.
+	wantRedirect(t, e.post(detail+"/comments/th_one/reply", detail, url.Values{"body": {"Seen, thanks"}}), detail+"#th_one")
+	wantRedirect(t, e.post(detail+"/comments/th_one/resolve", detail, nil), detail+"#th_one")
+
+	// Idempotent off, then back on.
+	wantRedirect(t, e.post(action, detail, url.Values{"enabled": {"0"}}), detail+"#comments")
+	wantRedirect(t, e.post(action, detail, url.Values{"enabled": {"1"}}), detail+"#comments")
+	if got, _ = e.st.Artifact(context.Background(), a.ID); !got.CommentsEnabled {
+		t.Fatal("not re-enabled")
+	}
+	want(t, e.get(detail), 200, `class="switch is-on"`)
+
+	// Bad values and foreign ids.
+	want(t, e.post(action, detail, url.Values{"enabled": {"yes"}}), 400)
+	want(t, e.post(action, detail, nil), 400)
+	want(t, e.post("/app/artifacts/nope/comments-enabled", detail, url.Values{"enabled": {"0"}}), 404, "does not exist")
+}
+
 func TestRelativeTime(t *testing.T) {
 	now := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
 	cases := map[time.Duration]string{

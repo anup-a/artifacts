@@ -137,9 +137,15 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		return
 	}
 	isHTML := strings.HasPrefix(f.ContentType, "text/html")
+	// HTML gets the runtime injected only while comments are on, so the ETag
+	// carries that state too: flipping the switch must not be masked by a
+	// cached copy of the other variant.
+	inject := isHTML && a.CommentsEnabled
 	etag := `"` + f.SHA256 + `"`
-	if isHTML {
+	if inject {
 		etag = `"` + f.SHA256 + "-rt-" + strconv.Itoa(version) + `"`
+	} else if isHTML {
+		etag = `"` + f.SHA256 + "-nort-" + strconv.Itoa(version) + `"`
 	}
 	w.Header().Set("ETag", etag)
 	if !pinnedReq && p == "index.html" && h.OnView != nil {
@@ -161,7 +167,7 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	}
 	defer rc.Close()
 	w.Header().Set("Content-Type", f.ContentType)
-	if !isHTML {
+	if !inject {
 		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		io.Copy(w, rc)
 		return

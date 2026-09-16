@@ -145,7 +145,10 @@ func (s *server) validAnchor(raw json.RawMessage) (string, *apierr.Error) {
 	return string(raw), nil
 }
 
-// loadArtifactForViewer returns the artifact for /c/* routes (no ownership check).
+// loadArtifactForViewer returns the artifact for /c/* routes (no ownership
+// check). With comments switched off every viewer route is a 404: the page
+// carries no runtime, so nothing legitimate calls here. Owner routes keep
+// working so old threads stay readable.
 func (s *server) loadArtifactForViewer(r *http.Request, id string) (store.Artifact, *apierr.Error) {
 	a, err := s.Store.Artifact(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
@@ -156,6 +159,9 @@ func (s *server) loadArtifactForViewer(r *http.Request, id string) (store.Artifa
 	}
 	if a.DeletedAt != nil {
 		return a, apierr.Gone()
+	}
+	if !a.CommentsEnabled {
+		return a, apierr.NotFound("comments")
 	}
 	return a, nil
 }

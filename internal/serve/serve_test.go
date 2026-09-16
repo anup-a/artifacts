@@ -104,6 +104,44 @@ func TestServeCurrentAndPinned(t *testing.T) {
 	}
 }
 
+func TestCommentsOffServesPageWithoutRuntime(t *testing.T) {
+	srv, st, id := fixture(t)
+	ctx := context.Background()
+	res, body := get(t, srv.URL+"/a/"+id+"/", nil)
+	if res.StatusCode != 200 || !strings.Contains(body, "/_rt/comments.js") {
+		t.Fatalf("enabled: %d %s", res.StatusCode, body)
+	}
+	onTag := res.Header.Get("ETag")
+	if err := st.SetCommentsEnabled(ctx, id, false); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/a/" + id + "/", "/a/" + id + "/v/1/"} {
+		res, body = get(t, srv.URL+path, nil)
+		if res.StatusCode != 200 || strings.Contains(body, "<script") || strings.Contains(body, "data-artifact") {
+			t.Fatalf("%s: runtime injected with comments off: %d %s", path, res.StatusCode, body)
+		}
+		if !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") || res.Header.Get("Content-Length") == "" {
+			t.Fatalf("%s: headers %v", path, res.Header)
+		}
+	}
+	res, _ = get(t, srv.URL+"/a/"+id+"/", nil)
+	if res.Header.Get("ETag") == onTag {
+		t.Fatal("ETag must change when the runtime is dropped, or caches serve the injected page")
+	}
+	// A conditional request with the old (injected) tag is not a match.
+	if res, _ = get(t, srv.URL+"/a/"+id+"/", map[string]string{"If-None-Match": onTag}); res.StatusCode != 200 {
+		t.Fatalf("stale etag honoured: %d", res.StatusCode)
+	}
+	// Assets are untouched either way.
+	if _, css := get(t, srv.URL+"/a/"+id+"/v/1/s/a.css", nil); css != "body{color:red}" {
+		t.Fatalf("css %q", css)
+	}
+	_ = st.SetCommentsEnabled(ctx, id, true)
+	if _, body = get(t, srv.URL+"/a/"+id+"/", nil); !strings.Contains(body, `data-version="2"`) {
+		t.Fatalf("runtime not restored: %s", body)
+	}
+}
+
 func TestServeNotFoundGoneEtag(t *testing.T) {
 	srv, st, id := fixture(t)
 	if res, _ := get(t, srv.URL+"/a/"+id+"/nope.html", nil); res.StatusCode != 404 {

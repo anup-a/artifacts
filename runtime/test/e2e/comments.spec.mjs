@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { spawn, execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -517,6 +518,51 @@ test("panel follows the viewer's colour scheme, not the page's", async ({ page }
     return getComputedStyle(p).backgroundColor;
   });
   expect(panelBg).toBe("rgb(17, 17, 17)");
+});
+
+/** Republish index.html unchanged with the comments switch set; blobs already exist. */
+async function setComments(id, html, enabled) {
+  const sha256 = createHash("sha256").update(html).digest("hex");
+  const form = new FormData();
+  form.append("manifest", JSON.stringify({
+    files: [{ path: "index.html", sha256, size: Buffer.byteLength(html) }],
+    comments_enabled: enabled,
+  }));
+  const res = await fetch(`${BASE}/api/artifacts/${id}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${TOKEN}` },
+    body: form,
+  });
+  expect(res.status).toBe(200);
+  expect((await res.json()).comments_enabled).toBe(enabled);
+}
+
+test("comments off: page serves without the runtime and the viewer API is gone", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await createThread(id, "Before the switch", "brown fox", "The quick ", " jumps");
+  await setComments(id, html, false);
+
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto(`${BASE}/a/${id}/`);
+  await expect(page.locator("#p1")).toHaveText("The quick brown fox jumps over the lazy dog.");
+  await expect(page.locator("#artifacts-rt")).toHaveCount(0);
+  await expect(page.locator("mark.artifacts-hl")).toHaveCount(0);
+  expect(errors).toEqual([]);
+
+  expect((await fetch(`${BASE}/c/${id}/comments`)).status).toBe(404);
+  expect((await fetch(`${BASE}/c/${id}/meta`)).status).toBe(404);
+  // The owner still sees the earlier thread.
+  const owner = await fetch(`${BASE}/api/artifacts/${id}/comments`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  expect((await owner.json()).threads).toHaveLength(1);
+
+  await setComments(id, html, true);
+  // The page is cached for 60s; a reload revalidates against the new ETag.
+  await page.goto(`${BASE}/a/${id}/`);
+  await page.reload();
+  await expect(page.locator("#artifacts-rt")).toBeAttached();
+  await expect(page.locator("mark.artifacts-hl")).toHaveCount(1);
 });
 
 test("seen beacon reports anchor status back to the owner API", async ({ page }) => {

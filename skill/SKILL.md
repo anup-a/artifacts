@@ -65,6 +65,12 @@ A single file works too and is published as `index.html`:
 artifacts publish ./report.html --json
 ```
 
+Comments are on by default. For a page that should be read but not annotated,
+publish with `--no-comments`: viewers get the page without the comment panel
+and the viewer comment API answers 404. `--comments` turns it back on, and a
+publish with neither flag keeps the current setting. `get` and `list` report
+it as `comments_enabled`; the person can also flip it from the dashboard.
+
 ## Read comments and answer them
 
 Readers select text on the page and leave a comment anchored to that selection.

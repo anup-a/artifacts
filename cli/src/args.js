@@ -2,7 +2,7 @@ import { usage } from "./errors.js";
 
 // Flags that never take a value. Anything else written as --name expects one,
 // either as --name=value or as the next argument.
-const BOOLEAN = new Set(["json", "open", "all", "help", "version"]);
+const BOOLEAN = new Set(["json", "open", "all", "help", "version", "comments", "no-comments"]);
 
 export function parseArgs(argv) {
   const positional = [];
