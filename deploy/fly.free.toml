@@ -29,9 +29,11 @@ primary_region = "sin"
   DATA_DIR = "/data"
   # Pages are served from the apex so a share URL stays short: byagent.dev/a/<id>/.
   # The dashboard and API sit on a subdomain to keep published HTML off the
-  # origin that holds dashboard sessions.
+  # origin that holds dashboard sessions. It is `app`, not `api`: the same host
+  # serves both /api/* and the /app/* dashboard, and the dashboard is the half a
+  # person lands on from a sign-in email.
   PUBLIC_SHARE_ORIGIN = "https://byagent.dev"
-  PUBLIC_API_ORIGIN = "https://api.byagent.dev"
+  PUBLIC_API_ORIGIN = "https://app.byagent.dev"
   TRUST_PROXY_HEADERS = "true"
 
 # ADMIN_TOKEN is not here on purpose: it is set with `fly secrets set`.
