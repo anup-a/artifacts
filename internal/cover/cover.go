@@ -93,9 +93,12 @@ func hash64(s string) uint64 {
 // Layout constants: title block vertically centred, everything left-aligned
 // at textX, footer and accent bar on the bottom margin.
 const (
-	textX        = 80
-	titleSize    = 60
-	titleLeading = 72
+	textX = 80
+	// 68px keeps the title readable when the whole card is shown at a
+	// 233px-wide dashboard tile (about 13px there); 26 characters of it
+	// still fit inside the 1200px canvas with the 80px margin.
+	titleSize    = 68
+	titleLeading = 80
 	maxLineChars = 26
 	maxLines     = 3
 	projectSize  = 24
@@ -112,6 +115,11 @@ func Render(c Card) []byte {
 	style := c.Style
 	if !Valid(style) {
 		style = PickStyle(c.ID)
+	}
+	// The wash is a tint of the project colour. Without a project that tint
+	// would be grey, which reads as a smudge, so such cards use dots instead.
+	if style == "wash" && strings.TrimSpace(c.Project) == "" {
+		style = "dots"
 	}
 	title := c.Title
 	if strings.TrimSpace(title) == "" {

@@ -61,31 +61,15 @@ func splitRecent(list []store.Artifact, now time.Time) (recent, older []store.Ar
 	return recent, older
 }
 
-// bentoColumns is the grid width the shapes are fitted to; app.css draws the
-// same four columns.
-const bentoColumns = 4
-
-// spans assigns the bento shape: with a hero the first card is 2 x 2 (four
-// cells), every other card is one cell, and just enough of the trailing
-// cards are made two columns wide that the last row ends flush instead of
-// leaving a hole. Wide cards go at the end because, with dense packing, that
-// is where the gap would otherwise appear.
+// spans assigns the bento shape: with a hero the first card is 2 x 2 and
+// every other card is a single cell. Wide fillers were tried and dropped:
+// stretching the OG card doubled its title and made rows read heavy, and a
+// ragged last row is how every grid ends anyway.
 func spans(cards []cardView, hero bool) []cardView {
 	out := make([]cardView, len(cards))
 	copy(out, cards)
-	cells := len(cards)
-	first := 0
 	if hero && len(cards) > 0 {
 		out[0].Span = "hero"
-		cells += bentoColumns - 1 // a hero is four cells, not one
-		first = 1
-	}
-	wide := (bentoColumns - cells%bentoColumns) % bentoColumns
-	if wide > len(cards)-first {
-		wide = len(cards) - first
-	}
-	for i := len(cards) - wide; i < len(cards); i++ {
-		out[i].Span = "wide"
 	}
 	return out
 }

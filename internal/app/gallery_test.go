@@ -65,10 +65,8 @@ func TestArtifactsSectionsAndHero(t *testing.T) {
 	res := e.get("/app/artifacts")
 	want(t, res, 200, `<h2 class="day-label">Today</h2>`, `<h2 class="day-label">Yesterday</h2>`, `<h2 class="day-label">Older</h2>`,
 		`data-day="2026-09-16"`, `data-at="2026-09-16T12:00:04Z"`, `data-day="2026-09-15"`,
-		`class="tile is-hero"`, `class="tile is-wide"`, `class="tile-cover" href="/app/artifacts/today0000005" data-peek`,
-		`class="tile-title truncate" href="/app/artifacts/today0000005" data-peek>Today e</a>`,
-		`class="tile-title truncate" href="/app/artifacts/yest00000003" data-peek><code class="tile-untitled" title="Untitled: showing the id">yest00000003</code></a>`,
-		`class="tile-cover" href="/app/artifacts/yest00000003" data-peek aria-label="yest00000003"`,
+		`class="tile is-hero"`, `class="tile-cover" href="/app/artifacts/today0000005" data-peek aria-label="Today e" title="Today e"`,
+		`class="tile-cover" href="/app/artifacts/yest00000003" data-peek aria-label="yest00000003" title="Untitled: yest00000003"`,
 		`<img src="http://share.test/a/today0000005/_cover.svg" alt="" loading="lazy"`,
 		`<span class="dot" data-color="#`, `>Hi Travel</span></a>`, `<span class="tag">report</span><span class="tag">quarterly</span>`,
 		`class="icon-btn tile-open" href="http://share.test/a/today0000001/"`,
@@ -76,9 +74,8 @@ func TestArtifactsSectionsAndHero(t *testing.T) {
 	if n := count(res.Body, `class="tile is-hero"`); n != 1 {
 		t.Fatalf("%d heroes, want 1", n)
 	}
-	// Five cards today: the fourth is wide; two yesterday: none wide, no hero.
-	if n := count(res.Body, `class="tile is-wide"`); n != 1 {
-		t.Fatalf("%d wide tiles, want 1", n)
+	if strings.Contains(res.Body, `is-wide`) || strings.Contains(res.Body, `tile-title`) {
+		t.Fatal("tiles must be a single anatomy: cover plus meta, no wide span, no duplicate title")
 	}
 	if strings.Contains(res.Body, `<span class="tag">third</span>`) {
 		t.Fatal("card shows more than two tags")
@@ -193,14 +190,10 @@ func TestDayLabel(t *testing.T) {
 		return strings.Join(got, ",")
 	}
 	shapeCases := map[string]string{
-		"8,hero":  "hero,,,,,,,wide",    // 4+7 = 11 cells, one wide makes 12
-		"7,hero":  "hero,,,,,wide,wide", // 4+6 = 10 cells, two wide make 12
-		"4,hero":  "hero,,,wide",        // 4+3 = 7 cells, one wide makes 8
-		"1,hero":  "hero",               // a lone hero already fills its rows
-		"3,plain": ",,wide",             // 3 cells, one wide makes 4
-		"2,plain": "wide,wide",          // 2 cells, both wide make 4
-		"5,plain": ",,wide,wide,wide",   // 5 cells, three wide make 8
-		"4,plain": ",,,",                // already flush
+		"8,hero":  "hero,,,,,,,",
+		"1,hero":  "hero",
+		"3,plain": ",,",
+		"0,hero":  "",
 	}
 	for k, want := range shapeCases {
 		var n int
