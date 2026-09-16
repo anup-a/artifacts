@@ -35,9 +35,12 @@ func NewArtifactID() string { return base62(random(9), 12) }
 
 // NewKey returns the plaintext key (shown once) and its sha256 hex (stored).
 func NewKey() (string, string) {
-	plain := "ak_" + base62(random(32), 43)
+	plain := "ak_" + NewToken()
 	return plain, HashKey(plain)
 }
+
+// NewToken returns 32 random bytes encoded as 43 base62 characters.
+func NewToken() string { return base62(random(32), 43) }
 
 func HashKey(plain string) string {
 	h := sha256.Sum256([]byte(plain))

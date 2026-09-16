@@ -5,10 +5,13 @@ A self-hostable service for publishing and sharing small static web apps
 files content-addressed by sha256, injects a lightweight comments runtime
 into HTML at serve time, and exposes a simple key-authenticated API for
 publishing, listing, rolling back, and moderating threaded feedback anchored
-to the rendered page.
+to the rendered page. A tenant dashboard manages artifacts, API keys, usage,
+and integrator workspaces. Integrators can give their customers a read-only
+portal without requiring those customers to sign in.
 
 See the full design in
-[`docs/superpowers/specs/2026-09-15-artifacts-service-design.md`](docs/superpowers/specs/2026-09-15-artifacts-service-design.md)
+[`docs/superpowers/specs/2026-09-15-artifacts-service-design.md`](docs/superpowers/specs/2026-09-15-artifacts-service-design.md),
+the [tenant dashboard extension](docs/superpowers/specs/2026-09-16-tenants-dashboard-portal-design.md),
 and operational procedures in [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md).
 
 ## Self-host quickstart
@@ -27,10 +30,42 @@ SHA=$(printf '%s' "$BODY" | shasum -a 256 | cut -d' ' -f1)
 printf '%s' "$BODY" > index.html
 MAN=$(printf '{"title":"Hello","files":[{"path":"index.html","sha256":"%s","size":%d}]}' "$SHA" "${#BODY}")
 curl -sf -H "$H" -F "manifest=$MAN" -F "$SHA=@index.html" localhost:8080/api/artifacts
-# => {"id":"...","url":"http://localhost:8080/a/.../","version":1}
+# => {"id":"...","url":"http://localhost:8080/a/.../","version":1,"end_user":null}
 ```
 
 Open the returned `url` in a browser to view the published page.
+
+This API-only setup keeps `ADMIN_TOKEN` as the key for the `admin` tenant.
+For the dashboard, configure `KEY_SIGNING_SECRET` and a sign-in provider:
+`EMAIL_PROVIDER=log` for local development, `EMAIL_PROVIDER=resend` with
+`RESEND_API_KEY` and `EMAIL_FROM` for delivered email, or the GitHub client
+ID and secret. Without a provider, `/app/*` returns 503 and the API still works.
+
+## Dashboard and customer portals
+
+Open `PUBLIC_API_ORIGIN/app/login`, sign in, and create a named API key at
+`PUBLIC_API_ORIGIN/app/keys`. The full key is shown once. The dashboard lists
+artifacts, lets you delete them, rotate keys, inspect usage, and rename the
+workspace. Any active key in a workspace can manage all of its artifacts.
+Revoking one key does not affect artifacts or other keys in that workspace.
+
+Settings can create an integrator workspace. Publish with `--end-user <id>`
+to attribute an artifact to your customer, then use `portal-link <id>` to
+create a link to just that customer's artifacts. End-user IDs are opaque,
+1 to 128 printable ASCII characters. Republishing cannot reassign an artifact
+to a different customer. Portal links last seven days, require no account or
+cookie, and stop working when `KEY_SIGNING_SECRET` is rotated.
+
+The web app and portals live on the API origin. Use separate API and share
+origins for web-enabled deployments: published HTML must never share an
+origin with an authenticated dashboard. Sessions use an HttpOnly cookie
+scoped to `/app`, with Secure enabled on HTTPS.
+
+Usage shows publishes, retained version storage, page views, and open comments
+for the current and previous calendar months in UTC. Views count current-page
+200 and 304 responses and flush every 30 seconds and at shutdown. Storage and
+open comments use the month cutoff; previous totals reflect retained data, so
+pruned versions cannot be reconstructed.
 
 ## CLI
 
@@ -42,15 +77,17 @@ an unrelated package that owns that name):
 npm install -g ./cli
 export ARTIFACTS_API=http://localhost:8080 ARTIFACTS_TOKEN=change-me
 artifacts publish ./site --title "Hello" --json
-# => {"id":"...","url":"http://localhost:8080/a/.../","version":1,"files":2,"bytes":1841,"uploaded":2}
+# => {"id":"...","url":"http://localhost:8080/a/.../","version":1,"end_user":null,"files":2,"bytes":1841,"uploaded":2}
 ```
 
 | Command | What it does |
 | --- | --- |
-| `login --api <url> [--token <key>]` | Verifies the key, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
-| `publish <dir\|file.html> [--id <id>] [--title <t>]` | Uploads only the blobs the server is missing and publishes a new version |
+| `login --api <url> [--token <key>]` | Verifies a key created at `<url>/app/keys`, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
+| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer |
 | `get <id>` | URL, title, current version, open comment count |
-| `list` | Artifacts for the key |
+| `list [--end-user <id>]` | Workspace artifacts, optionally filtered to one customer |
+| `whoami` | Current tenant ID, kind and name, plus the key ID and name |
+| `portal-link <end-user id>` | Seven-day read-only customer portal URL, integrator workspaces only |
 | `versions <id>` | Version history with per-version comment counts |
 | `rollback <id> <version>` | Republishes an old version as the newest one |
 | `comments <id> [--open\|--all] [--since <rfc3339>]` | Threads with their anchor status and comments |
@@ -62,6 +99,9 @@ Config comes from `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else
 `~/.artifacts/config.json`. Every command takes `--json` and then prints exactly
 one JSON object on stdout; errors print one JSON object on stderr and exit
 non-zero (2 for usage and configuration problems, 1 for a failed call).
+Publish and list JSON include `end_user`, the external ID or `null`.
+`portal-link --json` returns `{url, expires_at}`; its default output is just
+the URL. `whoami --json` returns `{tenant:{id,kind,name},key:{id,name}}`.
 
 Publishing a directory writes `<dir>/.artifacts.json` with the artifact id and
 the API it belongs to, so the next `publish` of that directory updates the same
@@ -84,17 +124,20 @@ deployment.
 ## API
 
 Base: `PUBLIC_API_ORIGIN`. Auth: `Authorization: Bearer <key>` on all
-`/api/*` routes except `POST /api/keys`. Viewer routes under `/c/*` on the
-share origin take no auth; the artifact id is the capability.
+owner routes under `/api/*`. `POST /api/keys` has been removed and always
+returns 404, including with `ADMIN_TOKEN`. Create keys in the app at
+`PUBLIC_API_ORIGIN/app/keys`. Viewer routes under `/c/*` on the share origin
+take no auth; the artifact id is the capability.
 
 | Method | Path | Notes |
 |---|---|---|
-| `POST` | `/api/keys` | `{email}` → `{key, quota}`. Managed only. Rate-limited per IP. Key is `ak_` + 32 random bytes base62; only its SHA-256 is stored. |
+| `GET` | `/api/me` | `{tenant:{id,kind,name},key:{id,name}}`. |
+| `POST` | `/api/end-users/{external_id}/portal-link` | `{url,expires_at}`. Integrator tenant required; URL uses the API origin and lasts seven days. |
 | `POST` | `/api/artifacts/preflight` | `{files:[{path, sha256, size}]}` → `{missing:[sha256]}`. Lets the CLI upload only new blobs. |
-| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. → `{id, url, version:1}`. Requires `index.html` at root. |
-| `PUT` | `/api/artifacts/:id` | Same body → new version, same URL. → `{id, url, version:n}`. |
+| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user}`. Requires root `index.html`. |
+| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version, same URL; returns `{id,url,version:n,end_user}`. A different end user returns 403 `FORBIDDEN`. |
 | `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, created_at, updated_at}` |
-| `GET` | `/api/artifacts?limit&cursor` | Owner's artifacts, newest first. |
+| `GET` | `/api/artifacts?limit&cursor&end_user` | Tenant's artifacts, newest first. Items include `end_user` as an external ID or `null`. |
 | `DELETE` | `/api/artifacts/:id` | Soft delete; page returns 410; blobs GC'd later. |
 | `GET` | `/api/artifacts/:id/versions` | `[{version, created_at, bytes, files, comment_count}]` |
 | `POST` | `/api/artifacts/:id/rollback/:version` | Creates version n+1 with version v's file set. |
@@ -115,8 +158,10 @@ Errors: `{"error":{"code","message","request_id"}}`. Codes:
 `INTERNAL` 500. Every response carries `X-Request-Id`.
 
 Limits (managed free tier): 25 MB per version, 500 files, 10 publishes/min
-per key, 200 artifacts per unverified key, 20 versions kept, 2 KB comment body,
+per key, 200 artifacts per tenant, 20 versions kept, 2 KB comment body,
 20 comments/min per IP on `/c/*`.
+Email sign-in is limited to 5 requests/hour per address and 20/hour per IP;
+key creation to 20/hour per tenant; portal links to 60/minute per tenant.
 
 ## Comments runtime
 
@@ -157,16 +202,22 @@ it and fails if the checked-in copy is stale.
 | `S3_ACCESS_KEY` | (empty) | Required when `STORAGE=s3`. |
 | `S3_SECRET_KEY` | (empty) | Required when `STORAGE=s3`. |
 | `S3_USE_SSL` | `true` | Set `false` for local/dev S3-compatible endpoints (e.g. MinIO). |
-| `ADMIN_TOKEN` | (empty) | Self-host: the one bearer key; disables `POST /api/keys`. One of `ADMIN_TOKEN` or `KEY_SIGNING_SECRET` is required. |
-| `KEY_SIGNING_SECRET` | (empty) | Managed mode: presence enables issuing keys via `POST /api/keys`. |
+| `ADMIN_TOKEN` | (empty) | API key for the `admin` personal tenant. No web login. One of `ADMIN_TOKEN` or `KEY_SIGNING_SECRET` is required for API-only use. |
+| `KEY_SIGNING_SECRET` | (empty) | Required for the web app and portal links, even with `ADMIN_TOKEN`. Rotation invalidates all existing portal links. |
+| `GITHUB_CLIENT_ID` | (empty) | Enables GitHub sign-in together with `GITHUB_CLIENT_SECRET`. |
+| `GITHUB_CLIENT_SECRET` | (empty) | GitHub OAuth app secret; configure callback `PUBLIC_API_ORIGIN/app/login/github/callback`. |
+| `EMAIL_PROVIDER` | unset, disabled | Explicit `log` enables development email sign-in; `resend` delivers email. With no provider configured, `/app/*` returns 503. |
+| `RESEND_API_KEY` | (empty) | Required when `EMAIL_PROVIDER=resend`. |
+| `EMAIL_FROM` | (empty) | Sender for delivered email, for example `artifacts <login@example.com>`. |
 | `PUBLIC_SHARE_ORIGIN` | `http://localhost:8080` | Origin used for generated artifact/comment links and CORS. |
-| `PUBLIC_API_ORIGIN` | `http://localhost:8080` | Origin used for API links and CORS. |
+| `PUBLIC_API_ORIGIN` | `http://localhost:8080` | Origin for API links, `/app/*`, `/p/*`, and the GitHub callback. Keep separate from the share origin when enabling web sign-in. |
 | `TRUST_PROXY_HEADERS` | `false` | Bucket per-IP rate limits by `CF-Connecting-IP` / `X-Forwarded-For` instead of the peer address. Set `true` **only** when the server is reachable exclusively through a proxy that overwrites those headers (the managed box behind Cloudflare does). Leaving it on for a directly-reachable server lets anyone bypass IP rate limits by varying the header. |
 | `LIMIT_VERSION_BYTES` | `26214400` (25 MB) | Max bytes per published version. |
 | `LIMIT_FILES` | `500` | Max files per version. |
 | `LIMIT_VERSIONS_KEPT` | `20` | Older versions are GC'd beyond this. |
 | `LIMIT_PUBLISH_PER_MIN` | `10` | Publishes per key per minute. |
-| `LIMIT_ARTIFACTS_PER_KEY` | `200` | Artifacts per unverified key. |
+| `LIMIT_ARTIFACTS_PER_TENANT` | `200` | Live artifacts per tenant, shared across its keys. |
+| `LIMIT_ARTIFACTS_PER_KEY` | (empty) | Deprecated fallback when `LIMIT_ARTIFACTS_PER_TENANT` is unset; logs a deprecation notice. |
 | `LIMIT_COMMENT_BYTES` | `2048` | Max comment body size. |
 | `LIMIT_COMMENTS_PER_MIN` | `20` | Comments per IP per minute on `/c/*`. |
 | `LIMIT_ANCHOR_BYTES` | `4096` | Max serialized anchor size. |
@@ -180,7 +231,7 @@ it and fails if the checked-in copy is stale.
 ## Development
 
 ```
-go run ./cmd/artifacts-server
+ADMIN_TOKEN=local-dev go run ./cmd/artifacts-server
 CGO_ENABLED=0 go test ./...
 ./scripts/smoke.sh   # end-to-end smoke test against a locally started server
 ```

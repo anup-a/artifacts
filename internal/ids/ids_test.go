@@ -34,3 +34,17 @@ func TestKey(t *testing.T) {
 		t.Fatal("collision")
 	}
 }
+
+func TestToken(t *testing.T) {
+	seen := map[string]bool{}
+	for range 1000 {
+		token := NewToken()
+		if len(token) != 43 || !b62.MatchString(token) {
+			t.Fatal("token must encode 32 random bytes as 43 base62 characters")
+		}
+		if seen[token] {
+			t.Fatal("duplicate token")
+		}
+		seen[token] = true
+	}
+}

@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export ADMIN_TOKEN=smoke ADDR=:8091 DATA_DIR="$(mktemp -d)" PUBLIC_SHARE_ORIGIN=http://localhost:8091 PUBLIC_API_ORIGIN=http://localhost:8091
+export DB=sqlite STORAGE=local KEY_SIGNING_SECRET= EMAIL_PROVIDER= GITHUB_CLIENT_ID= GITHUB_CLIENT_SECRET=
 # Build first and run the binary: `go run` execs the server as a child, so the
 # trap below would kill the go wrapper and leave the server holding the port,
 # making a second run of this script fail.
@@ -10,13 +11,20 @@ go build -o "$DATA_DIR/server" ./cmd/artifacts-server
 trap 'kill $PID' EXIT
 for _ in $(seq 1 50); do curl -sf localhost:8091/healthz >/dev/null && break; sleep 0.2; done
 H='Authorization: Bearer smoke'
+STATUS=$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{"email":"removed@example.test"}' localhost:8091/api/keys)
+test "$STATUS" = 404 || { echo "FAIL: POST /api/keys returned $STATUS, expected 404"; exit 1; }
 BODY='<html><body><h1>hello world</h1></body></html>'
 SHA=$(printf '%s' "$BODY" | shasum -a 256 | cut -d' ' -f1)
 printf '%s' "$BODY" > "$DATA_DIR/index.html"
 MAN=$(printf '{"title":"Smoke","files":[{"path":"index.html","sha256":"%s","size":%d}]}' "$SHA" "${#BODY}")
-RES=$(curl -sf -H "$H" -F "manifest=$MAN" -F "$SHA=@$DATA_DIR/index.html" localhost:8091/api/artifacts)
+RES=$(curl -sf -H "$H" -H 'X-Artifact-End-User: smoke-user' -F "manifest=$MAN" -F "$SHA=@$DATA_DIR/index.html" localhost:8091/api/artifacts)
 ID=$(echo "$RES" | sed -E 's/.*"id":"([^"]+)".*/\1/')
 echo "published $ID"
+FILTERED=$(curl -sf -H "$H" 'localhost:8091/api/artifacts?end_user=smoke-user')
+echo "$FILTERED" | grep -q "$ID" || { echo "FAIL: end-user filter omitted the artifact"; exit 1; }
+echo "$FILTERED" | grep -q '"end_user":"smoke-user"' || { echo "FAIL: end-user attribution missing"; exit 1; }
+OTHER=$(curl -sf -H "$H" 'localhost:8091/api/artifacts?end_user=other-user')
+echo "$OTHER" | grep -q '"artifacts":\[\]' || { echo "FAIL: end-user filter returned another user's artifact"; exit 1; }
 curl -sf "localhost:8091/a/$ID/" | grep -q 'data-artifact' || { echo "runtime not injected"; exit 1; }
 curl -sf "localhost:8091/a/$ID/" | grep -q 'hello world' || { echo "body missing"; exit 1; }
 # The embedded runtime must be the real build, not a stub. Matching on a class

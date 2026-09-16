@@ -149,7 +149,7 @@ func TestCreateMissingBlobLeavesNoRow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	n, err := d.Store.CountArtifacts(context.Background(), key.ID)
+	n, err := d.Store.CountArtifacts(context.Background(), key.TenantID)
 	if err != nil {
 		t.Fatal(err)
 	}

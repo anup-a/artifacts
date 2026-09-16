@@ -15,7 +15,7 @@ export async function login(_cfg, { flags, env = process.env }) {
   const api = trimSlash(flags.api || env.ARTIFACTS_API || "");
   if (!api) throw usage("usage: artifacts login --api <url> [--token <key>]  (token may come from stdin)");
   const token = flags.token || env.ARTIFACTS_TOKEN || (await readStdin());
-  if (!token) throw usage("no token: pass --token or pipe the key on stdin");
+  if (!token) throw usage(`no token: create a key at ${api}/app/keys, then pass --token or pipe it on stdin`);
 
   // Verify before saving so a typo does not leave a config that fails later.
   await apiJson({ token, api }, "GET", "/api/artifacts", { query: { limit: 1 } });

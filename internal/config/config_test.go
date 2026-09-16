@@ -1,6 +1,11 @@
 package config
 
-import "testing"
+import (
+	"bytes"
+	"log/slog"
+	"strings"
+	"testing"
+)
 
 func env(m map[string]string) func(string) string {
 	return func(k string) string { return m[k] }
@@ -61,5 +66,66 @@ func TestOriginsDefaultToAddr(t *testing.T) {
 	c, _ := FromEnv(env(map[string]string{"ADMIN_TOKEN": "x"}))
 	if c.ShareOrigin != "http://localhost:8080" || c.APIOrigin != "http://localhost:8080" {
 		t.Fatalf("origins: %q %q", c.ShareOrigin, c.APIOrigin)
+	}
+}
+
+func TestWebProviderConfiguration(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		vars        map[string]string
+		wantEnabled bool
+		wantError   string
+	}{
+		{"admin only", map[string]string{"ADMIN_TOKEN": "test"}, false, ""},
+		{"secret only", map[string]string{"KEY_SIGNING_SECRET": "test"}, false, ""},
+		{"log", map[string]string{"EMAIL_PROVIDER": "log", "KEY_SIGNING_SECRET": "test"}, true, ""},
+		{"github", map[string]string{"GITHUB_CLIENT_ID": "test", "GITHUB_CLIENT_SECRET": "test", "KEY_SIGNING_SECRET": "test"}, true, ""},
+		{"log needs secret despite admin", map[string]string{"ADMIN_TOKEN": "test", "EMAIL_PROVIDER": "log"}, false, "KEY_SIGNING_SECRET"},
+		{"missing github secret", map[string]string{"ADMIN_TOKEN": "test", "GITHUB_CLIENT_ID": "test"}, false, "GITHUB_CLIENT_SECRET"},
+		{"missing github id", map[string]string{"ADMIN_TOKEN": "test", "GITHUB_CLIENT_SECRET": "test"}, false, "GITHUB_CLIENT_ID"},
+		{"unknown email provider", map[string]string{"ADMIN_TOKEN": "test", "EMAIL_PROVIDER": "smtp"}, false, "EMAIL_PROVIDER"},
+		{"resend needs key", map[string]string{"KEY_SIGNING_SECRET": "test", "EMAIL_PROVIDER": "resend", "EMAIL_FROM": "login@example.test"}, false, "RESEND_API_KEY"},
+		{"resend needs from", map[string]string{"KEY_SIGNING_SECRET": "test", "EMAIL_PROVIDER": "resend", "RESEND_API_KEY": "test"}, false, "EMAIL_FROM"},
+		{"resend", map[string]string{"KEY_SIGNING_SECRET": "test", "EMAIL_PROVIDER": "resend", "RESEND_API_KEY": "test", "EMAIL_FROM": "login@example.test"}, true, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := FromEnv(env(tc.vars))
+			if tc.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantError) {
+					t.Fatalf("expected configuration error mentioning %s", tc.wantError)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.WebEnabled() != tc.wantEnabled {
+				t.Fatalf("WebEnabled = %t", cfg.WebEnabled())
+			}
+		})
+	}
+}
+
+func TestTenantQuotaLegacyFallback(t *testing.T) {
+	var logs bytes.Buffer
+	old := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(old) })
+	get := map[string]string{"ADMIN_TOKEN": "test", "LIMIT_ARTIFACTS_PER_KEY": "17"}
+	got, err := FromEnv(env(get))
+	if err != nil || got.Limits.ArtifactsPerTenant != 17 {
+		t.Fatalf("legacy fallback failed: %v", err)
+	}
+	if !strings.Contains(logs.String(), "deprecated") {
+		t.Fatal("missing deprecation log")
+	}
+	get["LIMIT_ARTIFACTS_PER_TENANT"] = "23"
+	got, err = FromEnv(env(get))
+	if err != nil || got.Limits.ArtifactsPerTenant != 23 {
+		t.Fatalf("new tenant limit must take precedence: %v", err)
+	}
+	get["LIMIT_ARTIFACTS_PER_TENANT"] = "0"
+	if _, err = FromEnv(env(get)); err == nil {
+		t.Fatal("invalid tenant limit accepted")
 	}
 }

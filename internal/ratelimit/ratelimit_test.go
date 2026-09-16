@@ -26,3 +26,29 @@ func TestWindow(t *testing.T) {
 		t.Fatal("window should reset")
 	}
 }
+
+func TestHourWindow(t *testing.T) {
+	clock := time.Unix(1000, 0)
+	l := NewWindow(2, time.Hour)
+	l.SetNow(func() time.Time { return clock })
+	for range 2 {
+		if ok, _ := l.Allow("email"); !ok {
+			t.Fatal("early limit")
+		}
+	}
+	clock = clock.Add(time.Minute)
+	if ok, retry := l.Allow("email"); ok || retry != 3540 {
+		t.Fatalf("hour limit failed: allowed=%t retry=%d", ok, retry)
+	}
+	clock = clock.Add(59 * time.Minute)
+	if ok, _ := l.Allow("email"); !ok {
+		t.Fatal("hour window did not reset")
+	}
+	clock = clock.Add(time.Hour + time.Second)
+	if ok, _ := l.Allow("other"); !ok {
+		t.Fatal("new key rejected")
+	}
+	if _, ok := l.items["email"]; ok {
+		t.Fatal("stale bucket retained")
+	}
+}
