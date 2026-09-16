@@ -6,15 +6,23 @@ import (
 	"fmt"
 )
 
-func tag(artifactID string, version int) []byte {
-	return []byte(fmt.Sprintf(`<script src="/_rt/comments.js" data-artifact="%s" data-version="%d" defer></script>`, artifactID, version))
+// tag builds the runtime script tag. rev, when set, is appended as a query
+// string so that a redeployed runtime gets a fresh URL: /_rt/comments.js is
+// served immutable for a year, and without a revision returning viewers would
+// keep the old bundle until their cache expired.
+func tag(artifactID string, version int, rev string) []byte {
+	src := "/_rt/comments.js"
+	if rev != "" {
+		src += "?v=" + rev
+	}
+	return []byte(fmt.Sprintf(`<script src="%s" data-artifact="%s" data-version="%d" defer></script>`, src, artifactID, version))
 }
 
 // Inject places the runtime tag before the last </body> (any case) or appends it.
-func Inject(html []byte, artifactID string, version int) []byte {
+func Inject(html []byte, artifactID string, version int, rev string) []byte {
 	lower := bytes.ToLower(html)
 	i := bytes.LastIndex(lower, []byte("</body>"))
-	t := tag(artifactID, version)
+	t := tag(artifactID, version, rev)
 	if i < 0 {
 		return append(append([]byte{}, html...), t...)
 	}
