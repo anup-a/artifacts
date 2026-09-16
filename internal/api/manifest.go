@@ -25,6 +25,14 @@ type manifest struct {
 	// off for the artifact. Absent means "leave it as it is" (on for a new
 	// artifact).
 	CommentsEnabled *bool `json:"comments_enabled"`
+	// Gallery labels. Omitted keys keep the current value on PUT; null clears
+	// project or cover. Project and Tags are validated into project and tags.
+	Project    optString  `json:"project"`
+	Tags       optStrings `json:"tags"`
+	Cover      optString  `json:"cover"`
+	CoverStyle string     `json:"cover_style"`
+	project    *string
+	tags       []string
 }
 
 var shaRe = regexp.MustCompile(`^[0-9a-f]{64}$`)
@@ -70,6 +78,29 @@ func parseManifest(raw []byte, lim config.Limits) (manifest, *apierr.Error) {
 	}
 	if !hasIndex {
 		return m, apierr.Invalid("index.html is required at the root")
+	}
+	return validateGallery(m)
+}
+
+func validateGallery(m manifest) (manifest, *apierr.Error) {
+	var e *apierr.Error
+	if m.Project.Set && !m.Project.Null {
+		if m.project, e = cleanProject(m.Project.Value); e != nil {
+			return m, e
+		}
+	}
+	if m.Tags.Set {
+		if m.tags, e = cleanTags(m.Tags.Values); e != nil {
+			return m, e
+		}
+	}
+	if m.Cover.Set && !m.Cover.Null && m.Cover.Value != "" {
+		if e = validateCover(m.Cover.Value, m.Files); e != nil {
+			return m, e
+		}
+	}
+	if e = validateCoverStyle(m.CoverStyle); e != nil {
+		return m, e
 	}
 	return m, nil
 }

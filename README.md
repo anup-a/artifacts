@@ -86,9 +86,9 @@ artifacts publish ./site --title "Hello" --json
 | Command | What it does |
 | --- | --- |
 | `login --api <url> [--token <key>]` | Verifies a key created at `<url>/app/keys`, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
-| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--comments\|--no-comments]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting |
-| `get <id>` | URL, title, current version, open comment count |
-| `list [--end-user <id>]` | Workspace artifacts, optionally filtered to one customer |
+| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--comments\|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
+| `get <id>` | URL, title, current version, open comment count, project and tags |
+| `list [--end-user <id>] [--project <name>]` | Workspace artifacts, optionally filtered to one customer or one project; prints project and tags |
 | `whoami` | Current tenant ID, kind and name, plus the key ID and name |
 | `portal-link <end-user id>` | Seven-day read-only customer portal URL, integrator workspaces only |
 | `versions <id>` | Version history with per-version comment counts |
@@ -102,7 +102,8 @@ Config comes from `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else
 `~/.artifacts/config.json`. Every command takes `--json` and then prints exactly
 one JSON object on stdout; errors print one JSON object on stderr and exit
 non-zero (2 for usage and configuration problems, 1 for a failed call).
-Publish and list JSON include `end_user`, the external ID or `null`.
+Publish and list JSON include `end_user`, the external ID or `null`, plus
+`project`, `tags`, `cover_url` and `cover_style`.
 `portal-link --json` returns `{url, expires_at}`; its default output is just
 the URL. `whoami --json` returns `{tenant:{id,kind,name},key:{id,name}}`.
 
@@ -137,10 +138,11 @@ take no auth; the artifact id is the capability.
 | `GET` | `/api/me` | `{tenant:{id,kind,name},key:{id,name}}`. |
 | `POST` | `/api/end-users/{external_id}/portal-link` | `{url,expires_at}`. Integrator tenant required; URL uses the API origin and lasts seven days. |
 | `POST` | `/api/artifacts/preflight` | `{files:[{path, sha256, size}]}` → `{missing:[sha256]}`. Lets the CLI upload only new blobs. |
-| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, comments_enabled?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user,comments_enabled}`. Requires root `index.html`. |
-| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version, same URL; returns `{id,url,version:n,end_user,comments_enabled}`. A different end user returns 403 `FORBIDDEN`. `comments_enabled` (boolean, optional) switches viewer comments; omitted keeps the current setting. |
-| `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, comments_enabled, end_user, created_at, updated_at}` |
-| `GET` | `/api/artifacts?limit&cursor&end_user` | Tenant's artifacts, newest first. Items have the same shape as `GET /api/artifacts/:id`; `end_user` is an external ID or `null`. |
+| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, comments_enabled?, project?, tags?, cover?, cover_style?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user,comments_enabled,project,tags,cover,cover_url,cover_style}`. Requires root `index.html`. `project` is 1 to 64 characters (trimmed; `null` or empty clears), `tags` up to 10 strings of 1 to 32 characters (lowercased, deduplicated), `cover` the path of an svg/png/jpg/webp in the same manifest, `cover_style` one of `dots`, `grid`, `lines`, `wash`, `rings`, `plain`. Bad values return 400 `INVALID_ARGUMENT` naming the field. |
+| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version, same URL; returns the same shape with `version:n`. A different end user returns 403 `FORBIDDEN`. `comments_enabled` (boolean, optional) switches viewer comments; omitted keeps the current setting. Omitted `project`, `tags`, `cover` and `cover_style` keep their values; `null` clears `project` or `cover`, `[]` clears `tags`. |
+| `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, comments_enabled, end_user, project, tags, cover, cover_url, cover_style, created_at, updated_at, published_at}`. `published_at` equals `created_at`; `cover_style` is the effective generator name even when the publisher never chose one. |
+| `GET` | `/api/artifacts?limit&cursor&end_user&project` | Tenant's artifacts, newest first. Items have the same shape as `GET /api/artifacts/:id`; `end_user` is an external ID or `null`; `project` filters by exact label. |
+| `GET` | `/api/projects` | `{projects:[{name,count}]}`: the workspace's project labels with live artifact counts, most used first. |
 | `DELETE` | `/api/artifacts/:id` | Soft delete; page returns 410; blobs GC'd later. |
 | `GET` | `/api/artifacts/:id/versions` | `[{version, created_at, bytes, files, comment_count}]` |
 | `POST` | `/api/artifacts/:id/rollback/:version` | Creates version n+1 with version v's file set. |
@@ -152,7 +154,8 @@ take no auth; the artifact id is the capability.
 | `POST` | `/c/:id/comments/:thread/seen` | Viewer beacon. `{version, anchor_status}` → 204. Records where the runtime re-anchored the thread; ignored unless `version` is the current one. |
 | `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does. |
 | `GET` | `/c/:id/meta` | Viewer. `{current_version, versions:[n]}` so the runtime can render a version switcher. |
-| `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`. |
+| `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`, which is served with `og:title`, `og:image` (the cover URL) and `twitter:card` meta tags injected. |
+| `GET` | `/a/:id/_cover.svg` | The cover: the publisher's `cover` file from the current version when present, else a generated 1200 x 630 SVG card (title, project, share host and publish date over a subtle `cover_style` pattern). `Cache-Control: public, max-age=3600` with an ETag; 404 / 410 like pages. |
 | `GET` | `/healthz` | |
 
 Errors: `{"error":{"code","message","request_id"}}`. Codes:

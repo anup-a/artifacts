@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/store"
@@ -17,11 +18,15 @@ func (s *server) artifactView(r *http.Request, a store.Artifact) (map[string]any
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{
+	out := s.galleryFields(a)
+	for k, v := range map[string]any{
 		"id": a.ID, "title": a.Title, "url": s.artifactURL(a.ID), "current_version": a.CurrentVersion,
 		"versions_count": len(vs), "open_comments": open, "comments_enabled": a.CommentsEnabled, "end_user": a.EndUser,
-		"created_at": a.CreatedAt, "updated_at": a.UpdatedAt,
-	}, nil
+		"created_at": a.CreatedAt, "updated_at": a.UpdatedAt, "published_at": a.CreatedAt,
+	} {
+		out[k] = v
+	}
+	return out, nil
 }
 
 func (s *server) getArtifact(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +46,7 @@ func (s *server) getArtifact(w http.ResponseWriter, r *http.Request) {
 func (s *server) listArtifacts(w http.ResponseWriter, r *http.Request) {
 	k, _ := KeyFrom(r.Context())
 	q := r.URL.Query()
-	f := store.ArtifactFilter{Limit: 50, EndUser: q.Get("end_user")}
+	f := store.ArtifactFilter{Limit: 50, EndUser: q.Get("end_user"), Project: strings.TrimSpace(q.Get("project"))}
 	if v := q.Get("limit"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 || n > 200 {

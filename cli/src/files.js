@@ -65,7 +65,13 @@ export function readLink(dir) {
   }
 }
 
-export function writeLink(dir, { id, api }) {
+// writeLink remembers the artifact and, when known, its project and tags so
+// a republish keeps them without repeating the flags. Absent labels are left
+// out rather than written as null.
+export function writeLink(dir, { id, api, project, tags }) {
   if (!dir) return;
-  writeFileSync(join(dir, LINK_FILE), JSON.stringify({ id, api }, null, 2) + "\n");
+  const link = { id, api };
+  if (project) link.project = project;
+  if (Array.isArray(tags) && tags.length) link.tags = tags;
+  writeFileSync(join(dir, LINK_FILE), JSON.stringify(link, null, 2) + "\n");
 }

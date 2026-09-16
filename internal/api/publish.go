@@ -187,6 +187,10 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 		}
 		a.CommentsEnabled = *m.CommentsEnabled
 	}
+	a, e = s.applyMetadata(ctx, a, m)
+	if e != nil {
+		return a, 0, e
+	}
 	if _, err := s.Store.PruneVersions(ctx, a.ID, s.Cfg.Limits.VersionsKept); err != nil {
 		return a, 0, apierr.Internal(err)
 	}
@@ -249,7 +253,9 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) publishResponse(a store.Artifact, version int) map[string]any {
-	return map[string]any{"id": a.ID, "url": s.artifactURL(a.ID), "version": version, "end_user": a.EndUser, "comments_enabled": a.CommentsEnabled}
+	out := s.galleryFields(a)
+	out["id"], out["url"], out["version"], out["end_user"], out["comments_enabled"] = a.ID, s.artifactURL(a.ID), version, a.EndUser, a.CommentsEnabled
+	return out
 }
 
 func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {

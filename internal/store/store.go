@@ -38,9 +38,25 @@ type Artifact struct {
 	// /c/* routes. New artifacts start enabled; CreateArtifact ignores this
 	// field and SetCommentsEnabled changes it.
 	CommentsEnabled bool
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       *time.Time
+	// Project and Tags are publisher-supplied labels for the gallery. Tags is
+	// never nil when read back: an artifact without tags has an empty slice.
+	Project *string
+	Tags    []string
+	// CoverPath names a file inside the current version to serve as the cover;
+	// nil means the server generates one. CoverStyle is the generator name the
+	// publisher asked for, or "" to derive one from the id.
+	CoverPath  *string
+	CoverStyle string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  *time.Time
+}
+
+// ProjectCount is one row of Projects: a project label and how many live
+// artifacts carry it.
+type ProjectCount struct {
+	Name  string
+	Count int
 }
 
 type Version struct {
@@ -90,6 +106,12 @@ type Store interface {
 	CountArtifacts(ctx context.Context, tenantID string) (int, error)
 	UpdateTitle(ctx context.Context, id, title string) error
 	SetCommentsEnabled(ctx context.Context, id string, on bool) error
+	// SetMetadata replaces project, tags, cover path and cover style without
+	// touching updated_at: labels are not content.
+	SetMetadata(ctx context.Context, id string, project *string, tags []string, coverPath *string, coverStyle string) error
+	// Projects lists the distinct project labels of a tenant's live artifacts
+	// with their counts, most used first.
+	Projects(ctx context.Context, tenantID string) ([]ProjectCount, error)
 	SoftDelete(ctx context.Context, id string, at time.Time) error
 	AddVersion(ctx context.Context, v Version, files []File) error
 	Versions(ctx context.Context, artifactID string) ([]Version, error)

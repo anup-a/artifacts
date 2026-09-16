@@ -42,16 +42,30 @@ origin and reused by the dashboard. Two sources:
 1. **Publisher file.** If `cover_path` is set and that file exists in the current
    version, the endpoint streams it (SVG, PNG, JPEG or WebP; content type from the
    stored file). Rollback to a version without that file falls back to generated.
-2. **Generated.** A Go package `internal/cover` renders a background from a
-   fixed set of filter-free styles, seeded deterministically by the artifact id,
-   with the title set in the bottom-left in white with a soft dark scrim, the way
-   Vercel's OG image generator lays out a title. Styles ship in this order and are
-   picked by `hash(id) mod len(styles)` unless `cover_style` names one:
-   `waves`, `peaks`, `blobs`, `rings`, `stripes`, `mesh`. Each is plain paths,
-   gradients and circles; no `<filter>`, no external fonts (system font stack).
-   Palette: six curated 3-colour sets, chosen by a second hash so the same style
-   varies. Title is escaped, clamped to two lines of at most 28 characters each with
-   an ellipsis, font size 56px on the 1200 x 630 canvas. Empty title shows the id.
+2. **Generated.** A Go package `internal/cover` renders an OG-style card, the
+   way Vercel's OG image generator does: the text is the subject, the background
+   is quiet. Anup's direction after seeing loud Creatica art as covers: "too
+   attractive... some text and a subtle background pattern which is not overly
+   taking attention".
+   - Canvas 1200 x 630, near-white ground (`#fafafa`) with the pattern drawn in
+     a neutral grey at 6 to 10 percent opacity. Dark variant is not generated;
+     the dashboard shows the same card in both themes.
+   - Styles, picked by `hash(id) mod len(styles)` unless `cover_style` names one:
+     `dots` (dot grid, 24px pitch), `grid` (hairline grid, 48px), `lines`
+     (diagonal hairlines), `wash` (one very soft radial tint in the project
+     colour at 8 percent, top-right), `rings` (faint concentric circles anchored
+     off-canvas bottom-right), `plain` (no pattern). All plain shapes, no
+     `<filter>`, no external fonts (system font stack).
+   - Text: title in the foreground colour (`#171717`), 600 weight, 60px, left
+     aligned at x=80, vertically centred, escaped and clamped to three lines of at
+     most 26 characters each with an ellipsis. Above it a small line: an 10px
+     project-coloured dot and the project name in 24px grey (omitted when no
+     project). Below, bottom-left, a 22px grey footer `byagent.dev · 16 Sep 2026`
+     using the share host and the publish date. Bottom-right, a 6px accent bar
+     in the project colour, 160px wide, as the only saturated element. Empty title
+     shows the id.
+   - Project colour: the same six-colour hash palette the dashboard uses for
+     project dots, so card and list agree; no project = neutral grey.
 
 Generated covers are pure functions of `(id, title, style)`, so the endpoint sets
 `ETag` from a hash of those inputs and `Cache-Control: public, max-age=3600`.

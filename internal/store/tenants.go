@@ -37,6 +37,8 @@ type ArtifactFilter struct {
 	Limit                               int
 	Before                              time.Time
 	BeforeID, EndUser, EndUserID, Query string
+	// Project, when set, keeps only artifacts with exactly that project label.
+	Project string
 }
 type ViewCount struct {
 	ArtifactID, Day string

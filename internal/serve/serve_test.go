@@ -20,6 +20,10 @@ import (
 // viewsSeen collects OnView calls made by the fixture handler.
 var viewsSeen []string
 
+// fixtureBlobs is the blob store behind the most recent fixture, for tests
+// that add versions of their own.
+var fixtureBlobs blob.Store
+
 func TestViewsCountedOnlyForCurrentIndex(t *testing.T) {
 	srv, _, id := fixture(t)
 	res, _ := get(t, srv.URL+"/a/"+id+"/", nil)
@@ -40,6 +44,7 @@ func fixture(t *testing.T) (*httptest.Server, store.Store, string) {
 	st, _ := store.Open(ctx, cfg)
 	_ = st.Migrate(ctx)
 	bl, _ := blob.Open(cfg)
+	fixtureBlobs = bl
 	k, _ := st.CreateKey(ctx, "h", "e")
 	now := time.Now().UTC()
 	id := "serve0000001"

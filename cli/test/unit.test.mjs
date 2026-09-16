@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { parseArgs } from "../src/args.js";
 import { resolveConfig, saveConfig, configPath } from "../src/config.js";
 import { collectFiles, readLink, writeLink } from "../src/files.js";
-import { publish } from "../src/commands/publish.js";
+import { publish, labelsOf, resolveCover } from "../src/commands/publish.js";
 import { list } from "../src/commands/artifacts.js";
 import { main } from "../src/main.js";
 
@@ -20,6 +20,12 @@ test("parseArgs splits command, positionals and flags", () => {
   assert.equal(a.command, "publish");
   assert.deepEqual(a.positional, ["./site"]);
   assert.deepEqual(a.flags, { id: "ar_1", title: "Hi", json: true });
+});
+
+test("parseArgs collects a repeated --tag into an array", () => {
+  const a = parseArgs(["publish", "./site", "--tag", "a", "--tag=b", "--project", "Demo"]);
+  assert.deepEqual(a.flags, { tag: ["a", "b"], project: "Demo" });
+  assert.equal(parseArgs(["list"]).flags.tag, undefined);
 });
 
 test("parseArgs keeps text after -- as positional", () => {
@@ -91,6 +97,97 @@ test("readLink returns {} without a link file and round-trips through writeLink"
   assert.deepEqual(readLink(dir), {});
   writeLink(dir, { id: "ar_1", api: "https://a.example" });
   assert.deepEqual(readLink(dir), { id: "ar_1", api: "https://a.example" });
+});
+
+test("writeLink persists project and tags only when present", () => {
+  const dir = tmp();
+  writeLink(dir, { id: "ar_1", api: "https://a.example", project: "Demo", tags: ["a", "b"] });
+  assert.deepEqual(readLink(dir), { id: "ar_1", api: "https://a.example", project: "Demo", tags: ["a", "b"] });
+  writeLink(dir, { id: "ar_1", api: "https://a.example", project: undefined, tags: [] });
+  assert.deepEqual(readLink(dir), { id: "ar_1", api: "https://a.example" });
+});
+
+test("labelsOf prefers flags over the link file and keeps remembered labels", () => {
+  const link = { project: "Old", tags: ["x"] };
+  assert.deepEqual(labelsOf({}, link), { project: "Old", tags: ["x"] });
+  assert.deepEqual(labelsOf({ project: "New", tag: ["y"], "cover-style": "rings" }, link), { project: "New", tags: ["y"], coverStyle: "rings" });
+  assert.deepEqual(labelsOf({ project: "" }, link), { project: "", tags: ["x"] });
+  assert.deepEqual(labelsOf({}, {}), {});
+});
+
+test("resolveCover references a file inside the directory and copies one from outside", () => {
+  const dir = tmp();
+  writeFileSync(join(dir, "index.html"), "<h1>hi</h1>");
+  mkdirSync(join(dir, "img"));
+  writeFileSync(join(dir, "img", "hero.png"), "png");
+  const { files } = collectFiles(dir);
+  const inside = resolveCover(join(dir, "img", "hero.png"), dir, files);
+  assert.equal(inside.cover, "img/hero.png");
+  assert.equal(inside.files, files);
+
+  const outside = join(tmp(), "cover.svg");
+  writeFileSync(outside, "<svg/>");
+  const copied = resolveCover(outside, dir, files);
+  assert.equal(copied.cover, "_cover.svg");
+  assert.equal(readFileSync(join(dir, "_cover.svg"), "utf8"), "<svg/>");
+  assert.ok(copied.files.some((f) => f.path === "_cover.svg"));
+
+  // Single-file publish: no directory to copy into, the cover joins the upload.
+  const single = resolveCover(outside, null, [{ path: "index.html", sha256: "0".repeat(64), size: 1 }]);
+  assert.equal(single.cover, "_cover.svg");
+  assert.deepEqual(single.files.map((f) => f.path), ["index.html", "_cover.svg"]);
+  assert.match(single.files[1].sha256, /^[0-9a-f]{64}$/);
+
+  assert.throws(() => resolveCover(join(dir, "index.html"), dir, files), /svg, png, jpg or webp/);
+  assert.throws(() => resolveCover(join(dir, "missing.png"), dir, files), /no such cover file/);
+  assert.deepEqual(resolveCover(undefined, dir, files), { cover: undefined, files });
+});
+
+test("publish sends project, tags, cover and style in the manifest and remembers the labels", async (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, "index.html"), "<h1>labelled</h1>");
+  writeFileSync(join(dir, "cover.svg"), "<svg/>");
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls.push({ url, ...options });
+    return Response.json(url.pathname.endsWith("preflight") ? { missing: [] } : {
+      id: "artifact1234", url: "https://share.example/a/artifact1234/", version: 1, end_user: null,
+      project: "Demo", tags: ["a", "b"], cover_url: "https://share.example/a/artifact1234/_cover.svg", cover_style: "rings",
+    });
+  });
+  const result = await publish({ token: "t", api: "https://api.example" }, {
+    positional: [dir], flags: { project: "Demo", tag: ["A", "b"], cover: join(dir, "cover.svg"), "cover-style": "rings" },
+  });
+  const manifest = JSON.parse(calls[1].body.get("manifest"));
+  assert.equal(manifest.project, "Demo");
+  assert.deepEqual(manifest.tags, ["A", "b"]);
+  assert.equal(manifest.cover, "cover.svg");
+  assert.equal(manifest.cover_style, "rings");
+  assert.equal(result.json.project, "Demo");
+  assert.deepEqual(result.json.tags, ["a", "b"]);
+  assert.equal(result.json.cover_style, "rings");
+  assert.match(result.human[2], /project Demo, tags a, b/);
+  assert.deepEqual(readLink(dir), { id: "artifact1234", api: "https://api.example", project: "Demo", tags: ["a", "b"] });
+
+  // A republish without flags sends the remembered labels again.
+  calls.length = 0;
+  await publish({ token: "t", api: "https://api.example" }, { positional: [dir], flags: {} });
+  const again = JSON.parse(calls[1].body.get("manifest"));
+  assert.equal(again.project, "Demo");
+  assert.deepEqual(again.tags, ["a", "b"]);
+  assert.equal(again.cover, undefined);
+  assert.equal(calls[1].method, "PUT");
+});
+
+test("list passes --project through and prints labels", async (t) => {
+  let requested;
+  t.mock.method(globalThis, "fetch", async (url) => {
+    requested = url;
+    return Response.json({ artifacts: [{ id: "artifact1234", current_version: 1, open_comments: 0, title: "T", project: "Demo", tags: ["a"] }] });
+  });
+  const result = await list({ token: "t", api: "https://api.example" }, { flags: { project: "Demo" } });
+  assert.equal(requested.searchParams.get("project"), "Demo");
+  assert.match(result.human[0], /\[Demo  #a\]/);
 });
 
 test("complete environment config does not read the saved config", () => {
@@ -270,7 +367,10 @@ test("help explains tenant commands and resolves the key creation URL", async ()
   const help = result.output.join("\n");
   assert.match(help, /publish.*--end-user/);
   assert.match(help, /--comments\|--no-comments/);
-  assert.match(help, /list.*--end-user/);
+  assert.match(help, /list.*--end-user.*--project/);
+  assert.match(help, /--tag <t>/);
+  assert.match(help, /--cover <file>/);
+  assert.match(help, /--cover-style dots\|grid\|lines\|wash\|rings\|plain/);
   assert.match(help, /artifacts whoami/);
   assert.match(help, /artifacts portal-link <end-user id>/);
   assert.match(help, /https:\/\/api\.example\/app\/keys/);
