@@ -28,6 +28,7 @@ const help = (api) => `artifacts - publish a page, share the URL, read the comme
 Usage:
   artifacts login --api <url> [--token <key>]
   artifacts publish <dir|file.html> [--id <id>] [--title <t>] [--end-user <id>]
+                    [--comments|--no-comments]
   artifacts get <id>
   artifacts list [--end-user <id>]
   artifacts whoami
@@ -45,6 +46,10 @@ Create a key at ${api}/app/keys, then paste it with login or pipe it on stdin.
 POST /api/keys was removed. Keys belong to the workspace selected in the app.
 --end-user attributes or filters an opaque customer id. Publish and list JSON
 include end_user. portal-link is for integrator workspaces; links last 7 days.
+--no-comments hides the comment panel from viewers and closes the viewer
+comment API for that artifact; --comments turns it back on. Without either,
+a republish keeps the current setting (new artifacts start with comments on).
+Artifact JSON carries comments_enabled.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.

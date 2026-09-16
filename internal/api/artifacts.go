@@ -19,7 +19,7 @@ func (s *server) artifactView(r *http.Request, a store.Artifact) (map[string]any
 	}
 	return map[string]any{
 		"id": a.ID, "title": a.Title, "url": s.artifactURL(a.ID), "current_version": a.CurrentVersion,
-		"versions_count": len(vs), "open_comments": open, "end_user": a.EndUser,
+		"versions_count": len(vs), "open_comments": open, "comments_enabled": a.CommentsEnabled, "end_user": a.EndUser,
 		"created_at": a.CreatedAt, "updated_at": a.UpdatedAt,
 	}, nil
 }
@@ -151,7 +151,7 @@ func (s *server) rollback(w http.ResponseWriter, r *http.Request) {
 	for _, f := range files {
 		m.Files = append(m.Files, manifestFile{Path: f.Path, SHA256: f.SHA256, Size: f.Size})
 	}
-	v, e := s.publishVersion(r.Context(), a, m)
+	_, v, e := s.publishVersion(r.Context(), a, m)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return

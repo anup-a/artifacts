@@ -155,6 +155,37 @@ test("unattributed publish JSON includes a null end user", async (t) => {
   assert.equal(result.json.end_user, null);
 });
 
+test("publish --no-comments and --comments set comments_enabled in the manifest", async (t) => {
+  const file = join(tmp(), "index.html");
+  writeFileSync(file, "<h1>quiet report</h1>");
+  const cases = [
+    [{ "no-comments": true }, false],
+    [{ comments: true }, true],
+    [{}, undefined],
+  ];
+  for (const [flags, expected] of cases) {
+    const calls = [];
+    t.mock.method(globalThis, "fetch", async (url, options) => {
+      calls.push({ url, ...options });
+      return Response.json(url.pathname.endsWith("preflight") ? { missing: [] } : {
+        id: "artifact1234", url: "https://share.example/a/artifact1234/", version: 1, end_user: null,
+        comments_enabled: expected !== false,
+      });
+    });
+    const result = await publish({ token: "test-token", api: "https://api.example" }, { positional: [file], flags });
+    const preflight = JSON.parse(calls[0].body);
+    assert.equal(preflight.comments_enabled, expected);
+    const manifest = JSON.parse(calls[1].body.get("manifest"));
+    assert.equal(manifest.comments_enabled, expected);
+    assert.equal(result.json.comments_enabled, expected !== false);
+    assert.equal(result.human[1].endsWith("comments off"), expected === false);
+  }
+  await assert.rejects(
+    () => publish({ token: "t", api: "https://api.example" }, { positional: [file], flags: { comments: true, "no-comments": true } }),
+    /mutually exclusive/,
+  );
+});
+
 test("list filters by an opaque end user and returns the API JSON unchanged", async (t) => {
   const response = { artifacts: [{ id: "artifact1234", end_user: "customer/42?scope=1", current_version: 2 }] };
   let requested;
@@ -238,6 +269,7 @@ test("help explains tenant commands and resolves the key creation URL", async ()
   assert.equal(result.code, 0);
   const help = result.output.join("\n");
   assert.match(help, /publish.*--end-user/);
+  assert.match(help, /--comments\|--no-comments/);
   assert.match(help, /list.*--end-user/);
   assert.match(help, /artifacts whoami/);
   assert.match(help, /artifacts portal-link <end-user id>/);

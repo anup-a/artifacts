@@ -34,9 +34,13 @@ type Artifact struct {
 	OpenComments   int
 	Title          string
 	CurrentVersion int
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	DeletedAt      *time.Time
+	// CommentsEnabled is whether viewers get the comment runtime and the
+	// /c/* routes. New artifacts start enabled; CreateArtifact ignores this
+	// field and SetCommentsEnabled changes it.
+	CommentsEnabled bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       *time.Time
 }
 
 type Version struct {
@@ -85,6 +89,7 @@ type Store interface {
 	ListArtifacts(ctx context.Context, tenantID string, filter ArtifactFilter) ([]Artifact, error)
 	CountArtifacts(ctx context.Context, tenantID string) (int, error)
 	UpdateTitle(ctx context.Context, id, title string) error
+	SetCommentsEnabled(ctx context.Context, id string, on bool) error
 	SoftDelete(ctx context.Context, id string, at time.Time) error
 	AddVersion(ctx context.Context, v Version, files []File) error
 	Versions(ctx context.Context, artifactID string) ([]Version, error)

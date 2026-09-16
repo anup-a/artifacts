@@ -13,7 +13,7 @@ export async function get(cfg, { positional }) {
     human: [
       `${a.id}  ${a.title || "(untitled)"}`,
       `${a.url}`,
-      `version ${a.current_version} of ${a.versions_count}, ${a.open_comments} open comments`,
+      `version ${a.current_version} of ${a.versions_count}, ${a.open_comments} open comments${a.comments_enabled === false ? " (comments off)" : ""}`,
       `updated ${a.updated_at}`,
     ],
   };

@@ -113,6 +113,109 @@ func TestArtifactDetailComments(t *testing.T) {
 	want(t, e.post("/app/artifacts/"+b.ID+"/comments/th_two/reply", "/app/artifacts/aaaaaaaaaaaa", url.Values{"body": {"x"}}), 404)
 }
 
+func TestArtifactDetailCommentsSwitch(t *testing.T) {
+	e := fixture(t)
+	e.signIn("a@x.io")
+	a := e.publish("aaaaaaaaaaaa", "Quarterly report", "")
+	e.version(a.ID, 1, 100)
+	e.thread(a.ID, "th_one", "Typo in the heading")
+	detail := "/app/artifacts/aaaaaaaaaaaa"
+	action := detail + "/comments-enabled"
+
+	// On by default: the switch offers to turn it off, no note, no "off" tag.
+	res := e.get(detail)
+	want(t, res, 200, `action="`+action+`"`, `name="enabled" value="0"`, `class="switch is-on"`, `aria-checked="true"`, ">On<")
+	if strings.Contains(res.Body, "Comments are off") {
+		t.Fatal("note shown while comments are on")
+	}
+	res = e.get("/app/artifacts")
+	want(t, res, 200)
+	if strings.Contains(res.Body, `class="badge off"`) {
+		t.Fatal("off tag shown while comments are on")
+	}
+
+	// Turn off: redirect back to the comments card, note appears, threads stay.
+	wantRedirect(t, e.post(action, detail, url.Values{"enabled": {"0"}}), detail+"#comments")
+	got, err := e.st.Artifact(context.Background(), a.ID)
+	if err != nil || got.CommentsEnabled {
+		t.Fatalf("after off: %+v %v", got, err)
+	}
+	res = e.get(detail)
+	want(t, res, 200, "Comments are off for this artifact", "existing threads stay here", "Typo in the heading",
+		`name="enabled" value="1"`, `aria-checked="false"`, ">Off<")
+	if strings.Contains(res.Body, `class="switch is-on"`) || strings.Contains(res.Body, "No open comments") {
+		t.Fatal("switch still on, or the viewers hint shown, while comments are off")
+	}
+	want(t, e.get("/app/artifacts"), 200, `class="badge off"`)
+	// Owner actions still work on old threads.
+	wantRedirect(t, e.post(detail+"/comments/th_one/reply", detail, url.Values{"body": {"Seen, thanks"}}), detail+"#th_one")
+	wantRedirect(t, e.post(detail+"/comments/th_one/resolve", detail, nil), detail+"#th_one")
+
+	// Idempotent off, then back on.
+	wantRedirect(t, e.post(action, detail, url.Values{"enabled": {"0"}}), detail+"#comments")
+	wantRedirect(t, e.post(action, detail, url.Values{"enabled": {"1"}}), detail+"#comments")
+	if got, _ = e.st.Artifact(context.Background(), a.ID); !got.CommentsEnabled {
+		t.Fatal("not re-enabled")
+	}
+	want(t, e.get(detail), 200, `class="switch is-on"`)
+
+	// Bad values and foreign ids.
+	want(t, e.post(action, detail, url.Values{"enabled": {"yes"}}), 400)
+	want(t, e.post(action, detail, nil), 400)
+	want(t, e.post("/app/artifacts/nope/comments-enabled", detail, url.Values{"enabled": {"0"}}), 404, "does not exist")
+}
+
+// The list page's side peek loads the detail as a shell-less fragment and
+// posts its forms with panel=1 to get the fresh fragment back in place of a
+// redirect. Without the flag every route behaves exactly as before.
+func TestArtifactPanelFragment(t *testing.T) {
+	e := fixture(t)
+	e.signIn("a@x.io")
+	a := e.publish("aaaaaaaaaaaa", "Quarterly report", "")
+	e.version(a.ID, 1, 100)
+	e.version(a.ID, 2, 250)
+	e.thread(a.ID, "th_one", "Typo in the heading")
+	detail := "/app/artifacts/aaaaaaaaaaaa"
+
+	full := e.get(detail)
+	want(t, full, 200, `<aside class="sidebar">`, "<html", `class="back"`)
+	if strings.Contains(full.Body, `class="peek-inner"`) {
+		t.Fatal("full page carries the panel wrapper")
+	}
+	want(t, e.get("/app/artifacts"), 200, `class="row-title" href="/app/artifacts/aaaaaaaaaaaa" data-peek`, `>View</a>`)
+
+	frag := e.get(detail + "?panel=1")
+	want(t, frag, 200, `class="peek-inner" data-peek-title="Quarterly report"`, `class="icon-btn peek-close" data-peek-close`, "<iframe", "Roll back", "Confirm delete",
+		`class="switch is-on"`, "Typo in the heading", "/comments/th_one/reply")
+	for _, s := range []string{`<aside class="sidebar">`, "<html", "<head>", `class="back"`, `class="topbar"`} {
+		if strings.Contains(frag.Body, s) {
+			t.Fatalf("fragment contains %q", s)
+		}
+	}
+	if !strings.Contains(frag.Header.Get("Content-Security-Policy"), "frame-src 'self' http://share.test") {
+		t.Fatalf("fragment lacks csp: %s", frag.Header.Get("Content-Security-Policy"))
+	}
+	want(t, e.get("/app/artifacts/nope?panel=1"), 404, "does not exist")
+
+	// Forms inside the panel get the re-rendered fragment, not a redirect.
+	res := e.post(detail+"/comments-enabled", detail, url.Values{"enabled": {"0"}, "panel": {"1"}})
+	want(t, res, 200, `class="peek-inner"`, `aria-checked="false"`, "Comments are off for this artifact")
+	if strings.Contains(res.Body, `<aside class="sidebar">`) {
+		t.Fatal("post in panel mode rendered the shell")
+	}
+	if got, _ := e.st.Artifact(context.Background(), a.ID); got.CommentsEnabled {
+		t.Fatal("switch did not persist")
+	}
+	want(t, e.post(detail+"/comments/th_one/reply", detail, url.Values{"body": {"Fixed"}, "panel": {"1"}}), 200, `class="peek-inner"`, "Fixed", ">owner<")
+	want(t, e.post(detail+"/comments/th_one/reply", detail, url.Values{"body": {" "}, "panel": {"1"}}), 400, `class="peek-inner"`, "Write a reply")
+	want(t, e.post(detail+"/comments/th_one/resolve", detail, url.Values{"panel": {"1"}}), 200, `class="peek-inner"`, "1 resolved thread")
+	want(t, e.post(detail+"/rollback/1", detail, url.Values{"panel": {"1"}}), 200, `class="peek-inner"`, "v3", "3 versions kept")
+	// Without the flag the same actions still redirect.
+	wantRedirect(t, e.post(detail+"/comments-enabled", detail, url.Values{"enabled": {"1"}}), detail+"#comments")
+	// Delete keeps its redirect to the list even from the panel.
+	wantRedirect(t, e.post(detail+"/delete", detail, url.Values{"panel": {"1"}}), "/app/artifacts")
+}
+
 func TestRelativeTime(t *testing.T) {
 	now := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
 	cases := map[time.Duration]string{

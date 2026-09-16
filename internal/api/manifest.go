@@ -21,6 +21,10 @@ type manifestFile struct {
 type manifest struct {
 	Title string         `json:"title"`
 	Files []manifestFile `json:"files"`
+	// CommentsEnabled, when present, turns the viewer comment runtime on or
+	// off for the artifact. Absent means "leave it as it is" (on for a new
+	// artifact).
+	CommentsEnabled *bool `json:"comments_enabled"`
 }
 
 var shaRe = regexp.MustCompile(`^[0-9a-f]{64}$`)

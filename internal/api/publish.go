@@ -151,14 +151,16 @@ func (s *server) storePart(ctx context.Context, p *multipart.Part, sizes map[str
 	return nil
 }
 
-// publishVersion verifies every manifest blob exists, then records the version.
-func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifest) (int, *apierr.Error) {
+// publishVersion verifies every manifest blob exists, then records the version
+// and applies the manifest's title and comments switch. It returns the artifact
+// as it stands afterwards.
+func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifest) (store.Artifact, int, *apierr.Error) {
 	missing, e := s.missingBlobs(ctx, m)
 	if e != nil {
-		return 0, e
+		return a, 0, e
 	}
 	if len(missing) > 0 {
-		return 0, missingBlobErr(missing)
+		return a, 0, missingBlobErr(missing)
 	}
 	files := make([]store.File, 0, len(m.Files))
 	var total int64
@@ -169,19 +171,27 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 	v := store.Version{ArtifactID: a.ID, Version: a.CurrentVersion + 1, CreatedAt: s.Now(), Bytes: total, FileCount: len(files)}
 	if err := s.Store.AddVersion(ctx, v, files); err != nil {
 		if errors.Is(err, store.ErrBlobMissing) {
-			return 0, apierr.Invalid("missing blob")
+			return a, 0, apierr.Invalid("missing blob")
 		}
-		return 0, apierr.Internal(err)
+		return a, 0, apierr.Internal(err)
 	}
 	if m.Title != "" && m.Title != a.Title {
 		if err := s.Store.UpdateTitle(ctx, a.ID, m.Title); err != nil {
-			return 0, apierr.Internal(err)
+			return a, 0, apierr.Internal(err)
 		}
+		a.Title = m.Title
+	}
+	if m.CommentsEnabled != nil && *m.CommentsEnabled != a.CommentsEnabled {
+		if err := s.Store.SetCommentsEnabled(ctx, a.ID, *m.CommentsEnabled); err != nil {
+			return a, 0, apierr.Internal(err)
+		}
+		a.CommentsEnabled = *m.CommentsEnabled
 	}
 	if _, err := s.Store.PruneVersions(ctx, a.ID, s.Cfg.Limits.VersionsKept); err != nil {
-		return 0, apierr.Internal(err)
+		return a, 0, apierr.Internal(err)
 	}
-	return v.Version, nil
+	a.CurrentVersion = v.Version
+	return a, v.Version, nil
 }
 
 func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
@@ -219,7 +229,8 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := s.Now()
-	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, CreatedAt: now, UpdatedAt: now}
+	// CommentsEnabled mirrors the column default; the manifest may switch it off below.
+	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, CommentsEnabled: true, CreatedAt: now, UpdatedAt: now}
 	a, e = s.attachEndUser(r, a, k.TenantID, external)
 	if e != nil {
 		apierr.Write(w, r, e)
@@ -229,7 +240,7 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	v, e := s.publishVersion(r.Context(), a, m)
+	a, v, e := s.publishVersion(r.Context(), a, m)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -238,7 +249,7 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) publishResponse(a store.Artifact, version int) map[string]any {
-	return map[string]any{"id": a.ID, "url": s.artifactURL(a.ID), "version": version, "end_user": a.EndUser}
+	return map[string]any{"id": a.ID, "url": s.artifactURL(a.ID), "version": version, "end_user": a.EndUser, "comments_enabled": a.CommentsEnabled}
 }
 
 func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
@@ -265,7 +276,7 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	v, e := s.publishVersion(r.Context(), a, m)
+	a, v, e := s.publishVersion(r.Context(), a, m)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return

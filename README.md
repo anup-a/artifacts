@@ -86,7 +86,7 @@ artifacts publish ./site --title "Hello" --json
 | Command | What it does |
 | --- | --- |
 | `login --api <url> [--token <key>]` | Verifies a key created at `<url>/app/keys`, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
-| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer |
+| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--comments\|--no-comments]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting |
 | `get <id>` | URL, title, current version, open comment count |
 | `list [--end-user <id>]` | Workspace artifacts, optionally filtered to one customer |
 | `whoami` | Current tenant ID, kind and name, plus the key ID and name |
@@ -137,17 +137,17 @@ take no auth; the artifact id is the capability.
 | `GET` | `/api/me` | `{tenant:{id,kind,name},key:{id,name}}`. |
 | `POST` | `/api/end-users/{external_id}/portal-link` | `{url,expires_at}`. Integrator tenant required; URL uses the API origin and lasts seven days. |
 | `POST` | `/api/artifacts/preflight` | `{files:[{path, sha256, size}]}` → `{missing:[sha256]}`. Lets the CLI upload only new blobs. |
-| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user}`. Requires root `index.html`. |
-| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version, same URL; returns `{id,url,version:n,end_user}`. A different end user returns 403 `FORBIDDEN`. |
-| `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, created_at, updated_at}` |
-| `GET` | `/api/artifacts?limit&cursor&end_user` | Tenant's artifacts, newest first. Items include `end_user` as an external ID or `null`. |
+| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, comments_enabled?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user,comments_enabled}`. Requires root `index.html`. |
+| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version, same URL; returns `{id,url,version:n,end_user,comments_enabled}`. A different end user returns 403 `FORBIDDEN`. `comments_enabled` (boolean, optional) switches viewer comments; omitted keeps the current setting. |
+| `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, comments_enabled, end_user, created_at, updated_at}` |
+| `GET` | `/api/artifacts?limit&cursor&end_user` | Tenant's artifacts, newest first. Items have the same shape as `GET /api/artifacts/:id`; `end_user` is an external ID or `null`. |
 | `DELETE` | `/api/artifacts/:id` | Soft delete; page returns 410; blobs GC'd later. |
 | `GET` | `/api/artifacts/:id/versions` | `[{version, created_at, bytes, files, comment_count}]` |
 | `POST` | `/api/artifacts/:id/rollback/:version` | Creates version n+1 with version v's file set. |
 | `GET` | `/api/artifacts/:id/comments?status=open\|resolved\|all&since=<rfc3339>` | Threads with anchors, `anchor_status`, version. |
 | `POST` | `/api/artifacts/:id/comments/:thread/reply` | `{body}` → owner reply, displayed as "Author". |
 | `POST` | `/api/artifacts/:id/comments/:thread/resolve` | Marks resolved. |
-| `POST` | `/c/:id/comments` | Viewer. `{author_name, body, anchor, version}` → thread. `Idempotency-Key` header honoured. |
+| `POST` | `/c/:id/comments` | Viewer. `{author_name, body, anchor, version}` → thread. `Idempotency-Key` header honoured. Every `/c/*` route answers 404 while the artifact's `comments_enabled` is false; owner routes keep working so old threads stay readable. |
 | `POST` | `/c/:id/comments/:thread/reply` | Viewer. `{author_name, body}`. |
 | `POST` | `/c/:id/comments/:thread/seen` | Viewer beacon. `{version, anchor_status}` → 204. Records where the runtime re-anchored the thread; ignored unless `version` is the current one. |
 | `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does. |
@@ -169,7 +169,10 @@ key creation to 20/hour per tenant; portal links to 60/minute per tenant.
 ## Comments runtime
 
 Every served HTML page gets `<script src="/_rt/comments.js" data-artifact="…" data-version="…" defer>`
-injected before `</body>`. The runtime is vanilla JS with no dependencies, lives
+injected before `</body>`, unless comments are switched off for that artifact
+(`artifacts publish --no-comments`, `comments_enabled:false` in the manifest,
+or the Comments switch on the dashboard's artifact page), in which case the
+page is served exactly as published. The runtime is vanilla JS with no dependencies, lives
 entirely in a shadow root, and fails closed: if the comments API is unreachable
 the page renders exactly as published.
 

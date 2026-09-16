@@ -222,6 +222,40 @@ test("comments, reply and resolve walk a viewer thread end to end", async () => 
   assert.equal(json(["comments", pub.id, "--all"]).threads.length, 1);
 });
 
+test("publish --no-comments removes the runtime and closes the viewer API; --comments restores them", async () => {
+  const dir = siteDir("<p>Quiet page.</p>");
+  const off = json(["publish", dir, "--no-comments"]);
+  assert.equal(off.comments_enabled, false);
+  assert.equal(json(["get", off.id]).comments_enabled, false);
+  assert.match(run(["get", off.id]).stdout, /comments off/);
+
+  let page = await (await fetch(`${BASE}/a/${off.id}/`)).text();
+  assert.match(page, /Quiet page/);
+  assert.doesNotMatch(page, /_rt\/comments\.js/);
+  assert.equal((await fetch(`${BASE}/c/${off.id}/comments`)).status, 404);
+  const attempt = await fetch(`${BASE}/c/${off.id}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ author_name: "Reader", body: "hi", anchor: { kind: "text", quote: "Quiet" }, version: 1 }),
+  });
+  assert.equal(attempt.status, 404);
+  // The owner's listing still answers.
+  assert.deepEqual(json(["comments", off.id, "--all"]).threads, []);
+
+  // A plain republish keeps it off; --comments turns it back on.
+  assert.equal(json(["publish", dir]).comments_enabled, false);
+  const on = json(["publish", dir, "--comments"]);
+  assert.equal(on.id, off.id);
+  assert.equal(on.comments_enabled, true);
+  page = await (await fetch(`${BASE}/a/${off.id}/`)).text();
+  assert.match(page, /_rt\/comments\.js/);
+  assert.equal((await fetch(`${BASE}/c/${off.id}/comments`)).status, 200);
+
+  const both = run(["publish", dir, "--comments", "--no-comments", "--json"]);
+  assert.equal(both.code, 2);
+  assert.match(JSON.parse(both.stderr).error.message, /mutually exclusive/);
+});
+
 test("human output is readable and --json stays a single object", () => {
   const dir = siteDir("<h1>human</h1>");
   const pub = json(["publish", dir]);

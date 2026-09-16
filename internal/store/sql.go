@@ -49,6 +49,19 @@ func (s *sqlStore) UpdateTitle(ctx context.Context, id, title string) error {
 	return err
 }
 
+// SetCommentsEnabled flips the viewer comment switch. It does not touch
+// updated_at: nothing about the published content changed.
+func (s *sqlStore) SetCommentsEnabled(ctx context.Context, id string, on bool) error {
+	res, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET comments_enabled=? WHERE id=?`), on, id)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (s *sqlStore) SoftDelete(ctx context.Context, id string, at time.Time) error {
 	_, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET deleted_at=?, updated_at=? WHERE id=? AND deleted_at IS NULL`), at, at, id)
 	return err

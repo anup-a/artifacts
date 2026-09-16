@@ -51,9 +51,9 @@ justify-content:center;font-size:11px;font-weight:600;color:#fff;flex:none;lette
 .owner{font-size:10px;font-weight:600;color:var(--ok);background:var(--ok-soft);
 border-radius:4px;padding:1px 5px;line-height:1.4}
 .snip{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-font-size:12px;line-height:1.5;color:var(--fg);margin:8px 0 0}
-.snip span{background:var(--hl);box-shadow:0 1px 0 var(--hl-line);border-radius:2px;
--webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 1px}
+font-size:12px;line-height:1.5;color:var(--muted);margin:8px 0 0;padding-left:10px;
+border-left:2px solid var(--line)}
+.snip span{-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .kbd{font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
 border:1px solid var(--line);border-radius:4px;padding:0 4px;background:var(--bg)}
 .err{font-size:12px;color:var(--err);margin-top:6px}

@@ -52,6 +52,9 @@ func TestV1TenantBackfill(t *testing.T) {
 		if err != nil || a.TenantID != k.TenantID || a.ID != email || a.CurrentVersion != 7 {
 			t.Fatalf("backfill: %v %+v", err, a)
 		}
+		if !a.CommentsEnabled {
+			t.Fatalf("pre-existing artifacts must keep comments on: %+v", a)
+		}
 		tenant, err := s.Tenant(ctx, k.TenantID)
 		if err != nil || tenant.Kind != "personal" || tenant.Name != email {
 			t.Fatalf("tenant: %v %+v", err, tenant)

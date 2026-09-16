@@ -99,6 +99,44 @@ func TestKeysAndArtifacts(t *testing.T) {
 	}
 }
 
+func TestCommentsEnabledDefaultsOnAndToggles(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	k, _ := s.CreateKey(ctx, "h", "e")
+	now := time.Now().UTC().Truncate(time.Second)
+	a := Artifact{ID: "comments0001", KeyID: k.ID, CreatedAt: now, UpdatedAt: now}
+	if err := s.CreateArtifact(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Artifact(ctx, a.ID)
+	if err != nil || !got.CommentsEnabled {
+		t.Fatalf("new artifact must have comments on: %v %+v", err, got)
+	}
+	if err := s.SetCommentsEnabled(ctx, a.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = s.Artifact(ctx, a.ID)
+	if got.CommentsEnabled {
+		t.Fatal("still enabled after SetCommentsEnabled(false)")
+	}
+	if !got.UpdatedAt.Equal(now) {
+		t.Fatalf("toggling comments must not bump updated_at: %v", got.UpdatedAt)
+	}
+	list, _ := s.ListArtifacts(ctx, k.TenantID, ArtifactFilter{Limit: 10})
+	if len(list) != 1 || list[0].CommentsEnabled {
+		t.Fatalf("list must carry the flag: %+v", list)
+	}
+	if err := s.SetCommentsEnabled(ctx, a.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = s.Artifact(ctx, a.ID); !got.CommentsEnabled {
+		t.Fatal("not re-enabled")
+	}
+	if err := s.SetCommentsEnabled(ctx, "missing00001", true); err != ErrNotFound {
+		t.Fatalf("unknown id: want ErrNotFound got %v", err)
+	}
+}
+
 func TestPruneSkipsOpenThreads(t *testing.T) {
 	ctx := context.Background()
 	s := newStore(t)
