@@ -1,17 +1,27 @@
 {{define "content"}}
-<div class="card narrow">
-  <h1>Sign in to Artifacts</h1>
-  {{if .Data.Error}}<p class="alert">{{.Data.Error}}</p>{{end}}
-  {{if .Data.GitHub}}
-  <a class="btn primary block" href="/app/login/github">Continue with GitHub</a>
-  {{end}}
-  {{if and .Data.GitHub .Data.Email}}<p class="divider"><span>or</span></p>{{end}}
-  {{if .Data.Email}}
-  <form method="post" action="/app/login/email" class="stack">
-    <label for="email">Email address</label>
-    <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
-    <button type="submit" class="btn block">Email me a sign-in link</button>
-  </form>
-  {{end}}
+<div class="auth">
+  <a class="brand auth-brand" href="/app/login">{{template "icon" "mark"}}<span>Artifacts</span></a>
+  <div class="card auth-card">
+    <h1>Sign in</h1>
+    <p class="muted auth-sub">Publish, share and review your artifacts.</p>
+    {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
+    {{if .Data.GitHub}}
+    <a class="btn primary block" href="/app/login/github">{{template "icon" "github"}} Continue with GitHub</a>
+    {{end}}
+    {{if and .Data.GitHub .Data.Email}}<p class="divider"><span>or</span></p>{{end}}
+    {{if .Data.Email}}
+    <form method="post" action="/app/login/email" class="stack">
+      <label class="field">
+        <span class="field-label">Email address</span>
+        <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+      </label>
+      <button type="submit" class="btn{{if not .Data.GitHub}} primary{{end}} block">{{template "icon" "mail"}} Email me a sign-in link</button>
+    </form>
+    {{end}}
+    {{if not (or .Data.GitHub .Data.Email)}}
+    <p class="alert">{{template "icon" "alert"}}No sign-in method is configured on this server. Set <code>GITHUB_CLIENT_ID</code> or <code>EMAIL_PROVIDER</code> and restart.</p>
+    {{end}}
+  </div>
+  <p class="auth-foot muted">Links expire in 15 minutes and work once.</p>
 </div>
 {{end}}

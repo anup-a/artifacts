@@ -1,39 +1,62 @@
 {{define "content"}}
-<div class="page-head"><h1>API keys</h1></div>
 {{if .Data.NewKey}}
-<div class="callout">
-  <p><strong>This is the only time the key is shown.</strong> Store it in your password manager or <code>artifacts login</code>.</p>
-  <p class="copyrow"><input type="text" readonly value="{{.Data.NewKey}}" id="new-key" aria-label="New API key"><button type="button" class="btn" data-copy="#new-key">Copy</button></p>
+<div class="callout ok">
+  <div class="callout-head">{{template "icon" "key"}}<strong>Your new key is ready.</strong> This is the only time the key is shown. Store it in your password manager or run <code>artifacts login</code> with it.</div>
+  <div class="copyrow">
+    <input type="text" readonly value="{{.Data.NewKey}}" id="new-key" aria-label="New API key">
+    <button type="button" class="btn primary" data-copy="#new-key">{{template "icon" "copy"}} Copy key</button>
+  </div>
 </div>
 {{end}}
-<form method="post" action="/app/keys" class="inline row">
-  <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-  <input type="text" name="name" required maxlength="64" placeholder="Key name, e.g. laptop or ci" aria-label="Key name">
-  <button type="submit" class="btn primary">Create key</button>
-</form>
-{{if .Data.Error}}<p class="alert">{{.Data.Error}}</p>{{end}}
+
+<section class="card">
+  <div class="card-head">
+    <h2>Create a key</h2>
+    <span class="muted">Keys publish and manage every artifact in this workspace.</span>
+  </div>
+  <form method="post" action="/app/keys" class="field-row">
+    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+    <label class="field">
+      <span class="field-label">Name</span>
+      <input type="text" name="name" required maxlength="64" placeholder="e.g. laptop, ci, agent" aria-label="Key name">
+    </label>
+    <button type="submit" class="btn primary">Create key</button>
+  </form>
+  {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
+</section>
+
 {{if .Data.Rows}}
+<div class="table-card">
 <table class="table">
-  <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th></th></tr></thead>
+  <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th class="actions"></th></tr></thead>
   <tbody>
   {{range .Data.Rows}}
   <tr{{if .RevokedAt}} class="revoked"{{end}}>
-    <td>{{if .Name}}{{.Name}}{{else}}<span class="muted">unnamed</span>{{end}}</td>
-    <td><code>{{.Prefix}}</code></td>
-    <td class="when">{{when .CreatedAt}}</td>
-    <td class="when">{{if .LastUsedAt}}{{when .LastUsedAt}}{{else}}<span class="muted">never</span>{{end}}</td>
+    <td class="c-title">{{if .Name}}{{.Name}}{{else}}<span class="muted">unnamed</span>{{end}}</td>
+    <td><span class="chip"><code>{{.Prefix}}…</code></span></td>
+    <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time></td>
+    <td class="when">{{if .LastUsedAt}}<time title="{{when .LastUsedAt}} UTC">{{ago .LastUsedAt $.Now}}</time>{{else}}<span class="muted">never</span>{{end}}</td>
     <td class="actions">
-      {{if .RevokedAt}}<span class="muted">Revoked {{when .RevokedAt}}</span>{{else}}
-      <form method="post" action="/app/keys/{{.ID}}/revoke" class="inline" data-confirm="Revoke this key? Anything using it stops working now.">
-        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-        <button type="submit" class="btn small danger">Revoke</button>
-      </form>{{end}}
+      {{if .RevokedAt}}<span class="badge">Revoked <time title="{{when .RevokedAt}} UTC">{{ago .RevokedAt $.Now}}</time></span>{{else}}
+      <details class="confirm menu-wrap">
+        <summary class="btn small danger">Revoke</summary>
+        <form method="post" action="/app/keys/{{.ID}}/revoke" class="menu right confirm-body">
+          <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+          <p>Anything using this key stops working now.</p>
+          <button type="submit" class="btn small danger solid">Confirm revoke</button>
+        </form>
+      </details>{{end}}
     </td>
   </tr>
   {{end}}
   </tbody>
 </table>
+</div>
 {{else}}
-<div class="empty"><p>No keys yet. Create one above, then run <code>artifacts login</code> with it.</p></div>
+<div class="empty">
+  <span class="empty-icon">{{template "icon" "key"}}</span>
+  <h2>No keys yet</h2>
+  <p>Create one above, then run <code>artifacts login</code> with it.</p>
+</div>
 {{end}}
 {{end}}

@@ -223,7 +223,7 @@ func TestSignInFlowSecurityHeadersAndStatics(t *testing.T) {
 		t.Fatal("GitHub button shown without a client id")
 	}
 	for k, v := range map[string]string{
-		"Content-Security-Policy": csp, "X-Frame-Options": "DENY", "Referrer-Policy": "same-origin",
+		"Content-Security-Policy": e.h.csp(), "X-Frame-Options": "DENY", "Referrer-Policy": "same-origin",
 		"X-Content-Type-Options": "nosniff", "Cache-Control": "no-store",
 	} {
 		if got := res.Header.Get(k); got != v {

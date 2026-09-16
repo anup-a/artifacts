@@ -1,13 +1,15 @@
 {{define "content"}}
-<div class="page-head"><h1>Usage</h1></div>
 {{range .Data.Months}}
 <section class="usage">
-  <h2>{{.Label}} <span class="muted">{{.Month.Format "January 2006"}} UTC</span></h2>
+  <div class="section-head">
+    <h2>{{.Label}}</h2>
+    <span class="muted">{{.Month.Format "January 2006"}} · UTC</span>
+  </div>
   <div class="stats">
-    <div class="stat"><span class="value">{{num .Publishes}}</span><span class="label">Publishes</span></div>
-    <div class="stat"><span class="value">{{bytes .StorageBytes}}</span><span class="label">Storage</span></div>
-    <div class="stat"><span class="value">{{num .PageViews}}</span><span class="label">Page views</span></div>
-    <div class="stat"><span class="value">{{num .OpenComments}}</span><span class="label">Open comments</span></div>
+    <div class="stat"><span class="stat-label">{{template "icon" "artifacts"}}Publishes</span><span class="stat-value">{{num .Publishes}}</span><span class="stat-sub">versions published</span></div>
+    <div class="stat"><span class="stat-label">{{template "icon" "usage"}}Storage</span><span class="stat-value">{{bytes .StorageBytes}}</span><span class="stat-sub">across kept versions</span></div>
+    <div class="stat"><span class="stat-label">{{template "icon" "external"}}Page views</span><span class="stat-value">{{num .PageViews}}</span><span class="stat-sub">on share links</span></div>
+    <div class="stat"><span class="stat-label">{{template "icon" "comment"}}Open comments</span><span class="stat-value">{{num .OpenComments}}</span><span class="stat-sub">threads awaiting you</span></div>
   </div>
 </section>
 {{end}}

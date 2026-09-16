@@ -56,14 +56,23 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 	h.render(w, r, 200, "artifacts", "Artifacts", v, d)
 }
 
+// ownedArtifact loads a live artifact that belongs to the viewer's workspace;
+// anything else is ErrNotFound so other tenants' ids stay invisible.
+func (h *Handler) ownedArtifact(r *http.Request, v *viewer, id string) (store.Artifact, error) {
+	a, err := h.Store.Artifact(r.Context(), id)
+	if err != nil {
+		return a, err
+	}
+	if a.TenantID != v.Tenant.ID || a.DeletedAt != nil {
+		return a, store.ErrNotFound
+	}
+	return a, nil
+}
+
 func (h *Handler) deleteArtifact(w http.ResponseWriter, r *http.Request, v *viewer) {
 	ctx := r.Context()
 	id := r.PathValue("id")
-	a, err := h.Store.Artifact(ctx, id)
-	if err == nil && (a.TenantID != v.Tenant.ID || a.DeletedAt != nil) {
-		err = store.ErrNotFound
-	}
-	if err != nil {
+	if _, err := h.ownedArtifact(r, v, id); err != nil {
 		h.storeErr(w, r, err, "That artifact does not exist.")
 		return
 	}

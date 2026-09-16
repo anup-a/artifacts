@@ -8,34 +8,65 @@
 <script src="{{.JS}}" defer></script>
 </head>
 <body>
+{{template "sprite"}}
 {{if .Viewer}}
 <div class="shell">
-  <nav class="nav">
-    <a class="brand" href="/app/artifacts">Artifacts</a>
-    <a href="/app/artifacts"{{if eq .Path "/app/artifacts"}} class="active"{{end}}>Artifacts</a>
-    {{if .Viewer.Integrator}}<a href="/app/end-users"{{if eq .Path "/app/end-users"}} class="active"{{end}}>End users</a>{{end}}
-    <a href="/app/keys"{{if eq .Path "/app/keys"}} class="active"{{end}}>API keys</a>
-    <a href="/app/usage"{{if eq .Path "/app/usage"}} class="active"{{end}}>Usage</a>
-    <a href="/app/settings"{{if eq .Path "/app/settings"}} class="active"{{end}}>Settings</a>
-  </nav>
+  <aside class="sidebar">
+    <a class="brand" href="/app/artifacts">{{template "icon" "mark"}}<span>Artifacts</span></a>
+
+    {{if gt (len .Viewer.Tenants) 1}}
+    <details class="switcher">
+      <summary class="ws" aria-label="Switch workspace">
+        <span class="ws-avatar">{{printf "%.1s" .Viewer.Tenant.Name}}</span>
+        <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{.Viewer.Tenant.Kind}}</span></span>
+        {{template "icon" "chevrons"}}
+      </summary>
+      <div class="menu ws-menu" role="menu">
+        <div class="menu-label">Workspaces</div>
+        {{range .Viewer.Tenants}}
+        <form method="post" action="/app/switch-tenant">
+          <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+          <input type="hidden" name="tenant_id" value="{{.ID}}">
+          <button type="submit" class="menu-item{{if eq .ID $.Viewer.Tenant.ID}} is-current{{end}}" role="menuitem">
+            <span class="ws-avatar small">{{printf "%.1s" .Name}}</span>
+            <span class="menu-item-text">{{.Name}}</span>
+            <span class="badge">{{.Kind}}</span>
+            {{if eq .ID $.Viewer.Tenant.ID}}{{template "icon" "check"}}{{end}}
+          </button>
+        </form>
+        {{end}}
+        <div class="menu-sep"></div>
+        <a class="menu-item" href="/app/settings" role="menuitem">{{template "icon" "settings"}}<span class="menu-item-text">Workspace settings</span></a>
+      </div>
+    </details>
+    {{else}}
+    <div class="ws is-static">
+      <span class="ws-avatar">{{printf "%.1s" .Viewer.Tenant.Name}}</span>
+      <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{.Viewer.Tenant.Kind}}</span></span>
+    </div>
+    {{end}}
+
+    <nav class="nav" aria-label="Main">
+      <a href="/app/artifacts"{{if eq .Section "artifacts"}} class="active" aria-current="page"{{end}}>{{template "icon" "artifacts"}}<span>Artifacts</span></a>
+      {{if .Viewer.Integrator}}<a href="/app/end-users"{{if eq .Section "end-users"}} class="active" aria-current="page"{{end}}>{{template "icon" "users"}}<span>End users</span></a>{{end}}
+      <a href="/app/keys"{{if eq .Section "keys"}} class="active" aria-current="page"{{end}}>{{template "icon" "key"}}<span>API keys</span></a>
+      <a href="/app/usage"{{if eq .Section "usage"}} class="active" aria-current="page"{{end}}>{{template "icon" "usage"}}<span>Usage</span></a>
+      <a href="/app/settings"{{if eq .Section "settings"}} class="active" aria-current="page"{{end}}>{{template "icon" "settings"}}<span>Settings</span></a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <span class="avatar">{{printf "%.1s" .Viewer.User.Email}}</span>
+      <span class="user-email" title="{{.Viewer.User.Email}}">{{.Viewer.User.Email}}</span>
+      <form method="post" action="/app/logout">
+        <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+        <button type="submit" class="icon-btn" title="Sign out" aria-label="Sign out">{{template "icon" "logout"}}</button>
+      </form>
+    </div>
+  </aside>
+
   <div class="main">
     <header class="topbar">
-      {{if gt (len .Viewer.Tenants) 1}}
-      <form method="post" action="/app/switch-tenant" class="inline">
-        <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-        <select name="tenant_id" data-autosubmit aria-label="Workspace">
-          {{range .Viewer.Tenants}}<option value="{{.ID}}"{{if eq .ID $.Viewer.Tenant.ID}} selected{{end}}>{{.Name}} ({{.Kind}})</option>{{end}}
-        </select>
-      </form>
-      {{else}}
-      <span class="tenant">{{.Viewer.Tenant.Name}} <span class="muted">{{.Viewer.Tenant.Kind}}</span></span>
-      {{end}}
-      <span class="spacer"></span>
-      <span class="muted">{{.Viewer.User.Email}}</span>
-      <form method="post" action="/app/logout" class="inline">
-        <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-        <button type="submit" class="btn ghost">Sign out</button>
-      </form>
+      {{block "topbar" .}}<h1 class="page-title">{{.Title}}</h1>{{end}}
     </header>
     <main class="content">
       {{template "content" .}}

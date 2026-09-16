@@ -1,0 +1,121 @@
+{{define "topbar"}}
+<a class="back" href="/app/artifacts">{{template "icon" "arrow-left"}}<span>Artifacts</span></a>
+<span class="crumb-sep">/</span>
+<h1 class="page-title truncate">{{if .Data.Artifact.Title}}{{.Data.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</h1>
+<span class="spacer"></span>
+<button type="button" class="btn" data-copy-text="{{.Data.URL}}">{{template "icon" "link"}} Copy link</button>
+<a class="btn primary" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
+{{end}}
+
+{{define "content"}}
+{{$a := .Data.Artifact}}
+<div class="detail">
+
+  <header class="detail-head">
+    <div class="detail-meta">
+      <span class="chip"><code>{{$a.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{$a.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
+      <span class="badge mono">v{{$a.CurrentVersion}}</span>
+      {{if $a.EndUser}}<span class="meta-item">End user <a class="link" href="/app/artifacts?end_user={{str $a.EndUser}}">{{str $a.EndUser}}</a></span>{{end}}
+      <span class="meta-item">Updated <time title="{{when $a.UpdatedAt}} UTC">{{ago $a.UpdatedAt $.Now}}</time></span>
+      <span class="meta-item">Created <time title="{{when $a.CreatedAt}} UTC">{{ago $a.CreatedAt $.Now}}</time></span>
+    </div>
+    <div class="share-row">
+      <label class="share-label" for="share-url">Share link</label>
+      <div class="copyrow">
+        <input type="text" readonly value="{{.Data.URL}}" id="share-url" aria-label="Share link">
+        <button type="button" class="btn" data-copy="#share-url">{{template "icon" "copy"}} Copy</button>
+        <a class="btn" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="card preview-card">
+    <div class="card-head">
+      <h2>Preview</h2>
+      <span class="muted">Current version, as viewers see it</span>
+    </div>
+    <div class="preview-frame">
+      <iframe src="{{.Data.URL}}" title="Preview of {{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" sandbox="allow-scripts allow-forms allow-popups" loading="lazy" referrerpolicy="no-referrer"></iframe>
+    </div>
+  </section>
+
+  <section class="card" id="versions">
+    <div class="card-head">
+      <h2>Versions</h2>
+      <span class="muted">{{len .Data.Versions}} {{plural (len .Data.Versions) "version" "versions"}} kept</span>
+    </div>
+    {{if .Data.Versions}}
+    <table class="table flush">
+      <thead><tr><th>Version</th><th>Published</th><th class="num">Size</th><th class="num">Files</th><th class="num">Comments</th><th class="actions"></th></tr></thead>
+      <tbody>
+      {{range .Data.Versions}}
+      <tr{{if .Current}} class="is-current"{{end}}>
+        <td><span class="badge mono">v{{.N}}</span>{{if .Current}} <span class="badge ok">Current</span>{{end}}</td>
+        <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time></td>
+        <td class="num">{{bytes .Bytes}}</td>
+        <td class="num">{{.FileCount}}</td>
+        <td class="num">{{.Comments}}</td>
+        <td class="actions">
+          {{if not .Current}}
+          <form method="post" action="/app/artifacts/{{$a.ID}}/rollback/{{.N}}">
+            <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+            <button type="submit" class="btn small">{{template "icon" "rollback"}} Roll back</button>
+          </form>
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="card-empty">No versions recorded for this artifact.</p>
+    {{end}}
+  </section>
+
+  <section class="card" id="comments">
+    <div class="card-head">
+      <h2>Comments</h2>
+      <span class="muted">{{len .Data.Open}} open · {{len .Data.Resolved}} resolved</span>
+    </div>
+    {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
+
+    {{if .Data.Open}}
+    <div class="threads">
+      {{range .Data.Open}}{{template "thread" (dict $ .)}}{{end}}
+    </div>
+    {{else}}
+    <p class="card-empty">No open comments. Viewers select text on the page and leave notes; they show up here.</p>
+    {{end}}
+
+    {{if .Data.Resolved}}
+    <details class="resolved-fold">
+      <summary>{{template "icon" "chevron-down"}}{{len .Data.Resolved}} resolved {{plural (len .Data.Resolved) "thread" "threads"}}</summary>
+      <div class="threads">
+        {{range .Data.Resolved}}{{template "thread" (dict $ .)}}{{end}}
+      </div>
+    </details>
+    {{end}}
+  </section>
+
+  <section class="card danger-zone">
+    <div class="card-head">
+      <h2>Danger zone</h2>
+    </div>
+    <div class="danger-row">
+      <div>
+        <strong>Delete this artifact</strong>
+        <p class="muted">The share link stops working immediately. All versions and comments are removed.</p>
+      </div>
+      <details class="confirm">
+        <summary class="btn danger">{{template "icon" "trash"}} Delete artifact</summary>
+        <form method="post" action="/app/artifacts/{{$a.ID}}/delete" class="confirm-body">
+          <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+          <p>This cannot be undone.</p>
+          <button type="submit" class="btn small danger solid">Confirm delete</button>
+        </form>
+      </details>
+    </div>
+  </section>
+
+</div>
+{{end}}
