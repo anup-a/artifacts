@@ -30,6 +30,10 @@ box-shadow:0 0 0 2px rgba(224,168,0,.95),0 0 0 5px rgba(224,168,0,.2)}`;
   document.head.appendChild(styleEl);
 }
 
+// Outlines live on the publisher's own elements, so undoing them needs the
+// inline styles they replaced and the listener they added.
+const outlined = new Map(); // element -> {outline, outlineOffset, cursor, onClick}
+
 export function clearHighlights() {
   for (const el of Array.from(document.querySelectorAll(`.${CLASS}`))) {
     const parent = el.parentNode;
@@ -38,6 +42,14 @@ export function clearHighlights() {
     parent.removeChild(el);
     parent.normalize();
   }
+  for (const [el, prev] of outlined) {
+    el.removeAttribute(ATTR);
+    el.style.outline = prev.outline;
+    el.style.outlineOffset = prev.outlineOffset;
+    el.style.cursor = prev.cursor;
+    el.removeEventListener("click", prev.onClick);
+  }
+  outlined.clear();
 }
 
 function markRange(range, threadId, status, onClick) {
@@ -65,15 +77,23 @@ function markRange(range, threadId, status, onClick) {
 }
 
 function outlineElement(el, threadId, status, onClick) {
+  if (outlined.has(el)) return;
+  const handler = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    onClick(threadId);
+  };
+  outlined.set(el, {
+    outline: el.style.outline,
+    outlineOffset: el.style.outlineOffset,
+    cursor: el.style.cursor,
+    onClick: handler,
+  });
   el.setAttribute(ATTR, threadId);
   el.style.outline = status === "drifted" ? "2px dashed rgba(191,54,12,.7)" : "2px solid rgba(255,193,7,.9)";
   el.style.outlineOffset = "2px";
   el.style.cursor = "pointer";
-  el.addEventListener("click", (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-    onClick(threadId);
-  });
+  el.addEventListener("click", handler);
 }
 
 /** Paint every resolved, non-orphaned thread. Orphans live in the panel only. */
