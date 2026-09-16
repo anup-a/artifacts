@@ -25,7 +25,16 @@ const (
 	patternUnits = `patternUnits="userSpaceOnUse"`
 )
 
-// drawPattern writes the background for a style over the ground rect.
+// drawWash tints the top-right corner with the accent colour, fading across
+// most of the card. It runs under every pattern when the card has a project,
+// so project cards always carry their colour and only no-project cards are
+// purely grey.
+func drawWash(b *strings.Builder, accent string) {
+	b.WriteString(`<defs><radialGradient id="w"><stop offset="0" stop-color="` + accent + `" stop-opacity="` + washOpacity + `"/><stop offset="1" stop-color="` + accent + `" stop-opacity="0"/></radialGradient></defs>`)
+	b.WriteString(`<circle cx="` + f(washCenterX) + `" cy="` + f(washCenterY) + `" r="` + f(washRadius) + `" fill="url(#w)"/>`)
+}
+
+// drawPattern writes the background pattern for a style over the ground rect.
 func drawPattern(b *strings.Builder, style, accent string) {
 	switch style {
 	case "dots":
@@ -40,13 +49,12 @@ func drawPattern(b *strings.Builder, style, accent string) {
 		b.WriteString(`<defs><pattern id="p" width="` + f(linePitch) + `" height="` + f(linePitch) + `" ` + patternUnits + ` patternTransform="rotate(-45)">` +
 			`<path d="M0 0V` + f(linePitch) + `" stroke="` + foreground + `" stroke-width="1" opacity="` + lineOpacity + `"/></pattern></defs>`)
 		b.WriteString(`<rect width="1200" height="630" fill="url(#p)"/>`)
-	case "wash":
-		b.WriteString(`<defs><radialGradient id="w"><stop offset="0" stop-color="` + accent + `" stop-opacity="` + washOpacity + `"/><stop offset="1" stop-color="` + accent + `" stop-opacity="0"/></radialGradient></defs>`)
-		b.WriteString(`<circle cx="` + f(washCenterX) + `" cy="` + f(washCenterY) + `" r="` + f(washRadius) + `" fill="url(#w)"/>`)
+	case "wash", "plain":
+		// The wash itself is drawn by drawWash for every card with a project;
+		// as a style name it just means "no pattern on top".
 	case "rings":
 		for i := 1; i <= ringCount; i++ {
 			b.WriteString(`<circle cx="` + f(ringCenterX) + `" cy="` + f(ringCenterY) + `" r="` + f(float64(i*ringStep)) + `" fill="none" stroke="` + foreground + `" stroke-width="1" opacity="` + ringOpacity + `"/>`)
 		}
-	case "plain":
 	}
 }

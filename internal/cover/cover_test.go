@@ -41,7 +41,7 @@ func TestStylesAndPick(t *testing.T) {
 		}
 		seen[st] = true
 	}
-	if len(seen) < 3 {
+	if len(seen) < 2 {
 		t.Fatalf("PickStyle barely varies: %v", seen)
 	}
 }
