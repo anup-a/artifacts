@@ -11,7 +11,7 @@ const (
 	// The wash is the one style that carries the project colour, so it is
 	// allowed to be more present: a corner-anchored bloom that fades across
 	// most of the card, as in the approved mockup.
-	washOpacity  = "0.18"
+	washOpacity  = "0.12"
 	dotPitch     = 24
 	gridPitch    = 48
 	linePitch    = 28
