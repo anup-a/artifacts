@@ -19,6 +19,7 @@ type Deps struct {
 	PublishLimiter *ratelimit.Limiter
 	CommentLimiter *ratelimit.Limiter
 	KeyLimiter     *ratelimit.Limiter
+	PortalLimiter  *ratelimit.Limiter
 	Runtime        []byte // comments.js bytes served at /_rt/comments.js
 }
 

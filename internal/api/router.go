@@ -22,7 +22,8 @@ func NewHandler(d Deps) (http.Handler, error) {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
-	mux.HandleFunc("POST /api/keys", s.createKey)
+	mux.HandleFunc("GET /api/me", s.withAuth(s.me))
+	mux.HandleFunc("POST /api/end-users/{external_id}/portal-link", s.withAuth(s.portalLink))
 	mux.HandleFunc("GET /api/artifacts", s.withAuth(s.listArtifacts))
 	mux.HandleFunc("POST /api/artifacts/preflight", s.withAuth(s.preflight))
 	mux.HandleFunc("POST /api/artifacts", s.withAuth(s.createArtifact))

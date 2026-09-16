@@ -26,7 +26,7 @@ func (s *server) ownedArtifact(r *http.Request, id string) (store.Artifact, *api
 	if err != nil {
 		return a, apierr.Internal(err)
 	}
-	if a.KeyID != k.ID {
+	if a.TenantID != k.TenantID {
 		return a, apierr.NotFound("artifact") // do not reveal existence
 	}
 	if a.DeletedAt != nil {
@@ -190,13 +190,18 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.RateLimited(retry))
 		return
 	}
-	n, err := s.Store.CountArtifacts(r.Context(), k.ID)
+	external, e := endUserFrom(r)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	n, err := s.Store.CountArtifacts(r.Context(), k.TenantID)
 	if err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	if n >= s.Cfg.Limits.ArtifactsPerKey {
-		apierr.Write(w, r, apierr.Quota(fmt.Sprintf("artifact limit %d reached; delete one or upgrade", s.Cfg.Limits.ArtifactsPerKey)))
+	if n >= s.Cfg.Limits.ArtifactsPerTenant {
+		apierr.Write(w, r, apierr.Quota(fmt.Sprintf("artifact limit %d reached; delete one or upgrade", s.Cfg.Limits.ArtifactsPerTenant)))
 		return
 	}
 	m, _, e := s.readPublish(w, r)
@@ -214,7 +219,12 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := s.Now()
-	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, Title: m.Title, CreatedAt: now, UpdatedAt: now}
+	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, CreatedAt: now, UpdatedAt: now}
+	a, e = s.attachEndUser(r, a, k.TenantID, external)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
 	if err := s.Store.CreateArtifact(r.Context(), a); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
@@ -224,7 +234,11 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	apierr.WriteJSON(w, 201, map[string]any{"id": a.ID, "url": s.artifactURL(a.ID), "version": v})
+	apierr.WriteJSON(w, 201, s.publishResponse(a, v))
+}
+
+func (s *server) publishResponse(a store.Artifact, version int) map[string]any {
+	return map[string]any{"id": a.ID, "url": s.artifactURL(a.ID), "version": version, "end_user": a.EndUser}
 }
 
 func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
@@ -234,6 +248,14 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a, e := s.ownedArtifact(r, r.PathValue("id"))
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	external, e := endUserFrom(r)
+	if e == nil {
+		e = checkEndUser(a, external)
+	}
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -248,5 +270,5 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "url": s.artifactURL(a.ID), "version": v})
+	apierr.WriteJSON(w, 200, s.publishResponse(a, v))
 }

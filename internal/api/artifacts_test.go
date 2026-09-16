@@ -87,9 +87,8 @@ func TestVersionsRollbackPrune(t *testing.T) {
 
 func TestOtherKeyCannotSee(t *testing.T) {
 	srv, d, _ := newTestServer(t, true)
-	k1 := mintKey(t, srv.URL)
-	k2 := mintKey(t, srv.URL)
-	_ = d
+	k1 := mintKey(t, d, "personal")
+	k2 := mintKey(t, d, "personal")
 	_, b := do(t, publishReq(t, "POST", srv.URL+"/api/artifacts", k1, "", []pubFile{{"index.html", "x"}}, nil))
 	id := b["id"].(string)
 	if code, _ := do(t, authReq(t, "GET", srv.URL+"/api/artifacts/"+id, k2)); code != 404 {
@@ -98,15 +97,4 @@ func TestOtherKeyCannotSee(t *testing.T) {
 	if code, _ := do(t, authReq(t, "DELETE", srv.URL+"/api/artifacts/"+id, k2)); code != 404 {
 		t.Fatalf("cross-key delete: %d", code)
 	}
-}
-
-func mintKey(t *testing.T, base string) string {
-	t.Helper()
-	req, _ := http.NewRequest("POST", base+"/api/keys", stringsReader(`{"email":"k@x.io"}`))
-	req.Header.Set("Content-Type", "application/json")
-	code, body := do(t, req)
-	if code != 201 {
-		t.Fatalf("mint key: %d %v", code, body)
-	}
-	return body["key"].(string)
 }
