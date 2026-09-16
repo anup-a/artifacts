@@ -361,6 +361,29 @@ test("select text, comment, and see it persist after reload", async ({ page }) =
   await expect(shadow.locator(".pop input")).toHaveValue("Ravi");
 });
 
+test("existing highlights survive a comment posted without a reload", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await createThread(id, "First note", "twelve percent", "Revenue grew by ", " this quarter.");
+  await page.goto(`${BASE}/a/${id}/`);
+  await expect(page.locator("mark.artifacts-hl")).toHaveText("twelve percent");
+
+  // Posting refreshes the thread list in place. The marks already on the page
+  // must not eat the anchors of the threads that were painted before it.
+  const shadow = page.locator("#artifacts-rt");
+  await selectText(page, "#p1");
+  await shadow.locator(".fab").click();
+  await shadow.locator(".pop input").fill("Ravi");
+  await shadow.locator(".pop textarea").fill("Second note.");
+  await shadow.locator(".pop .send").click();
+  await expect(shadow.locator(".thread")).toHaveCount(2);
+
+  const marks = page.locator("mark.artifacts-hl");
+  await expect(marks).toHaveCount(2);
+  await expect(marks.nth(0)).toHaveText("The quick brown fox jumps over the lazy dog.");
+  await expect(marks.nth(1)).toHaveText("twelve percent");
+});
+
 test("compose popover posts with Cmd/Ctrl+Enter, cancels with Escape, and never covers the selection", async ({ page }) => {
   const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
   const id = publish({ "index.html": html });

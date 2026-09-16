@@ -6,7 +6,7 @@ import { createClient } from "./api.js";
 import { mountPanel } from "./panel.js";
 import { mountCompose } from "./compose.js";
 import { resolveAnchor } from "./dom.js";
-import { paintThreads } from "./highlight.js";
+import { paintThreads, clearHighlights } from "./highlight.js";
 
 const HOST_ID = "artifacts-rt";
 
@@ -68,7 +68,16 @@ async function boot() {
 
   // Highlights follow the panel's filter: resolved threads only light up the
   // page while the viewer is looking at them.
+  //
+  // Anchors are resolved here, after the previous paint's marks are stripped:
+  // a Range measured while a <mark> is still wrapped around the text collapses
+  // to nothing the moment that mark is unwrapped and its text nodes merged.
   function paint(threads) {
+    clearHighlights();
+    state.resolved = new Map();
+    for (const t of state.threads) {
+      state.resolved.set(t.id, resolveAnchor(t.anchor));
+    }
     paintThreads({ threads, resolved: state.resolved }, (id) => panel.focusThread(id));
   }
 
@@ -86,10 +95,6 @@ async function boot() {
     }
     state.unavailable = false;
     state.threads = (list.data && list.data.threads) || [];
-    state.resolved = new Map();
-    for (const t of state.threads) {
-      state.resolved.set(t.id, resolveAnchor(t.anchor));
-    }
     paint(panel.visibleThreads());
     panel.render();
     reportSeen();
