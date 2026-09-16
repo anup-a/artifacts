@@ -27,8 +27,11 @@ primary_region = "sin"
   DB = "sqlite"
   STORAGE = "local"
   DATA_DIR = "/data"
-  PUBLIC_SHARE_ORIGIN = "https://share.creatica.app"
-  PUBLIC_API_ORIGIN = "https://api.share.creatica.app"
+  # Pages are served from the apex so a share URL stays short: byagent.dev/a/<id>/.
+  # The dashboard and API sit on a subdomain to keep published HTML off the
+  # origin that holds dashboard sessions.
+  PUBLIC_SHARE_ORIGIN = "https://byagent.dev"
+  PUBLIC_API_ORIGIN = "https://api.byagent.dev"
   TRUST_PROXY_HEADERS = "true"
 
 # ADMIN_TOKEN is not here on purpose: it is set with `fly secrets set`.
