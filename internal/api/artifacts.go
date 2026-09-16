@@ -92,7 +92,7 @@ func (s *server) deleteArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	// Open threads protect their version from pruning, and after the delete the
 	// artifact answers 410 so nobody can resolve them. Resolve them here or the
-	// versions — and the blobs behind them — are retained forever.
+	// versions, and the blobs behind them, are retained forever.
 	if err := s.Store.ResolveAllThreads(r.Context(), a.ID, now); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return

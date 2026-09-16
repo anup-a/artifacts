@@ -106,7 +106,7 @@ func TestCommentRateLimit(t *testing.T) {
 	_, b := do(t, publishReq(t, "POST", srv.URL+"/api/artifacts", tok, "", []pubFile{{"index.html", "x"}}, nil))
 	id := b["id"].(string)
 	// limit is 100 in test cfg; 100 replies to an unknown thread all 404 before the
-	// rate limit trips, then the 101st is rejected — the limiter is checked before
+	// rate limit trips, then the 101st is rejected: the limiter is checked before
 	// the thread lookup.
 	for i := range 100 {
 		if code, _ := do(t, jsonReq(t, "POST", srv.URL+"/c/"+id+"/comments/th_x/reply", `{"author_name":"A","body":"x"}`, nil)); code != 404 {
