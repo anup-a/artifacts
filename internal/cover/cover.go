@@ -113,6 +113,11 @@ func Render(c Card) []byte {
 	if !Valid(style) {
 		style = PickStyle(c.ID)
 	}
+	// The wash is a tint of the project colour. Without a project that tint
+	// would be grey, which reads as a smudge, so such cards use dots instead.
+	if style == "wash" && strings.TrimSpace(c.Project) == "" {
+		style = "dots"
+	}
 	title := c.Title
 	if strings.TrimSpace(title) == "" {
 		title = c.ID
