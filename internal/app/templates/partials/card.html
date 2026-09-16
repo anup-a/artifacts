@@ -1,0 +1,21 @@
+{{/* One bento tile on the artifacts page. Receives dict Page + Item (cardView). */}}
+{{define "card"}}
+{{$p := .Page}}{{$c := .Item}}{{$a := $c.Artifact}}
+<article class="tile{{if $c.Span}} is-{{$c.Span}}{{end}}" data-project="{{$c.Project}}">
+  <a class="tile-cover" href="/app/artifacts/{{$a.ID}}" data-peek aria-label="{{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" tabindex="-1">
+    <img src="{{$c.CoverURL}}" alt="" loading="lazy" width="1200" height="630">
+  </a>
+  <div class="tile-body">
+    <a class="tile-title truncate" href="/app/artifacts/{{$a.ID}}" data-peek>{{if $a.Title}}{{$a.Title}}{{else}}<code class="tile-untitled" title="Untitled: showing the id">{{$a.ID}}</code>{{end}}</a>
+    <div class="tile-meta">
+      {{if $c.Project}}<a class="tile-project" href="{{$p.Data.ChipURL $c.Project}}" title="Show project {{$c.Project}}"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">{{$c.Project}}</span></a>{{else}}<span class="tile-project muted"><span class="dot" data-color="{{$c.Color}}"></span>No project</span>{{end}}
+      {{if $c.Tags}}<span class="tile-tags">{{range $c.Tags}}<span class="tag">{{.}}</span>{{end}}</span>{{end}}
+      <span class="spacer"></span>
+      {{if $a.OpenComments}}<a class="count is-open" href="/app/artifacts/{{$a.ID}}#comments" title="Open comments" data-peek>{{template "icon" "comment"}}{{$a.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}
+      {{if not $a.CommentsEnabled}}<span class="badge off" title="Comments are off for this artifact">off</span>{{end}}
+      <time datetime="{{$a.CreatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="Published {{when $a.CreatedAt}} UTC">{{ago $a.CreatedAt $p.Now}}</time>
+      <a class="icon-btn tile-open" href="{{$c.URL}}" target="_blank" rel="noopener" title="Open published page" aria-label="Open published page">{{template "icon" "external"}}</a>
+    </div>
+  </div>
+</article>
+{{end}}

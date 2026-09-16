@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/artifacts/internal/cover"
 )
 
 //go:embed templates/*.html templates/partials/*.html
@@ -37,6 +38,8 @@ var funcs = template.FuncMap{
 	"num":   formatNumber,
 	"str":   deref,
 	"path":  url.PathEscape,
+	// projectColor is the cover generator's palette, so dots match covers.
+	"projectColor": cover.ProjectColor,
 	"plural": func(n int, one, many string) string {
 		if n == 1 {
 			return one

@@ -28,12 +28,17 @@
 <div class="detail">
 
   <header class="detail-head">
-    <div class="detail-meta">
-      <span class="chip"><code>{{$a.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{$a.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
-      <span class="badge mono">v{{$a.CurrentVersion}}</span>
-      {{if $a.EndUser}}<span class="meta-item">End user <a class="link" href="/app/artifacts?end_user={{str $a.EndUser}}">{{str $a.EndUser}}</a></span>{{end}}
-      <span class="meta-item">Updated <time title="{{when $a.UpdatedAt}} UTC">{{ago $a.UpdatedAt $.Now}}</time></span>
-      <span class="meta-item">Created <time title="{{when $a.CreatedAt}} UTC">{{ago $a.CreatedAt $.Now}}</time></span>
+    <div class="detail-top">
+      <a class="detail-cover" href="{{.Data.CoverURL}}" target="_blank" rel="noopener" title="Cover image"><img src="{{.Data.CoverURL}}" alt="Cover of {{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" width="240" height="126"></a>
+      <div class="detail-meta">
+        <span class="chip"><code>{{$a.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{$a.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
+        <span class="badge mono">v{{$a.CurrentVersion}}</span>
+        {{if $a.Project}}<a class="tile-project" href="/app/artifacts?project={{str $a.Project}}"><span class="dot" data-color="{{projectColor (str $a.Project)}}"></span>{{str $a.Project}}</a>{{end}}
+        {{if $a.Tags}}<span class="tile-tags">{{range $a.Tags}}<span class="tag">{{.}}</span>{{end}}</span>{{end}}
+        {{if $a.EndUser}}<span class="meta-item">End user <a class="link" href="/app/artifacts?end_user={{str $a.EndUser}}">{{str $a.EndUser}}</a></span>{{end}}
+        <span class="meta-item">Updated <time title="{{when $a.UpdatedAt}} UTC">{{ago $a.UpdatedAt $.Now}}</time></span>
+        <span class="meta-item">Published <time title="{{when $a.CreatedAt}} UTC">{{ago $a.CreatedAt $.Now}}</time></span>
+      </div>
     </div>
     <div class="share-row">
       <label class="share-label" for="share-url">Share link</label>
@@ -53,6 +58,48 @@
     <div class="preview-frame">
       <iframe src="{{.Data.URL}}" title="Preview of {{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" sandbox="allow-scripts allow-forms allow-popups" loading="lazy" referrerpolicy="no-referrer"></iframe>
     </div>
+  </section>
+
+  <section class="card" id="about">
+    <div class="card-head">
+      <h2>About</h2>
+      <span class="muted">Project, tags and cover, as the gallery shows them</span>
+    </div>
+    <form method="post" action="/app/artifacts/{{$a.ID}}/meta" class="meta-form">
+      <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+      <div class="field-row">
+        <label class="field">
+          <span class="field-label">Project</span>
+          <input type="text" name="project" value="{{.Data.Meta.Project}}" list="project-names" maxlength="64" placeholder="No project" autocomplete="off">
+        </label>
+        <label class="field">
+          <span class="field-label">Tags</span>
+          <input type="text" name="tags" value="{{.Data.Meta.Tags}}" placeholder="report, quarterly" autocomplete="off">
+        </label>
+      </div>
+      <datalist id="project-names">{{range .Data.Projects}}<option value="{{.}}"></option>{{end}}</datalist>
+      <fieldset class="cover-choice">
+        <legend class="field-label">Cover</legend>
+        <label class="cover-option">
+          <input type="radio" name="cover_kind" value="generated"{{if ne .Data.Meta.CoverKind "file"}} checked{{end}}>
+          <span>Generated</span>
+          <select name="cover_style" aria-label="Cover style">
+            {{range .Data.Styles}}<option value="{{.}}"{{if eq . $.Data.Meta.CoverStyle}} selected{{end}}>{{.}}</option>{{end}}
+          </select>
+        </label>
+        <label class="cover-option">
+          <input type="radio" name="cover_kind" value="file"{{if eq .Data.Meta.CoverKind "file"}} checked{{end}}{{if not .Data.CoverFiles}} disabled{{end}}>
+          <span>File in this version</span>
+          <select name="cover_file" aria-label="Cover file"{{if not .Data.CoverFiles}} disabled{{end}}>
+            {{if .Data.CoverFiles}}{{range .Data.CoverFiles}}<option value="{{.}}"{{if eq . $.Data.Meta.CoverFile}} selected{{end}}>{{.}}</option>{{end}}{{else}}<option value="">No svg, png, jpg or webp files</option>{{end}}
+          </select>
+        </label>
+      </fieldset>
+      {{if .Data.MetaError}}<p class="alert">{{template "icon" "alert"}}{{.Data.MetaError}}</p>{{end}}
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
   </section>
 
   <section class="card" id="versions">

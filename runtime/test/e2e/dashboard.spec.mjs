@@ -9,7 +9,9 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const REPO = resolve(process.cwd(), "..");
-const PORT = 8098; // comments.spec.mjs owns 8099; the two suites may run in parallel
+// comments.spec.mjs owns ARTIFACTS_E2E_PORT (default 8099); this suite takes
+// the port below it so the two can run in parallel.
+const PORT = Number(process.env.ARTIFACTS_E2E_PORT || 8099) - 1;
 const BASE = `http://127.0.0.1:${PORT}`;
 const EMAIL = "owner@example.test";
 
@@ -105,33 +107,53 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   await expect(page.getByText("Nothing published yet")).toBeVisible();
   await expect(page.locator(".sidebar-foot")).toContainText(EMAIL);
 
-  // A key created in the dashboard publishes through the CLI.
+  // A key created in the dashboard publishes through the CLI. A page published
+  // today is a bento tile under "Today": cover image, project dot, tag chips.
   const personalKey = await createKey(page, "laptop");
-  const first = publishWithCLI(personalKey, "Quarterly report");
+  const first = publishWithCLI(personalKey, "Quarterly report", ["--project", "Hi Travel", "--tag", "report", "--tag", "q3"]);
   expect(first.url).toBe(`${BASE}/a/${first.id}/`);
+  expect(first.project).toBe("Hi Travel");
   await page.goto(`${BASE}/app/artifacts`);
-  const row = page.locator("tr", { hasText: "Quarterly report" });
-  await expect(row).toContainText(first.id);
-  await expect(row.getByRole("link", { name: "Open" })).toHaveAttribute("href", first.url);
+  const tile = (title) => page.locator(".tile", { has: page.locator(`a.tile-cover[aria-label="${title}"]`) });
+  const row = tile("Quarterly report");
+  await expect(page.locator(".day-label").first()).toHaveText("Today");
+  await expect(row).toHaveClass(/is-hero/);
+  await expect(row.locator(".tile-cover img")).toHaveAttribute("src", `${BASE}/a/${first.id}/_cover.svg`);
+  expect(await row.locator(".tile-cover img").evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+  await expect(row.locator(".tile-project")).toHaveText("Hi Travel");
+  await expect(row.locator(".tag")).toHaveText(["report", "q3"]);
+  await expect(row.locator(".tile-open")).toHaveAttribute("href", first.url);
   await expect(page.locator("th", { hasText: "End user" })).toHaveCount(0);
 
-  // The row title opens the detail as a side peek over the list; the URL is
+  // The project chip filters the list server-side; "All" clears it.
+  await expect(page.locator(".pchip.is-on")).toHaveText("All");
+  await page.locator(".pchip", { hasText: "Hi Travel" }).click();
+  await expect(page).toHaveURL(`${BASE}/app/artifacts?project=Hi%20Travel`);
+  await expect(page.locator(".pchip.is-on")).toContainText("Hi Travel");
+  await expect(page.locator(".day-label").first()).toHaveText("This week");
+  await expect(row).toBeVisible();
+  await page.locator(".pchip", { hasText: "All" }).click();
+  await expect(page).toHaveURL(`${BASE}/app/artifacts`);
+
+  // The tile cover opens the detail as a side peek over the list; the URL is
   // the detail page's, so it is shareable, and Escape closes it again.
-  await row.locator(".row-title").click();
+  await row.locator(".tile-cover").click();
   const peek = page.locator("aside.peek");
   await expect(peek).toBeVisible();
   await expect(peek.locator(".peek-title")).toHaveText("Quarterly report");
   await expect(peek.locator("#versions")).toBeVisible();
+  await expect(peek.locator(".detail-cover img")).toHaveAttribute("src", `${BASE}/a/${first.id}/_cover.svg`);
   await expect(page).toHaveURL(`${BASE}/app/artifacts/${first.id}`);
-  await expect(page.locator(".table-card table.table")).toBeVisible();
+  await expect(page.locator(".bento")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(peek).toBeHidden();
   await expect(page).toHaveURL(`${BASE}/app/artifacts`);
 
   // Forms inside the peek re-render it in place: no navigation, the switch
-  // flips, and the list behind picks up the "off" badge when the peek closes.
+  // flips, the About card saves a new project, and the list behind picks up
+  // the "off" badge and the new project when the peek closes.
   await page.evaluate(() => { window.__noReload = true; });
-  await row.getByRole("link", { name: "View" }).click();
+  await row.locator(".tile-cover").click();
   await expect(peek).toBeVisible();
   await expect(peek.locator(".switch")).toHaveAttribute("aria-checked", "true");
   await peek.locator(".switch").click();
@@ -139,9 +161,33 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   await expect(peek.getByText("Comments are off for this artifact")).toBeVisible();
   expect(await page.evaluate(() => window.__noReload)).toBe(true);
   await expect(page).toHaveURL(`${BASE}/app/artifacts/${first.id}`);
+
+  const about = peek.locator("#about");
+  await expect(about.getByLabel("Project")).toHaveValue("Hi Travel");
+  await expect(about.getByLabel("Tags")).toHaveValue("report, q3");
+  await about.getByLabel("Project").fill("Distill");
+  await about.getByLabel("Tags").fill("Video, storyboard");
+  await about.getByLabel("Cover style").selectOption("rings");
+  await about.getByRole("button", { name: "Save" }).click();
+  await expect(about.getByLabel("Project")).toHaveValue("Distill");
+  await expect(about.getByLabel("Tags")).toHaveValue("video, storyboard");
+  await expect(about.getByLabel("Cover style")).toHaveValue("rings");
+  await expect(peek.locator(".detail-meta .tile-project")).toHaveText("Distill");
+  expect(await page.evaluate(() => window.__noReload)).toBe(true);
+  // A bad value comes back as the API's message, still inside the peek.
+  await about.getByLabel("Tags").fill("a,b,c,d,e,f,g,h,i,j,k");
+  await about.getByRole("button", { name: "Save" }).click();
+  await expect(about.locator(".alert")).toHaveText(/tags: at most 10 allowed/);
+  await expect(about.getByLabel("Tags")).toHaveValue("a,b,c,d,e,f,g,h,i,j,k");
+  await expect(peek).toBeVisible();
+  expect(await page.evaluate(() => window.__noReload)).toBe(true);
+
   await page.goBack();
   await expect(peek).toBeHidden();
   await expect(row.locator(".badge.off")).toBeVisible();
+  await expect(row.locator(".tile-project")).toHaveText("Distill");
+  await expect(page.locator(".pchip", { hasText: "Distill" })).toBeVisible();
+  await expect(page.locator(".pchip", { hasText: "Hi Travel" })).toHaveCount(0);
   expect(await page.evaluate(() => window.__noReload)).toBe(true);
 
   // An integrator workspace attributes artifacts to end users.
@@ -159,10 +205,13 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   const internal = publishWithCLI(acmeKey, "Internal notes");
 
   await page.goto(`${BASE}/app/artifacts`);
-  await expect(page.locator("th", { hasText: "End user" })).toBeVisible();
-  await expect(page.locator("tr", { hasText: "Customer dashboard" })).toContainText("customer-7");
-  await expect(page.locator("tr", { hasText: "Internal notes" })).toBeVisible();
-  await expect(page.locator("tr", { hasText: "Quarterly report" })).toHaveCount(0);
+  await expect(tile("Customer dashboard")).toBeVisible();
+  await expect(tile("Internal notes")).toBeVisible();
+  await expect(tile("Quarterly report")).toHaveCount(0);
+  await page.goto(`${BASE}/app/artifacts?end_user=customer-7`);
+  await expect(page.getByText("Showing artifacts of end user")).toBeVisible();
+  await expect(tile("Customer dashboard")).toBeVisible();
+  await expect(tile("Internal notes")).toHaveCount(0);
 
   await page.goto(`${BASE}/app/end-users`);
   const customerRow = page.locator("tr", { hasText: "customer-7" });

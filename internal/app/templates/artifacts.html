@@ -2,6 +2,7 @@
 <h1 class="page-title">Artifacts</h1>
 <form method="get" action="/app/artifacts" class="search" role="search">
   {{if .Data.EndUser}}<input type="hidden" name="end_user" value="{{.Data.EndUser}}">{{end}}
+  {{if .Data.Project}}<input type="hidden" name="project" value="{{.Data.Project}}">{{end}}
   {{template "icon" "search"}}
   <input type="search" name="q" value="{{.Data.Query}}" placeholder="Search titles…" aria-label="Search titles">
 </form>
@@ -9,21 +10,53 @@
 
 {{define "content"}}
 {{if .Data.EndUser}}
-<p class="filter-bar">Showing artifacts of end user <code>{{.Data.EndUser}}</code> <a class="link" href="/app/artifacts">Clear filter</a></p>
+<p class="filter-bar">Showing artifacts of end user <code>{{.Data.EndUser}}</code> <a class="link" href="{{.Data.ChipURL .Data.Project}}">Clear filter</a></p>
+{{end}}
+
+{{if .Data.Projects}}
+<nav class="chips" aria-label="Projects">
+  <a class="pchip{{if not .Data.Project}} is-on{{end}}" href="{{.Data.ChipURL ""}}"{{if not .Data.Project}} aria-current="true"{{end}}>All</a>
+  {{range .Data.Projects}}
+  <a class="pchip{{if eq .Name $.Data.Project}} is-on{{end}}" href="{{$.Data.ChipURL .Name}}"{{if eq .Name $.Data.Project}} aria-current="true"{{end}}><span class="dot" data-color="{{projectColor .Name}}"></span>{{.Name}}<span class="pchip-n">{{.Count}}</span></a>
+  {{end}}
+</nav>
+{{end}}
+
+{{if .Data.Count}}
+
+{{range .Data.Sections}}
+<section class="day" data-day="{{.Day}}" data-at="{{.At.Format "2006-01-02T15:04:05Z07:00"}}">
+  <h2 class="day-label">{{.Label}}</h2>
+  <div class="bento">
+    {{range .Cards}}{{template "card" (dict $ .)}}{{end}}
+  </div>
+</section>
+{{end}}
+
+{{if .Data.Grid}}
+<section class="day">
+  <h2 class="day-label">This week</h2>
+  <div class="bento">
+    {{range .Data.Grid}}{{template "card" (dict $ .)}}{{end}}
+  </div>
+</section>
 {{end}}
 
 {{if .Data.Rows}}
+<section class="day">
+  {{if or .Data.Sections .Data.Grid}}<h2 class="day-label">Older</h2>{{end}}
 <div class="table-card">
 <table class="table">
   <thead><tr>
-    <th>Title</th><th>Id</th>{{if .Viewer.Integrator}}<th>End user</th>{{end}}<th class="num">Version</th><th class="num">Comments</th><th>Updated</th><th class="actions"></th>
+    <th>Title</th><th>Project</th><th>Id</th>{{if .Viewer.Integrator}}<th>End user</th>{{end}}<th class="num">Version</th><th class="num">Comments</th><th>Updated</th><th class="actions"></th>
   </tr></thead>
   <tbody>
   {{range .Data.Rows}}
   <tr>
     <td class="c-title">
-      <a class="row-title" href="/app/artifacts/{{.Artifact.ID}}" data-peek>{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</a>
+      <a class="row-title" href="/app/artifacts/{{.Artifact.ID}}" data-peek><img class="thumb" src="{{.CoverURL}}" alt="" loading="lazy" width="44" height="26"><span class="truncate">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</span></a>
     </td>
+    <td class="c-project">{{if .Artifact.Project}}<a class="tile-project" href="{{$.Data.ChipURL (str .Artifact.Project)}}"><span class="dot" data-color="{{projectColor (str .Artifact.Project)}}"></span>{{str .Artifact.Project}}</a>{{else}}<span class="muted">—</span>{{end}}</td>
     <td class="c-id">
       <span class="chip"><code>{{.Artifact.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{.Artifact.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
     </td>
@@ -58,16 +91,23 @@
   </tbody>
 </table>
 <div class="table-foot">
-  <span>{{len .Data.Rows}} {{plural (len .Data.Rows) "artifact" "artifacts"}}{{if .Data.Next}} on this page{{end}}</span>
-  {{if .Data.Next}}<a class="btn small" href="/app/artifacts?cursor={{.Data.Next}}{{if .Data.EndUser}}&amp;end_user={{.Data.EndUser}}{{end}}{{if .Data.Query}}&amp;q={{.Data.Query}}{{end}}">Older</a>{{end}}
+  <span>{{.Data.Count}} {{plural .Data.Count "artifact" "artifacts"}}{{if .Data.Next}} on this page{{end}}</span>
+  {{if .Data.Next}}<a class="btn small" href="{{.Data.PageURL .Data.Next}}">Older</a>{{end}}
 </div>
 </div>
+</section>
+{{else}}
+<div class="table-foot bare-foot">
+  <span>{{.Data.Count}} {{plural .Data.Count "artifact" "artifacts"}}{{if .Data.Next}} on this page{{end}}</span>
+  {{if .Data.Next}}<a class="btn small" href="{{.Data.PageURL .Data.Next}}">Older</a>{{end}}
+</div>
+{{end}}
 
-{{else if or .Data.Query .Data.EndUser}}
+{{else if .Data.Filtered}}
 <div class="empty">
   <span class="empty-icon">{{template "icon" "search"}}</span>
   <h2>No artifacts match</h2>
-  <p>Try a different search, or <a class="link" href="/app/artifacts">show everything</a>.</p>
+  <p>Try a different search or project, or <a class="link" href="/app/artifacts">show everything</a>.</p>
 </div>
 
 {{else}}
@@ -85,6 +125,7 @@
       <div><strong>From an agent.</strong> Give it <a class="link" href="{{.Data.APIOrigin}}/skill.md">{{.Data.APIOrigin}}/skill.md</a> and it publishes for you.</div>
     </div>
   </div>
+  <p class="empty-hint">Add <code>--project &lt;name&gt;</code> and <code>--tag &lt;t&gt;</code> when publishing and the gallery groups and labels your pages.</p>
 </div>
 {{end}}
 {{end}}
