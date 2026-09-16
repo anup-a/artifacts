@@ -408,7 +408,11 @@ textarea { resize: vertical; line-height: 1.45; }
   font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted);
 }
 .day-label::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
-.bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 150px; grid-auto-flow: dense; gap: 12px; }
+/* One tile anatomy everywhere: the whole OG card, uncropped, at the tile's
+   width (it carries the title), then one meta row. The hero is the same
+   card spanning 2 x 2; rows size themselves to the single tiles, so a
+   day with a ragged last row is fine, that is how any grid ends. */
+.bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: auto; gap: 12px; align-items: stretch; }
 .tile {
   position: relative; display: flex; flex-direction: column; min-width: 0;
   background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
@@ -416,21 +420,12 @@ textarea { resize: vertical; line-height: 1.45; }
 }
 .tile:hover { border-color: var(--faint); transform: translateY(-1px); box-shadow: var(--shadow); }
 .tile.is-hero { grid-column: span 2; grid-row: span 2; }
-.tile.is-wide { grid-column: span 2; }
-/* A wide tile lays out horizontally: the cover keeps roughly the scale of a
-   single tile on the left, so its baked-in title does not balloon to twice
-   the size, and the title + meta sit to the right, vertically centred. */
-.tile.is-wide { flex-direction: row; }
-.tile.is-wide .tile-cover { flex: 0 0 44%; min-height: 0; height: 100%; border-bottom: 0; border-right: 1px solid var(--line); }
-.tile.is-wide .tile-body { flex: 1; min-width: 0; justify-content: center; padding: 8px 6px 8px 14px; gap: 4px; }
-.tile-cover { display: block; flex: 1; min-height: 0; background: #fafafa; border-bottom: 1px solid var(--line); }
-/* Centre the crop: the cover's title sits on the canvas midline, so a
-   short box (wide tiles are 478 x ~95) still shows it. */
-.tile-cover img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
-.tile-body { flex: none; display: flex; flex-direction: column; padding: 7px 4px 5px 10px; }
-.tile-title { display: block; font-size: 13px; font-weight: 500; line-height: 18px; color: var(--fg); padding-right: 6px; }
-.tile-title:hover { color: var(--accent); }
-.tile-untitled { font-size: 11.5px; color: var(--muted); padding: 0 4px; }
+.tile-cover { display: block; background: #fafafa; border-bottom: 1px solid var(--line); aspect-ratio: 1200 / 630; }
+.tile-cover img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: left center; }
+/* The hero is taller than its natural 1200:630 box (two rows plus the gap),
+   so it fills and crops a little on the right; the text is left-anchored. */
+.tile.is-hero .tile-cover { flex: 1; min-height: 0; aspect-ratio: auto; }
+.tile-body { flex: none; display: flex; flex-direction: column; padding: 5px 4px 5px 10px; }
 .tile-meta { display: flex; align-items: center; gap: 6px; height: 26px; font-size: 12.5px; color: var(--muted); }
 .tile-project { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 56px; color: var(--fg); font-weight: 500; }
 .tile-project:hover { color: var(--accent); }
@@ -438,8 +433,8 @@ textarea { resize: vertical; line-height: 1.45; }
 .tile-tags { display: inline-flex; gap: 4px; flex: 0 1 auto; min-width: 0; overflow: hidden; }
 /* A single tile is 233px wide: the zero counter is noise there, and the
    second tag chip gives way before the project name does. */
-.tile:not(.is-hero):not(.is-wide) .count.muted { display: none; }
-.tile:not(.is-hero):not(.is-wide) .tile-tags .tag + .tag { display: none; }
+.tile:not(.is-hero) .count.muted { display: none; }
+.tile:not(.is-hero) .tile-tags .tag + .tag { display: none; }
 .tile-meta .spacer { flex: 1 0 4px; }
 .tag { font-size: 11px; line-height: 18px; padding: 0 7px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; white-space: nowrap; }
 .tile-meta time { white-space: nowrap; }

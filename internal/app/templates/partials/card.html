@@ -2,11 +2,11 @@
 {{define "card"}}
 {{$p := .Page}}{{$c := .Item}}{{$a := $c.Artifact}}
 <article class="tile{{if $c.Span}} is-{{$c.Span}}{{end}}" data-project="{{$c.Project}}">
-  <a class="tile-cover" href="/app/artifacts/{{$a.ID}}" data-peek aria-label="{{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" tabindex="-1">
+  {{/* The cover carries the title, so it is the tile's one link to the peek. */}}
+  <a class="tile-cover" href="/app/artifacts/{{$a.ID}}" data-peek aria-label="{{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" title="{{if $a.Title}}{{$a.Title}}{{else}}Untitled: {{$a.ID}}{{end}}">
     <img src="{{$c.CoverURL}}" alt="" loading="lazy" width="1200" height="630">
   </a>
   <div class="tile-body">
-    <a class="tile-title truncate" href="/app/artifacts/{{$a.ID}}" data-peek>{{if $a.Title}}{{$a.Title}}{{else}}<code class="tile-untitled" title="Untitled: showing the id">{{$a.ID}}</code>{{end}}</a>
     <div class="tile-meta">
       {{if $c.Project}}<a class="tile-project" href="{{$p.Data.ChipURL $c.Project}}" title="Show project {{$c.Project}}"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">{{$c.Project}}</span></a>{{else}}<span class="tile-project muted"><span class="dot" data-color="{{$c.Color}}"></span>No project</span>{{end}}
       {{if $c.Tags}}<span class="tile-tags">{{range $c.Tags}}<span class="tag">{{.}}</span>{{end}}</span>{{end}}
