@@ -1,40 +1,24 @@
 // Selection -> floating button -> popover -> POST. Also the element-pick mode
-// driven by the panel's "Point at element" toggle.
+// driven by the panel's footer button.
 import { anchorFromSelection, anchorFromElement } from "./dom.js";
+import { el } from "./theme.js";
 
 const STYLE = `
-.fab{position:absolute;z-index:2147483001;border:0;border-radius:6px;
-padding:6px 11px;font-size:12px;font-weight:600;background:#1f2328;color:#fff;
-cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);
-font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}
-.pop{position:absolute;z-index:2147483002;width:270px;background:#fff;
-color:#1f2328;border:1px solid #d8dee4;border-radius:10px;padding:11px;
-box-shadow:0 6px 24px rgba(0,0,0,.18);
-font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}
-.pop p{margin:0 0 8px;font-size:11px;color:#656d76;border-left:2px solid #d8dee4;
-padding-left:7px;overflow-wrap:anywhere;max-height:52px;overflow:hidden}
-.pop input,.pop textarea{width:100%;font-size:12px;padding:6px 8px;margin-bottom:7px;
-border:1px solid #d8dee4;border-radius:6px;background:#fff;color:#1f2328;
-font-family:inherit;resize:vertical}
-.pop textarea{min-height:62px}
-.row{display:flex;gap:6px;justify-content:flex-end}
-.row button{font-size:12px;padding:6px 11px;border-radius:6px;cursor:pointer}
-.row .send{border:0;background:#1f2328;color:#fff}
-.row .cancel{border:1px solid #d8dee4;background:#fff;color:#424a53}
-.err{color:#b3261e;font-size:11px;margin:0 0 6px}
+.fab{position:absolute;z-index:2147483001;display:flex;gap:6px;align-items:center;padding:6px 10px;
+border:0;border-radius:8px;background:var(--fg);color:var(--bg);font-size:12px;font-weight:600;
+box-shadow:var(--shadow)}
+.fab:after{content:"";position:absolute;left:14px;bottom:-5px;border:5px solid transparent;
+border-top-color:var(--fg);border-bottom:0}
+.fab:hover{opacity:.92}
+.pop{position:absolute;z-index:2147483002;width:300px;background:var(--card);
+border:1px solid var(--line);border-radius:12px;padding:12px 12px 10px;box-shadow:var(--shadow)}
+.pop .quote{margin:0 0 10px;white-space:normal;max-height:54px;overflow:hidden}
+.pop .field{margin-bottom:8px}
+.pop textarea.field{min-height:66px}
+.pop .row{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.pop .row .grow{flex:1}
+.pop .err{color:var(--err);font-size:12px;margin:0 0 6px}
 `;
-
-function el(tag, props = {}, children = []) {
-  const n = document.createElement(tag);
-  for (const [k, v] of Object.entries(props)) {
-    if (k === "text") n.textContent = v;
-    else if (k === "class") n.className = v;
-    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
-    else n.setAttribute(k, v);
-  }
-  for (const c of children) n.appendChild(c);
-  return n;
-}
 
 function uuid() {
   if (crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -63,6 +47,7 @@ export function mountCompose(shadow, ctx) {
     pop.replaceChildren();
     pending = null;
   }
+  panel.isComposing = () => pop.style.display !== "none";
 
   function placeAt(node, x, y) {
     node.style.left = `${Math.max(8, x + window.scrollX)}px`;
@@ -76,14 +61,15 @@ export function mountCompose(shadow, ctx) {
     const err = el("p", { class: "err" });
     err.style.display = "none";
     const name = el("input", {
+      class: "field",
       type: "text",
       placeholder: "Your name",
       "aria-label": "Your name",
       value: store.get("name") || "",
     });
-    const body = el("textarea", { placeholder: "Leave a comment…", "aria-label": "Comment" });
-    const send = el("button", { class: "send", type: "button", text: "Comment" });
-    const cancel = el("button", { class: "cancel", type: "button", text: "Cancel", onclick: hidePop });
+    const body = el("textarea", { class: "field", placeholder: "Leave a comment…", "aria-label": "Comment" });
+    const send = el("button", { class: "btn pri send", type: "button", text: "Comment" });
+    const cancel = el("button", { class: "btn cancel", type: "button", text: "Cancel", onclick: hidePop });
 
     send.addEventListener("click", async () => {
       const who = name.value.trim() || "Anonymous";
@@ -111,14 +97,25 @@ export function mountCompose(shadow, ctx) {
     });
 
     pop.replaceChildren();
-    if (quoted) pop.appendChild(el("p", { text: quoted }));
+    if (quoted) pop.appendChild(el("p", { class: "quote", text: quoted }));
     pop.appendChild(err);
     pop.appendChild(name);
     pop.appendChild(body);
-    pop.appendChild(el("div", { class: "row" }, [cancel, send]));
+    pop.appendChild(el("div", { class: "row" }, [el("span", { class: "kbd", text: "esc" }), el("span", { class: "grow" }), cancel, send]));
     placeAt(pop, x, y);
     pop.style.display = "";
+    clampToViewport(pop, x, y);
     body.focus();
+  }
+
+  // Keep the popover on screen: flip above the selection when it would run
+  // off the bottom, and pull it left when it would run off the right.
+  function clampToViewport(node, x, y) {
+    const w = node.offsetWidth;
+    const h = node.offsetHeight;
+    const maxX = window.innerWidth - w - 8;
+    const top = y + h > window.innerHeight - 8 ? Math.max(8, y - h - 52) : y;
+    placeAt(node, Math.min(x, maxX), top);
   }
 
   // Selection -> floating Comment button.
@@ -134,7 +131,7 @@ export function mountCompose(shadow, ctx) {
         return;
       }
       fab.dataset.pending = JSON.stringify(anchor);
-      placeAt(fab, ev.clientX + 6, ev.clientY + 10);
+      placeAt(fab, ev.clientX + 6, ev.clientY - 40);
       fab.style.display = "";
     }, 0);
   });
@@ -146,7 +143,7 @@ export function mountCompose(shadow, ctx) {
     openPopover(
       anchor,
       parseFloat(fab.style.left) - window.scrollX,
-      parseFloat(fab.style.top) - window.scrollY
+      parseFloat(fab.style.top) - window.scrollY + 36
     );
   });
 
