@@ -167,7 +167,7 @@
       .then(function (res) { return res.ok ? res.text() : ""; })
       .then(function (html) {
         var fresh = html && new DOMParser().parseFromString(html, "text/html").querySelector("main.content");
-        if (fresh) main.innerHTML = fresh.innerHTML;
+        if (fresh) { main.innerHTML = fresh.innerHTML; relabelDays(main); }
       }, function () {});
   }
 
@@ -214,6 +214,30 @@
         renderPeek(r.html, "");
       }, function () { location.reload(); });
   });
+
+  // ---- Day labels ----------------------------------------------------
+  // The server groups recent artifacts by UTC day and labels them in UTC.
+  // Relabel each section from its newest publish time in the viewer's
+  // timezone: Today, Yesterday, then "Mon 14 Sep". Grouping stays as served.
+  function localDayLabel(at) {
+    var now = new Date();
+    var day = new Date(at);
+    if (isNaN(day)) return null;
+    var startOf = function (d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+    var diff = Math.round((startOf(now) - startOf(day)) / 864e5);
+    if (diff === 0) return "Today";
+    if (diff === 1) return "Yesterday";
+    return day.toLocaleDateString(undefined, { weekday: "short" }) + " " + day.getDate() + " " + day.toLocaleDateString(undefined, { month: "short" });
+  }
+
+  function relabelDays(root) {
+    (root || document).querySelectorAll(".day[data-at]").forEach(function (sec) {
+      var label = sec.querySelector(".day-label");
+      var text = localDayLabel(sec.getAttribute("data-at"));
+      if (label && text) label.textContent = text;
+    });
+  }
+  relabelDays(document);
 
   // ---- Reply boxes ---------------------------------------------------
   // Grow with their content; Cmd/Ctrl+Enter submits.

@@ -65,6 +65,44 @@ A single file works too and is published as `index.html`:
 artifacts publish ./report.html --json
 ```
 
+## Label it: project, tags and a cover
+
+Every artifact shows up in the person's dashboard as a card with a cover, a
+project and tags. Always pass a project and one to three tags so the card is
+findable later:
+
+```
+artifacts publish ./report --title "Q3 revenue" --project finance --tag revenue --tag q3 --json
+```
+
+- `--project <name>`: 1 to 64 characters, free text. Reuse the same name for
+  related pages; the dashboard groups by it.
+- `--tag <t>`: repeatable, 1 to 32 characters each, up to 10; the server
+  lowercases and deduplicates them.
+- The directory's `.artifacts.json` remembers project and tags, so a
+  republish keeps them without repeating the flags.
+- `artifacts list --project <name> --json` filters by project.
+
+The cover is the image on the card and the `og:image` when the link is shared.
+Without one, the server draws a quiet OG-style card: the title, the project,
+the share host and the publish date over a subtle background pattern
+(`dots`, `grid`, `lines`, `wash`, `rings` or `plain`; `--cover-style <name>`
+picks one, otherwise it is derived from the id). That default is fine for most
+pages. When the page has a visual of its own or deserves art, generate a cover
+with the Creatica CLI or MCP and pass it in:
+
+```
+npx @creatica/cli gen wave --seed q3-revenue --width 1200 --height 630 -o cover.svg
+artifacts publish ./report --cover cover.svg --json
+```
+
+Use Creatica's filter-free generators (`wave`, `small_sur`, `layered_waves`,
+`mountains`, `gradientblob`, `overlapping_circles`): generators that rely on
+SVG filters are slow to paint as thumbnails. `--cover` accepts svg, png, jpg or
+webp; a file inside the published directory is referenced in place, any other
+file is copied in as `_cover.<ext>`. The cover is served at
+`<url>_cover.svg` and reported as `cover_url` in the JSON.
+
 Comments are on by default. For a page that should be read but not annotated,
 publish with `--no-comments`: viewers get the page without the comment panel
 and the viewer comment API answers 404. `--comments` turns it back on, and a
@@ -107,6 +145,7 @@ blindly.
 ```
 artifacts whoami --json                    # which workspace and key you are using
 artifacts list --json                      # your artifacts
+artifacts list --project finance --json    # only one project
 artifacts get <id> --json                  # url, current version, open comment count
 artifacts versions <id> --json             # version history with comment counts
 artifacts rollback <id> <version> --json   # republish an old version as the newest one

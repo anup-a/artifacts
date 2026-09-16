@@ -256,6 +256,70 @@ test("publish --no-comments removes the runtime and closes the viewer API; --com
   assert.match(JSON.parse(both.stderr).error.message, /mutually exclusive/);
 });
 
+test("publish --project/--tag/--cover labels the artifact, serves the cover and filters list", async () => {
+  const dir = siteDir("<h1>gallery</h1>");
+  const coverSrc = join(tmp("artifacts-cover-"), "hero.svg");
+  writeFileSync(coverSrc, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#123"/></svg>');
+  const pub = json(["publish", dir, "--title", "Gallery", "--project", "demo", "--tag", "a", "--tag", "b", "--cover", coverSrc]);
+  assert.equal(pub.project, "demo");
+  assert.deepEqual(pub.tags, ["a", "b"]);
+  assert.equal(pub.cover_url, `${BASE}/a/${pub.id}/_cover.svg`);
+  assert.equal(pub.files, 3); // index, css and the copied _cover.svg
+  assert.equal(existsSync(join(dir, "_cover.svg")), true);
+  assert.deepEqual(JSON.parse(readFileSync(join(dir, ".artifacts.json"), "utf8")), { id: pub.id, api: BASE, project: "demo", tags: ["a", "b"] });
+
+  const cover = await fetch(`${BASE}/a/${pub.id}/_cover.svg`);
+  assert.equal(cover.status, 200);
+  assert.equal(cover.headers.get("content-type"), "image/svg+xml");
+  assert.equal(cover.headers.get("cache-control"), "public, max-age=3600");
+  assert.match(await cover.text(), /fill="#123"/);
+
+  const page = await (await fetch(`${BASE}/a/${pub.id}/`)).text();
+  assert.match(page, new RegExp(`<meta property="og:image" content="${BASE}/a/${pub.id}/_cover.svg">`));
+  assert.match(page, /<meta property="og:title" content="Gallery">/);
+
+  const got = json(["get", pub.id]);
+  assert.equal(got.project, "demo");
+  assert.deepEqual(got.tags, ["a", "b"]);
+  assert.equal(got.cover, "_cover.svg");
+  assert.equal(got.published_at, got.created_at);
+  assert.match(run(["get", pub.id]).stdout, /demo  #a #b/);
+
+  const filtered = json(["list", "--project", "demo"]);
+  assert.ok(filtered.artifacts.some((a) => a.id === pub.id));
+  assert.ok(filtered.artifacts.every((a) => a.project === "demo"));
+  assert.deepEqual(json(["list", "--project", "no-such-project"]).artifacts, []);
+  assert.match(run(["list", "--project", "demo"]).stdout, /\[demo  #a #b\]/);
+
+  // A republish without flags keeps the labels from .artifacts.json.
+  const again = json(["publish", dir]);
+  assert.equal(again.id, pub.id);
+  assert.equal(again.project, "demo");
+  assert.deepEqual(again.tags, ["a", "b"]);
+
+  // Validation errors name the field.
+  const bad = run(["publish", dir, "--tag", "", "--json"]);
+  assert.equal(bad.code, 1);
+  assert.match(JSON.parse(bad.stderr).error.message, /tags\[0\]/);
+  const badStyle = run(["publish", dir, "--cover-style", "plasma", "--json"]);
+  assert.equal(badStyle.code, 1);
+  assert.match(JSON.parse(badStyle.stderr).error.message, /cover_style/);
+});
+
+test("an artifact without a cover gets a generated one in the requested style", async () => {
+  const dir = siteDir("<h1>generated</h1>");
+  const pub = json(["publish", dir, "--title", "Generated <cover>", "--cover-style", "rings"]);
+  assert.equal(pub.cover_style, "rings");
+  const cover = await fetch(`${BASE}/a/${pub.id}/_cover.svg`);
+  assert.equal(cover.status, 200);
+  const svg = await cover.text();
+  assert.match(svg, /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" viewBox="0 0 1200 630"/);
+  assert.match(svg, /Generated &lt;cover&gt;/);
+  assert.doesNotMatch(svg, /<filter/);
+  const cached = await fetch(`${BASE}/a/${pub.id}/_cover.svg`, { headers: { "If-None-Match": cover.headers.get("etag") } });
+  assert.equal(cached.status, 304);
+});
+
 test("human output is readable and --json stays a single object", () => {
   const dir = siteDir("<h1>human</h1>");
   const pub = json(["publish", dir]);

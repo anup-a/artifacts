@@ -5,15 +5,24 @@ function need(positional, n, message) {
   if (positional.length < n || positional.slice(0, n).some((v) => !v)) throw usage(message);
 }
 
+// labelsOf renders "project / tags" for the human output, or "" when the
+// artifact has neither.
+function labelsOf(a) {
+  const tags = Array.isArray(a.tags) && a.tags.length ? a.tags.map((t) => `#${t}`).join(" ") : "";
+  return [a.project || "", tags].filter(Boolean).join("  ");
+}
+
 export async function get(cfg, { positional }) {
   need(positional, 1, "usage: artifacts get <id>");
   const a = await apiJson(cfg, "GET", `/api/artifacts/${encodeURIComponent(positional[0])}`);
+  const labels = labelsOf(a);
   return {
     json: a,
     human: [
       `${a.id}  ${a.title || "(untitled)"}`,
       `${a.url}`,
       `version ${a.current_version} of ${a.versions_count}, ${a.open_comments} open comments${a.comments_enabled === false ? " (comments off)" : ""}`,
+      ...(labels ? [labels] : []),
       `updated ${a.updated_at}`,
     ],
   };
@@ -21,13 +30,16 @@ export async function get(cfg, { positional }) {
 
 export async function list(cfg, { flags }) {
   const res = await apiJson(cfg, "GET", "/api/artifacts", {
-    query: { limit: flags.limit, cursor: flags.cursor, end_user: flags["end-user"] },
+    query: { limit: flags.limit, cursor: flags.cursor, end_user: flags["end-user"], project: flags.project },
   });
   const rows = res.artifacts || [];
   return {
     json: res,
     human: rows.length
-      ? rows.map((a) => `${a.id}  v${a.current_version}  ${a.open_comments} open  ${a.title || "(untitled)"}`)
+      ? rows.map((a) => {
+        const labels = labelsOf(a);
+        return `${a.id}  v${a.current_version}  ${a.open_comments} open  ${a.title || "(untitled)"}${labels ? `  [${labels}]` : ""}`;
+      })
       : ["no artifacts"],
   };
 }

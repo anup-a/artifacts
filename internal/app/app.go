@@ -82,6 +82,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/artifacts/{id}/delete", h.private(h.deleteArtifact))
 	mux.HandleFunc("POST /app/artifacts/{id}/rollback/{version}", h.private(h.rollbackArtifact))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments-enabled", h.private(h.setCommentsEnabled))
+	mux.HandleFunc("POST /app/artifacts/{id}/meta", h.private(h.setMetadata))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/resolve", h.private(h.resolveThread))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/reply", h.private(h.replyThread))
 	mux.HandleFunc("GET /app/end-users", h.private(h.endUsers))
@@ -111,12 +112,13 @@ type viewer struct {
 func (v *viewer) Integrator() bool { return v.Tenant.Kind == "integrator" }
 func (v *viewer) CSRF() string     { return auth.CSRFToken(v.Session.ID) }
 
-const csp = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; frame-ancestors 'none'"
+const csp = "default-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'"
 
-// csp adds the share origin as the only allowed frame source, so the artifact
-// detail page can preview the published page.
+// csp adds the share origin as the only allowed frame and image source, so
+// the artifact detail page can preview the published page and the gallery
+// can show the covers served next to it.
 func (h *Handler) csp() string {
-	return csp + "; frame-src 'self' " + h.Cfg.ShareOrigin
+	return csp + "; img-src 'self' data: " + h.Cfg.ShareOrigin + "; frame-src 'self' " + h.Cfg.ShareOrigin
 }
 
 // headers adds the browser hardening headers to every app response.

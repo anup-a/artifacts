@@ -4,6 +4,9 @@ import { usage } from "./errors.js";
 // either as --name=value or as the next argument.
 const BOOLEAN = new Set(["json", "open", "all", "help", "version", "comments", "no-comments"]);
 
+// Flags that may be given more than once; they collect into an array.
+const REPEATABLE = new Set(["tag"]);
+
 export function parseArgs(argv) {
   const positional = [];
   const flags = {};
@@ -27,6 +30,10 @@ export function parseArgs(argv) {
     }
     const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
     if (value === undefined) throw usage(`--${name} needs a value`);
+    if (REPEATABLE.has(name)) {
+      flags[name] = [...(flags[name] || []), value];
+      continue;
+    }
     flags[name] = value;
   }
   return { command: positional.shift(), positional, flags };

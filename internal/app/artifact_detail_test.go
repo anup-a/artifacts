@@ -182,7 +182,7 @@ func TestArtifactPanelFragment(t *testing.T) {
 	if strings.Contains(full.Body, `class="peek-inner"`) {
 		t.Fatal("full page carries the panel wrapper")
 	}
-	want(t, e.get("/app/artifacts"), 200, `class="row-title" href="/app/artifacts/aaaaaaaaaaaa" data-peek`, `>View</a>`)
+	want(t, e.get("/app/artifacts"), 200, `class="tile-cover" href="/app/artifacts/aaaaaaaaaaaa" data-peek`)
 
 	frag := e.get(detail + "?panel=1")
 	want(t, frag, 200, `class="peek-inner" data-peek-title="Quarterly report"`, `class="icon-btn peek-close" data-peek-close`, "<iframe", "Roll back", "Confirm delete",

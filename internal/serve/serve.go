@@ -37,6 +37,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	h.runtimeRev = hexSum[:12]
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
 	mux.HandleFunc("GET /skill.md", h.skill)
+	mux.HandleFunc("GET /a/{id}/"+coverPath, h.cover)
 	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.pinned)
 	mux.HandleFunc("GET /a/{id}/{path...}", h.current)
 	mux.HandleFunc("GET /a/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -141,11 +142,17 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	// carries that state too: flipping the switch must not be masked by a
 	// cached copy of the other variant.
 	inject := isHTML && a.CommentsEnabled
+	// The root page also gets Open Graph tags carrying the title, so the tag
+	// changes with a retitle as well.
+	meta := isHTML && p == "index.html"
 	etag := `"` + f.SHA256 + `"`
 	if inject {
 		etag = `"` + f.SHA256 + "-rt-" + strconv.Itoa(version) + `"`
 	} else if isHTML {
 		etag = `"` + f.SHA256 + "-nort-" + strconv.Itoa(version) + `"`
+	}
+	if meta {
+		etag = etag[:len(etag)-1] + "-" + titleHash(a.Title) + `"`
 	}
 	w.Header().Set("ETag", etag)
 	if !pinnedReq && p == "index.html" && h.OnView != nil {
@@ -167,7 +174,7 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	}
 	defer rc.Close()
 	w.Header().Set("Content-Type", f.ContentType)
-	if !inject {
+	if !inject && !meta {
 		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		io.Copy(w, rc)
 		return
@@ -177,5 +184,26 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	w.Write(Inject(body, id, version, h.runtimeRev))
+	if meta {
+		body = InjectMeta(body, coverTitle(a), CoverURL(h.ShareOrigin, id))
+	}
+	if inject {
+		body = Inject(body, id, version, h.runtimeRev)
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	w.Write(body)
+}
+
+// coverTitle is what og:title and the generated cover show: the title, or
+// the id when the artifact has none.
+func coverTitle(a store.Artifact) string {
+	if strings.TrimSpace(a.Title) == "" {
+		return a.ID
+	}
+	return a.Title
+}
+
+func titleHash(title string) string {
+	sum := sha256.Sum256([]byte(title))
+	return hex.EncodeToString(sum[:4])
 }

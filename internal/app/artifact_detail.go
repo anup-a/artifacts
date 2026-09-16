@@ -9,9 +9,20 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/anup-a/artifacts/internal/cover"
 	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
+
+func contains(list []string, s string) bool {
+	for _, x := range list {
+		if x == s {
+			return true
+		}
+	}
+	return false
+}
 
 // versionView is one row of the Versions section.
 type versionView struct {
@@ -33,11 +44,28 @@ type threadView struct {
 type artifactData struct {
 	Artifact  store.Artifact
 	URL       string
+	CoverURL  string
 	Versions  []versionView
 	Open      []threadView
 	Resolved  []threadView
 	Error     string
 	ErrThread string // thread the Error belongs to, so it renders inline
+	// About card: the form state, the workspace's project names for the
+	// datalist, the generator styles and the current version's image files.
+	Meta       metaForm
+	MetaError  string
+	Projects   []string
+	Styles     []string
+	CoverFiles []string
+}
+
+// artifactOpts is what a re-render after a form post carries besides the
+// artifact: the message and where it belongs, and the About form's typed
+// values when that form failed validation.
+type artifactOpts struct {
+	ErrThread, Error string
+	MetaError        string
+	Meta             *metaForm
 }
 
 func (h *Handler) artifactDetail(w http.ResponseWriter, r *http.Request, v *viewer) {
@@ -45,6 +73,10 @@ func (h *Handler) artifactDetail(w http.ResponseWriter, r *http.Request, v *view
 }
 
 func (h *Handler) renderArtifact(w http.ResponseWriter, r *http.Request, status int, v *viewer, id, errThread, msg string) {
+	h.renderArtifactWith(w, r, status, v, id, artifactOpts{ErrThread: errThread, Error: msg})
+}
+
+func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, status int, v *viewer, id string, o artifactOpts) {
 	ctx := r.Context()
 	a, err := h.ownedArtifact(r, v, id)
 	if err != nil {
@@ -61,7 +93,29 @@ func (h *Handler) renderArtifact(w http.ResponseWriter, r *http.Request, status 
 		h.fail(w, r, err)
 		return
 	}
-	d := artifactData{Artifact: a, URL: h.shareURL(a.ID), Error: msg, ErrThread: errThread}
+	files, err := h.Store.Files(ctx, a.ID, a.CurrentVersion)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	projects, err := h.Store.Projects(ctx, v.Tenant.ID)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	d := artifactData{Artifact: a, URL: h.shareURL(a.ID), CoverURL: serve.CoverURL(h.Cfg.ShareOrigin, a.ID), Error: o.Error, ErrThread: o.ErrThread,
+		Meta: metaFromArtifact(a), MetaError: o.MetaError, Styles: cover.Styles(), CoverFiles: coverFiles(files)}
+	if o.Meta != nil {
+		d.Meta = *o.Meta
+	}
+	for _, p := range projects {
+		d.Projects = append(d.Projects, p.Name)
+	}
+	// A cover file that the current version no longer has (after a rollback)
+	// stays selectable so the form shows what is stored.
+	if a.CoverPath != nil && !contains(d.CoverFiles, *a.CoverPath) {
+		d.CoverFiles = append(d.CoverFiles, *a.CoverPath)
+	}
 	for i := len(vs) - 1; i >= 0; i-- { // newest first
 		vv := vs[i]
 		d.Versions = append(d.Versions, versionView{N: vv.Version, CreatedAt: vv.CreatedAt, Bytes: vv.Bytes, FileCount: vv.FileCount,

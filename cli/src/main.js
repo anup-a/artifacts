@@ -28,9 +28,10 @@ const help = (api) => `artifacts - publish a page, share the URL, read the comme
 Usage:
   artifacts login --api <url> [--token <key>]
   artifacts publish <dir|file.html> [--id <id>] [--title <t>] [--end-user <id>]
-                    [--comments|--no-comments]
+                    [--comments|--no-comments] [--project <name>] [--tag <t>]...
+                    [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
   artifacts get <id>
-  artifacts list [--end-user <id>]
+  artifacts list [--end-user <id>] [--project <name>]
   artifacts whoami
   artifacts portal-link <end-user id>
   artifacts versions <id>
@@ -50,6 +51,15 @@ include end_user. portal-link is for integrator workspaces; links last 7 days.
 comment API for that artifact; --comments turns it back on. Without either,
 a republish keeps the current setting (new artifacts start with comments on).
 Artifact JSON carries comments_enabled.
+--project (1-64 chars) and --tag (repeatable, 1-32 chars, up to 10) label the
+artifact for the dashboard gallery; list --project filters by label. The
+directory's .artifacts.json remembers project and tags, so a republish keeps
+them. --cover names an image (svg, png, jpg, webp) shown as the card cover and
+og:image: a file inside the directory is used in place, any other file is
+copied in as _cover.<ext>. Without a cover the server draws a quiet OG-style
+card (title, project, host and date over a subtle pattern) in the
+--cover-style of your choice (default: derived from the id). Artifact JSON
+carries project, tags, cover_url, cover_style and published_at.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.

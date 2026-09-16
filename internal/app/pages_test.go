@@ -39,6 +39,12 @@ func (e *env) publish(id, title string, endUser string) store.Artifact {
 	return a
 }
 
+// daysAgo moves the clock to noon n days before the fixture's start, so an
+// artifact published next lands in that day's section (or the older list).
+func (e *env) daysAgo(n int) {
+	e.clock.t = time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC).Add(-time.Duration(n) * 24 * time.Hour)
+}
+
 func (e *env) becomeIntegrator(name string) {
 	e.t.Helper()
 	wantRedirect(e.t, e.post("/app/settings/integrator", "/app/settings", url.Values{"name": {name}}), "/app/artifacts")
@@ -47,7 +53,9 @@ func (e *env) becomeIntegrator(name string) {
 func TestArtifactsListFilterAndDelete(t *testing.T) {
 	e := fixture(t)
 	e.signIn("a@x.io")
+	e.daysAgo(10) // lands in the older list, which carries the row menu
 	e.publish("aaaaaaaaaaaa", "Quarterly report", "")
+	e.daysAgo(0)
 	e.publish("bbbbbbbbbbbb", "", "")
 	res := e.get("/app/artifacts")
 	want(t, res, 200, "Quarterly report", "http://share.test/a/aaaaaaaaaaaa/", "bbbbbbbbbbbb", `href="/app/artifacts/aaaaaaaaaaaa"`, "Confirm delete")
@@ -145,14 +153,16 @@ func TestEndUsersAndPortal(t *testing.T) {
 	want(t, res, 200, "End users", "Acme Inc")
 	want(t, e.get("/app/end-users"), 200, "No end users yet")
 
+	e.daysAgo(10) // older list, so the End user column is on the page
 	e.publish("aaaaaaaaaaaa", "For customer one", "customer/one")
 	e.publish("bbbbbbbbbbbb", "For customer two", "customer/two")
+	e.daysAgo(0)
 	e.publish("cccccccccccc", "Nobody", "")
 	res = e.get("/app/end-users")
 	want(t, res, 200, "customer/one", "customer/two", "Portal link")
 	res = e.get("/app/artifacts?end_user=customer/one")
 	want(t, res, 200, "For customer one", "<th>End user</th>", "Showing artifacts of end user")
-	if strings.Contains(res.Body, "For customer two") {
+	if strings.Contains(res.Body, "For customer two") || strings.Contains(res.Body, "Nobody") {
 		t.Fatal("end_user filter ignored")
 	}
 
