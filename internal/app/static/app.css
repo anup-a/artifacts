@@ -93,6 +93,7 @@ input[readonly] { color: var(--muted); font-family: var(--mono); font-size: 12.5
 .table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .table .title { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .table .actions { text-align: right; white-space: nowrap; }
+.table .when { white-space: nowrap; }
 .table .actions form { margin-left: 6px; }
 .table tr.revoked td { color: var(--muted); }
 .pager { margin-top: 12px; }

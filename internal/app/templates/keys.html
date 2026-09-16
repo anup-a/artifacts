@@ -20,8 +20,8 @@
   <tr{{if .RevokedAt}} class="revoked"{{end}}>
     <td>{{if .Name}}{{.Name}}{{else}}<span class="muted">unnamed</span>{{end}}</td>
     <td><code>{{.Prefix}}</code></td>
-    <td>{{when .CreatedAt}}</td>
-    <td>{{if .LastUsedAt}}{{when .LastUsedAt}}{{else}}<span class="muted">never</span>{{end}}</td>
+    <td class="when">{{when .CreatedAt}}</td>
+    <td class="when">{{if .LastUsedAt}}{{when .LastUsedAt}}{{else}}<span class="muted">never</span>{{end}}</td>
     <td class="actions">
       {{if .RevokedAt}}<span class="muted">Revoked {{when .RevokedAt}}</span>{{else}}
       <form method="post" action="/app/keys/{{.ID}}/revoke" class="inline" data-confirm="Revoke this key? Anything using it stops working now.">

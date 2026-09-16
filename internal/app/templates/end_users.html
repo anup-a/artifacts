@@ -14,8 +14,8 @@
   <tr>
     <td><a href="/app/artifacts?end_user={{.ExternalID}}"><code>{{.ExternalID}}</code></a></td>
     <td class="num">{{.ArtifactCount}}</td>
-    <td>{{when .FirstSeenAt}}</td>
-    <td>{{when .LastSeenAt}}</td>
+    <td class="when">{{when .FirstSeenAt}}</td>
+    <td class="when">{{when .LastSeenAt}}</td>
     <td class="actions">
       <form method="post" action="/app/end-users/{{path .ExternalID}}/portal-link" class="inline">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">

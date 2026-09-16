@@ -11,7 +11,7 @@
       <td><code>{{.Artifact.ID}}</code></td>
       <td class="num">v{{.Artifact.CurrentVersion}}</td>
       <td class="num">{{.Artifact.OpenComments}}</td>
-      <td>{{when .Artifact.UpdatedAt}}</td>
+      <td class="when">{{when .Artifact.UpdatedAt}}</td>
       <td class="actions"><a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open</a></td>
     </tr>
     {{end}}
