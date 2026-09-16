@@ -44,6 +44,11 @@ func NewHandler(d Deps) (http.Handler, error) {
 	(&serve.Handler{Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime, ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin, OnView: d.OnView}).Register(mux)
 	if d.Web != nil {
 		d.Web(mux)
+		// The bare host root is not an API route: send people to the dashboard,
+		// on the API origin so byagent.dev/ lands on app.byagent.dev/app/.
+		mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, d.Cfg.APIOrigin+"/app/", http.StatusFound)
+		})
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
