@@ -64,10 +64,16 @@ async function boot() {
     unavailable: false,
   };
 
-  const panel = mountPanel(shadow, { state, client, store, config: cfg, onRefresh: refresh });
+  const panel = mountPanel(shadow, { state, client, store, config: cfg, onRefresh: refresh, onFilter: paint });
+
+  // Highlights follow the panel's filter: resolved threads only light up the
+  // page while the viewer is looking at them.
+  function paint(threads) {
+    paintThreads({ threads, resolved: state.resolved }, (id) => panel.focusThread(id));
+  }
 
   async function refresh() {
-    const [list, meta] = await Promise.all([client.listThreads("open"), client.meta()]);
+    const [list, meta] = await Promise.all([client.listThreads("all"), client.meta()]);
     if (meta.ok && meta.data) {
       state.versions = Array.isArray(meta.data.versions) ? meta.data.versions : [];
       state.currentVersion = meta.data.current_version || cfg.version;
@@ -84,7 +90,7 @@ async function boot() {
     for (const t of state.threads) {
       state.resolved.set(t.id, resolveAnchor(t.anchor));
     }
-    paintThreads(state, (id) => panel.focusThread(id));
+    paint(panel.visibleThreads());
     panel.render();
     reportSeen();
   }
