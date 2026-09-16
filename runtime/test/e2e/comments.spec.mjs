@@ -149,10 +149,89 @@ test("viewer can reply from the panel", async ({ page }) => {
   await page.goto(`${BASE}/a/${id}/`);
   const shadow = page.locator("#artifacts-rt");
   await shadow.locator(".launcher").click();
+  // The inline reply box belongs to the active thread only.
+  await expect(shadow.locator(".reply")).toHaveCount(0);
+  await shadow.locator(".thread").click();
+  await expect(shadow.locator(".reply input")).toHaveAttribute("placeholder", "Reply as Anonymous…");
   await shadow.locator(".reply input").fill("Second");
   await shadow.locator(".reply button").click();
 
-  await expect(shadow.locator(".thread")).toContainText("Second");
+  await expect(shadow.locator(".thread .replies")).toContainText("Second");
+});
+
+/** Create a thread through the viewer API and return its id. */
+async function createThread(id, body, quote, prefix, suffix) {
+  const res = await fetch(`${BASE}/c/${id}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      author_name: "Dana",
+      body,
+      anchor: { kind: "text", quote, prefix, suffix },
+      version: 1,
+    }),
+  });
+  expect(res.status).toBe(201);
+  return (await res.json()).id;
+}
+
+test("filter chips switch between open, resolved and all threads", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await createThread(id, "Still open", "brown fox", "The quick ", " jumps");
+  const done = await createThread(id, "Already handled", "twelve percent", "Revenue grew by ", " this");
+  const res = await fetch(`${BASE}/api/artifacts/${id}/comments/${done}/resolve`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}` },
+  });
+  expect(res.status).toBe(200);
+
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await expect(shadow.locator(".launcher .count")).toHaveText("1");
+  await shadow.locator(".launcher").click();
+
+  await expect(shadow.locator("header .cnt")).toHaveText("1 open");
+  await expect(shadow.locator(".chip[data-on='1']")).toHaveText("Open");
+  await expect(shadow.locator(".thread")).toHaveCount(1);
+  await expect(shadow.locator(".thread")).toContainText("Still open");
+
+  await shadow.locator(".chip", { hasText: "Resolved" }).click();
+  await expect(shadow.locator(".chip", { hasText: "Resolved" })).toHaveText("Resolved 1");
+  await expect(shadow.locator(".thread")).toHaveCount(1);
+  await expect(shadow.locator(".thread")).toContainText("Already handled");
+
+  await shadow.locator(".chip", { hasText: "All" }).click();
+  await expect(shadow.locator(".thread")).toHaveCount(2);
+});
+
+test("escape closes the panel", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await shadow.locator(".launcher").click();
+  await expect(shadow.locator(".panel")).toHaveAttribute("data-open", "1");
+  await page.keyboard.press("Escape");
+  await expect(shadow.locator(".panel")).toHaveAttribute("data-open", "0");
+
+  // The close button does the same.
+  await shadow.locator(".launcher").click();
+  await shadow.locator(".close").click();
+  await expect(shadow.locator(".panel")).toHaveAttribute("data-open", "0");
+});
+
+test("thread row shows avatar initial, relative time and status badge", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await createThread(id, "Looks fine", "brown fox", "The quick ", " jumps");
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await shadow.locator(".launcher").click();
+  await expect(shadow.locator(".thread .av")).toHaveText("D");
+  await expect(shadow.locator(".thread .name")).toHaveText("Dana");
+  await expect(shadow.locator(".thread .time")).toHaveText("· now");
+  await expect(shadow.locator(".thread .badge")).toHaveText("attached");
 });
 
 /** Select the text of an element by its id, in the page. */
@@ -204,7 +283,8 @@ test("element pick mode anchors to an element", async ({ page }) => {
 
   const shadow = page.locator("#artifacts-rt");
   await shadow.locator(".launcher").click();
-  await shadow.locator(".ghost", { hasText: "Point at element" }).click();
+  await shadow.locator(".pick").click();
+  await expect(shadow.locator(".pick")).toHaveAttribute("data-on", "1");
   await page.locator("#title").click();
 
   await shadow.locator(".pop input").fill("Sam");
@@ -240,7 +320,8 @@ test("republishing changed text drifts the anchor", async ({ page }) => {
   await page.goto(`${BASE}/a/${id}/`);
   const shadow = page.locator("#artifacts-rt");
   await shadow.locator(".launcher").click();
-  await expect(shadow.locator(".badge")).toHaveText("drifted");
+  await expect(shadow.locator(".badge")).toHaveText("moved");
+  await expect(shadow.locator(".badge")).toHaveAttribute("data-s", "drifted");
   await expect(page.locator('mark.artifacts-hl[data-status="drifted"]')).toHaveCount(1);
 });
 
@@ -271,8 +352,10 @@ test("replacing the page orphans the anchor and files it under earlier version",
   await page.goto(`${BASE}/a/${id}/`);
   const shadow = page.locator("#artifacts-rt");
   await shadow.locator(".launcher").click();
-  await expect(shadow.locator(".section")).toHaveText("On earlier version");
-  await expect(shadow.locator(".badge")).toHaveText("orphaned");
+  await expect(shadow.locator(".section")).toHaveText("On an earlier version");
+  await expect(shadow.locator(".badge")).toHaveText("earlier version");
+  // The orphaned row sits below the section label, not above it.
+  await expect(shadow.locator(".list > :last-child")).toHaveClass(/thread/);
   await expect(page.locator("mark.artifacts-hl")).toHaveCount(0);
 });
 
@@ -307,6 +390,21 @@ test("panel is legible on a dark page and does not leak styles", async ({ page }
   // The host page keeps its own colours.
   const bodyColor = await page.evaluate(() => getComputedStyle(document.body).color);
   expect(bodyColor).toBe("rgb(230, 237, 243)");
+});
+
+test("panel follows the viewer's colour scheme, not the page's", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto(`${BASE}/a/${id}/`);
+
+  const shadow = page.locator("#artifacts-rt");
+  await shadow.locator(".launcher").click();
+  const panelBg = await page.evaluate(() => {
+    const p = document.getElementById("artifacts-rt").shadowRoot.querySelector(".panel");
+    return getComputedStyle(p).backgroundColor;
+  });
+  expect(panelBg).toBe("rgb(17, 17, 17)");
 });
 
 test("seen beacon reports anchor status back to the owner API", async ({ page }) => {
