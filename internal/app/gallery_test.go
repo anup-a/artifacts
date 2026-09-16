@@ -183,15 +183,36 @@ func TestDayLabel(t *testing.T) {
 			t.Errorf("dayLabel(%v) = %q, want %q", day, got, s)
 		}
 	}
-	cards := spans([]cardView{{}, {}, {}, {}, {}, {}, {}, {}}, true)
-	var got []string
-	for _, c := range cards {
-		got = append(got, c.Span)
+	// Rows are four cells; a hero is four cells; trailing cards widen so the
+	// last row ends flush.
+	shapes := func(n int, hero bool) string {
+		var got []string
+		for _, c := range spans(make([]cardView, n), hero) {
+			got = append(got, c.Span)
+		}
+		return strings.Join(got, ",")
 	}
-	if strings.Join(got, ",") != "hero,,,wide,,,,wide" {
-		t.Fatalf("spans %q", got)
+	shapeCases := map[string]string{
+		"8,hero":  "hero,,,,,,,wide",    // 4+7 = 11 cells, one wide makes 12
+		"7,hero":  "hero,,,,,wide,wide", // 4+6 = 10 cells, two wide make 12
+		"4,hero":  "hero,,,wide",        // 4+3 = 7 cells, one wide makes 8
+		"1,hero":  "hero",               // a lone hero already fills its rows
+		"3,plain": ",,wide",             // 3 cells, one wide makes 4
+		"2,plain": "wide,wide",          // 2 cells, both wide make 4
+		"5,plain": ",,wide,wide,wide",   // 5 cells, three wide make 8
+		"4,plain": ",,,",                // already flush
 	}
-	if s := spans([]cardView{{}, {}}, false); s[0].Span != "" {
+	for k, want := range shapeCases {
+		var n int
+		var mode string
+		if _, err := fmt.Sscanf(k, "%d,%s", &n, &mode); err != nil {
+			t.Fatal(err)
+		}
+		if got := shapes(n, mode == "hero"); got != want {
+			t.Errorf("spans(%s) = %q, want %q", k, got, want)
+		}
+	}
+	if s := spans([]cardView{{}, {}, {}, {}}, false); s[0].Span != "" {
 		t.Fatalf("hero without hero flag: %q", s[0].Span)
 	}
 }
