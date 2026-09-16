@@ -219,3 +219,72 @@ func (s *sqlStore) DeleteExpiredCredentials(ctx context.Context, now time.Time) 
 	}
 	return tx.Commit()
 }
+
+// claimOrphanAdmin moves bootstrap-admin artifacts and keys onto the first
+// signed-in personal tenant. GitHub/email sign-in used to mint a second
+// personal workspace, so CLI publishes (ADMIN_TOKEN → admin) vanished from
+// the dashboard. Idempotent: no-op if admin already has a member or there is
+// no other personal tenant.
+func (s *sqlStore) claimOrphanAdmin(ctx context.Context) error {
+	var members int
+	if err := s.db.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM memberships WHERE tenant_id='admin'`)).Scan(&members); err != nil {
+		return err
+	}
+	if members > 0 {
+		return nil
+	}
+	var dest string
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT t.id FROM tenants t JOIN memberships m ON m.tenant_id=t.id WHERE t.kind='personal' AND t.id!='admin' ORDER BY t.created_at, t.id LIMIT 1`)).Scan(&dest)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	rows, err := tx.QueryContext(ctx, s.q(`SELECT id, external_id FROM end_users WHERE tenant_id='admin'`))
+	if err != nil {
+		return err
+	}
+	type eu struct{ id, ext string }
+	var adminEUs []eu
+	for rows.Next() {
+		var e eu
+		if err := rows.Scan(&e.id, &e.ext); err != nil {
+			rows.Close()
+			return err
+		}
+		adminEUs = append(adminEUs, e)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, e := range adminEUs {
+		var destID string
+		err := tx.QueryRowContext(ctx, s.q(`SELECT id FROM end_users WHERE tenant_id=? AND external_id=?`), dest, e.ext).Scan(&destID)
+		switch {
+		case err == nil:
+			if _, err := tx.ExecContext(ctx, s.q(`UPDATE artifacts SET end_user_id=? WHERE end_user_id=?`), destID, e.id); err != nil {
+				return err
+			}
+		case err == sql.ErrNoRows:
+			if _, err := tx.ExecContext(ctx, s.q(`UPDATE end_users SET tenant_id=? WHERE id=?`), dest, e.id); err != nil {
+				return err
+			}
+		default:
+			return err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, s.q(`UPDATE artifacts SET tenant_id=? WHERE tenant_id='admin'`), dest); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, s.q(`UPDATE keys SET tenant_id=? WHERE tenant_id='admin'`), dest); err != nil {
+		return err
+	}
+	return tx.Commit()
+}

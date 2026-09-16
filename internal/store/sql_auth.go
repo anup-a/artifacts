@@ -52,9 +52,8 @@ func (s *sqlStore) linkIdentity(ctx context.Context, tx *sql.Tx, provider, subje
 		return User{}, err
 	}
 	if inserted > 0 {
-		tenantID := "t_" + ids.NewArtifactID()
-		local, _, _ := strings.Cut(email, "@")
-		if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO tenants(id,kind,name,plan,created_at) VALUES (?,'personal',?,'free',?)`), tenantID, local, now); err != nil {
+		tenantID, err := s.firstPersonalTenant(ctx, tx, email, now)
+		if err != nil {
 			return User{}, err
 		}
 		if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO memberships(tenant_id,user_id,role,created_at) VALUES (?,?,'owner',?)`), tenantID, u.ID, now); err != nil {
@@ -82,6 +81,29 @@ func (s *sqlStore) linkIdentity(ctx context.Context, tx *sql.Tx, provider, subje
 		return User{}, errors.New("identity linked concurrently; try signing in again")
 	}
 	return canonical, nil
+}
+
+// firstPersonalTenant is admin when that bootstrap tenant exists and nobody
+// has signed in yet. Otherwise it mints a new personal tenant.
+func (s *sqlStore) firstPersonalTenant(ctx context.Context, tx *sql.Tx, email string, now time.Time) (string, error) {
+	var members int
+	if err := tx.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM memberships`)).Scan(&members); err != nil {
+		return "", err
+	}
+	if members == 0 {
+		var admin string
+		err := tx.QueryRowContext(ctx, s.q(`SELECT id FROM tenants WHERE id='admin'`)).Scan(&admin)
+		if err == nil {
+			return admin, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return "", err
+		}
+	}
+	tenantID := "t_" + ids.NewArtifactID()
+	local, _, _ := strings.Cut(email, "@")
+	_, err := tx.ExecContext(ctx, s.q(`INSERT INTO tenants(id,kind,name,plan,created_at) VALUES (?,'personal',?,'free',?)`), tenantID, local, now)
+	return tenantID, err
 }
 
 func (s *sqlStore) User(ctx context.Context, id string) (User, error) {

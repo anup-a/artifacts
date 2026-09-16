@@ -33,9 +33,14 @@ func (s *sqlStore) q(query string) string {
 	return b.String()
 }
 
-func (s *sqlStore) Migrate(ctx context.Context) error { return runMigrations(ctx, s.db, s.q) }
-func (s *sqlStore) Ping(ctx context.Context) error    { return s.db.PingContext(ctx) }
-func (s *sqlStore) Close() error                      { return s.db.Close() }
+func (s *sqlStore) Migrate(ctx context.Context) error {
+	if err := runMigrations(ctx, s.db, s.q); err != nil {
+		return err
+	}
+	return s.claimOrphanAdmin(ctx)
+}
+func (s *sqlStore) Ping(ctx context.Context) error { return s.db.PingContext(ctx) }
+func (s *sqlStore) Close() error                   { return s.db.Close() }
 
 func notFound(err error) error {
 	if errors.Is(err, sql.ErrNoRows) {
