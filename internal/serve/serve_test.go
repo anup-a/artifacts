@@ -17,6 +17,22 @@ import (
 	"github.com/anup-a/artifacts/internal/store"
 )
 
+// viewsSeen collects OnView calls made by the fixture handler.
+var viewsSeen []string
+
+func TestViewsCountedOnlyForCurrentIndex(t *testing.T) {
+	srv, _, id := fixture(t)
+	res, _ := get(t, srv.URL+"/a/"+id+"/", nil)
+	get(t, srv.URL+"/a/"+id+"/index.html", nil)
+	get(t, srv.URL+"/a/"+id+"/", map[string]string{"If-None-Match": res.Header.Get("ETag")}) // 304 still counts
+	get(t, srv.URL+"/a/"+id+"/v/1/", nil)                                                  // pinned: no
+	get(t, srv.URL+"/a/"+id+"/v/1/s/a.css", nil)                                           // asset: no
+	get(t, srv.URL+"/a/nope00000000/", nil)                                                // missing: no
+	if len(viewsSeen) != 3 {
+		t.Fatalf("views %v", viewsSeen)
+	}
+}
+
 func fixture(t *testing.T) (*httptest.Server, store.Store, string) {
 	t.Helper()
 	cfg := config.Config{DB: "sqlite", Storage: "local", DataDir: t.TempDir()}
@@ -43,7 +59,9 @@ func fixture(t *testing.T) (*httptest.Server, store.Store, string) {
 	_ = st.AddVersion(ctx, store.Version{ArtifactID: id, Version: 2, CreatedAt: now.Add(time.Second), Bytes: 1, FileCount: 1},
 		[]store.File{{Path: "index.html", SHA256: v2, Size: 29, ContentType: "text/html; charset=utf-8"}})
 	mux := http.NewServeMux()
-	h := &Handler{Store: st, Blobs: bl, Runtime: []byte("console.log(1)"), ShareOrigin: "http://share.test"}
+	viewsSeen = nil
+	h := &Handler{Store: st, Blobs: bl, Runtime: []byte("console.log(1)"), ShareOrigin: "http://share.test",
+		OnView: func(id string) { viewsSeen = append(viewsSeen, id) }}
 	h.Register(mux)
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)

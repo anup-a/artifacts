@@ -20,6 +20,9 @@ type Handler struct {
 	Blobs       blob.Store
 	Runtime     []byte
 	ShareOrigin string
+	// OnView, when set, is called once per page view of an artifact's current
+	// index.html (200 or 304). Pinned versions and assets do not count.
+	OnView      func(artifactID string)
 	runtimeETag string
 }
 
@@ -124,6 +127,9 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		etag = `"` + f.SHA256 + "-rt-" + strconv.Itoa(version) + `"`
 	}
 	w.Header().Set("ETag", etag)
+	if !pinnedReq && p == "index.html" && h.OnView != nil {
+		h.OnView(id)
+	}
 	if pinnedReq {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	} else {
