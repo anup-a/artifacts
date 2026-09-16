@@ -1,0 +1,17 @@
+{{define "content"}}
+<div class="card narrow">
+  <h1>Sign in to Artifacts</h1>
+  {{if .Data.Error}}<p class="alert">{{.Data.Error}}</p>{{end}}
+  {{if .Data.GitHub}}
+  <a class="btn primary block" href="/app/login/github">Continue with GitHub</a>
+  {{end}}
+  {{if and .Data.GitHub .Data.Email}}<p class="divider"><span>or</span></p>{{end}}
+  {{if .Data.Email}}
+  <form method="post" action="/app/login/email" class="stack">
+    <label for="email">Email address</label>
+    <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+    <button type="submit" class="btn block">Email me a sign-in link</button>
+  </form>
+  {{end}}
+</div>
+{{end}}

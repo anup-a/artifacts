@@ -1,0 +1,51 @@
+{{define "content"}}
+<div class="page-head">
+  <h1>Artifacts</h1>
+  <form method="get" action="/app/artifacts" class="inline">
+    {{if .Data.EndUser}}<input type="hidden" name="end_user" value="{{.Data.EndUser}}">{{end}}
+    <input type="search" name="q" value="{{.Data.Query}}" placeholder="Search titles" aria-label="Search titles">
+    <button type="submit" class="btn">Search</button>
+  </form>
+</div>
+{{if .Data.EndUser}}
+<p class="filter">Showing artifacts of end user <code>{{.Data.EndUser}}</code>. <a href="/app/artifacts">Clear</a></p>
+{{end}}
+{{if .Data.Rows}}
+<table class="table">
+  <thead><tr>
+    <th>Title</th><th>Id</th>{{if .Viewer.Integrator}}<th>End user</th>{{end}}<th class="num">Version</th><th class="num">Open comments</th><th>Updated</th><th></th>
+  </tr></thead>
+  <tbody>
+  {{range .Data.Rows}}
+  <tr>
+    <td class="title">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">{{.Artifact.ID}}</span>{{end}}</td>
+    <td><code>{{.Artifact.ID}}</code></td>
+    {{if $.Viewer.Integrator}}<td>{{if .Artifact.EndUser}}<a href="/app/artifacts?end_user={{str .Artifact.EndUser}}">{{str .Artifact.EndUser}}</a>{{end}}</td>{{end}}
+    <td class="num">v{{.Artifact.CurrentVersion}}</td>
+    <td class="num">{{.Artifact.OpenComments}}</td>
+    <td>{{when .Artifact.UpdatedAt}}</td>
+    <td class="actions">
+      <a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open</a>
+      <form method="post" action="/app/artifacts/{{.Artifact.ID}}/delete" class="inline" data-confirm="Delete this artifact? Its link stops working immediately.">
+        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+        <button type="submit" class="btn small danger">Delete</button>
+      </form>
+    </td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+{{if .Data.Next}}<p class="pager"><a class="btn" href="/app/artifacts?cursor={{.Data.Next}}{{if .Data.EndUser}}&amp;end_user={{.Data.EndUser}}{{end}}{{if .Data.Query}}&amp;q={{.Data.Query}}{{end}}">Older</a></p>{{end}}
+{{else if or .Data.Query .Data.EndUser}}
+<div class="empty"><p>No artifacts match.</p></div>
+{{else}}
+<div class="empty">
+  <h2>Nothing published yet</h2>
+  <p>Two ways to get an artifact here:</p>
+  <ol>
+    <li>Install the CLI, create a key on the <a href="/app/keys">API keys</a> page, then run <code>artifacts publish ./site</code>.</li>
+    <li>Give your agent <a href="{{.Data.APIOrigin}}/skill.md">{{.Data.APIOrigin}}/skill.md</a> and it will publish for you.</li>
+  </ol>
+</div>
+{{end}}
+{{end}}

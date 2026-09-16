@@ -1,0 +1,39 @@
+{{define "content"}}
+<div class="page-head"><h1>API keys</h1></div>
+{{if .Data.NewKey}}
+<div class="callout">
+  <p><strong>This is the only time the key is shown.</strong> Store it in your password manager or <code>artifacts login</code>.</p>
+  <p class="copyrow"><input type="text" readonly value="{{.Data.NewKey}}" id="new-key" aria-label="New API key"><button type="button" class="btn" data-copy="#new-key">Copy</button></p>
+</div>
+{{end}}
+<form method="post" action="/app/keys" class="inline row">
+  <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+  <input type="text" name="name" required maxlength="64" placeholder="Key name, e.g. laptop or ci" aria-label="Key name">
+  <button type="submit" class="btn primary">Create key</button>
+</form>
+{{if .Data.Error}}<p class="alert">{{.Data.Error}}</p>{{end}}
+{{if .Data.Rows}}
+<table class="table">
+  <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th></th></tr></thead>
+  <tbody>
+  {{range .Data.Rows}}
+  <tr{{if .RevokedAt}} class="revoked"{{end}}>
+    <td>{{if .Name}}{{.Name}}{{else}}<span class="muted">unnamed</span>{{end}}</td>
+    <td><code>{{.Prefix}}</code></td>
+    <td>{{when .CreatedAt}}</td>
+    <td>{{if .LastUsedAt}}{{when .LastUsedAt}}{{else}}<span class="muted">never</span>{{end}}</td>
+    <td class="actions">
+      {{if .RevokedAt}}<span class="muted">Revoked {{when .RevokedAt}}</span>{{else}}
+      <form method="post" action="/app/keys/{{.ID}}/revoke" class="inline" data-confirm="Revoke this key? Anything using it stops working now.">
+        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+        <button type="submit" class="btn small danger">Revoke</button>
+      </form>{{end}}
+    </td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}
+<div class="empty"><p>No keys yet. Create one above, then run <code>artifacts login</code> with it.</p></div>
+{{end}}
+{{end}}

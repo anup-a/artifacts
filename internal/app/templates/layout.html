@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · Artifacts</title>
+<link rel="stylesheet" href="{{.CSS}}">
+<script src="{{.JS}}" defer></script>
+</head>
+<body>
+{{if .Viewer}}
+<div class="shell">
+  <nav class="nav">
+    <a class="brand" href="/app/artifacts">Artifacts</a>
+    <a href="/app/artifacts"{{if eq .Path "/app/artifacts"}} class="active"{{end}}>Artifacts</a>
+    {{if .Viewer.Integrator}}<a href="/app/end-users"{{if eq .Path "/app/end-users"}} class="active"{{end}}>End users</a>{{end}}
+    <a href="/app/keys"{{if eq .Path "/app/keys"}} class="active"{{end}}>API keys</a>
+    <a href="/app/usage"{{if eq .Path "/app/usage"}} class="active"{{end}}>Usage</a>
+    <a href="/app/settings"{{if eq .Path "/app/settings"}} class="active"{{end}}>Settings</a>
+  </nav>
+  <div class="main">
+    <header class="topbar">
+      {{if gt (len .Viewer.Tenants) 1}}
+      <form method="post" action="/app/switch-tenant" class="inline">
+        <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+        <select name="tenant_id" data-autosubmit aria-label="Workspace">
+          {{range .Viewer.Tenants}}<option value="{{.ID}}"{{if eq .ID $.Viewer.Tenant.ID}} selected{{end}}>{{.Name}} ({{.Kind}})</option>{{end}}
+        </select>
+      </form>
+      {{else}}
+      <span class="tenant">{{.Viewer.Tenant.Name}} <span class="muted">{{.Viewer.Tenant.Kind}}</span></span>
+      {{end}}
+      <span class="spacer"></span>
+      <span class="muted">{{.Viewer.User.Email}}</span>
+      <form method="post" action="/app/logout" class="inline">
+        <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+        <button type="submit" class="btn ghost">Sign out</button>
+      </form>
+    </header>
+    <main class="content">
+      {{template "content" .}}
+    </main>
+  </div>
+</div>
+{{else}}
+<main class="bare">
+  {{template "content" .}}
+</main>
+{{end}}
+</body>
+</html>
