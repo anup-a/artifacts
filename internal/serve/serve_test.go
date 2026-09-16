@@ -25,9 +25,9 @@ func TestViewsCountedOnlyForCurrentIndex(t *testing.T) {
 	res, _ := get(t, srv.URL+"/a/"+id+"/", nil)
 	get(t, srv.URL+"/a/"+id+"/index.html", nil)
 	get(t, srv.URL+"/a/"+id+"/", map[string]string{"If-None-Match": res.Header.Get("ETag")}) // 304 still counts
-	get(t, srv.URL+"/a/"+id+"/v/1/", nil)                                                  // pinned: no
-	get(t, srv.URL+"/a/"+id+"/v/1/s/a.css", nil)                                           // asset: no
-	get(t, srv.URL+"/a/nope00000000/", nil)                                                // missing: no
+	get(t, srv.URL+"/a/"+id+"/v/1/", nil)                                                    // pinned: no
+	get(t, srv.URL+"/a/"+id+"/v/1/s/a.css", nil)                                             // asset: no
+	get(t, srv.URL+"/a/nope00000000/", nil)                                                  // missing: no
 	if len(viewsSeen) != 3 {
 		t.Fatalf("views %v", viewsSeen)
 	}

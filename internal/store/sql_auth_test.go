@@ -51,7 +51,7 @@ func TestSessionStorageAndMembership(t *testing.T) {
 	ctx := context.Background()
 	s := newStore(t)
 	t.Cleanup(func() { s.Close() })
-	now := time.Now().UTC()
+	now := time.Now().UTC().Truncate(time.Second) // postgres keeps microseconds, sqlite keeps what it is given
 	u, tenant, err := s.SignIn(ctx, "email", "owner@example.test", "owner@example.test", "", now)
 	if err != nil {
 		t.Fatal(err)
