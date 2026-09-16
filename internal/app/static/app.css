@@ -417,6 +417,12 @@ textarea { resize: vertical; line-height: 1.45; }
 .tile:hover { border-color: var(--faint); transform: translateY(-1px); box-shadow: var(--shadow); }
 .tile.is-hero { grid-column: span 2; grid-row: span 2; }
 .tile.is-wide { grid-column: span 2; }
+/* A wide tile lays out horizontally: the cover keeps roughly the scale of a
+   single tile on the left, so its baked-in title does not balloon to twice
+   the size, and the title + meta sit to the right, vertically centred. */
+.tile.is-wide { flex-direction: row; }
+.tile.is-wide .tile-cover { flex: 0 0 44%; min-height: 0; height: 100%; border-bottom: 0; border-right: 1px solid var(--line); }
+.tile.is-wide .tile-body { flex: 1; min-width: 0; justify-content: center; padding: 8px 6px 8px 14px; gap: 4px; }
 .tile-cover { display: block; flex: 1; min-height: 0; background: #fafafa; border-bottom: 1px solid var(--line); }
 /* Centre the crop: the cover's title sits on the canvas midline, so a
    short box (wide tiles are 478 x ~95) still shows it. */
