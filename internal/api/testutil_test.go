@@ -38,8 +38,8 @@ func newTestServer(t *testing.T, managed bool) (*httptest.Server, Deps, string) 
 	}
 	d := Deps{Cfg: cfg, Store: st, Blobs: bl, Now: func() time.Time { return time.Now().UTC() },
 		PublishLimiter: ratelimit.New(cfg.Limits.PublishPerMin), CommentLimiter: ratelimit.New(cfg.Limits.CommentsPerMin),
-		KeyLimiter: ratelimit.New(5), PortalLimiter: ratelimit.New(60),
-		Runtime: []byte("/*runtime*/")}
+		PortalLimiter: ratelimit.New(60),
+		Runtime:       []byte("/*runtime*/")}
 	h, err := NewHandler(d)
 	if err != nil {
 		t.Fatal(err)

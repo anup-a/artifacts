@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/blob"
@@ -18,9 +19,12 @@ type Deps struct {
 	Now            func() time.Time
 	PublishLimiter *ratelimit.Limiter
 	CommentLimiter *ratelimit.Limiter
-	KeyLimiter     *ratelimit.Limiter
 	PortalLimiter  *ratelimit.Limiter
 	Runtime        []byte // comments.js bytes served at /_rt/comments.js
+	// OnView is told about every page view of a current artifact index.
+	OnView func(artifactID string)
+	// Web mounts the browser app (/app, /p) on the same mux when set.
+	Web func(*http.ServeMux)
 }
 
 type server struct {

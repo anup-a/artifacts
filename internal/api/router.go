@@ -40,7 +40,10 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("GET /api/artifacts/{id}/comments", s.withAuth(s.ownerListComments))
 	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/reply", s.withAuth(s.ownerReply))
 	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/resolve", s.withAuth(s.ownerResolve))
-	(&serve.Handler{Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime, ShareOrigin: d.Cfg.ShareOrigin}).Register(mux)
+	(&serve.Handler{Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime, ShareOrigin: d.Cfg.ShareOrigin, OnView: d.OnView}).Register(mux)
+	if d.Web != nil {
+		d.Web(mux)
+	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
