@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const REPO = resolve(process.cwd(), "..");
-const PORT = 8099;
+// Override when another server already holds 8099 on the machine.
+const PORT = Number(process.env.ARTIFACTS_E2E_PORT || 8099);
 const BASE = `http://127.0.0.1:${PORT}`;
 const TOKEN = "e2e-admin-token";
 
@@ -152,11 +153,58 @@ test("viewer can reply from the panel", async ({ page }) => {
   // The inline reply box belongs to the active thread only.
   await expect(shadow.locator(".reply")).toHaveCount(0);
   await shadow.locator(".thread").click();
-  await expect(shadow.locator(".reply input")).toHaveAttribute("placeholder", "Reply as Anonymous…");
-  await shadow.locator(".reply input").fill("Second");
-  await shadow.locator(".reply button").click();
+  await expect(shadow.locator(".reply textarea")).toHaveAttribute("placeholder", "Reply as Anonymous…");
+  // The send button wakes up only once there is something to send.
+  await expect(shadow.locator(".reply .send")).toBeDisabled();
+  await shadow.locator(".reply textarea").fill("Second");
+  await expect(shadow.locator(".reply .send")).toBeEnabled();
+  await shadow.locator(".reply .send").click();
 
+  await expect(shadow.locator(".thread .replies .r")).toHaveCount(1);
   await expect(shadow.locator(".thread .replies")).toContainText("Second");
+});
+
+test("reply composer: Enter sends, Shift+Enter adds a line", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await createThread(id, "First", "brown fox", "The quick ", " jumps");
+
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await shadow.locator(".launcher").click();
+  await shadow.locator(".thread").click();
+
+  const box = shadow.locator(".reply textarea");
+  await box.focus();
+  await page.keyboard.type("line one");
+  await page.keyboard.press("Shift+Enter");
+  await page.keyboard.type("line two");
+  await expect(box).toHaveValue("line one\nline two");
+  await page.keyboard.press("Enter");
+
+  await expect(shadow.locator(".thread .replies")).toContainText("line one");
+  await expect(shadow.locator(".thread .replies")).toContainText("line two");
+  await expect(shadow.locator(".reply textarea")).toHaveValue("");
+});
+
+test("owner replies carry an Author badge in the thread", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  const thread = await createThread(id, "Question", "brown fox", "The quick ", " jumps");
+  const res = await fetch(`${BASE}/api/artifacts/${id}/comments/${thread}/reply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${TOKEN}` },
+    body: JSON.stringify({ body: "Answer" }),
+  });
+  expect(res.status).toBe(201);
+
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await shadow.locator(".launcher").click();
+  await expect(shadow.locator(".thread .more")).toHaveText("1 reply");
+  await shadow.locator(".thread").click();
+  await expect(shadow.locator(".replies .r .owner")).toHaveText("Author");
+  await expect(shadow.locator(".replies .r")).toContainText("Answer");
 });
 
 /** Create a thread through the viewer API and return its id. */
@@ -191,18 +239,39 @@ test("filter chips switch between open, resolved and all threads", async ({ page
   await expect(shadow.locator(".launcher .count")).toHaveText("1");
   await shadow.locator(".launcher").click();
 
-  await expect(shadow.locator("header .cnt")).toHaveText("1 open");
-  await expect(shadow.locator(".chip[data-on='1']")).toHaveText("Open");
+  await expect(shadow.locator("header .cnt")).toHaveText("1");
+  await expect(shadow.locator(".chip[aria-selected='true']")).toContainText("Open");
+  await expect(shadow.locator(".chip[data-f='open'] .n")).toHaveText("1");
+  await expect(shadow.locator(".chip[data-f='resolved'] .n")).toHaveText("1");
+  await expect(shadow.locator(".chip[data-f='all'] .n")).toHaveText("2");
   await expect(shadow.locator(".thread")).toHaveCount(1);
   await expect(shadow.locator(".thread")).toContainText("Still open");
 
-  await shadow.locator(".chip", { hasText: "Resolved" }).click();
-  await expect(shadow.locator(".chip", { hasText: "Resolved" })).toHaveText("Resolved 1");
+  await shadow.locator(".chip[data-f='resolved']").click();
+  await expect(shadow.locator(".chip[aria-selected='true']")).toContainText("Resolved");
   await expect(shadow.locator(".thread")).toHaveCount(1);
   await expect(shadow.locator(".thread")).toContainText("Already handled");
 
-  await shadow.locator(".chip", { hasText: "All" }).click();
+  await shadow.locator(".chip[data-f='all']").click();
   await expect(shadow.locator(".thread")).toHaveCount(2);
+});
+
+test("launcher hides while the panel is open and shows an empty state", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await expect(shadow.locator(".launcher")).toBeVisible();
+  await expect(shadow.locator(".launcher .count")).toHaveCount(0);
+  await shadow.locator(".launcher").click();
+  await expect(shadow.locator(".launcher")).toBeHidden();
+  await expect(shadow.locator(".empty h3")).toHaveText("No comments yet");
+  // The empty state's pick button is the same mode as the footer one.
+  await shadow.locator(".empty .pick").click();
+  await expect(shadow.locator(".foot .pick")).toHaveAttribute("data-on", "1");
+  await page.keyboard.press("Escape");
+  await expect(shadow.locator(".foot .pick")).toHaveAttribute("data-on", "0");
+  await expect(shadow.locator(".launcher")).toBeVisible();
 });
 
 test("escape closes the panel", async ({ page }) => {
@@ -230,8 +299,10 @@ test("thread row shows avatar initial, relative time and status badge", async ({
   await shadow.locator(".launcher").click();
   await expect(shadow.locator(".thread .av")).toHaveText("D");
   await expect(shadow.locator(".thread .name")).toHaveText("Dana");
-  await expect(shadow.locator(".thread .time")).toHaveText("· now");
-  await expect(shadow.locator(".thread .badge")).toHaveText("attached");
+  await expect(shadow.locator(".thread .time")).toHaveText("now");
+  // An attached anchor is the normal case and gets no badge.
+  await expect(shadow.locator(".thread .badge")).toHaveCount(0);
+  await expect(shadow.locator(".thread .snip")).toHaveText("brown fox");
 });
 
 /** Select the text of an element by its id, in the page. */
@@ -258,11 +329,19 @@ test("select text, comment, and see it persist after reload", async ({ page }) =
   await selectText(page, "#p2");
 
   const shadow = page.locator("#artifacts-rt");
+  await expect(shadow.locator(".fab")).toBeVisible();
+  await expect(shadow.locator(".fab")).toHaveText("Add comment");
   await shadow.locator(".fab").click();
+  await expect(shadow.locator(".fab")).toBeHidden();
+  // First visit: no name known yet, so the name field is shown up front.
+  await expect(shadow.locator(".pop .snip")).toHaveText("Revenue grew by twelve percent this quarter.");
+  await expect(shadow.locator(".pop .who")).toBeHidden();
   await shadow.locator(".pop input").fill("Ravi");
   await shadow.locator(".pop textarea").fill("Check this number.");
   await shadow.locator(".pop .send").click();
 
+  await expect(shadow.locator(".pop")).toBeHidden();
+  await expect(shadow.locator(".panel")).toHaveAttribute("data-open", "1");
   await expect(shadow.locator(".thread")).toContainText("Check this number.");
 
   // Survives a reload, with a highlight and a remembered name.
@@ -271,9 +350,41 @@ test("select text, comment, and see it persist after reload", async ({ page }) =
   await shadow.locator(".launcher").click();
   await expect(shadow.locator(".thread")).toContainText("Ravi");
 
+  // Second time the name is out of the way, one click away if it needs changing.
   await selectText(page, "#p1");
   await shadow.locator(".fab").click();
+  await expect(shadow.locator(".pop input")).toBeHidden();
+  await expect(shadow.locator(".pop .who")).toContainText("Commenting as Ravi");
+  await shadow.locator(".pop .who .link").click();
+  await expect(shadow.locator(".pop input")).toBeVisible();
   await expect(shadow.locator(".pop input")).toHaveValue("Ravi");
+});
+
+test("compose popover posts with Cmd/Ctrl+Enter, cancels with Escape, and never covers the selection", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+
+  await selectText(page, "#p2");
+  await shadow.locator(".fab").click();
+  const popBox = await shadow.locator(".pop").boundingBox();
+  const selBox = await page.locator("#p2").boundingBox();
+  expect(popBox.y >= selBox.y + selBox.height || popBox.y + popBox.height <= selBox.y).toBe(true);
+
+  // Escape closes the popover without posting.
+  await page.keyboard.press("Escape");
+  await expect(shadow.locator(".pop")).toBeHidden();
+
+  await selectText(page, "#p2");
+  await shadow.locator(".fab").click();
+  await shadow.locator(".pop input").fill("Mina");
+  await shadow.locator(".pop textarea").focus();
+  await page.keyboard.type("Posted by keyboard");
+  await page.keyboard.press("ControlOrMeta+Enter");
+  await expect(shadow.locator(".pop")).toBeHidden();
+  await expect(shadow.locator(".thread")).toContainText("Posted by keyboard");
+  await expect(shadow.locator(".thread .name")).toHaveText("Mina");
 });
 
 test("element pick mode anchors to an element", async ({ page }) => {
@@ -283,8 +394,8 @@ test("element pick mode anchors to an element", async ({ page }) => {
 
   const shadow = page.locator("#artifacts-rt");
   await shadow.locator(".launcher").click();
-  await shadow.locator(".pick").click();
-  await expect(shadow.locator(".pick")).toHaveAttribute("data-on", "1");
+  await shadow.locator(".foot .pick").click();
+  await expect(shadow.locator(".foot .pick")).toHaveAttribute("data-on", "1");
   await page.locator("#title").click();
 
   await shadow.locator(".pop input").fill("Sam");
@@ -320,8 +431,9 @@ test("republishing changed text drifts the anchor", async ({ page }) => {
   await page.goto(`${BASE}/a/${id}/`);
   const shadow = page.locator("#artifacts-rt");
   await shadow.locator(".launcher").click();
-  await expect(shadow.locator(".badge")).toHaveText("moved");
+  await expect(shadow.locator(".badge")).toHaveText("Moved");
   await expect(shadow.locator(".badge")).toHaveAttribute("data-s", "drifted");
+  await expect(shadow.locator(".badge")).toHaveAttribute("title", /quoted text changed/);
   await expect(page.locator('mark.artifacts-hl[data-status="drifted"]')).toHaveCount(1);
 });
 
@@ -353,7 +465,7 @@ test("replacing the page orphans the anchor and files it under earlier version",
   const shadow = page.locator("#artifacts-rt");
   await shadow.locator(".launcher").click();
   await expect(shadow.locator(".section")).toHaveText("On an earlier version");
-  await expect(shadow.locator(".badge")).toHaveText("earlier version");
+  await expect(shadow.locator(".badge")).toHaveText("Earlier version");
   // The orphaned row sits below the section label, not above it.
   await expect(shadow.locator(".list > :last-child")).toHaveClass(/thread/);
   await expect(page.locator("mark.artifacts-hl")).toHaveCount(0);

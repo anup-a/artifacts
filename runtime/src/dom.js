@@ -55,9 +55,14 @@ export function anchorFromSelection(sel) {
   if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
   const r = sel.getRangeAt(0);
   const map = pageText();
-  const start = offsetOf(map, r.startContainer, r.startOffset);
-  const end = offsetOf(map, r.endContainer, r.endOffset);
+  let start = offsetOf(map, r.startContainer, r.startOffset);
+  let end = offsetOf(map, r.endContainer, r.endOffset);
   if (start === -1 || end === -1 || end <= start) return null;
+  // Drag selections usually catch a trailing space; a quote that ends on it
+  // paints a stray sliver on the next line, so shrink to the visible words.
+  while (start < end && /\s/.test(map.text[start])) start++;
+  while (end > start && /\s/.test(map.text[end - 1])) end--;
+  if (end <= start) return null;
   const a = makeTextAnchor(map.text, start, end);
   return a.quote.trim() ? a : null;
 }

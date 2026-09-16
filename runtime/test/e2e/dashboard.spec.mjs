@@ -103,7 +103,7 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   await page.goto(magicLink());
   await expect(page).toHaveURL(/\/app\/artifacts$/);
   await expect(page.getByText("Nothing published yet")).toBeVisible();
-  await expect(page.locator(".topbar")).toContainText(EMAIL);
+  await expect(page.locator(".sidebar-foot")).toContainText(EMAIL);
 
   // A key created in the dashboard publishes through the CLI.
   const personalKey = await createKey(page, "laptop");
@@ -120,7 +120,8 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   await page.getByLabel("Workspace name").fill("Acme Inc");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page).toHaveURL(/\/app\/artifacts$/);
-  await expect(page.locator(".topbar select")).toContainText("Acme Inc (integrator)");
+  await expect(page.locator(".switcher .ws-name")).toHaveText("Acme Inc");
+  await expect(page.locator(".switcher .ws-kind")).toHaveText("integrator");
   await expect(page.getByRole("link", { name: "End users" })).toBeVisible();
 
   const acmeKey = await createKey(page, "ci");
