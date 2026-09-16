@@ -115,6 +115,35 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   await expect(row.getByRole("link", { name: "Open" })).toHaveAttribute("href", first.url);
   await expect(page.locator("th", { hasText: "End user" })).toHaveCount(0);
 
+  // The row title opens the detail as a side peek over the list; the URL is
+  // the detail page's, so it is shareable, and Escape closes it again.
+  await row.locator(".row-title").click();
+  const peek = page.locator("aside.peek");
+  await expect(peek).toBeVisible();
+  await expect(peek.locator(".peek-title")).toHaveText("Quarterly report");
+  await expect(peek.locator("#versions")).toBeVisible();
+  await expect(page).toHaveURL(`${BASE}/app/artifacts/${first.id}`);
+  await expect(page.locator(".table-card table.table")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(peek).toBeHidden();
+  await expect(page).toHaveURL(`${BASE}/app/artifacts`);
+
+  // Forms inside the peek re-render it in place: no navigation, the switch
+  // flips, and the list behind picks up the "off" badge when the peek closes.
+  await page.evaluate(() => { window.__noReload = true; });
+  await row.getByRole("link", { name: "View" }).click();
+  await expect(peek).toBeVisible();
+  await expect(peek.locator(".switch")).toHaveAttribute("aria-checked", "true");
+  await peek.locator(".switch").click();
+  await expect(peek.locator(".switch")).toHaveAttribute("aria-checked", "false");
+  await expect(peek.getByText("Comments are off for this artifact")).toBeVisible();
+  expect(await page.evaluate(() => window.__noReload)).toBe(true);
+  await expect(page).toHaveURL(`${BASE}/app/artifacts/${first.id}`);
+  await page.goBack();
+  await expect(peek).toBeHidden();
+  await expect(row.locator(".badge.off")).toBeVisible();
+  expect(await page.evaluate(() => window.__noReload)).toBe(true);
+
   // An integrator workspace attributes artifacts to end users.
   await page.goto(`${BASE}/app/settings`);
   await page.getByLabel("Workspace name").fill("Acme Inc");

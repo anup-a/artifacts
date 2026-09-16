@@ -97,7 +97,29 @@ func (h *Handler) renderArtifact(w http.ResponseWriter, r *http.Request, status 
 	if title == "" {
 		title = a.ID
 	}
+	if wantsPanel(r) {
+		h.renderRoot(w, r, status, "artifact", "panel", title, v, d)
+		return
+	}
 	h.render(w, r, status, "artifact", title, v, d)
+}
+
+// wantsPanel is true when the request comes from the list page's side peek:
+// GET ?panel=1 for the fragment, or a panel=1 field on the forms inside it.
+// Such requests get the shell-less fragment back instead of a full page or
+// a redirect, so the panel re-renders in place.
+func wantsPanel(r *http.Request) bool {
+	return r.URL.Query().Get("panel") == "1" || r.PostForm.Get("panel") == "1"
+}
+
+// backToArtifact ends a successful action: the fragment for the side peek,
+// otherwise a redirect to the detail page at anchor.
+func (h *Handler) backToArtifact(w http.ResponseWriter, r *http.Request, v *viewer, id, anchor string) {
+	if wantsPanel(r) {
+		h.renderArtifact(w, r, 200, v, id, "", "")
+		return
+	}
+	http.Redirect(w, r, "/app/artifacts/"+id+anchor, http.StatusFound)
 }
 
 // anchorQuote pulls the quoted text out of a text anchor, or the selector of
@@ -133,7 +155,7 @@ func (h *Handler) rollbackArtifact(w http.ResponseWriter, r *http.Request, v *vi
 		return
 	}
 	if target == a.CurrentVersion {
-		http.Redirect(w, r, "/app/artifacts/"+a.ID, http.StatusFound)
+		h.backToArtifact(w, r, v, a.ID, "")
 		return
 	}
 	files, err := h.Store.Files(ctx, a.ID, target)
@@ -162,7 +184,7 @@ func (h *Handler) rollbackArtifact(w http.ResponseWriter, r *http.Request, v *vi
 		h.fail(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/app/artifacts/"+a.ID, http.StatusFound)
+	h.backToArtifact(w, r, v, a.ID, "")
 }
 
 // setCommentsEnabled is the Comments switch on the detail page: enabled=1
@@ -189,7 +211,7 @@ func (h *Handler) setCommentsEnabled(w http.ResponseWriter, r *http.Request, v *
 			return
 		}
 	}
-	http.Redirect(w, r, "/app/artifacts/"+a.ID+"#comments", http.StatusFound)
+	h.backToArtifact(w, r, v, a.ID, "#comments")
 }
 
 // ownedThread loads a thread that belongs to one of the viewer's artifacts.
@@ -220,7 +242,7 @@ func (h *Handler) resolveThread(w http.ResponseWriter, r *http.Request, v *viewe
 			return
 		}
 	}
-	http.Redirect(w, r, "/app/artifacts/"+a.ID+"#"+t.ID, http.StatusFound)
+	h.backToArtifact(w, r, v, a.ID, "#"+t.ID)
 }
 
 func (h *Handler) replyThread(w http.ResponseWriter, r *http.Request, v *viewer) {
@@ -247,7 +269,7 @@ func (h *Handler) replyThread(w http.ResponseWriter, r *http.Request, v *viewer)
 		h.fail(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/app/artifacts/"+a.ID+"#"+t.ID, http.StatusFound)
+	h.backToArtifact(w, r, v, a.ID, "#"+t.ID)
 }
 
 var tagRe = regexp.MustCompile(`<[^>]*>`)

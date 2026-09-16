@@ -7,6 +7,22 @@
 <a class="btn primary" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
 {{end}}
 
+{{/* The side peek on the list page fetches this fragment (?panel=1) and
+     drops it into <aside class="peek">: no shell, its own sticky header. */}}
+{{define "panel"}}
+<div class="peek-inner" data-peek-title="{{.Title}}">
+  <header class="peek-head">
+    <h2 class="peek-title truncate">{{if .Data.Artifact.Title}}{{.Data.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</h2>
+    <button type="button" class="btn small" data-copy-text="{{.Data.URL}}">{{template "icon" "link"}} Copy link</button>
+    <a class="btn small primary" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
+    <button type="button" class="icon-btn peek-close" data-peek-close title="Close (Esc)" aria-label="Close">{{template "icon" "x"}}</button>
+  </header>
+  <div class="peek-body">
+    {{template "content" .}}
+  </div>
+</div>
+{{end}}
+
 {{define "content"}}
 {{$a := .Data.Artifact}}
 <div class="detail">
