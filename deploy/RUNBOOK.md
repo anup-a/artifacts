@@ -11,9 +11,19 @@ sqlite and blobs on a Fly volume, `ADMIN_TOKEN` for operator API access, and Fly
 TLS. No Neon, no R2, no Cloudflare, no Caddy. Same binary and same API as the
 managed deployment, so moving up later is a change of env vars.
 
-Hostnames: `share.creatica.app` for pages and `api.share.creatica.app` for the
-API and dashboard. Both point at the same binary. Keep them as distinct
-origins so published HTML cannot share an origin with dashboard sessions.
+Hostnames: `byagent.dev` for pages and `app.byagent.dev` for the API and
+dashboard. Both point at the same binary. Keep them as distinct origins so
+published HTML cannot share an origin with dashboard sessions.
+
+The second host is `app`, not `api`, even though `PUBLIC_API_ORIGIN` names it:
+one host serves both `/api/*` and the `/app/*` dashboard, so either label is
+half right, and `app` is the half a person lands on from a sign-in email.
+
+Pages live on the apex so a share URL stays short: `byagent.dev/a/<id>/`.
+Because published HTML runs on the parent of the API host, a page that sets a
+cookie scoped to `.byagent.dev` would have it sent to `app.byagent.dev`.
+Dashboard cookies must therefore stay host-only (no `Domain` attribute), which
+is what the server issues today.
 
 First time:
 
@@ -33,16 +43,28 @@ command arguments and source control.
 Then the certificates and DNS:
 
 ```
-fly certs add share.creatica.app     --app artifacts-share
-fly certs add api.share.creatica.app --app artifacts-share
+fly certs add byagent.dev     --app artifacts-share
+fly certs add app.byagent.dev --app artifacts-share
 fly certs setup <hostname> --app artifacts-share   # prints every DNS option
+fly ips list --app artifacts-share                 # the addresses to point at
 ```
 
-At the DNS provider, one `CNAME` per hostname pointing at
-`<prefix>.artifacts-share.fly.dev` (the prefix comes from `fly certs setup`).
-That single record both routes traffic and proves ownership, because it
-resolves to the app's AAAA. `fly certs check <hostname>` reports when the
-certificate is issued.
+An apex cannot be a `CNAME`, so both hostnames use address records instead, and
+`fly certs add` prints the exact pair:
+
+| Type | Host | Value |
+| --- | --- | --- |
+| `A` | `@` and `app` | the app's shared IPv4, e.g. `66.241.125.194` |
+| `AAAA` | `@` and `app` | the app's dedicated IPv6 |
+
+Those records both route traffic and prove ownership, because they resolve to
+the app. `fly certs check <hostname>` reports when the certificate is issued.
+
+DNS for `byagent.dev` is authoritative at Namecheap BasicDNS (the registrar),
+so records added in Namecheap's Advanced DNS tab take effect. Delete the two
+records a new Namecheap domain ships with first: the `www` parking `CNAME` and
+the `@` URL-redirect record. Verify against a public resolver, never the local
+one: `dig +short byagent.dev A @8.8.8.8`.
 
 After that, `fly deploy --config deploy/fly.free.toml` is the whole deploy loop.
 
@@ -66,13 +88,13 @@ Smoke it with the CLI:
 
 ```
 npm install -g ./cli   # not on npm yet; `npx artifacts` is someone else's package
-printf '%s\n' "$ARTIFACTS_TOKEN" | artifacts login --api https://api.share.creatica.app
+printf '%s\n' "$ARTIFACTS_TOKEN" | artifacts login --api https://app.byagent.dev
 artifacts whoami
 artifacts publish ./site --title "Hello"
 ```
 
 Set `ARTIFACTS_TOKEN` to a key created at
-`https://api.share.creatica.app/app/keys`. `ADMIN_TOKEN` still works for the
+`https://app.byagent.dev/app/keys`. `ADMIN_TOKEN` still works for the
 separate `admin` tenant, which has no web login.
 
 ## Sign-in and dashboard configuration
@@ -90,7 +112,7 @@ returns 404; people create named keys at `PUBLIC_API_ORIGIN/app/keys`.
 | `GITHUB_CLIENT_SECRET` | OAuth app client secret. |
 | `EMAIL_PROVIDER` | Unset disables email. Set `log` for development or validation; set `resend` for delivered magic links. |
 | `RESEND_API_KEY` | Required for `EMAIL_PROVIDER=resend`; store as a secret. |
-| `EMAIL_FROM` | Verified sender for Resend, such as `artifacts <login@share.creatica.app>`. |
+| `EMAIL_FROM` | Verified sender for Resend, such as `artifacts <login@byagent.dev>`. |
 | `PUBLIC_API_ORIGIN` | API and dashboard origin, including scheme. Also used in magic links, portal links, and the OAuth callback. |
 | `PUBLIC_SHARE_ORIGIN` | Published pages and viewer comments origin. Keep distinct from the API origin. |
 | `LIMIT_ARTIFACTS_PER_TENANT` | Live artifact limit shared by all keys of a tenant. Default 200. |
@@ -100,7 +122,7 @@ For GitHub, create an OAuth app with the dashboard as its homepage and this
 authorization callback URL:
 
 ```
-https://api.share.creatica.app/app/login/github/callback
+https://app.byagent.dev/app/login/github/callback
 ```
 
 For another deployment, replace the origin with `PUBLIC_API_ORIGIN` and keep
