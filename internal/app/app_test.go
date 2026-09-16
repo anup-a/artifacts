@@ -218,7 +218,7 @@ func TestSignInFlowSecurityHeadersAndStatics(t *testing.T) {
 	e := fixture(t)
 	wantRedirect(t, e.get("/app/artifacts"), "/app/login")
 	res := e.get("/app/login")
-	want(t, res, 200, `action="/app/login/email"`)
+	want(t, res, 200, `action="/app/login/email"`, "Share a page", "Keep the comments")
 	if strings.Contains(res.Body, "Continue with GitHub") {
 		t.Fatal("GitHub button shown without a client id")
 	}
@@ -266,7 +266,7 @@ func TestBadEmailBadLinkAndRateLimits(t *testing.T) {
 	})
 	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"not an address"}}), 400, "does not look like an email")
 	want(t, e.get("/app/login/email/verify?token=bogus"), 400, "invalid, used, or expired")
-	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"a@x.io"}}), 200)
+	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"a@x.io"}}), 200, "Check your inbox", "a@x.io", "Works once")
 	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"a@x.io"}}), 429, "for that address")
 	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"b@x.io"}}), 200)
 	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"c@x.io"}}), 429, "from this network")

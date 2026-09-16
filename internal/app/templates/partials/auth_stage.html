@@ -1,0 +1,22 @@
+{{define "auth-stage"}}
+<aside class="auth-stage" aria-hidden="true">
+  <div class="auth-stage-copy">
+    <span class="brand auth-brand">{{template "icon" "mark"}}<span>Artifacts</span></span>
+    <p class="auth-stage-lead">Share a page.<br>Keep the comments.</p>
+    <p class="auth-stage-sub">Static HTML in, a link out. Readers mark the line they mean.</p>
+  </div>
+  <figure class="auth-preview">
+    <div class="auth-preview-page">
+      <span class="auth-preview-bar"></span>
+      <span class="auth-preview-line"></span>
+      <span class="auth-preview-line is-mid"></span>
+      <span class="auth-preview-quote">the heading wraps</span>
+      <span class="auth-preview-line is-short"></span>
+    </div>
+    <figcaption class="auth-preview-note">
+      <span class="auth-preview-avatar">A</span>
+      <span>A comment on the line it belongs to.</span>
+    </figcaption>
+  </figure>
+</aside>
+{{end}}
