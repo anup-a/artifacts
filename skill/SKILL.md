@@ -5,6 +5,8 @@ description: Use when writing, designing, or turning anything into an HTML artif
 
 # agent-artifacts
 
+Canonical copy: https://github.com/anup-a/agent-artifacts
+
 The hand-back is the published URL (`https://<share-host>/a/<id>/`). Chat markdown or a local HTML path is not done.
 
 **Publish by default.** If there is even a 1% chance this page gets opened again, publish it. Do not ask. Do not offer. Do it.
