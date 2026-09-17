@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -102,6 +105,38 @@ func TestArtifactVisibilityGalleryAndOlderRows(t *testing.T) {
 	}
 	want(t, res, 200, `href="http://share.test/a/`+public.ID+`/"`)
 	want(t, e.get("/app/artifacts?q=Recent"), 200, ">Private</span>", `src="http://api.test/app/view/`+recent.ID+`/_cover.svg"`)
+}
+
+// The page a refused private artifact address renders: it says what happened
+// and offers a way in, rather than navigating the visitor to sign-in.
+func TestDenyArtifactAccessPage(t *testing.T) {
+	e := fixture(t)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /app/view/{id}/", e.h.DenyArtifactAccess)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	res, err := newClient(t).Get(srv.URL + "/app/view/aaaaaaaaaaaa/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+	got := string(body)
+	if res.StatusCode != 404 {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	if res.Header.Get("Location") != "" {
+		t.Fatal("refusal redirected instead of explaining")
+	}
+	for _, s := range []string{"You do not have access to this artifact", `href="/app/login"`, `href="/app/"`} {
+		if !strings.Contains(got, s) {
+			t.Fatalf("page missing %q: %s", s, got)
+		}
+	}
+	if res.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("cache %v", res.Header)
+	}
 }
 
 func TestPortalHidesPrivateArtifacts(t *testing.T) {

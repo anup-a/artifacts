@@ -25,6 +25,9 @@ type Deps struct {
 	OnView func(artifactID string)
 	// Web mounts the browser app (/app, /p) on the same mux when set.
 	Web func(*http.ServeMux)
+	// WebDeny renders the browser page for a refused private artifact address.
+	// Set it alongside Web; without it those addresses answer a bare 404.
+	WebDeny func(http.ResponseWriter, *http.Request)
 }
 
 type server struct {

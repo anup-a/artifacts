@@ -81,7 +81,9 @@ func TestPrivateViewerAccessAndIsolation(t *testing.T) {
 			}
 		}
 		path = "/app/view/" + id + "/" + suffix
-		if w := request("app.test", path, nil, ""); w.Code != 302 {
+		// No redirect to sign-in: a visitor without a session is told they
+		// cannot read this, not invited to log in as though it would help.
+		if w := request("app.test", path, nil, ""); w.Code != 404 {
 			t.Fatalf("anonymous %s: %d", path, w.Code)
 		}
 		if w := request("app.test", path, outsider, ""); w.Code != 404 {
@@ -115,8 +117,73 @@ func TestPrivateViewerAccessAndIsolation(t *testing.T) {
 		t.Fatal("public HTML executable on app origin")
 	}
 	now = now.Add(auth.SessionTTL + time.Hour)
-	if w := request("app.test", "/app/view/"+id+"/", owner, ""); w.Code != 302 {
+	if w := request("app.test", "/app/view/"+id+"/", owner, ""); w.Code != 404 {
 		t.Fatal("expired session allowed")
+	}
+}
+
+// Every refusal on the private path must be the same response, or the address
+// becomes a way of asking which artifact ids exist.
+func TestPrivateDenialIsIndistinguishable(t *testing.T) {
+	_, st, id := fixture(t)
+	ctx := context.Background()
+	now := time.Now().UTC()
+	sessions := &auth.Sessions{Store: st, Now: func() time.Time { return now }}
+	outsiderUser, outsiderTenant, err := st.SignIn(ctx, "test", "outsider", "other@example.test", "Other", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetVisibility(ctx, id, "private"); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	if _, err := sessions.Create(ctx, rec, outsiderUser.ID, outsiderTenant.ID); err != nil {
+		t.Fatal(err)
+	}
+	outsider := rec.Result().Cookies()[0]
+
+	var denied int
+	h := &Handler{Store: st, Blobs: fixtureBlobs, Runtime: []byte("runtime"), Sessions: sessions,
+		APIOrigin: "http://app.test", ShareOrigin: "http://share.test",
+		Deny: func(w http.ResponseWriter, r *http.Request) {
+			denied++
+			w.WriteHeader(404)
+			_, _ = w.Write([]byte("You do not have access to this artifact."))
+		}}
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	get := func(path string, ck *http.Cookie) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("GET", "http://app.test"+path, nil)
+		if ck != nil {
+			req.AddCookie(ck)
+		}
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+		return w
+	}
+	// Someone else's private artifact, and an id that was never published.
+	for _, path := range []string{"/app/view/" + id + "/", "/app/view/doesnotexist0/"} {
+		for _, ck := range []*http.Cookie{nil, outsider} {
+			w := get(path, ck)
+			if w.Code != 404 || !strings.Contains(w.Body.String(), "do not have access") {
+				t.Fatalf("%s: %d %s", path, w.Code, w.Body.String())
+			}
+			if w.Header().Get("Cache-Control") != "private, no-store" {
+				t.Fatalf("%s: cache %v", path, w.Header())
+			}
+			if loc := w.Header().Get("Location"); loc != "" {
+				t.Fatalf("%s redirected to %s", path, loc)
+			}
+		}
+	}
+	if denied != 4 {
+		t.Fatalf("want every refusal rendered by the app page, got %d of 4", denied)
+	}
+	// The share origin keeps its bare 404 and never renders that page.
+	w := get("/a/"+id+"/", nil)
+	if w.Code != 404 || strings.Contains(w.Body.String(), "do not have access") {
+		t.Fatalf("share origin: %d %s", w.Code, w.Body.String())
 	}
 }
 

@@ -46,7 +46,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	if d.Cfg.WebEnabled() {
 		sessions = &auth.Sessions{Store: d.Store, Now: d.Now, Secure: auth.SecureOrigin(d.Cfg.APIOrigin)}
 	}
-	(&serve.Handler{Sessions: sessions, Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime, ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin, OnView: d.OnView}).Register(mux)
+	(&serve.Handler{Sessions: sessions, Deny: d.WebDeny, Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime, ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin, OnView: d.OnView}).Register(mux)
 	if d.Web != nil {
 		d.Web(mux)
 		// The bare host root is not an API route: send people to the dashboard,

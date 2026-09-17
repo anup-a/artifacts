@@ -61,6 +61,7 @@ func main() {
 		Runtime:        runtime.CommentsJS,
 		OnView:         func(id string) { views.Hit(id, now()) },
 		Web:            webApp.Register,
+		WebDeny:        webApp.DenyArtifactAccess,
 	}
 	h, err := api.NewHandler(deps)
 	if err != nil {
