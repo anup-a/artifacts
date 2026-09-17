@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -39,6 +40,13 @@ func (s *server) getArtifact(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
+	}
+	// The share code is a credential, so it rides only on this read — the one
+	// the owner asked for by id. Listing carries it into far more logs,
+	// terminals and screen shares than anyone asked to show it in.
+	if a.ShareCode != "" {
+		v["share_code"] = a.ShareCode
+		v["share_url"] = serve.ShareURL(s.Cfg.ShareOrigin, a.ID, a.ShareCode)
 	}
 	apierr.WriteJSON(w, 200, v)
 }

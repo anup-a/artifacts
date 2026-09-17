@@ -67,6 +67,30 @@
         <button type="submit" class="btn small">Save visibility</button>
       </form>
     </div>
+    {{if eq $a.Visibility "private"}}
+    <div class="setting-row visibility-setting">
+      <div class="setting-text">
+        <strong>{{if .Data.ShareLink}}Shared with a code{{else}}Share with a code{{end}}</strong>
+        <p class="muted">Anyone holding the code can open this artifact without signing in, and can comment on it. Rotating the code stops every link that carried the old one.</p>
+        {{if .Data.ShareLink}}
+        <div class="share-code-row">
+          <span class="share-code">{{$a.ShareCode}}</span>
+          <button type="button" class="btn small" data-copy-text="{{$a.ShareCode}}">{{template "icon" "copy"}} Copy code</button>
+          <button type="button" class="btn small" data-copy-text="{{.Data.ShareLink}}">{{template "icon" "copy"}} Copy link</button>
+        </div>
+        {{end}}
+      </div>
+      <form method="post" action="/app/artifacts/{{$a.ID}}/share-code" class="switch-form">
+        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+        {{if .Data.ShareLink}}
+          <button type="submit" name="action" value="rotate" class="btn small">New code</button>
+          <button type="submit" name="action" value="revoke" class="btn small">Stop sharing</button>
+        {{else}}
+          <button type="submit" name="action" value="issue" class="btn small">Create a code</button>
+        {{end}}
+      </form>
+    </div>
+    {{end}}
   </section>
 
   <section class="card preview-card">

@@ -3,6 +3,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"log/slog"
@@ -13,6 +14,7 @@ import (
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/config"
 	"github.com/anup-a/artifacts/internal/ratelimit"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -84,6 +86,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/artifacts/{id}/rollback/{version}", h.private(h.rollbackArtifact))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments-enabled", h.private(h.setCommentsEnabled))
 	mux.HandleFunc("POST /app/artifacts/{id}/visibility", h.private(h.setVisibility))
+	mux.HandleFunc("POST /app/artifacts/{id}/share-code", h.private(h.setShareCode))
 	mux.HandleFunc("POST /app/artifacts/{id}/meta", h.private(h.setMetadata))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/resolve", h.private(h.resolveThread))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/reply", h.private(h.replyThread))
@@ -168,6 +171,35 @@ func (h *Handler) DenyArtifactAccess(w http.ResponseWriter, r *http.Request) {
 		}
 		h.renderErrorData(w, r, d)
 	})(w, r)
+}
+
+// GateArtifactAccess renders the page asking a viewer for an artifact's share
+// code. Unlike everything else in this package it answers on the SHARE origin,
+// standing in front of a published page rather than inside the dashboard, so
+// it carries no session, no navigation, and no CSRF token: the code is the
+// only credential involved, and metering wrong guesses is the server's job,
+// not the form's.
+func (h *Handler) GateArtifactAccess(w http.ResponseWriter, r *http.Request, g serve.GateView) {
+	hd := w.Header()
+	hd.Set("X-Frame-Options", "DENY")
+	hd.Set("Referrer-Policy", "no-referrer")
+	hd.Set("X-Content-Type-Options", "nosniff")
+	hd.Set("Cache-Control", "private, no-store")
+	status := http.StatusOK
+	if g.Locked {
+		status = http.StatusTooManyRequests
+	} else if g.Wrong {
+		status = http.StatusForbidden
+	}
+	p := page{Title: "Enter the code", Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: g}
+	var buf bytes.Buffer
+	if err := pages["gate"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
+		http.Error(w, "This artifact needs a code.", status)
+		return
+	}
+	hd.Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = w.Write(buf.Bytes())
 }
 
 // private loads the session and, for POSTs, checks the CSRF field.

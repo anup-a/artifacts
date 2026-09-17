@@ -638,6 +638,23 @@ textarea { resize: vertical; line-height: 1.45; }
 .auth-foot { margin-top: 20px; font-size: 12.5px; }
 .auth-actions { margin-top: 20px; }
 
+/* ---- Share code -------------------------------------------------- */
+.gate-form { display: flex; gap: 8px; margin: 18px 0 0; }
+.gate-code {
+  flex: 1 1 auto; min-width: 0;
+  font-family: var(--mono); font-size: 20px; letter-spacing: .28em; text-align: center;
+}
+.gate-code.is-wrong { border-color: var(--danger); }
+.gate-error { margin-top: 10px; font-size: 13px; color: var(--danger); }
+/* The code is a credential: it is shown large enough to read off a screen
+   and dictate, and it never appears anywhere a viewer can reach. */
+.share-code {
+  font-family: var(--mono); font-size: 18px; letter-spacing: .22em; font-weight: 600;
+  padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  background: var(--panel); color: var(--fg);
+}
+.share-code-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+
 /* ---- Portal ------------------------------------------------------ */
 .bare:has(.portal) { align-items: flex-start; }
 .portal { width: 100%; max-width: 960px; margin: 24px auto; }

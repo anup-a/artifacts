@@ -22,6 +22,38 @@ func TestArtifactID(t *testing.T) {
 	}
 }
 
+// A short code has to be exactly as random as it is short: any bias or any
+// repeat shrinks a space that is already only a million wide.
+func TestShareCode(t *testing.T) {
+	digits := regexp.MustCompile(`^[0-9]{6}$`)
+	counts := map[rune]int{}
+	seen := map[string]int{}
+	const runs = 20000
+	for range runs {
+		c := NewShareCode()
+		if !digits.MatchString(c) {
+			t.Fatalf("bad share code %q", c)
+		}
+		seen[c]++
+		for _, r := range c {
+			counts[r]++
+		}
+	}
+	// Six digits from a million: with 20k draws a collision or two is normal,
+	// but any code coming up three times points at a broken generator.
+	for c, n := range seen {
+		if n > 2 {
+			t.Fatalf("share code %q drawn %d times in %d", c, n, runs)
+		}
+	}
+	mean := float64(runs*ShareCodeDigits) / 10
+	for d := '0'; d <= '9'; d++ {
+		if got := float64(counts[d]); got < mean*0.9 || got > mean*1.1 {
+			t.Errorf("digit %q occurred %.0f times, want near %.0f", d, got, mean)
+		}
+	}
+}
+
 // countChars tallies how often each alphabet character occurs in s.
 func countChars(counts map[rune]int, s string) {
 	for _, r := range s {

@@ -124,6 +124,28 @@ viewer is sandboxed and has no viewer comment panel; owners can still manage
 comments through the dashboard and authenticated API. API keys publish and manage
 private artifacts but do not authenticate the browser viewer.
 
+A private artifact can also carry a **share code**: six digits that let anyone
+holding them read it, and comment on it, without signing in. Create, rotate or
+withdraw the code on the artifact's dashboard page; `GET /api/artifacts/:id`
+returns `share_code` and `share_url` while one is set, and `artifacts get <id>`
+prints both. List responses never include it.
+
+There are two ways in, both opening the same artifact and nothing else. The
+link `https://<share origin>/a/<id>/?k=123456` verifies the code, moves it into
+a cookie scoped to that artifact, and redirects to the clean URL, so the code
+leaves the address bar and the browser history. Or send the code by itself: the
+artifact's address shows a page asking for it. A viewer who has neither sees
+that same page, which does reveal that something is there — unlike a private
+artifact with no code, which gives nothing away.
+
+Six digits is a million possibilities, so the server, not the code, is what
+stops a guesser: wrong codes are counted against the artifact, not the client,
+and ten of them within fifteen minutes stop every further attempt from anyone
+until the window passes. Rotating the code revokes every link and every
+unlocked browser that carried the old one, for that artifact alone. Making an
+artifact public clears its code. A code cannot reach anything else in the
+workspace, and it never grants the dashboard.
+
 Private responses use `Cache-Control: private, no-store`. Public artifact content
 requires cache revalidation so changing visibility blocks subsequent requests.
 Making an artifact private cannot revoke copies already downloaded or cached

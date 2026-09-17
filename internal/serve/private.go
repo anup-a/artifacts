@@ -23,7 +23,13 @@ func (h *Handler) canView(r *http.Request, a store.Artifact) bool {
 	if tenant, ok := r.Context().Value(privateViewerKey{}).(string); ok {
 		return tenant == a.TenantID
 	}
-	return a.Visibility != "private"
+	if a.Visibility != "private" {
+		return true
+	}
+	// A private artifact with a share code is readable by anyone who has
+	// already presented it. The code opens this artifact and no other: the
+	// cookie is scoped to its path and signed over its id.
+	return h.unlocked(r, a)
 }
 
 // separateOrigins reports whether the dashboard and the share host are
@@ -107,6 +113,25 @@ func (h *Handler) refuse(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "private, no-store")
 	apierr.Write(w, r, apierr.NotFound("artifact"))
+}
+
+// refuseOrGate is the refusal for a page request on the share origin. An
+// artifact shared by code asks for the code instead of denying outright:
+// its owner deliberately handed the address around, so "this needs a code"
+// is the honest answer rather than pretending nothing is there.
+//
+// Only whole-page requests reach the gate. An asset or a cover answers a
+// plain 404, because a viewer never arrives at one of those first and a gate
+// page delivered where a stylesheet was expected is only confusing.
+func (h *Handler) refuseOrGate(w http.ResponseWriter, r *http.Request, a store.Artifact, page bool) {
+	if page && !isPrivateViewer(r) && a.ShareCode != "" && h.Gate != nil {
+		// A cookie that no longer matches means the code was rotated; drop it
+		// so the viewer is asked again rather than silently refused forever.
+		clearUnlockCookie(w, a.ID)
+		h.renderGate(w, r, GateView{ArtifactID: a.ID})
+		return
+	}
+	h.refuse(w, r)
 }
 
 func (h *Handler) artifactCacheHeaders(w http.ResponseWriter, r *http.Request) {

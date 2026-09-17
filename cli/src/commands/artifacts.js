@@ -21,7 +21,8 @@ export async function get(cfg, { positional }) {
     human: [
       `${a.id}  ${a.title || "(untitled)"}`,
       `${a.url}`,
-      `visibility ${a.visibility || "public"}`,
+      `visibility ${a.visibility || "public"}${a.share_code ? `, shared with code ${a.share_code}` : ""}`,
+      ...(a.share_url ? [`share link ${a.share_url}`] : []),
       `version ${a.current_version} of ${a.versions_count}, ${a.open_comments} open comments${a.comments_enabled === false ? " (comments off)" : ""}`,
       ...(labels ? [labels] : []),
       `updated ${a.updated_at}`,
