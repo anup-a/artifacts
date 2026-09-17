@@ -12,6 +12,28 @@ function labelsOf(a) {
   return [a.project || "", tags].filter(Boolean).join("  ");
 }
 
+// share issues, rotates or withdraws an artifact's six-digit share code.
+// Issuing and rotating are the same request, which is what makes rotation a
+// revocation: every link carrying the old code stops working.
+export async function share(cfg, { positional, flags }) {
+  need(positional, 1, "usage: artifacts share <id> [--off]");
+  const action = flags.off ? "revoke" : "issue";
+  const a = await apiJson(cfg, "POST", `/api/artifacts/${encodeURIComponent(positional[0])}/share-code`, {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
+  });
+  return {
+    json: a,
+    human: a.share_code
+      ? [
+        `code ${a.share_code}`,
+        `${a.share_url}`,
+        "anyone with the code can open and comment on this artifact without signing in",
+      ]
+      : [`${a.id} is no longer shared with a code`],
+  };
+}
+
 export async function get(cfg, { positional }) {
   need(positional, 1, "usage: artifacts get <id>");
   const a = await apiJson(cfg, "GET", `/api/artifacts/${encodeURIComponent(positional[0])}`);

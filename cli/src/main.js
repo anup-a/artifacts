@@ -2,7 +2,7 @@ import { parseArgs } from "./args.js";
 import { resolveConfig, trimSlash } from "./config.js";
 import { CliError, usage } from "./errors.js";
 import { publish } from "./commands/publish.js";
-import { get, list, versions, rollback, remove } from "./commands/artifacts.js";
+import { get, list, share, versions, rollback, remove } from "./commands/artifacts.js";
 import { comments, reply, resolve } from "./commands/comments.js";
 import { login } from "./commands/login.js";
 import { whoami, portalLink } from "./commands/account.js";
@@ -15,6 +15,7 @@ const COMMANDS = {
   publish: { run: publish, needsConfig: true },
   get: { run: get, needsConfig: true },
   list: { run: list, needsConfig: true },
+  share: { run: share, needsConfig: true },
   versions: { run: versions, needsConfig: true },
   rollback: { run: rollback, needsConfig: true },
   delete: { run: remove, needsConfig: true },
@@ -32,6 +33,7 @@ Usage:
                     [--comments|--no-comments] [--project <name>] [--tag <t>]...
                     [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
   artifacts get <id>
+  artifacts share <id> [--off]
   artifacts list [--end-user <id>] [--project <name>]
   artifacts whoami
   artifacts portal-link <end-user id>
@@ -52,6 +54,11 @@ include end_user. portal-link is for integrator workspaces; links last 7 days.
 comment API for that artifact; --comments turns it back on. Without either,
 a republish keeps the current setting (new artifacts start with comments on).
 Artifact JSON carries comments_enabled.
+share issues a six-digit code for a private artifact and prints it with a
+one-click link; running it again rotates the code, which stops every link that
+carried the old one. share --off withdraws it. Anyone holding the code can open
+and comment on that artifact, and nothing else, without signing in. get shows
+the code; list never does.
 --private restricts viewing to the signed-in owning workspace; --public makes
 the artifact publicly accessible. Omit both to preserve visibility on republish;
 new artifacts default to public. Artifact JSON carries visibility. Private URLs

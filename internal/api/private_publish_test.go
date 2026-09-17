@@ -127,6 +127,45 @@ func TestShareCodeOnlyOnSingleArtifactRead(t *testing.T) {
 	}
 }
 
+// Issuing, rotating and withdrawing a code through the API, which is what the
+// CLI drives. Rotation must produce a different code, or it revokes nothing.
+func TestShareCodeAPILifecycle(t *testing.T) {
+	srv, _, tok := newTestServer(t, false)
+	_, body := do(t, publishWith(t, "POST", srv.URL+"/api/artifacts", tok,
+		map[string]any{"visibility": "private"}, []pubFile{{"index.html", "<p>x</p>"}}))
+	id := body["id"].(string)
+	share := srv.URL + "/api/artifacts/" + id + "/share-code"
+
+	code, first := do(t, jsonReq(t, "POST", share, `{"action":"issue"}`, map[string]string{"Authorization": "Bearer " + tok}))
+	if code != 200 || first["share_code"] == nil || first["share_url"] == nil {
+		t.Fatalf("issue: %d %v", code, first)
+	}
+	if got := first["share_code"].(string); len(got) != 6 {
+		t.Fatalf("want six digits, got %q", got)
+	}
+	_, second := do(t, jsonReq(t, "POST", share, `{"action":"rotate"}`, map[string]string{"Authorization": "Bearer " + tok}))
+	if second["share_code"] == first["share_code"] {
+		t.Fatalf("rotation reissued the same code: %v", second)
+	}
+	_, off := do(t, jsonReq(t, "POST", share, `{"action":"revoke"}`, map[string]string{"Authorization": "Bearer " + tok}))
+	if off["share_code"] != nil || off["share_url"] != nil {
+		t.Fatalf("revoke left a code: %v", off)
+	}
+	_, got := do(t, authReq(t, "GET", srv.URL+"/api/artifacts/"+id, tok))
+	if got["share_code"] != nil {
+		t.Fatalf("withdrawn code still readable: %v", got)
+	}
+	if code, body := do(t, jsonReq(t, "POST", share, `{"action":"nonsense"}`, map[string]string{"Authorization": "Bearer " + tok})); code != 400 {
+		t.Fatalf("bad action: %d %v", code, body)
+	}
+	// A public artifact has nothing to gate, so a code there would be a lie.
+	_, pub := do(t, publishWith(t, "POST", srv.URL+"/api/artifacts", tok, nil, []pubFile{{"index.html", "<p>y</p>"}}))
+	pubShare := srv.URL + "/api/artifacts/" + pub["id"].(string) + "/share-code"
+	if code, body := do(t, jsonReq(t, "POST", pubShare, `{"action":"issue"}`, map[string]string{"Authorization": "Bearer " + tok})); code != 400 {
+		t.Fatalf("code on a public artifact: %d %v", code, body)
+	}
+}
+
 func TestPrivatePublishCreatedWithRestrictedVisibility(t *testing.T) {
 	_, d, tok := newTestServer(t, false)
 	d.Store = visibilityVersionStore{Store: d.Store, t: t, want: "private"}
