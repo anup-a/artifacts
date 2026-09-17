@@ -52,7 +52,13 @@ func main() {
 
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)
-	manifest, _ := json.Marshal(map[string]any{"files": files})
+	m := map[string]any{"files": files}
+	// Lets the e2e suite publish a private artifact, which is the only kind
+	// that can carry a share code.
+	if v := os.Getenv("ARTIFACT_VISIBILITY"); v != "" {
+		m["visibility"] = v
+	}
+	manifest, _ := json.Marshal(m)
 	fw, err := w.CreateFormField("manifest")
 	check(err)
 	fw.Write(manifest)
