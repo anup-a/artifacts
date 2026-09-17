@@ -39,6 +39,9 @@ func (h *Handler) portal(w http.ResponseWriter, r *http.Request) {
 	}
 	d := portalData{Tenant: t, ExpiresAt: c.ExpiresAt}
 	for _, a := range list {
+		if a.Visibility == "private" {
+			continue
+		}
 		d.Rows = append(d.Rows, artifactRow{Artifact: a, URL: h.shareURL(a.ID)})
 	}
 	h.render(w, r, 200, "portal", "Artifacts from "+t.Name, nil, d)

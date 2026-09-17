@@ -231,6 +231,8 @@ textarea { resize: vertical; line-height: 1.45; }
   padding: 12px 14px; margin-bottom: 14px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg);
 }
+.visibility-setting { flex-wrap: wrap; }
+.visibility-setting .setting-text { flex: 1 1 280px; }
 .setting-text { min-width: 0; font-size: 13.5px; }
 .setting-text strong { display: block; font-weight: 500; color: var(--fg); margin-bottom: 2px; }
 .setting-text p { font-size: 13px; }

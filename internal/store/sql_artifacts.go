@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -11,26 +12,58 @@ import (
 // default (on) so every caller starts with comments; SetCommentsEnabled turns
 // them off. The gallery labels come from the struct, nil tags stored as NULL.
 func (s *sqlStore) CreateArtifact(ctx context.Context, a Artifact) error {
+	if a.Visibility == "" {
+		a.Visibility = "public"
+	}
+	if err := validateVisibility(a.Visibility); err != nil {
+		return err
+	}
 	tags, err := encodeTags(a.Tags)
 	if err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(ctx, s.q(`INSERT INTO artifacts(id,key_id,tenant_id,end_user_id,title,current_version,project,tags,cover_path,cover_style,created_at,updated_at) VALUES (?,?,COALESCE(NULLIF(?,''),(SELECT tenant_id FROM keys WHERE id=?)),?,?,?,?,?,?,?,?,?)`),
-		a.ID, a.KeyID, a.TenantID, a.KeyID, a.EndUserID, a.Title, a.CurrentVersion, a.Project, tags, a.CoverPath, a.CoverStyle, a.CreatedAt, a.UpdatedAt)
+	_, err = s.db.ExecContext(ctx, s.q(`INSERT INTO artifacts(id,key_id,tenant_id,end_user_id,title,current_version,project,tags,cover_path,cover_style,created_at,updated_at,visibility) VALUES (?,?,COALESCE(NULLIF(?,''),(SELECT tenant_id FROM keys WHERE id=?)),?,?,?,?,?,?,?,?,?,?)`),
+		a.ID, a.KeyID, a.TenantID, a.KeyID, a.EndUserID, a.Title, a.CurrentVersion, a.Project, tags, a.CoverPath, a.CoverStyle, a.CreatedAt, a.UpdatedAt, a.Visibility)
 	return err
 }
 
-const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open')`
+const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility`
 
 func scanArtifact(row interface{ Scan(...any) error }) (Artifact, error) {
 	var a Artifact
 	var tags sql.NullString
-	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments)
+	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments, &a.Visibility)
 	if err != nil {
 		return a, notFound(err)
 	}
 	a.Tags, err = decodeTags(tags)
 	return a, err
+}
+
+func validateVisibility(visibility string) error {
+	if visibility != "public" && visibility != "private" {
+		return fmt.Errorf("visibility must be public or private")
+	}
+	return nil
+}
+
+// SetVisibility changes access without changing the content timestamp.
+func (s *sqlStore) SetVisibility(ctx context.Context, id, visibility string) error {
+	if err := validateVisibility(visibility); err != nil {
+		return err
+	}
+	res, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET visibility=? WHERE id=?`), visibility, id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // encodeTags stores an empty tag list as NULL so "no tags" has one form.

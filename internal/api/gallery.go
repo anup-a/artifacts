@@ -182,11 +182,9 @@ func (s *server) galleryFields(a store.Artifact) map[string]any {
 	}
 	return map[string]any{
 		"project": a.Project, "tags": tags, "cover": a.CoverPath,
-		"cover_url": s.coverURL(a.ID), "cover_style": style,
+		"cover_url": s.artifactViewURL(a) + "_cover.svg", "cover_style": style, "visibility": a.Visibility,
 	}
 }
-
-func (s *server) coverURL(id string) string { return s.artifactURL(id) + "_cover.svg" }
 
 // listProjects serves GET /api/projects: the workspace's project labels with
 // live artifact counts, for filter chips.

@@ -25,6 +25,8 @@ type manifest struct {
 	// off for the artifact. Absent means "leave it as it is" (on for a new
 	// artifact).
 	CommentsEnabled *bool `json:"comments_enabled"`
+	// Omission preserves visibility on update; new artifacts default to public.
+	Visibility *string `json:"visibility"`
 	// Gallery labels. Omitted keys keep the current value on PUT; null clears
 	// project or cover. Project and Tags are validated into project and tags.
 	Project    optString  `json:"project"`
@@ -44,6 +46,9 @@ func parseManifest(raw []byte, lim config.Limits) (manifest, *apierr.Error) {
 	}
 	if len(m.Title) > 200 {
 		return m, apierr.Invalid("title exceeds 200 characters")
+	}
+	if m.Visibility != nil && *m.Visibility != "public" && *m.Visibility != "private" {
+		return m, apierr.Invalid("visibility must be public or private")
 	}
 	if len(m.Files) == 0 {
 		return m, apierr.Invalid("manifest has no files")

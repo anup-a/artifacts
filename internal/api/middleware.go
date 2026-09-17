@@ -26,6 +26,7 @@ func requestID(next http.Handler) http.Handler {
 
 func (s *server) withAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "private, no-store")
 		authHeader := r.Header.Get("Authorization")
 		tok := strings.TrimPrefix(authHeader, "Bearer ")
 		if tok == "" || tok == authHeader {
@@ -79,4 +80,12 @@ func clientIP(r *http.Request, trustProxy bool) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+// Comment responses may contain private metadata after a visibility change.
+func noStore(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		next(w, r)
+	}
 }

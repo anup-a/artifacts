@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/ids"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
@@ -33,15 +34,19 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("DELETE /api/artifacts/{id}", s.withAuth(s.deleteArtifact))
 	mux.HandleFunc("GET /api/artifacts/{id}/versions", s.withAuth(s.listVersions))
 	mux.HandleFunc("POST /api/artifacts/{id}/rollback/{version}", s.withAuth(s.rollback))
-	mux.HandleFunc("POST /c/{id}/comments", s.viewerCreateThread)
-	mux.HandleFunc("GET /c/{id}/comments", s.viewerList)
-	mux.HandleFunc("GET /c/{id}/meta", s.viewerMeta)
-	mux.HandleFunc("POST /c/{id}/comments/{thread}/reply", s.viewerReply)
-	mux.HandleFunc("POST /c/{id}/comments/{thread}/seen", s.viewerSeen)
+	mux.HandleFunc("POST /c/{id}/comments", noStore(s.viewerCreateThread))
+	mux.HandleFunc("GET /c/{id}/comments", noStore(s.viewerList))
+	mux.HandleFunc("GET /c/{id}/meta", noStore(s.viewerMeta))
+	mux.HandleFunc("POST /c/{id}/comments/{thread}/reply", noStore(s.viewerReply))
+	mux.HandleFunc("POST /c/{id}/comments/{thread}/seen", noStore(s.viewerSeen))
 	mux.HandleFunc("GET /api/artifacts/{id}/comments", s.withAuth(s.ownerListComments))
 	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/reply", s.withAuth(s.ownerReply))
 	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/resolve", s.withAuth(s.ownerResolve))
-	(&serve.Handler{Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime, ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin, OnView: d.OnView}).Register(mux)
+	var sessions *auth.Sessions
+	if d.Cfg.WebEnabled() {
+		sessions = &auth.Sessions{Store: d.Store, Now: d.Now, Secure: auth.SecureOrigin(d.Cfg.APIOrigin)}
+	}
+	(&serve.Handler{Sessions: sessions, Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime, ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin, OnView: d.OnView}).Register(mux)
 	if d.Web != nil {
 		d.Web(mux)
 		// The bare host root is not an API route: send people to the dashboard,

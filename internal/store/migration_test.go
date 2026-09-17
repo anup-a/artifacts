@@ -55,6 +55,9 @@ func TestV1TenantBackfill(t *testing.T) {
 		if !a.CommentsEnabled {
 			t.Fatalf("pre-existing artifacts must keep comments on: %+v", a)
 		}
+		if a.Visibility != "public" {
+			t.Fatalf("pre-existing artifacts must stay public: %+v", a)
+		}
 		if a.Project != nil || a.CoverPath != nil || a.CoverStyle != "" || a.Tags == nil || len(a.Tags) != 0 {
 			t.Fatalf("pre-existing artifacts must read back with empty gallery labels: %+v", a)
 		}

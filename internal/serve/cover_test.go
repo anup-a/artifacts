@@ -21,7 +21,7 @@ func TestGeneratedCover(t *testing.T) {
 	if res.StatusCode != 200 || res.Header.Get("Content-Type") != "image/svg+xml" {
 		t.Fatalf("%d %v", res.StatusCode, res.Header)
 	}
-	if res.Header.Get("Cache-Control") != "public, max-age=3600" || res.Header.Get("ETag") == "" || res.Header.Get("Content-Length") == "" {
+	if res.Header.Get("Cache-Control") != "no-cache" || res.Header.Get("ETag") == "" || res.Header.Get("Content-Length") == "" {
 		t.Fatalf("headers %v", res.Header)
 	}
 	if !strings.HasPrefix(body, "<svg") || !strings.Contains(body, "Hello &lt;world&gt;") {
@@ -88,7 +88,7 @@ func TestPublisherCoverAndRollbackFallback(t *testing.T) {
 	if res.StatusCode != 200 || body != png || res.Header.Get("Content-Type") != "image/png" {
 		t.Fatalf("publisher cover: %d %q %v", res.StatusCode, body, res.Header)
 	}
-	if res.Header.Get("ETag") != `"`+sha+`"` || res.Header.Get("Cache-Control") != "public, max-age=3600" {
+	if res.Header.Get("ETag") != `"`+sha+`"` || res.Header.Get("Cache-Control") != "no-cache" {
 		t.Fatalf("headers %v", res.Header)
 	}
 	if res2, _ := get(t, srv.URL+"/a/"+id+"/_cover.svg", map[string]string{"If-None-Match": `"` + sha + `"`}); res2.StatusCode != 304 {

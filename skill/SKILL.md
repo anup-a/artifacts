@@ -7,7 +7,7 @@ description: Use when writing, designing, or turning anything into an HTML artif
 
 Canonical copy: https://github.com/anup-a/agent-artifacts
 
-The hand-back is the published URL (`https://<share-host>/a/<id>/`). Chat markdown or a local HTML path is not done.
+The hand-back is the returned published URL (public: `https://<share-host>/a/<id>/`; private: `https://<api-host>/app/view/<id>/`). Chat markdown or a local HTML path is not done.
 
 **Publish by default.** If there is even a 1% chance this page gets opened again, publish it. Do not ask. Do not offer. Do it.
 
@@ -32,6 +32,16 @@ artifacts publish ./plan-site --title "Q3 plan" --project "Hi Travel" --tag plan
 ```
 
 Always pass `--project` and 1–3 `--tag`s. Output includes `url` — that is the deliverable. Republish from the **same directory** to keep the URL (`.artifacts.json` binds it). New directory = new link.
+
+Use `--private` when the user requests non-public or workspace-only access. Use
+`--public` only when public access is intended; the two flags are mutually
+exclusive. New artifacts default to public, and omitting both preserves visibility
+on republish. Return the API's `url` instead of constructing a share URL. Private
+links require a signed-in member of the owning workspace and separate app/share
+origins; they do not work for anonymous visitors or end-user portals. Private
+pages run in a sandbox without viewer commenting; owner comment management still
+works through the dashboard and CLI. Switching to public also exposes retained
+versions. Switching to private cannot revoke already downloaded copies.
 
 ## Design
 

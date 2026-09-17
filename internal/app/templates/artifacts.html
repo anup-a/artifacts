@@ -54,7 +54,7 @@
   {{range .Data.Rows}}
   <tr>
     <td class="c-title">
-      <a class="row-title" href="/app/artifacts/{{.Artifact.ID}}" data-peek><img class="thumb" src="{{.CoverURL}}" alt="" loading="lazy" width="44" height="26"><span class="truncate">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</span></a>
+      <a class="row-title" href="/app/artifacts/{{.Artifact.ID}}" data-peek><img class="thumb" src="{{.CoverURL}}" alt="" loading="lazy" width="44" height="26"><span class="truncate">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</span>{{template "visibility-badge" .Artifact}}</a>
     </td>
     <td class="c-project">{{if .Artifact.Project}}<a class="tile-project" href="{{$.Data.ChipURL (str .Artifact.Project)}}"><span class="dot" data-color="{{projectColor (str .Artifact.Project)}}"></span>{{str .Artifact.Project}}</a>{{else}}<span class="muted">—</span>{{end}}</td>
     <td class="c-id">

@@ -1,0 +1,152 @@
+package api
+
+import (
+	"context"
+	"errors"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/anup-a/artifacts/internal/store"
+)
+
+func TestPublishVisibilityLifecycle(t *testing.T) {
+	srv, d, tok := newTestServer(t, false)
+	files := []pubFile{{"index.html", "<p>private report</p>"}}
+	code, body := do(t, publishWith(t, "POST", srv.URL+"/api/artifacts", tok, map[string]any{"visibility": "private"}, files))
+	if code != 201 || body["visibility"] != "private" {
+		t.Fatalf("create: %d %v", code, body)
+	}
+	id := body["id"].(string)
+	privateURL := "http://api.test/app/view/" + id + "/"
+	if body["url"] != privateURL || body["cover_url"] != privateURL+"_cover.svg" {
+		t.Fatalf("private URLs: %v", body)
+	}
+	for _, change := range []struct {
+		fields     map[string]any
+		visibility string
+	}{
+		{nil, "private"},
+		{map[string]any{"visibility": "public"}, "public"},
+		{nil, "public"},
+		{map[string]any{"visibility": "private"}, "private"},
+	} {
+		code, body = do(t, publishWith(t, "PUT", srv.URL+"/api/artifacts/"+id, tok, change.fields, files))
+		if code != 200 || body["visibility"] != change.visibility {
+			t.Fatalf("update: %d %v", code, body)
+		}
+		wantURL := privateURL
+		if change.visibility == "public" {
+			wantURL = "http://share.test/a/" + id + "/"
+		}
+		if body["url"] != wantURL {
+			t.Fatalf("url: %v", body)
+		}
+	}
+	code, body = do(t, authReq(t, "GET", srv.URL+"/api/artifacts/"+id, tok))
+	if code != 200 || body["visibility"] != "private" || body["url"] != privateURL {
+		t.Fatalf("get: %d %v", code, body)
+	}
+	code, body = do(t, authReq(t, "GET", srv.URL+"/api/artifacts", tok))
+	if code != 200 {
+		t.Fatalf("list: %d %v", code, body)
+	}
+	if row := body["artifacts"].([]any)[0].(map[string]any); row["visibility"] != "private" || row["url"] != privateURL {
+		t.Fatalf("list row: %v", row)
+	}
+	code, body = do(t, authReq(t, "POST", srv.URL+"/api/artifacts/"+id+"/rollback/4", tok))
+	if code != 200 || body["visibility"] != "private" || body["url"] != privateURL {
+		t.Fatalf("rollback: %d %v", code, body)
+	}
+	other := mintKey(t, d, "personal")
+	code, _ = do(t, publishWith(t, "PUT", srv.URL+"/api/artifacts/"+id, other, map[string]any{"visibility": "public"}, files))
+	if code != 404 {
+		t.Fatalf("other workspace changed visibility: %d", code)
+	}
+	for _, bad := range []any{"", "PRIVATE", "unlisted", 42, true} {
+		code, body = do(t, publishWith(t, "PUT", srv.URL+"/api/artifacts/"+id, tok, map[string]any{"visibility": bad}, files))
+		if code != 400 {
+			t.Fatalf("invalid %v: %d %v", bad, code, body)
+		}
+	}
+	code, body = do(t, publishWith(t, "POST", srv.URL+"/api/artifacts", tok, nil, files))
+	if code != 201 || body["visibility"] != "public" {
+		t.Fatalf("default: %d %v", code, body)
+	}
+}
+
+// Inspect persisted visibility at the point new content becomes available and
+// simulate a failed version mutation. Restriction must survive a failure;
+// publication must wait for success.
+type visibilityVersionStore struct {
+	store.Store
+	t    *testing.T
+	want string
+	fail bool
+}
+
+func (s visibilityVersionStore) CreateArtifact(ctx context.Context, a store.Artifact) error {
+	if a.Visibility != s.want {
+		s.t.Fatalf("initial visibility: %q; want %q", a.Visibility, s.want)
+	}
+	if err := s.Store.CreateArtifact(ctx, a); err != nil {
+		return err
+	}
+	got, err := s.Store.Artifact(ctx, a.ID)
+	if err != nil || got.Visibility != s.want {
+		s.t.Fatalf("persisted initial visibility: %+v %v", got, err)
+	}
+	return nil
+}
+
+func TestPrivatePublishCreatedWithRestrictedVisibility(t *testing.T) {
+	_, d, tok := newTestServer(t, false)
+	d.Store = visibilityVersionStore{Store: d.Store, t: t, want: "private"}
+	h, err := NewHandler(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, publishWith(t, "POST", "/api/artifacts", tok,
+		map[string]any{"visibility": "private"}, []pubFile{{"index.html", "x"}}))
+	if w.Code != 201 {
+		t.Fatalf("create: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func (s visibilityVersionStore) AddVersion(ctx context.Context, v store.Version, files []store.File) error {
+	a, err := s.Store.Artifact(ctx, v.ArtifactID)
+	if err != nil || a.Visibility != s.want {
+		s.t.Fatalf("visibility before AddVersion: %+v %v; want %s", a, err, s.want)
+	}
+	if s.fail {
+		return errors.New("version write failed")
+	}
+	return s.Store.AddVersion(ctx, v, files)
+}
+
+func TestPublishVisibilityFailsClosed(t *testing.T) {
+	srv, d, tok := newTestServer(t, false)
+	code, body := do(t, publishWith(t, "POST", srv.URL+"/api/artifacts", tok, nil, []pubFile{{"index.html", "x"}}))
+	if code != 201 {
+		t.Fatalf("create: %d %v", code, body)
+	}
+	ctx := context.Background()
+	id := body["id"].(string)
+	for _, requested := range []string{"private", "public"} {
+		a, err := d.Store.Artifact(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		deps := d
+		deps.Store = visibilityVersionStore{Store: d.Store, t: t, want: "private", fail: true}
+		s := &server{Deps: deps}
+		_, _, e := s.publishVersion(ctx, a, manifest{Visibility: &requested, Files: []manifestFile{{Path: "index.html", SHA256: sha("x"), Size: 1}}})
+		if e == nil {
+			t.Fatal("expected injected failure")
+		}
+		got, err := d.Store.Artifact(ctx, id)
+		if err != nil || got.Visibility != "private" || got.CurrentVersion != 1 {
+			t.Fatalf("failed publish: %+v %v", got, err)
+		}
+	}
+}
