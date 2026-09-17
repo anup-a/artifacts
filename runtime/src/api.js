@@ -7,7 +7,12 @@ async function request(url, options) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(url, { ...options, signal: ctrl.signal, credentials: "omit" });
+    // same-origin, not omit: an artifact shared by code is read by someone
+    // holding an unlock cookie, and omitting it makes every viewer call 404
+    // for exactly the people the code was sent to. The cookie is HttpOnly,
+    // scoped to this artifact's own paths, and lives on the share origin,
+    // which never holds a dashboard session, so nothing ambient rides along.
+    const res = await fetch(url, { ...options, signal: ctrl.signal, credentials: "same-origin" });
     const text = await res.text();
     let body = null;
     try {

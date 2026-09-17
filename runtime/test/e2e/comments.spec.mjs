@@ -15,15 +15,27 @@ let server;
 let dataDir;
 
 /** Publish a directory of files, returning the new artifact id. */
-function publish(files, id) {
+function publish(files, id, { visibility } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "artifacts-e2e-"));
   for (const [name, body] of Object.entries(files)) {
     writeFileSync(join(dir, name), body);
   }
   const args = ["run", "./scripts/e2e-publish.go", BASE, TOKEN, dir];
   if (id) args.push(id);
-  const out = execFileSync("go", args, { cwd: REPO, encoding: "utf8" });
+  const env = visibility ? { ...process.env, ARTIFACT_VISIBILITY: visibility } : process.env;
+  const out = execFileSync("go", args, { cwd: REPO, encoding: "utf8", env });
   return JSON.parse(out).id;
+}
+
+/** Issue a share code for a private artifact, as its owner would. */
+async function shareCode(id) {
+  const res = await fetch(`${BASE}/api/artifacts/${id}/share-code`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "issue" }),
+  });
+  if (!res.ok) throw new Error(`share-code: ${res.status}`);
+  return (await res.json()).share_code;
 }
 
 test.beforeAll(async () => {
@@ -614,4 +626,36 @@ test("seen beacon reports anchor status back to the owner API", async ({ page })
       return body.threads[0].anchor_status;
     })
     .toBe("attached");
+});
+
+// A code holder is a viewer, so the comment runtime has to work for them. This
+// only fails in a browser: the runtime's own fetch decides whether the unlock
+// cookie is sent, and a server-side test sends it either way.
+test("an artifact opened with a share code can still be commented on", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html }, undefined, { visibility: "private" });
+  const code = await shareCode(id);
+
+  // No code: the gate, not the page.
+  await page.goto(`${BASE}/a/${id}/`);
+  await expect(page.locator("h1")).toContainText("Enter the code");
+
+  // With the code: the real page, and the runtime attached.
+  await page.goto(`${BASE}/a/${id}/?k=${code}`);
+  await expect(page).toHaveURL(`${BASE}/a/${id}/`);
+
+  await selectText(page, "#p2");
+  const shadow = page.locator("#artifacts-rt");
+  await shadow.locator(".fab").click();
+  await shadow.locator(".pop input").fill("Friend");
+  await shadow.locator(".pop textarea").fill("Opened with the code.");
+  await shadow.locator(".pop .send").click();
+
+  await expect(shadow.locator(".thread")).toContainText("Opened with the code.");
+
+  // And it persisted server side, rather than only appearing locally.
+  await page.reload();
+  await expect(page.locator("mark.artifacts-hl")).toHaveCount(1);
+  await shadow.locator(".launcher").click();
+  await expect(shadow.locator(".thread")).toContainText("Opened with the code.");
 });
