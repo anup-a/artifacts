@@ -14,6 +14,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -157,7 +158,10 @@ func (s *server) loadArtifactForViewer(r *http.Request, id string) (store.Artifa
 	if err != nil {
 		return a, apierr.Internal(err)
 	}
-	if a.Visibility == "private" {
+	// A private artifact answers the viewer routes only for someone who has
+	// presented its share code — the same reader the page itself was served
+	// to. Without that, a private artifact has no viewers at all.
+	if a.Visibility == "private" && !serve.Unlocked(r, a, s.Cfg.KeySecret) {
 		return a, apierr.NotFound("artifact")
 	}
 	if a.DeletedAt != nil {

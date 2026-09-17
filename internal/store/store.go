@@ -36,6 +36,11 @@ type Artifact struct {
 	CurrentVersion int
 	// Visibility is public or private. CreateArtifact defaults an empty value to public.
 	Visibility string
+	// ShareCode, when set on a private artifact, lets anyone holding it read
+	// the artifact without signing in. Empty means the artifact is reachable
+	// only as its visibility allows. Never render it to a viewer: it is the
+	// credential itself, not a label.
+	ShareCode string
 	// CommentsEnabled is whether viewers get the comment runtime and the
 	// /c/* routes. New artifacts start enabled; CreateArtifact ignores this
 	// field and SetCommentsEnabled changes it.
@@ -109,6 +114,7 @@ type Store interface {
 	UpdateTitle(ctx context.Context, id, title string) error
 	SetCommentsEnabled(ctx context.Context, id string, on bool) error
 	SetVisibility(ctx context.Context, id, visibility string) error
+	SetShareCode(ctx context.Context, id, code string) error
 	// SetMetadata replaces project, tags, cover path and cover style without
 	// touching updated_at: labels are not content.
 	SetMetadata(ctx context.Context, id string, project *string, tags []string, coverPath *string, coverStyle string) error

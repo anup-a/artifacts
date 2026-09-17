@@ -1,0 +1,25 @@
+{{define "content"}}
+<div class="auth-split">
+  {{template "auth-stage"}}
+  <section class="auth-panel">
+    <span class="brand auth-brand">{{template "icon" "mark"}}<span>Artifacts</span></span>
+    <div class="auth-body">
+      <h1>Enter the code</h1>
+      {{if .Data.Locked}}
+        <p>Too many wrong codes have been tried for this artifact. Wait a few minutes, then try again.</p>
+        <p class="muted">If you do not have the code, ask whoever shared the link.</p>
+      {{else}}
+        <p>This artifact was shared with a code. Enter the six digits you were sent.</p>
+        <form method="post" action="/a/{{.Data.ArtifactID}}/_unlock" class="gate-form">
+          <input type="text" name="code" inputmode="numeric" pattern="[0-9 -]*" autocomplete="one-time-code"
+                 maxlength="12" required autofocus aria-label="Six-digit code" placeholder="000000"
+                 class="gate-code{{if .Data.Wrong}} is-wrong{{end}}">
+          <button type="submit" class="btn primary">Open</button>
+        </form>
+        {{if .Data.Wrong}}<p class="gate-error" role="alert">That code did not match. Check the digits and try again.</p>{{end}}
+        <p class="muted">The code opens this artifact only. You will not need it again on this device for a while.</p>
+      {{end}}
+    </div>
+  </section>
+</div>
+{{end}}

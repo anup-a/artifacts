@@ -51,6 +51,30 @@ func NewKey() (string, string) {
 // NewToken returns 43 random base62 characters, about 256 bits of entropy.
 func NewToken() string { return base62(43) }
 
+// ShareCodeDigits is the length of a share code. Six digits is a million
+// possibilities, about 20 bits: short enough to read down a phone line, and
+// small enough that the server, not the code, is what stops a guesser. Every
+// unlock attempt is counted against the artifact, so this length is only safe
+// while that limit is in place — see serve.unlockGuard.
+const ShareCodeDigits = 6
+
+const digitMaxUnbiased = 256 - 256%10
+
+// NewShareCode returns a uniformly random six-digit code, "000000" included.
+// It is drawn from crypto/rand with the same rejection sampling as the ids: a
+// code biased towards low digits would shrink an already small space.
+func NewShareCode() string {
+	out := make([]byte, 0, ShareCodeDigits)
+	for len(out) < ShareCodeDigits {
+		for _, b := range random(ShareCodeDigits - len(out)) {
+			if int(b) < digitMaxUnbiased {
+				out = append(out, '0'+b%10)
+			}
+		}
+	}
+	return string(out)
+}
+
 func HashKey(plain string) string {
 	h := sha256.Sum256([]byte(plain))
 	return hex.EncodeToString(h[:])

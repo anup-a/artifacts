@@ -98,6 +98,35 @@ func (s visibilityVersionStore) CreateArtifact(ctx context.Context, a store.Arti
 	return nil
 }
 
+// The share code reaches the owner on the single-artifact read and nowhere
+// else. Listing is the response that ends up in logs and screen shares.
+func TestShareCodeOnlyOnSingleArtifactRead(t *testing.T) {
+	srv, d, tok := newTestServer(t, false)
+	code, body := do(t, publishWith(t, "POST", srv.URL+"/api/artifacts", tok,
+		map[string]any{"visibility": "private"}, []pubFile{{"index.html", "<p>x</p>"}}))
+	if code != 201 {
+		t.Fatalf("create: %d %v", code, body)
+	}
+	id := body["id"].(string)
+	if err := d.Store.SetShareCode(context.Background(), id, "481523"); err != nil {
+		t.Fatal(err)
+	}
+	_, got := do(t, authReq(t, "GET", srv.URL+"/api/artifacts/"+id, tok))
+	if got["share_code"] != "481523" {
+		t.Fatalf("owner cannot read the code back: %v", got)
+	}
+	if got["share_url"] == nil {
+		t.Fatalf("no one-click link for the owner: %v", got)
+	}
+	_, list := do(t, authReq(t, "GET", srv.URL+"/api/artifacts", tok))
+	for _, item := range list["artifacts"].([]any) {
+		m := item.(map[string]any)
+		if m["share_code"] != nil || m["share_url"] != nil {
+			t.Fatalf("listing carries the share code: %v", m)
+		}
+	}
+}
+
 func TestPrivatePublishCreatedWithRestrictedVisibility(t *testing.T) {
 	_, d, tok := newTestServer(t, false)
 	d.Store = visibilityVersionStore{Store: d.Store, t: t, want: "private"}

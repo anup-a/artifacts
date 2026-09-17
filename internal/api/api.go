@@ -9,6 +9,7 @@ import (
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/config"
 	"github.com/anup-a/artifacts/internal/ratelimit"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -28,6 +29,9 @@ type Deps struct {
 	// WebDeny renders the browser page for a refused private artifact address.
 	// Set it alongside Web; without it those addresses answer a bare 404.
 	WebDeny func(http.ResponseWriter, *http.Request)
+	// WebGate renders the page asking a viewer for an artifact's share code.
+	// Without it a code-shared artifact opens only by its one-click link.
+	WebGate func(http.ResponseWriter, *http.Request, serve.GateView)
 }
 
 type server struct {

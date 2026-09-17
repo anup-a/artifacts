@@ -67,7 +67,7 @@ func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.canView(r, a) {
-		h.refuse(w, r)
+		h.refuseOrGate(w, r, a, false)
 		return
 	}
 	if a.DeletedAt != nil {

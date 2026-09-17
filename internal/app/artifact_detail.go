@@ -11,6 +11,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/cover"
 	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -56,6 +57,10 @@ type artifactData struct {
 	Projects   []string
 	Styles     []string
 	CoverFiles []string
+	// ShareLink is the one-click form of the share code, code included. It is
+	// shown only to the owner, on this page, and is never stored anywhere a
+	// viewer can read.
+	ShareLink string
 }
 
 // artifactOpts is what a re-render after a form post carries besides the
@@ -104,6 +109,9 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	}
 	d := artifactData{Artifact: a, URL: h.artifactURL(a), CoverURL: h.artifactCoverURL(a), Error: o.Error, ErrThread: o.ErrThread,
 		Meta: metaFromArtifact(a), MetaError: o.MetaError, Styles: cover.Styles(), CoverFiles: coverFiles(files)}
+	if a.ShareCode != "" {
+		d.ShareLink = serve.ShareURL(h.Cfg.ShareOrigin, a.ID, a.ShareCode)
+	}
 	if o.Meta != nil {
 		d.Meta = *o.Meta
 	}
@@ -285,6 +293,45 @@ func (h *Handler) setVisibility(w http.ResponseWriter, r *http.Request, v *viewe
 			h.fail(w, r, err)
 			return
 		}
+	}
+	// A code only ever gates a private artifact. Going public makes it moot,
+	// so clear it rather than leave a live code on an artifact anyone can read
+	// — it would come back the moment the artifact went private again.
+	if visibility == "public" && a.ShareCode != "" {
+		if err := h.Store.SetShareCode(r.Context(), a.ID, ""); err != nil {
+			h.fail(w, r, err)
+			return
+		}
+	}
+	h.backToArtifact(w, r, v, a.ID, "#visibility")
+}
+
+// setShareCode issues, rotates, or withdraws an artifact's share code.
+// Issuing and rotating are the same operation: a fresh code, which is what
+// makes rotation a revocation — every link carrying the old one stops working,
+// and only for this artifact.
+func (h *Handler) setShareCode(w http.ResponseWriter, r *http.Request, v *viewer) {
+	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
+	if err != nil {
+		h.storeErr(w, r, err, "That artifact does not exist.")
+		return
+	}
+	code := ""
+	switch r.PostForm.Get("action") {
+	case "issue", "rotate":
+		if a.Visibility != "private" {
+			h.renderError(w, r, 400, "Only a private artifact can be shared with a code.")
+			return
+		}
+		code = ids.NewShareCode()
+	case "revoke":
+	default:
+		h.renderError(w, r, 400, "Choose whether to share this artifact with a code.")
+		return
+	}
+	if err := h.Store.SetShareCode(r.Context(), a.ID, code); err != nil {
+		h.fail(w, r, err)
+		return
 	}
 	h.backToArtifact(w, r, v, a.ID, "#visibility")
 }

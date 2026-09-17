@@ -62,6 +62,7 @@ func main() {
 		OnView:         func(id string) { views.Hit(id, now()) },
 		Web:            webApp.Register,
 		WebDeny:        webApp.DenyArtifactAccess,
+		WebGate:        webApp.GateArtifactAccess,
 	}
 	h, err := api.NewHandler(deps)
 	if err != nil {

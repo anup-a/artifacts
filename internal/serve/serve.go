@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/auth"
@@ -30,9 +31,26 @@ type Handler struct {
 	APIOrigin string
 	// OnView, when set, is called once per page view of an artifact's current
 	// index.html (200 or 304). Pinned versions and assets do not count.
-	OnView      func(artifactID string)
+	OnView func(artifactID string)
+	// Gate renders the page that asks a viewer for an artifact's share code.
+	// Nil leaves code-shared artifacts reachable only by the one-click link.
+	Gate func(w http.ResponseWriter, r *http.Request, g GateView)
+	// UnlockSecret keys the unlock cookie. Empty still works — the cookie is
+	// then only as unguessable as the code — so set it to KeySigningSecret.
+	UnlockSecret string
+	// Now is the clock the unlock guard meters attempts against.
+	Now         func() time.Time
+	unlock      *unlockGuard
 	runtimeETag string
 	runtimeRev  string // short content hash, cache-busts the injected script URL
+}
+
+// GateView is what the code page needs to render itself.
+type GateView struct {
+	ArtifactID string
+	// Wrong marks a submitted code that did not match, Locked a viewer who has
+	// run out of attempts on this artifact for now.
+	Wrong, Locked bool
 }
 
 func (h *Handler) Register(mux *http.ServeMux) {
@@ -40,8 +58,10 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	hexSum := hex.EncodeToString(sum[:])
 	h.runtimeETag = `"` + hexSum + `"`
 	h.runtimeRev = hexSum[:12]
+	h.unlock = newUnlockGuard(h.Now)
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
 	mux.HandleFunc("GET /skill.md", h.skill)
+	mux.HandleFunc("POST /a/{id}/"+unlockPath, h.publicArtifact(h.submitCode))
 	mux.HandleFunc("GET /a/{id}/"+coverPath, h.publicArtifact(h.cover))
 	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.publicArtifact(h.pinned))
 	mux.HandleFunc("GET /a/{id}/{path...}", h.publicArtifact(h.current))
@@ -124,8 +144,25 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
+	// A code on the link is spent before anything is served: it redirects to
+	// the clean URL, so the address the viewer keeps never holds the code.
+	// That applies even when this browser is already unlocked — otherwise
+	// following the link a second time would leave the code sitting in the
+	// address bar and the history of someone who never needed it again.
+	//
+	// Only an artifact that actually has a code is treated this way; on any
+	// other artifact "k" is just a query parameter the published page owns.
+	if a.DeletedAt == nil && !isPrivateViewer(r) && a.ShareCode != "" && r.URL.Query().Has(unlockParam) {
+		if h.unlocked(r, a) {
+			http.Redirect(w, r, "/a/"+a.ID+"/", http.StatusSeeOther)
+			return
+		}
+		if h.tryUnlock(w, r, a, r.URL.Query().Get(unlockParam)) {
+			return
+		}
+	}
 	if !h.canView(r, a) {
-		h.refuse(w, r)
+		h.refuseOrGate(w, r, a, isPageRequest(p))
 		return
 	}
 	if a.DeletedAt != nil {

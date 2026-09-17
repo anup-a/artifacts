@@ -27,12 +27,12 @@ func (s *sqlStore) CreateArtifact(ctx context.Context, a Artifact) error {
 	return err
 }
 
-const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility`
+const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility,a.share_code`
 
 func scanArtifact(row interface{ Scan(...any) error }) (Artifact, error) {
 	var a Artifact
 	var tags sql.NullString
-	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments, &a.Visibility)
+	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments, &a.Visibility, &a.ShareCode)
 	if err != nil {
 		return a, notFound(err)
 	}
@@ -53,6 +53,24 @@ func (s *sqlStore) SetVisibility(ctx context.Context, id, visibility string) err
 		return err
 	}
 	res, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET visibility=? WHERE id=?`), visibility, id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// SetShareCode stores or clears an artifact's share code. An empty code
+// revokes every link that carried the old one, and only for this artifact.
+// Like SetVisibility it leaves the content timestamp alone.
+func (s *sqlStore) SetShareCode(ctx context.Context, id, code string) error {
+	res, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET share_code=? WHERE id=?`), code, id)
 	if err != nil {
 		return err
 	}
