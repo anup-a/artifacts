@@ -61,6 +61,13 @@ type artifactData struct {
 	// shown only to the owner, on this page, and is never stored anywhere a
 	// viewer can read.
 	ShareLink string
+	// SendURL is the address to give somebody else, which is not always the
+	// address the owner opens. A private artifact opens for its owner on the
+	// account origin, but that link is useless to anyone outside the
+	// workspace, so once a share code exists the link worth copying is the
+	// public one carrying the code. SendLabel says which of those it is, so
+	// the field never silently hands over a link that will not work.
+	SendURL, SendLabel string
 }
 
 // artifactOpts is what a re-render after a form post carries besides the
@@ -109,8 +116,15 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	}
 	d := artifactData{Artifact: a, URL: h.artifactURL(a), CoverURL: h.artifactCoverURL(a), Error: o.Error, ErrThread: o.ErrThread,
 		Meta: metaFromArtifact(a), MetaError: o.MetaError, Styles: cover.Styles(), CoverFiles: coverFiles(files)}
+	d.SendURL, d.SendLabel = d.URL, "Share link"
+	if a.Visibility == "private" {
+		// Private and uncoded: the only people this link works for are signed-in
+		// members of the workspace. Say so rather than calling it a share link.
+		d.SendLabel = "Workspace link"
+	}
 	if a.ShareCode != "" {
 		d.ShareLink = serve.ShareURL(h.Cfg.ShareOrigin, a.ID, a.ShareCode)
+		d.SendURL, d.SendLabel = d.ShareLink, "Share link, code included"
 	}
 	if o.Meta != nil {
 		d.Meta = *o.Meta
