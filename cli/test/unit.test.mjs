@@ -283,6 +283,38 @@ test("publish --no-comments and --comments set comments_enabled in the manifest"
   );
 });
 
+test("publish visibility flags set the manifest and omission preserves server visibility", async (t) => {
+  const dir = tmp();
+  writeFileSync(join(dir, "index.html"), "<p>workspace report</p>");
+  writeLink(dir, { id: "artifact1234", api: "https://api.example", visibility: "public" });
+  for (const [argv, expected] of [
+    [["--private"], "private"],
+    [["--public"], "public"],
+    [[], undefined],
+  ]) {
+    const calls = [];
+    t.mock.method(globalThis, "fetch", async (url, options) => {
+      calls.push({ url, ...options });
+      return Response.json(url.pathname.endsWith("preflight") ? { missing: [] } : {
+        id: "artifact1234", url: "https://api.example/app/view/artifact1234/", version: 2,
+        visibility: expected ?? "private",
+      });
+    });
+    const result = await publish({ token: "t", api: "https://api.example" }, parseArgs(["publish", dir, ...argv]));
+    assert.equal(calls[1].method, "PUT");
+    assert.equal(JSON.parse(calls[0].body).visibility, expected);
+    assert.equal(JSON.parse(calls[1].body.get("manifest")).visibility, expected);
+    assert.equal(result.json.visibility, expected ?? "private");
+    assert.equal(result.json.url, "https://api.example/app/view/artifact1234/");
+  }
+  t.mock.method(globalThis, "fetch", () => { throw new Error("must reject before networking"); });
+  await assert.rejects(
+    () => publish({ token: "t", api: "https://api.example" }, parseArgs(["publish", dir, "--private", "--public"])),
+    /--private and --public are mutually exclusive/,
+  );
+  assert.throws(() => parseArgs(["publish", dir, "--private=true"]), /does not take a value/);
+});
+
 test("list filters by an opaque end user and returns the API JSON unchanged", async (t) => {
   const response = { artifacts: [{ id: "artifact1234", end_user: "customer/42?scope=1", current_version: 2 }] };
   let requested;

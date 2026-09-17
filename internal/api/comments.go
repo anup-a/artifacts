@@ -157,6 +157,9 @@ func (s *server) loadArtifactForViewer(r *http.Request, id string) (store.Artifa
 	if err != nil {
 		return a, apierr.Internal(err)
 	}
+	if a.Visibility == "private" {
+		return a, apierr.NotFound("artifact")
+	}
 	if a.DeletedAt != nil {
 		return a, apierr.Gone()
 	}

@@ -18,10 +18,6 @@ import (
 // coverPath is the file name under /a/{id}/ that serves the cover image.
 const coverPath = "_cover.svg"
 
-// coverCacheControl: a generated cover is a pure function of its inputs and a
-// publisher cover changes only with a publish, so an hour is a safe window.
-const coverCacheControl = "public, max-age=3600"
-
 // CoverURL is the absolute cover address for an artifact on the share origin.
 func CoverURL(shareOrigin, id string) string {
 	return shareOrigin + "/a/" + id + "/" + coverPath
@@ -59,7 +55,7 @@ func coverETag(c cover.Card) string {
 // resolves in the current version, else a generated cover. Missing and
 // deleted artifacts answer like pages (404 / 410).
 func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
-	h.securityHeaders(w)
+	h.securityHeaders(w, r)
 	id := r.PathValue("id")
 	a, err := h.Store.Artifact(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
@@ -68,6 +64,11 @@ func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	if !h.canView(r, a) {
+		w.Header().Set("Cache-Control", "private, no-store")
+		apierr.Write(w, r, apierr.NotFound("artifact"))
 		return
 	}
 	if a.DeletedAt != nil {
@@ -81,7 +82,7 @@ func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
 	card := h.coverCard(a)
 	etag := coverETag(card)
 	w.Header().Set("ETag", etag)
-	w.Header().Set("Cache-Control", coverCacheControl)
+	h.artifactCacheHeaders(w, r)
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(304)
 		return
@@ -114,7 +115,7 @@ func (h *Handler) publisherCover(r *http.Request, a store.Artifact) *store.File 
 func (h *Handler) streamCover(w http.ResponseWriter, r *http.Request, f store.File) {
 	etag := `"` + f.SHA256 + `"`
 	w.Header().Set("ETag", etag)
-	w.Header().Set("Cache-Control", coverCacheControl)
+	h.artifactCacheHeaders(w, r)
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(304)
 		return

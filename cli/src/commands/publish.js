@@ -5,17 +5,18 @@ import { apiJson } from "../client.js";
 import { collectFiles, readLink, writeLink } from "../files.js";
 import { CliError, usage } from "../errors.js";
 
-const USAGE = "usage: artifacts publish <dir|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--comments|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]";
+const USAGE = "usage: artifacts publish <dir|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--private|--public] [--comments|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]";
 
 // Image types the server will stream as a cover.
 const COVER_EXTS = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp"]);
 
 // comments is true/false for --comments/--no-comments, undefined when neither
 // is given so the server leaves the artifact's switch alone.
-function manifestOf(files, title, comments, labels) {
+function manifestOf(files, title, comments, labels, visibility) {
   const m = { files: files.map((f) => ({ path: f.path, sha256: f.sha256, size: f.size })) };
   if (title) m.title = title;
   if (comments !== undefined) m.comments_enabled = comments;
+  if (visibility !== undefined) m.visibility = visibility;
   if (labels.project !== undefined) m.project = labels.project;
   if (labels.tags !== undefined) m.tags = labels.tags;
   if (labels.cover !== undefined) m.cover = labels.cover;
@@ -79,6 +80,8 @@ export function labelsOf(flags, link) {
 export async function publish(cfg, { positional, flags }) {
   const target = positional[0];
   if (!target) throw usage(USAGE);
+  if (flags.private && flags.public) throw usage("--private and --public are mutually exclusive");
+  const visibility = flags.private ? "private" : flags.public ? "public" : undefined;
 
   const collected = collectFiles(target);
   const dir = collected.dir;
@@ -86,7 +89,7 @@ export async function publish(cfg, { positional, flags }) {
   const labels = labelsOf(flags, link.api === cfg.api ? link : {});
   const { cover, files } = resolveCover(flags.cover, dir, collected.files);
   if (cover !== undefined) labels.cover = cover;
-  const manifest = manifestOf(files, flags.title, commentsFlag(flags), labels);
+  const manifest = manifestOf(files, flags.title, commentsFlag(flags), labels, visibility);
 
   // The link file only applies when it was written against this same API, so a
   // directory published to a staging server does not silently update production.
@@ -125,6 +128,7 @@ export async function publish(cfg, { positional, flags }) {
   return {
     json: {
       id: res.id, url: res.url, version: res.version, end_user: res.end_user, comments_enabled: commentsOn,
+      visibility: res.visibility ?? "public",
       project: project ?? null, tags, cover_url: res.cover_url, cover_style: res.cover_style,
       files: files.length, bytes, uploaded: sent.size,
     },
@@ -132,6 +136,7 @@ export async function publish(cfg, { positional, flags }) {
       `${res.url}`,
       `version ${res.version}, ${files.length} files, ${bytes} bytes, ${sent.size} uploaded${commentsOn ? "" : ", comments off"}`,
       ...(labelLine ? [labelLine] : []),
+      ...(res.visibility === "private" ? ["private — sign in to the owning workspace to view"] : []),
     ],
   };
 }

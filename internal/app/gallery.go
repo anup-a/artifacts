@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/anup-a/artifacts/internal/cover"
-	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -39,7 +38,7 @@ type sectionView struct {
 }
 
 func (h *Handler) card(a store.Artifact) cardView {
-	c := cardView{Artifact: a, URL: h.shareURL(a.ID), CoverURL: serve.CoverURL(h.Cfg.ShareOrigin, a.ID), Project: deref(a.Project), Tags: a.Tags}
+	c := cardView{Artifact: a, URL: h.artifactURL(a), CoverURL: h.artifactCoverURL(a), Project: deref(a.Project), Tags: a.Tags}
 	c.Color = cover.ProjectColor(c.Project)
 	if len(c.Tags) > maxCardTags {
 		c.Tags = c.Tags[:maxCardTags]

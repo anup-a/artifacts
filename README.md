@@ -86,7 +86,7 @@ artifacts publish ./site --title "Hello" --json
 | Command | What it does |
 | --- | --- |
 | `login --api <url> [--token <key>]` | Verifies a key created at `<url>/app/keys`, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
-| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--comments\|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
+| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--private\|--public] [--comments\|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
 | `get <id>` | URL, title, current version, open comment count, project and tags |
 | `list [--end-user <id>] [--project <name>]` | Workspace artifacts, optionally filtered to one customer or one project; prints project and tags |
 | `whoami` | Current tenant ID, kind and name, plus the key ID and name |
@@ -103,9 +103,31 @@ Config comes from `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else
 one JSON object on stdout; errors print one JSON object on stderr and exit
 non-zero (2 for usage and configuration problems, 1 for a failed call).
 Publish and list JSON include `end_user`, the external ID or `null`, plus
-`project`, `tags`, `cover_url` and `cover_style`.
+`visibility` (`public` or `private`), `project`, `tags`, `cover_url` and `cover_style`.
 `portal-link --json` returns `{url, expires_at}`; its default output is just
 the URL. `whoami --json` returns `{tenant:{id,kind,name},key:{id,name}}`.
+
+Use `artifacts publish ./site --private` for workspace-only viewing, and
+`artifacts publish ./site --public` to make it public. These flags are mutually
+exclusive. New artifacts default to public; republishing without either flag
+preserves the server's current visibility, including changes made in the dashboard.
+The API manifest accepts `"visibility":"private"` or `"visibility":"public"`;
+omission preserves it on update, and other string values are rejected.
+
+Private publish/get/list responses return an app-origin URL,
+`<PUBLIC_API_ORIGIN>/app/view/<id>/`, and an authenticated `cover_url` under that
+path. Open the URL while signed in to the owning workspace. Other workspaces,
+anonymous visitors, end-user portals, and public `/a/` and `/c/` routes cannot
+retrieve private content, including pinned versions, assets, covers, or viewer
+comments. Private viewing requires separate app and share origins. The browser
+viewer is sandboxed and has no viewer comment panel; owners can still manage
+comments through the dashboard and authenticated API. API keys publish and manage
+private artifacts but do not authenticate the browser viewer.
+
+Private responses use `Cache-Control: private, no-store`. Public artifact content
+requires cache revalidation so changing visibility blocks subsequent requests.
+Making an artifact private cannot revoke copies already downloaded or cached
+before this upgrade. Making it public exposes its retained versions as well.
 
 Publishing a directory writes `<dir>/.artifacts.json` with the artifact id and
 the API it belongs to, so the next `publish` of that directory updates the same
@@ -138,9 +160,9 @@ take no auth; the artifact id is the capability.
 | `GET` | `/api/me` | `{tenant:{id,kind,name},key:{id,name}}`. |
 | `POST` | `/api/end-users/{external_id}/portal-link` | `{url,expires_at}`. Integrator tenant required; URL uses the API origin and lasts seven days. |
 | `POST` | `/api/artifacts/preflight` | `{files:[{path, sha256, size}]}` → `{missing:[sha256]}`. Lets the CLI upload only new blobs. |
-| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, comments_enabled?, project?, tags?, cover?, cover_style?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user,comments_enabled,project,tags,cover,cover_url,cover_style}`. Requires root `index.html`. `project` is 1 to 64 characters (trimmed; `null` or empty clears), `tags` up to 10 strings of 1 to 32 characters (lowercased, deduplicated), `cover` the path of an svg/png/jpg/webp in the same manifest, `cover_style` one of `dots`, `grid`, `lines`, `wash`, `rings`, `plain`. Bad values return 400 `INVALID_ARGUMENT` naming the field. |
-| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version, same URL; returns the same shape with `version:n`. A different end user returns 403 `FORBIDDEN`. `comments_enabled` (boolean, optional) switches viewer comments; omitted keeps the current setting. Omitted `project`, `tags`, `cover` and `cover_style` keep their values; `null` clears `project` or `cover`, `[]` clears `tags`. |
-| `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, comments_enabled, end_user, project, tags, cover, cover_url, cover_style, created_at, updated_at, published_at}`. `published_at` equals `created_at`; `cover_style` is the effective generator name even when the publisher never chose one. |
+| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, visibility?, comments_enabled?, project?, tags?, cover?, cover_style?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user,visibility,comments_enabled,project,tags,cover,cover_url,cover_style}`. Requires root `index.html`. `project` is 1 to 64 characters (trimmed; `null` or empty clears), `tags` up to 10 strings of 1 to 32 characters (lowercased, deduplicated), `cover` the path of an svg/png/jpg/webp in the same manifest, `cover_style` one of `dots`, `grid`, `lines`, `wash`, `rings`, `plain`. Bad values return 400 `INVALID_ARGUMENT` naming the field. |
+| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version; returns the same shape with `version:n`. A different end user returns 403 `FORBIDDEN`. `comments_enabled` (boolean, optional) switches viewer comments; omitted keeps the current setting. Omitted `project`, `tags`, `cover` and `cover_style` keep their values; `null` clears `project` or `cover`, `[]` clears `tags`. |
+| `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, visibility, comments_enabled, end_user, project, tags, cover, cover_url, cover_style, created_at, updated_at, published_at}`. `published_at` equals `created_at`; `cover_style` is the effective generator name even when the publisher never chose one. |
 | `GET` | `/api/artifacts?limit&cursor&end_user&project` | Tenant's artifacts, newest first. Items have the same shape as `GET /api/artifacts/:id`; `end_user` is an external ID or `null`; `project` filters by exact label. |
 | `GET` | `/api/projects` | `{projects:[{name,count}]}`: the workspace's project labels with live artifact counts, most used first. |
 | `DELETE` | `/api/artifacts/:id` | Soft delete; page returns 410; blobs GC'd later. |
@@ -149,7 +171,7 @@ take no auth; the artifact id is the capability.
 | `GET` | `/api/artifacts/:id/comments?status=open\|resolved\|all&since=<rfc3339>` | Threads with anchors, `anchor_status`, version. |
 | `POST` | `/api/artifacts/:id/comments/:thread/reply` | `{body}` → owner reply, displayed as "Author". |
 | `POST` | `/api/artifacts/:id/comments/:thread/resolve` | Marks resolved. |
-| `POST` | `/c/:id/comments` | Viewer. `{author_name, body, anchor, version}` → thread. `Idempotency-Key` header honoured. Every `/c/*` route answers 404 while the artifact's `comments_enabled` is false; owner routes keep working so old threads stay readable. |
+| `POST` | `/c/:id/comments` | Viewer. `{author_name, body, anchor, version}` → thread. `Idempotency-Key` header honoured. Every `/c/*` route answers 404 while the artifact is private or its `comments_enabled` is false; owner routes keep working so old threads stay readable. |
 | `POST` | `/c/:id/comments/:thread/reply` | Viewer. `{author_name, body}`. |
 | `POST` | `/c/:id/comments/:thread/seen` | Viewer beacon. `{version, anchor_status}` → 204. Records where the runtime re-anchored the thread; ignored unless `version` is the current one. |
 | `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does. |
@@ -172,7 +194,7 @@ key creation to 20/hour per tenant; portal links to 60/minute per tenant.
 ## Comments runtime
 
 Every served HTML page gets `<script src="/_rt/comments.js" data-artifact="…" data-version="…" defer>`
-injected before `</body>`, unless comments are switched off for that artifact
+injected before `</body>` on public artifacts, unless comments are switched off for that artifact
 (`artifacts publish --no-comments`, `comments_enabled:false` in the manifest,
 or the Comments switch on the dashboard's artifact page), in which case the
 page is served exactly as published. The runtime is vanilla JS with no dependencies, lives

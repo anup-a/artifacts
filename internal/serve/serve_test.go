@@ -96,11 +96,11 @@ func TestServeCurrentAndPinned(t *testing.T) {
 	if !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") || res.Header.Get("Content-Security-Policy") == "" || res.Header.Get("ETag") == "" {
 		t.Fatalf("headers %v", res.Header)
 	}
-	if res.Header.Get("Cache-Control") != "public, max-age=60" {
+	if res.Header.Get("Cache-Control") != "no-cache" {
 		t.Fatal(res.Header.Get("Cache-Control"))
 	}
 	res, body = get(t, srv.URL+"/a/"+id+"/v/1/", nil)
-	if res.StatusCode != 200 || !strings.Contains(body, "one") || !strings.Contains(res.Header.Get("Cache-Control"), "immutable") {
+	if res.StatusCode != 200 || !strings.Contains(body, "one") || res.Header.Get("Cache-Control") != "no-cache" {
 		t.Fatalf("%d %s %v", res.StatusCode, body, res.Header)
 	}
 	res, body = get(t, srv.URL+"/a/"+id+"/v/1/s/a.css", nil)

@@ -33,6 +33,7 @@
       <div class="detail-meta">
         <span class="chip"><code>{{$a.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{$a.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
         <span class="badge mono">v{{$a.CurrentVersion}}</span>
+        {{template "visibility-badge" $a}}
         {{if $a.Project}}<a class="tile-project" href="/app/artifacts?project={{str $a.Project}}"><span class="dot" data-color="{{projectColor (str $a.Project)}}"></span>{{str $a.Project}}</a>{{end}}
         {{if $a.Tags}}<span class="tile-tags">{{range $a.Tags}}<span class="tag">{{.}}</span>{{end}}</span>{{end}}
         {{if $a.EndUser}}<span class="meta-item">End user <a class="link" href="/app/artifacts?end_user={{str $a.EndUser}}">{{str $a.EndUser}}</a></span>{{end}}
@@ -41,14 +42,32 @@
       </div>
     </div>
     <div class="share-row">
-      <label class="share-label" for="share-url">Share link</label>
+      <label class="share-label" for="share-url">{{if eq $a.Visibility "private"}}Private link{{else}}Share link{{end}}</label>
       <div class="copyrow">
-        <input type="text" readonly value="{{.Data.URL}}" id="share-url" aria-label="Share link">
+        <input type="text" readonly value="{{.Data.URL}}" id="share-url" aria-label="{{if eq $a.Visibility "private"}}Private link{{else}}Share link{{end}}">
         <button type="button" class="btn" data-copy="#share-url">{{template "icon" "copy"}} Copy</button>
         <a class="btn" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
       </div>
     </div>
   </header>
+
+  <section class="card" id="visibility">
+    <div class="card-head"><h2>Visibility</h2></div>
+    <div class="setting-row visibility-setting">
+      <div class="setting-text">
+        <strong>{{if eq $a.Visibility "private"}}Private{{else}}Public{{end}}</strong>
+        <p class="muted">Private artifacts are only visible to signed-in members of the owning workspace. Public artifacts are visible to anyone with the link.</p>
+      </div>
+      <form method="post" action="/app/artifacts/{{$a.ID}}/visibility" class="switch-form">
+        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+        <select name="visibility" aria-label="Artifact visibility">
+          <option value="public"{{if ne $a.Visibility "private"}} selected{{end}}>Public</option>
+          <option value="private"{{if eq $a.Visibility "private"}} selected{{end}}>Private</option>
+        </select>
+        <button type="submit" class="btn small">Save visibility</button>
+      </form>
+    </div>
+  </section>
 
   <section class="card preview-card">
     <div class="card-head">
@@ -144,17 +163,17 @@
     <div class="setting-row" id="comments-setting">
       <div class="setting-text">
         <strong>Viewer comments</strong>
-        <p class="muted">Show the comment panel on the published page and accept new threads from anyone with the link.</p>
+        <p class="muted">{{if eq $a.Visibility "private"}}Viewer comments are unavailable while this artifact is private. Existing threads remain readable and you can reply here.{{else}}Show the comment panel on the published page and accept new threads from anyone with the link.{{end}}</p>
       </div>
-      <form method="post" action="/app/artifacts/{{$a.ID}}/comments-enabled" class="switch-form">
+      {{if ne $a.Visibility "private"}}<form method="post" action="/app/artifacts/{{$a.ID}}/comments-enabled" class="switch-form">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
         <input type="hidden" name="enabled" value="{{if $a.CommentsEnabled}}0{{else}}1{{end}}">
         <span class="switch-state">{{if $a.CommentsEnabled}}On{{else}}Off{{end}}</span>
         <button type="submit" class="switch{{if $a.CommentsEnabled}} is-on{{end}}" role="switch" aria-checked="{{if $a.CommentsEnabled}}true{{else}}false{{end}}" aria-label="Viewer comments" title="{{if $a.CommentsEnabled}}Turn comments off{{else}}Turn comments on{{end}}"><span class="switch-knob"></span></button>
-      </form>
+      </form>{{end}}
     </div>
 
-    {{if not $a.CommentsEnabled}}
+    {{if and (ne $a.Visibility "private") (not $a.CommentsEnabled)}}
     <p class="card-note muted">{{template "icon" "comment"}}Comments are off for this artifact. Viewers do not see the comment panel; existing threads stay here.</p>
     {{end}}
     {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
@@ -163,7 +182,7 @@
     <div class="threads">
       {{range .Data.Open}}{{template "thread" (dict $ .)}}{{end}}
     </div>
-    {{else if $a.CommentsEnabled}}
+    {{else if and (ne $a.Visibility "private") $a.CommentsEnabled}}
     <p class="card-empty">No open comments. Viewers select text on the page and leave notes; they show up here.</p>
     {{end}}
 

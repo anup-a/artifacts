@@ -20,7 +20,7 @@ func (s *server) artifactView(r *http.Request, a store.Artifact) (map[string]any
 	}
 	out := s.galleryFields(a)
 	for k, v := range map[string]any{
-		"id": a.ID, "title": a.Title, "url": s.artifactURL(a.ID), "current_version": a.CurrentVersion,
+		"id": a.ID, "title": a.Title, "url": s.artifactViewURL(a), "current_version": a.CurrentVersion,
 		"versions_count": len(vs), "open_comments": open, "comments_enabled": a.CommentsEnabled, "end_user": a.EndUser,
 		"created_at": a.CreatedAt, "updated_at": a.UpdatedAt, "published_at": a.CreatedAt,
 	} {
@@ -161,5 +161,5 @@ func (s *server) rollback(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "url": s.artifactURL(a.ID), "version": v})
+	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "url": s.artifactViewURL(a), "version": v, "visibility": a.Visibility})
 }

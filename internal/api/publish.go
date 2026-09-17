@@ -16,6 +16,13 @@ import (
 
 func (s *server) artifactURL(id string) string { return s.Cfg.ShareOrigin + "/a/" + id + "/" }
 
+func (s *server) artifactViewURL(a store.Artifact) string {
+	if a.Visibility == "private" {
+		return s.Cfg.APIOrigin + "/app/view/" + a.ID + "/"
+	}
+	return s.artifactURL(a.ID)
+}
+
 // ownedArtifact loads the artifact and checks ownership. Deleted → GONE.
 func (s *server) ownedArtifact(r *http.Request, id string) (store.Artifact, *apierr.Error) {
 	k, _ := KeyFrom(r.Context())
@@ -169,6 +176,14 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 		total += f.Size
 	}
 	v := store.Version{ArtifactID: a.ID, Version: a.CurrentVersion + 1, CreatedAt: s.Now(), Bytes: total, FileCount: len(files)}
+	// Restrict access before storing any new content. If publishing later fails,
+	// the artifact stays private rather than exposing the attempted update.
+	if m.Visibility != nil && *m.Visibility == "private" && a.Visibility != "private" {
+		if err := s.Store.SetVisibility(ctx, a.ID, "private"); err != nil {
+			return a, 0, apierr.Internal(err)
+		}
+		a.Visibility = "private"
+	}
 	if err := s.Store.AddVersion(ctx, v, files); err != nil {
 		if errors.Is(err, store.ErrBlobMissing) {
 			return a, 0, apierr.Invalid("missing blob")
@@ -193,6 +208,13 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 	}
 	if _, err := s.Store.PruneVersions(ctx, a.ID, s.Cfg.Limits.VersionsKept); err != nil {
 		return a, 0, apierr.Internal(err)
+	}
+	// Making content public is the final step, only after all publish mutations succeed.
+	if m.Visibility != nil && *m.Visibility == "public" && a.Visibility != "public" {
+		if err := s.Store.SetVisibility(ctx, a.ID, "public"); err != nil {
+			return a, 0, apierr.Internal(err)
+		}
+		a.Visibility = "public"
 	}
 	a.CurrentVersion = v.Version
 	return a, v.Version, nil
@@ -234,7 +256,10 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	now := s.Now()
 	// CommentsEnabled mirrors the column default; the manifest may switch it off below.
-	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, CommentsEnabled: true, CreatedAt: now, UpdatedAt: now}
+	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, Visibility: "public", CommentsEnabled: true, CreatedAt: now, UpdatedAt: now}
+	if m.Visibility != nil {
+		a.Visibility = *m.Visibility
+	}
 	a, e = s.attachEndUser(r, a, k.TenantID, external)
 	if e != nil {
 		apierr.Write(w, r, e)
@@ -254,7 +279,7 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) publishResponse(a store.Artifact, version int) map[string]any {
 	out := s.galleryFields(a)
-	out["id"], out["url"], out["version"], out["end_user"], out["comments_enabled"] = a.ID, s.artifactURL(a.ID), version, a.EndUser, a.CommentsEnabled
+	out["id"], out["url"], out["version"], out["end_user"], out["comments_enabled"] = a.ID, s.artifactViewURL(a), version, a.EndUser, a.CommentsEnabled
 	return out
 }
 

@@ -21,6 +21,7 @@ export async function get(cfg, { positional }) {
     human: [
       `${a.id}  ${a.title || "(untitled)"}`,
       `${a.url}`,
+      `visibility ${a.visibility || "public"}`,
       `version ${a.current_version} of ${a.versions_count}, ${a.open_comments} open comments${a.comments_enabled === false ? " (comments off)" : ""}`,
       ...(labels ? [labels] : []),
       `updated ${a.updated_at}`,
@@ -38,7 +39,7 @@ export async function list(cfg, { flags }) {
     human: rows.length
       ? rows.map((a) => {
         const labels = labelsOf(a);
-        return `${a.id}  v${a.current_version}  ${a.open_comments} open  ${a.title || "(untitled)"}${labels ? `  [${labels}]` : ""}`;
+        return `${a.id}  v${a.current_version}  ${a.open_comments} open  ${a.title || "(untitled)"}${a.visibility === "private" ? "  [private]" : ""}${labels ? `  [${labels}]` : ""}`;
       })
       : ["no artifacts"],
   };

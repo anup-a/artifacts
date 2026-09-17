@@ -28,6 +28,7 @@ const help = (api) => `artifacts - publish a page, share the URL, read the comme
 Usage:
   artifacts login --api <url> [--token <key>]
   artifacts publish <dir|file.html> [--id <id>] [--title <t>] [--end-user <id>]
+                    [--private|--public]
                     [--comments|--no-comments] [--project <name>] [--tag <t>]...
                     [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
   artifacts get <id>
@@ -51,6 +52,11 @@ include end_user. portal-link is for integrator workspaces; links last 7 days.
 comment API for that artifact; --comments turns it back on. Without either,
 a republish keeps the current setting (new artifacts start with comments on).
 Artifact JSON carries comments_enabled.
+--private restricts viewing to the signed-in owning workspace; --public makes
+the artifact publicly accessible. Omit both to preserve visibility on republish;
+new artifacts default to public. Artifact JSON carries visibility. Private URLs
+open on the app origin and require sign-in; private pages have no viewer comment
+panel. Owner comments remain available in the dashboard and API.
 --project (1-64 chars) and --tag (repeatable, 1-32 chars, up to 10) label the
 artifact for the dashboard gallery; list --project filters by label. The
 directory's .artifacts.json remembers project and tags, so a republish keeps

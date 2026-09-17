@@ -271,7 +271,7 @@ test("publish --project/--tag/--cover labels the artifact, serves the cover and 
   const cover = await fetch(`${BASE}/a/${pub.id}/_cover.svg`);
   assert.equal(cover.status, 200);
   assert.equal(cover.headers.get("content-type"), "image/svg+xml");
-  assert.equal(cover.headers.get("cache-control"), "public, max-age=3600");
+  assert.equal(cover.headers.get("cache-control"), "no-cache");
   assert.match(await cover.text(), /fill="#123"/);
 
   const page = await (await fetch(`${BASE}/a/${pub.id}/`)).text();

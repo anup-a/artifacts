@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -69,6 +68,19 @@ func (h *Handler) shareURL(id string) string {
 	return h.Cfg.ShareOrigin + "/a/" + id + "/"
 }
 
+// artifactURL keeps private pages on the account origin, where the owner's
+// browser session is available even when public sharing uses another origin.
+func (h *Handler) artifactURL(a store.Artifact) string {
+	if a.Visibility == "private" {
+		return h.Cfg.APIOrigin + "/app/view/" + a.ID + "/"
+	}
+	return h.shareURL(a.ID)
+}
+
+func (h *Handler) artifactCoverURL(a store.Artifact) string {
+	return h.artifactURL(a) + "_cover.svg"
+}
+
 func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 	q := r.URL.Query()
 	f := store.ArtifactFilter{Limit: pageSize + 1, Query: q.Get("q"), Project: q.Get("project")}
@@ -113,7 +125,7 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 		}
 	}
 	for _, a := range older {
-		d.Rows = append(d.Rows, artifactRow{Artifact: a, URL: h.shareURL(a.ID), CoverURL: serve.CoverURL(h.Cfg.ShareOrigin, a.ID)})
+		d.Rows = append(d.Rows, artifactRow{Artifact: a, URL: h.artifactURL(a), CoverURL: h.artifactCoverURL(a)})
 	}
 	h.render(w, r, 200, "artifacts", "Artifacts", v, d)
 }

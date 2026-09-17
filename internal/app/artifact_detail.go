@@ -11,7 +11,6 @@ import (
 
 	"github.com/anup-a/artifacts/internal/cover"
 	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -103,7 +102,7 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 		h.fail(w, r, err)
 		return
 	}
-	d := artifactData{Artifact: a, URL: h.shareURL(a.ID), CoverURL: serve.CoverURL(h.Cfg.ShareOrigin, a.ID), Error: o.Error, ErrThread: o.ErrThread,
+	d := artifactData{Artifact: a, URL: h.artifactURL(a), CoverURL: h.artifactCoverURL(a), Error: o.Error, ErrThread: o.ErrThread,
 		Meta: metaFromArtifact(a), MetaError: o.MetaError, Styles: cover.Styles(), CoverFiles: coverFiles(files)}
 	if o.Meta != nil {
 		d.Meta = *o.Meta
@@ -266,6 +265,28 @@ func (h *Handler) setCommentsEnabled(w http.ResponseWriter, r *http.Request, v *
 		}
 	}
 	h.backToArtifact(w, r, v, a.ID, "#comments")
+}
+
+// setVisibility changes who can read an artifact without changing its
+// versions, comments, or saved viewer-comment preference.
+func (h *Handler) setVisibility(w http.ResponseWriter, r *http.Request, v *viewer) {
+	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
+	if err != nil {
+		h.storeErr(w, r, err, "That artifact does not exist.")
+		return
+	}
+	visibility := r.PostForm.Get("visibility")
+	if visibility != "public" && visibility != "private" {
+		h.renderError(w, r, 400, "Choose Public or Private.")
+		return
+	}
+	if visibility != a.Visibility {
+		if err := h.Store.SetVisibility(r.Context(), a.ID, visibility); err != nil {
+			h.fail(w, r, err)
+			return
+		}
+	}
+	h.backToArtifact(w, r, v, a.ID, "#visibility")
 }
 
 // ownedThread loads a thread that belongs to one of the viewer's artifacts.

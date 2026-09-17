@@ -10,12 +10,14 @@ import (
 	"strings"
 
 	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/store"
 	"github.com/anup-a/artifacts/skill"
 )
 
 type Handler struct {
+	Sessions    *auth.Sessions
 	Store       store.Store
 	Blobs       blob.Store
 	Runtime     []byte
@@ -37,9 +39,14 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	h.runtimeRev = hexSum[:12]
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
 	mux.HandleFunc("GET /skill.md", h.skill)
-	mux.HandleFunc("GET /a/{id}/"+coverPath, h.cover)
-	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.pinned)
-	mux.HandleFunc("GET /a/{id}/{path...}", h.current)
+	mux.HandleFunc("GET /a/{id}/"+coverPath, h.publicArtifact(h.cover))
+	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.publicArtifact(h.pinned))
+	mux.HandleFunc("GET /a/{id}/{path...}", h.publicArtifact(h.current))
+	if h.Sessions != nil {
+		mux.HandleFunc("GET /app/view/{id}/"+coverPath, h.privateArtifact(h.cover))
+		mux.HandleFunc("GET /app/view/{id}/v/{version}/{path...}", h.privateArtifact(h.pinned))
+		mux.HandleFunc("GET /app/view/{id}/{path...}", h.privateArtifact(h.current))
+	}
 	mux.HandleFunc("GET /a/{id}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/a/"+r.PathValue("id")+"/", http.StatusMovedPermanently)
 	})
@@ -65,12 +72,12 @@ func (h *Handler) skill(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) current(w http.ResponseWriter, r *http.Request) {
-	h.securityHeaders(w)
+	h.securityHeaders(w, r)
 	h.serve(w, r, r.PathValue("id"), 0, r.PathValue("path"))
 }
 
 func (h *Handler) pinned(w http.ResponseWriter, r *http.Request) {
-	h.securityHeaders(w)
+	h.securityHeaders(w, r)
 	v, err := strconv.Atoi(r.PathValue("version"))
 	if err != nil || v < 1 {
 		apierr.Write(w, r, apierr.NotFound("version"))
@@ -79,8 +86,12 @@ func (h *Handler) pinned(w http.ResponseWriter, r *http.Request) {
 	h.serve(w, r, r.PathValue("id"), v, r.PathValue("path"))
 }
 
-func (h *Handler) securityHeaders(w http.ResponseWriter) {
-	w.Header().Set("Content-Security-Policy", h.csp())
+func (h *Handler) securityHeaders(w http.ResponseWriter, r *http.Request) {
+	policy := h.csp()
+	if isPrivateViewer(r) {
+		policy = strings.Replace(policy, "connect-src 'self' "+h.ShareOrigin, "connect-src 'none'", 1) + "; sandbox allow-scripts; form-action 'none'; base-uri 'none'"
+	}
+	w.Header().Set("Content-Security-Policy", policy)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 }
 
@@ -108,6 +119,11 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	}
 	if err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	if !h.canView(r, a) {
+		w.Header().Set("Cache-Control", "private, no-store")
+		apierr.Write(w, r, apierr.NotFound("artifact"))
 		return
 	}
 	if a.DeletedAt != nil {
@@ -141,10 +157,10 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	// HTML gets the runtime injected only while comments are on, so the ETag
 	// carries that state too: flipping the switch must not be masked by a
 	// cached copy of the other variant.
-	inject := isHTML && a.CommentsEnabled
+	inject := isHTML && a.CommentsEnabled && !isPrivateViewer(r)
 	// The root page also gets Open Graph tags carrying the title, so the tag
 	// changes with a retitle as well.
-	meta := isHTML && p == "index.html"
+	meta := isHTML && p == "index.html" && !isPrivateViewer(r)
 	etag := `"` + f.SHA256 + `"`
 	if inject {
 		etag = `"` + f.SHA256 + "-rt-" + strconv.Itoa(version) + `"`
@@ -158,11 +174,7 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	if !pinnedReq && p == "index.html" && h.OnView != nil {
 		h.OnView(id)
 	}
-	if pinnedReq {
-		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-	} else {
-		w.Header().Set("Cache-Control", "public, max-age=60")
-	}
+	h.artifactCacheHeaders(w, r)
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(304)
 		return
