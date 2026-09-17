@@ -85,7 +85,15 @@ func TestArtifactVisibilityGalleryAndOlderRows(t *testing.T) {
 		}
 	}
 	res := e.get("/app/artifacts")
-	want(t, res, 200, "Older private draft", "Recent private draft", ">Private</span>", ">Public</span>")
+	want(t, res, 200, "Older private draft", "Recent private draft", ">Private</span>")
+	// Public is the default: the gallery flags only the exception, so exactly
+	// the two private tiles carry a badge and the public one carries none.
+	if n := strings.Count(res.Body, ">Private</span>"); n != 2 {
+		t.Fatalf("want a badge on each private tile, got %d", n)
+	}
+	if strings.Contains(res.Body, ">Public</span>") {
+		t.Fatal("gallery labels the default state")
+	}
 	for _, id := range []string{old.ID, recent.ID} {
 		want(t, res, 200, `href="http://api.test/app/view/`+id+`/"`, `src="http://api.test/app/view/`+id+`/_cover.svg"`)
 		if strings.Contains(res.Body, "http://share.test/a/"+id) {

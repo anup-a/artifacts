@@ -8,9 +8,11 @@
   </a>
   <div class="tile-body">
     <div class="tile-meta">
-      {{if $c.Project}}<a class="tile-project" href="{{$p.Data.ChipURL $c.Project}}" title="Show project {{$c.Project}}"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">{{$c.Project}}</span></a>{{else}}<span class="tile-project muted"><span class="dot" data-color="{{$c.Color}}"></span>No project</span>{{end}}
+      {{if $c.Project}}<a class="tile-project" href="{{$p.Data.ChipURL $c.Project}}" title="Show project {{$c.Project}}"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">{{$c.Project}}</span></a>{{else}}<span class="tile-project muted"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">No project</span></span>{{end}}
       {{if $c.Tags}}<span class="tile-tags">{{range $c.Tags}}<span class="tag">{{.}}</span>{{end}}</span>{{end}}
-      {{template "visibility-badge" $a}}
+      {{/* Public is the default and labelling it on every tile says nothing;
+           the badge earns its place in this row only when it is news. */}}
+      {{if eq $a.Visibility "private"}}{{template "visibility-badge" $a}}{{end}}
       <span class="spacer"></span>
       {{if $a.OpenComments}}<a class="count is-open" href="/app/artifacts/{{$a.ID}}#comments" title="Open comments" data-peek>{{template "icon" "comment"}}{{$a.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}
       {{if not $a.CommentsEnabled}}<span class="badge off" title="Comments are off for this artifact">off</span>{{end}}
