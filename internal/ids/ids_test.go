@@ -39,12 +39,17 @@ func TestShareCode(t *testing.T) {
 			counts[r]++
 		}
 	}
-	// Six digits from a million: with 20k draws a collision or two is normal,
-	// but any code coming up three times points at a broken generator.
-	for c, n := range seen {
-		if n > 2 {
-			t.Fatalf("share code %q drawn %d times in %d", c, n, runs)
-		}
+	// Repeats are not a defect here, they are arithmetic: 20k draws from a
+	// million collide about runs^2/2N times, so roughly 200, and a code
+	// appearing three times is expected about once per run. What would show a
+	// broken generator is the count of repeats being far off that number —
+	// near zero for a counter, far above it for a generator stuck in a corner
+	// of the space. The bound below is eight standard deviations wide either
+	// way, so it catches that and never a healthy run.
+	repeats := runs - len(seen)
+	expected := runs * runs / (2 * 1000000)
+	if repeats < expected/2 || repeats > expected*2 {
+		t.Errorf("%d repeated codes in %d draws, want near %d", repeats, runs, expected)
 	}
 	mean := float64(runs*ShareCodeDigits) / 10
 	for d := '0'; d <= '9'; d++ {
