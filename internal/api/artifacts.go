@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/artifacts/internal/ids"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
@@ -170,4 +171,48 @@ func (s *server) rollback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "url": s.artifactViewURL(a), "version": v, "visibility": a.Visibility})
+}
+
+// setShareCode issues, rotates or withdraws an artifact's share code.
+// Issuing and rotating are one operation — a fresh code — which is what makes
+// rotation a revocation: every link and every unlocked browser carrying the
+// old code stops working, for this artifact and nothing else.
+func (s *server) setShareCode(w http.ResponseWriter, r *http.Request) {
+	a, e := s.ownedArtifact(r, r.PathValue("id"))
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	var body struct {
+		Action string `json:"action"`
+	}
+	if r.ContentLength > 0 {
+		if e := decodeJSON(w, r, 1024, &body); e != nil {
+			apierr.Write(w, r, e)
+			return
+		}
+	}
+	code := ""
+	switch body.Action {
+	case "", "issue", "rotate":
+		if a.Visibility != "private" {
+			apierr.Write(w, r, apierr.Invalid("only a private artifact can be shared with a code"))
+			return
+		}
+		code = ids.NewShareCode()
+	case "revoke":
+	default:
+		apierr.Write(w, r, apierr.Invalid("action must be issue, rotate or revoke"))
+		return
+	}
+	if err := s.Store.SetShareCode(r.Context(), a.ID, code); err != nil {
+		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	out := map[string]any{"id": a.ID, "visibility": a.Visibility, "share_code": nil, "share_url": nil}
+	if code != "" {
+		out["share_code"] = code
+		out["share_url"] = serve.ShareURL(s.Cfg.ShareOrigin, a.ID, code)
+	}
+	apierr.WriteJSON(w, 200, out)
 }

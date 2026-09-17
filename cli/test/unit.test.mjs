@@ -8,7 +8,7 @@ import { parseArgs } from "../src/args.js";
 import { resolveConfig, saveConfig, configPath } from "../src/config.js";
 import { collectFiles, readLink, writeLink } from "../src/files.js";
 import { publish, labelsOf, resolveCover } from "../src/commands/publish.js";
-import { list } from "../src/commands/artifacts.js";
+import { list, share } from "../src/commands/artifacts.js";
 import { main } from "../src/main.js";
 
 function tmp() {
@@ -409,4 +409,35 @@ test("help explains tenant commands and resolves the key creation URL", async ()
   assert.match(help, /POST \/api\/keys.*removed/);
   const explicit = await command(["login", "--api", "https://custom.example/", "--help"]);
   assert.match(explicit.output.join("\n"), /https:\/\/custom\.example\/app\/keys/);
+});
+
+test("share sends the action in the request body, so --off actually revokes", async (t) => {
+  for (const [argv, action] of [[[], "issue"], [["--off"], "revoke"]]) {
+    const calls = [];
+    t.mock.method(globalThis, "fetch", async (url, options) => {
+      calls.push({ url, ...options });
+      return Response.json(action === "revoke"
+        ? { id: "artifact1234", share_code: null, share_url: null }
+        : { id: "artifact1234", share_code: "481523", share_url: "https://share.example/a/artifact1234/?k=481523" });
+    });
+    const result = await share({ token: "t", api: "https://api.example" },
+      parseArgs(["share", "artifact1234", ...argv]));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url.pathname, "/api/artifacts/artifact1234/share-code");
+    assert.equal(calls[0].method, "POST");
+    // The body is the whole point: a dropped one silently means "issue".
+    assert.equal(JSON.parse(calls[0].body).action, action);
+    if (action === "issue") {
+      assert.equal(result.json.share_code, "481523");
+      assert.ok(result.human.some((l) => l.includes("481523")));
+    } else {
+      assert.equal(result.json.share_code, null);
+      assert.ok(result.human.some((l) => l.includes("no longer shared")));
+    }
+  }
+});
+
+test("share needs an artifact id", async () => {
+  await assert.rejects(() => share({ token: "t", api: "https://api.example" }, parseArgs(["share"])),
+    /usage: artifacts share/);
 });

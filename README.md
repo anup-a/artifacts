@@ -87,7 +87,8 @@ artifacts publish ./site --title "Hello" --json
 | --- | --- |
 | `login --api <url> [--token <key>]` | Verifies a key created at `<url>/app/keys`, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
 | `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--private\|--public] [--comments\|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
-| `get <id>` | URL, title, current version, open comment count, project and tags |
+| `get <id>` | URL, title, current version, open comment count, project and tags; the share code and its link when one is set |
+| `share <id> [--off]` | Issues a six-digit share code for a private artifact and prints it with a one-click link. Running it again rotates the code, stopping every link that carried the old one; `--off` withdraws it |
 | `list [--end-user <id>] [--project <name>]` | Workspace artifacts, optionally filtered to one customer or one project; prints project and tags |
 | `whoami` | Current tenant ID, kind and name, plus the key ID and name |
 | `portal-link <end-user id>` | Seven-day read-only customer portal URL, integrator workspaces only |
@@ -126,7 +127,8 @@ private artifacts but do not authenticate the browser viewer.
 
 A private artifact can also carry a **share code**: six digits that let anyone
 holding them read it, and comment on it, without signing in. Create, rotate or
-withdraw the code on the artifact's dashboard page; `GET /api/artifacts/:id`
+withdraw the code with `artifacts share <id>` (again to rotate, `--off` to stop)
+or on the artifact's dashboard page; `GET /api/artifacts/:id`
 returns `share_code` and `share_url` while one is set, and `artifacts get <id>`
 prints both. List responses never include it.
 
@@ -189,6 +191,7 @@ take no auth; the artifact id is the capability.
 | `GET` | `/api/projects` | `{projects:[{name,count}]}`: the workspace's project labels with live artifact counts, most used first. |
 | `DELETE` | `/api/artifacts/:id` | Soft delete; page returns 410; blobs GC'd later. |
 | `GET` | `/api/artifacts/:id/versions` | `[{version, created_at, bytes, files, comment_count}]` |
+| `POST` | `/api/artifacts/:id/share-code` | `{action}`: `issue` or `rotate` for a fresh six-digit code, `revoke` to withdraw it. Returns `{id, visibility, share_code, share_url}`, both null once revoked. Private artifacts only; anything else is 400. |
 | `POST` | `/api/artifacts/:id/rollback/:version` | Creates version n+1 with version v's file set. |
 | `GET` | `/api/artifacts/:id/comments?status=open\|resolved\|all&since=<rfc3339>` | Threads with anchors, `anchor_status`, version. |
 | `POST` | `/api/artifacts/:id/comments/:thread/reply` | `{body}` → owner reply, displayed as "Author". |
