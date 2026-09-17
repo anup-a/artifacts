@@ -3,7 +3,7 @@
 <span class="crumb-sep">/</span>
 <h1 class="page-title truncate">{{if .Data.Artifact.Title}}{{.Data.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</h1>
 <span class="spacer"></span>
-<button type="button" class="btn" data-copy-text="{{.Data.URL}}">{{template "icon" "link"}} Copy link</button>
+<button type="button" class="btn" data-copy-text="{{.Data.SendURL}}" title="{{.Data.SendLabel}}">{{template "icon" "link"}} Copy link</button>
 <a class="btn primary" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
 {{end}}
 
@@ -13,7 +13,7 @@
 <div class="peek-inner" data-peek-title="{{.Title}}">
   <header class="peek-head">
     <h2 class="peek-title truncate">{{if .Data.Artifact.Title}}{{.Data.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</h2>
-    <button type="button" class="btn small" data-copy-text="{{.Data.URL}}">{{template "icon" "link"}} Copy link</button>
+    <button type="button" class="btn small" data-copy-text="{{.Data.SendURL}}" title="{{.Data.SendLabel}}">{{template "icon" "link"}} Copy link</button>
     <a class="btn small primary" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
     <button type="button" class="icon-btn peek-close" data-peek-close title="Close (Esc)" aria-label="Close">{{template "icon" "x"}}</button>
   </header>
@@ -42,9 +42,9 @@
       </div>
     </div>
     <div class="share-row">
-      <label class="share-label" for="share-url">{{if eq $a.Visibility "private"}}Private link{{else}}Share link{{end}}</label>
+      <label class="share-label" for="share-url">{{.Data.SendLabel}}</label>
       <div class="copyrow">
-        <input type="text" readonly value="{{.Data.URL}}" id="share-url" aria-label="{{if eq $a.Visibility "private"}}Private link{{else}}Share link{{end}}">
+        <input type="text" readonly value="{{.Data.SendURL}}" id="share-url" aria-label="{{.Data.SendLabel}}">
         <button type="button" class="btn" data-copy="#share-url">{{template "icon" "copy"}} Copy</button>
         <a class="btn" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
       </div>
@@ -76,7 +76,6 @@
         <div class="share-code-row">
           <span class="share-code">{{$a.ShareCode}}</span>
           <button type="button" class="btn small" data-copy-text="{{$a.ShareCode}}">{{template "icon" "copy"}} Copy code</button>
-          <button type="button" class="btn small" data-copy-text="{{.Data.ShareLink}}">{{template "icon" "copy"}} Copy link</button>
         </div>
         {{end}}
       </div>

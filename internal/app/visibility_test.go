@@ -53,7 +53,9 @@ func TestArtifactVisibilityActionPermissionsAndPreservation(t *testing.T) {
 		t.Fatalf("visibility change altered content or failed: %+v %v", got, err)
 	}
 	res := e.get(detail)
-	want(t, res, 200, ">Private</span>", "Private link", "signed-in members of the owning workspace", "Viewer comments are unavailable while this artifact is private", "Keep this discussion", `src="http://api.test/app/view/aaaaaaaaaaaa/"`, `src="http://api.test/app/view/aaaaaaaaaaaa/_cover.svg"`)
+	// "Workspace link", not "Private link": with no share code this address
+	// only opens for signed-in members, and the label has to say so.
+	want(t, res, 200, ">Private</span>", "Workspace link", "signed-in members of the owning workspace", "Viewer comments are unavailable while this artifact is private", "Keep this discussion", `src="http://api.test/app/view/aaaaaaaaaaaa/"`, `src="http://api.test/app/view/aaaaaaaaaaaa/_cover.svg"`)
 	if strings.Contains(res.Body, "http://share.test/a/"+a.ID) || strings.Contains(res.Body, `action="`+detail+`/comments-enabled"`) {
 		t.Fatal("private detail exposes public viewer link or offers unavailable viewer comments")
 	}
@@ -136,6 +138,46 @@ func TestDenyArtifactAccessPage(t *testing.T) {
 	}
 	if res.Header.Get("Cache-Control") != "no-store" {
 		t.Fatalf("cache %v", res.Header)
+	}
+}
+
+// The link the dashboard offers to copy is the one you would send somebody,
+// which is not always the one the owner opens. Copying an /app/view address to
+// a friend hands them a page only your workspace can load.
+func TestDetailOffersTheSendableLink(t *testing.T) {
+	e := fixture(t)
+	e.signIn("owner@x.io")
+	a := e.publish("aaaaaaaaaaaa", "Shared draft", "")
+	detail := "/app/artifacts/" + a.ID
+	ctx := context.Background()
+
+	// Public: the share origin, as before.
+	want(t, e.get(detail), 200, `value="http://share.test/a/`+a.ID+`/"`, ">Share link<")
+
+	// Private with no code: honestly labelled, because only the workspace can
+	// open it. The owner's own Open link stays on the account origin.
+	if err := e.st.SetVisibility(ctx, a.ID, "private"); err != nil {
+		t.Fatal(err)
+	}
+	res := e.get(detail)
+	want(t, res, 200, `value="http://api.test/app/view/`+a.ID+`/"`, ">Workspace link<")
+
+	// With a code, the link worth copying is the public one carrying it.
+	if err := e.st.SetShareCode(ctx, a.ID, "481523"); err != nil {
+		t.Fatal(err)
+	}
+	res = e.get(detail)
+	share := "http://share.test/a/" + a.ID + "/?k=481523"
+	want(t, res, 200, `value="`+share+`"`, "Share link, code included",
+		`data-copy-text="`+share+`"`, ">481523<")
+	if strings.Contains(res.Body, `data-copy-text="http://api.test/app/view/`) {
+		t.Fatal("a copy button still hands over the workspace-only link")
+	}
+	// The owner still opens and previews it on the account origin, which is the
+	// only address their session works on.
+	if !strings.Contains(res.Body, `href="http://api.test/app/view/`+a.ID+`/"`) ||
+		!strings.Contains(res.Body, `src="http://api.test/app/view/`+a.ID+`/"`) {
+		t.Fatal("owner lost their own view or preview link")
 	}
 }
 
