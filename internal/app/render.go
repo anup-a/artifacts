@@ -107,9 +107,15 @@ func (h *Handler) renderRoot(w http.ResponseWriter, r *http.Request, status int,
 }
 
 type errorData struct {
-	Status    int
+	Status int
+	// Title replaces the status text as the heading, for a refusal whose
+	// status code is chosen for what it withholds rather than what it means.
+	Title     string
 	Message   string
 	RequestID string
+	// SignIn offers a way in for someone who owns the artifact but is simply
+	// signed out. Never set it where the message would confirm what exists.
+	SignIn bool
 }
 
 // renderError shows msg with the request id for 4xx. Unexpected 5xx pass an
@@ -118,8 +124,16 @@ func (h *Handler) renderError(w http.ResponseWriter, r *http.Request, status int
 	if msg == "" {
 		msg = "Something went wrong on our side. Try again in a moment."
 	}
-	d := errorData{Status: status, Message: msg, RequestID: apierr.RequestID(r.Context())}
-	p := page{Title: http.StatusText(status), Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: d}
+	h.renderErrorData(w, r, errorData{Status: status, Message: msg, RequestID: apierr.RequestID(r.Context())})
+}
+
+func (h *Handler) renderErrorData(w http.ResponseWriter, r *http.Request, d errorData) {
+	status, msg := d.Status, d.Message
+	title := d.Title
+	if title == "" {
+		title = http.StatusText(status)
+	}
+	p := page{Title: title, Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: d}
 	var buf bytes.Buffer
 	if err := pages["error"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
 		http.Error(w, msg, status)

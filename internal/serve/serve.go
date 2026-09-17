@@ -17,7 +17,10 @@ import (
 )
 
 type Handler struct {
-	Sessions    *auth.Sessions
+	Sessions *auth.Sessions
+	// Deny renders the browser page for a refused /app/view address. Nil on a
+	// server with no web app, which falls back to the API's 404.
+	Deny        http.HandlerFunc
 	Store       store.Store
 	Blobs       blob.Store
 	Runtime     []byte
@@ -114,7 +117,7 @@ func (h *Handler) frameAncestors() string {
 func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, version int, p string) {
 	a, err := h.Store.Artifact(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		apierr.Write(w, r, apierr.NotFound("artifact"))
+		h.refuse(w, r)
 		return
 	}
 	if err != nil {
@@ -122,8 +125,7 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		return
 	}
 	if !h.canView(r, a) {
-		w.Header().Set("Cache-Control", "private, no-store")
-		apierr.Write(w, r, apierr.NotFound("artifact"))
+		h.refuse(w, r)
 		return
 	}
 	if a.DeletedAt != nil {

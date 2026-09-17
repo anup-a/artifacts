@@ -71,7 +71,7 @@ func (h *Handler) privateArtifact(next http.HandlerFunc) http.HandlerFunc {
 		}
 		sess, err := h.Sessions.Load(r.Context(), w, r)
 		if errors.Is(err, auth.ErrNoSession) {
-			http.Redirect(w, r, h.APIOrigin+"/app/login", http.StatusFound)
+			h.denyPrivate(w, r)
 			return
 		}
 		if err != nil {
@@ -81,6 +81,32 @@ func (h *Handler) privateArtifact(next http.HandlerFunc) http.HandlerFunc {
 		r = r.WithContext(context.WithValue(r.Context(), privateViewerKey{}, sess.TenantID))
 		next(w, r)
 	}
+}
+
+// denyPrivate answers a /app/view address the visitor may not read. Deny
+// renders the app's access page; without it (an API-only server, or a test
+// that mounts serve on its own) the plain 404 stands. Every refusal on that
+// path goes through here — no session, wrong workspace, and no such artifact
+// alike — so the response cannot be used to tell those apart.
+func (h *Handler) denyPrivate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "private, no-store")
+	if h.Deny != nil {
+		h.Deny(w, r)
+		return
+	}
+	apierr.Write(w, r, apierr.NotFound("artifact"))
+}
+
+// refuse answers a request for something the caller may not have. The share
+// origin keeps its bare 404: it serves machines and embeds as much as people,
+// and an HTML page there would be a body where a 404 belongs.
+func (h *Handler) refuse(w http.ResponseWriter, r *http.Request) {
+	if isPrivateViewer(r) {
+		h.denyPrivate(w, r)
+		return
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	apierr.Write(w, r, apierr.NotFound("artifact"))
 }
 
 func (h *Handler) artifactCacheHeaders(w http.ResponseWriter, r *http.Request) {

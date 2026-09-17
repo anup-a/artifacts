@@ -8,7 +8,10 @@
       <h1>{{.Title}}</h1>
       <p>{{.Data.Message}}</p>
       {{if and .Data.RequestID (lt .Data.Status 500)}}<p class="muted">Request id <code>{{.Data.RequestID}}</code></p>{{end}}
-      <p class="auth-actions"><a class="btn" href="/app/">{{template "icon" "arrow-left"}} Back to the app</a></p>
+      <p class="auth-actions">
+        <a class="btn" href="/app/">{{template "icon" "arrow-left"}} Back to the app</a>
+        {{if .Data.SignIn}}<a class="btn" href="/app/login">Sign in to another account</a>{{end}}
+      </p>
     </div>
   </section>
 </div>

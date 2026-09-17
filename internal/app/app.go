@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/config"
 	"github.com/anup-a/artifacts/internal/ratelimit"
@@ -145,6 +146,28 @@ func (h *Handler) public(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	})
+}
+
+// DenyArtifactAccess answers a private artifact address that the visitor may
+// not read. It is deliberately the same page whether the artifact is private,
+// belongs to someone else, or does not exist at all: anything that separated
+// those cases would turn the address into a way of testing what exists.
+//
+// It does not bounce anyone to sign-in. Most people who land here were sent a
+// link they were never going to be able to open, and a login form tells them
+// the wrong thing. Signing in is offered as a way out for the owner who is
+// merely signed out, not taken on their behalf.
+func (h *Handler) DenyArtifactAccess(w http.ResponseWriter, r *http.Request) {
+	h.headers(func(w http.ResponseWriter, r *http.Request) {
+		d := errorData{
+			Status:    http.StatusNotFound,
+			Title:     "No access",
+			Message:   "You do not have access to this artifact. It may be private to another workspace, or it may no longer exist.",
+			RequestID: apierr.RequestID(r.Context()),
+			SignIn:    h.Cfg.WebEnabled(),
+		}
+		h.renderErrorData(w, r, d)
+	})(w, r)
 }
 
 // private loads the session and, for POSTs, checks the CSRF field.

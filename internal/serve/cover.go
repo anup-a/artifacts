@@ -59,7 +59,7 @@ func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	a, err := h.Store.Artifact(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
-		apierr.Write(w, r, apierr.NotFound("artifact"))
+		h.refuse(w, r)
 		return
 	}
 	if err != nil {
@@ -67,8 +67,7 @@ func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.canView(r, a) {
-		w.Header().Set("Cache-Control", "private, no-store")
-		apierr.Write(w, r, apierr.NotFound("artifact"))
+		h.refuse(w, r)
 		return
 	}
 	if a.DeletedAt != nil {
