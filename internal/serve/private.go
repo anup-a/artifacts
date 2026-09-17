@@ -26,6 +26,12 @@ func (h *Handler) canView(r *http.Request, a store.Artifact) bool {
 	return a.Visibility != "private"
 }
 
+// separateOrigins reports whether the dashboard and the share host are
+// distinct, which is what private viewing needs to isolate uploaded pages.
+func (h *Handler) separateOrigins() bool {
+	return !strings.EqualFold(originHost(h.APIOrigin), originHost(h.ShareOrigin))
+}
+
 func originHost(origin string) string {
 	u, err := url.Parse(origin)
 	if err != nil {
@@ -35,10 +41,13 @@ func originHost(origin string) string {
 }
 
 // Uploaded pages must never execute with the dashboard's origin, including
-// public pages reached by manually replacing the host in a share URL.
+// public pages reached by manually replacing the host in a share URL. This
+// only applies where the two origins are actually separate: a single-origin
+// deployment shares one host, serves public artifacts from it as it always
+// has, and offers no private viewing at all.
 func (h *Handler) publicArtifact(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if h.Sessions != nil && strings.EqualFold(r.Host, originHost(h.APIOrigin)) {
+		if h.Sessions != nil && h.separateOrigins() && strings.EqualFold(r.Host, originHost(h.APIOrigin)) {
 			w.Header().Set("Cache-Control", "no-store")
 			apierr.Write(w, r, apierr.NotFound("artifact"))
 			return
@@ -56,8 +65,7 @@ func (h *Handler) privateArtifact(next http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Cache-Control", "private, no-store")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		if !strings.EqualFold(r.Host, originHost(h.APIOrigin)) ||
-			strings.EqualFold(originHost(h.APIOrigin), originHost(h.ShareOrigin)) {
+		if !strings.EqualFold(r.Host, originHost(h.APIOrigin)) || !h.separateOrigins() {
 			apierr.Write(w, r, apierr.NotFound("artifact"))
 			return
 		}

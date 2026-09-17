@@ -119,3 +119,28 @@ func TestPrivateViewerAccessAndIsolation(t *testing.T) {
 		t.Fatal("expired session allowed")
 	}
 }
+
+// A deployment that serves the dashboard and the share links from one host
+// cannot isolate an uploaded page from the dashboard, so it gets no private
+// viewing — but its public artifacts must keep serving from that one host.
+func TestSingleOriginKeepsPublicServing(t *testing.T) {
+	_, st, id := fixture(t)
+	sessions := &auth.Sessions{Store: st, Now: time.Now}
+	h := &Handler{Store: st, Blobs: fixtureBlobs, Runtime: []byte("runtime"), Sessions: sessions,
+		APIOrigin: "http://one.test", ShareOrigin: "http://one.test"}
+	mux := http.NewServeMux()
+	h.Register(mux)
+	get := func(path string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest("GET", "http://one.test"+path, nil))
+		return w
+	}
+	for _, path := range []string{"/a/" + id + "/", "/a/" + id + "/_cover.svg", "/a/" + id + "/v/1/"} {
+		if w := get(path); w.Code != 200 {
+			t.Fatalf("single-origin public %s: %d %s", path, w.Code, w.Body.String())
+		}
+	}
+	if w := get("/app/view/" + id + "/"); w.Code != 404 {
+		t.Fatalf("single origin must not offer private viewing: %d", w.Code)
+	}
+}
