@@ -73,7 +73,7 @@ pruned versions cannot be reconstructed.
 ## CLI
 
 The `cli/` directory is the CLI package, published to npm as
-[`byagent`](https://www.npmjs.com/package/byagent). It has no dependencies.
+[`byagent`](https://www.npmjs.com/package/byagent). Markdown rendering uses `marked`.
 
 ```
 npm install -g byagent        # or: npx byagent <command>

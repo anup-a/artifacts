@@ -123,6 +123,18 @@ test("publish a single html file as index.html", async () => {
   assert.match(page, /single/);
 });
 
+test("publish a markdown file renders it and titles the artifact from the H1", async () => {
+  const dir = tmp("artifacts-md-");
+  const file = join(dir, "notes.md");
+  writeFileSync(file, "# Markdown e2e heading\n\nA paragraph.\n");
+  const res = json(["publish", file]);
+  assert.equal(existsSync(join(dir, ".artifacts.json")), false);
+  const page = await (await fetch(`${BASE}/a/${res.id}/`)).text();
+  assert.match(page, /<h1 id="markdown-e2e-heading">Markdown e2e heading/);
+  const got = json(["get", res.id]);
+  assert.equal(got.title, "Markdown e2e heading");
+});
+
 test("get, list and versions report the published artifact", () => {
   const dir = siteDir("<h1>reporting</h1>");
   const pub = json(["publish", dir, "--title", "Reporting"]);
