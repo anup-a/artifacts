@@ -159,8 +159,11 @@ html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .page{max-width:calc(var(--w) + 48px);margin:0 auto;padding:48px 24px 96px}
-.page.with-toc{max-width:none;display:grid;grid-template-columns:minmax(0,var(--w));justify-content:center;gap:56px}
-@media (min-width:1100px){.page.with-toc{grid-template-columns:220px minmax(0,var(--w));}}
+/* Symmetric gutters keep the text centred whether or not the contents list is shown. */
+.page.with-toc{max-width:none;display:grid;grid-template-columns:1fr minmax(0,var(--w)) 1fr;column-gap:24px}
+.page.with-toc .doc{grid-column:2}
+.page.with-toc .toc{grid-column:1;justify-self:end;width:220px}
+@media (min-width:1100px){.page.with-toc{grid-template-columns:minmax(244px,1fr) minmax(0,var(--w)) minmax(244px,1fr);column-gap:32px}}
 .doc{min-width:0}
 .doc>*:first-child{margin-top:0}
 h1,h2,h3,h4,h5,h6{line-height:1.25;font-weight:600;letter-spacing:-.01em;position:relative;scroll-margin-top:24px}
