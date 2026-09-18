@@ -24,26 +24,29 @@ const COMMANDS = {
   resolve: { run: resolve, needsConfig: true },
 };
 
-const help = (api) => `artifacts - publish a page, share the URL, read the comments on it
+const help = (api) => `byagent - publish a page, share the URL, read the comments on it
 
 Usage:
-  artifacts login --api <url> [--token <key>]
-  artifacts publish <dir|file.html> [--id <id>] [--title <t>] [--end-user <id>]
-                    [--private|--public]
-                    [--comments|--no-comments] [--project <name>] [--tag <t>]...
-                    [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
-  artifacts get <id>
-  artifacts share <id> [--off]
-  artifacts list [--end-user <id>] [--project <name>]
-  artifacts whoami
-  artifacts portal-link <end-user id>
-  artifacts versions <id>
-  artifacts rollback <id> <version>
-  artifacts comments <id> [--open|--all] [--since <rfc3339>]
-  artifacts reply <id> <thread> "<text>"
-  artifacts resolve <id> <thread>
-  artifacts delete <id>
+  byagent login --api <url> [--token <key>]
+  byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>]
+                  [--private|--public]
+                  [--comments|--no-comments] [--project <name>] [--tag <t>]...
+                  [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
+  byagent get <id>
+  byagent share <id> [--off]
+  byagent list [--end-user <id>] [--project <name>]
+  byagent whoami
+  byagent portal-link <end-user id>
+  byagent versions <id>
+  byagent rollback <id> <version>
+  byagent comments <id> [--open|--all] [--since <rfc3339>]
+  byagent reply <id> <thread> "<text>"
+  byagent resolve <id> <thread>
+  byagent delete <id>
 
+A .md file (or a directory whose index is index.md / README.md) is rendered to
+a styled page on the way in; its first H1 becomes the title unless --title is
+given, and images or links relative to it keep working.
 Every command takes --json and then prints exactly one JSON object.
 Config comes from ARTIFACTS_TOKEN / ARTIFACTS_API, else ~/.artifacts/config.json.
 Create a key at ${api}/app/keys, then paste it with login or pipe it on stdin.

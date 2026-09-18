@@ -31,7 +31,7 @@ function publishWithCLI(key, title, extra = []) {
   writeFileSync(join(dir, "index.html"), `<!doctype html><title>${title}</title><h1>${title}</h1>`);
   const out = execFileSync(
     "node",
-    ["cli/bin/artifacts.js", "publish", dir, "--title", title, "--json", ...extra],
+    ["cli/bin/byagent.js", "publish", dir, "--title", title, "--json", ...extra],
     { cwd: REPO, encoding: "utf8", env: { ...process.env, ARTIFACTS_TOKEN: key, ARTIFACTS_API: BASE } },
   );
   return JSON.parse(out);

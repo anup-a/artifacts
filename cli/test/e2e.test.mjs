@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const CLI_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const REPO = dirname(CLI_DIR);
-const BIN = join(CLI_DIR, "bin", "artifacts.js");
+const BIN = join(CLI_DIR, "bin", "byagent.js");
 const PORT = 8123;
 const BASE = `http://127.0.0.1:${PORT}`;
 const TOKEN = "e2e-token";

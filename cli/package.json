@@ -1,20 +1,45 @@
 {
-  "name": "artifacts",
+  "name": "byagent",
   "version": "0.1.0",
-  "description": "Publish a page, share the URL, read the comments on it.",
+  "description": "Publish a page to byagent.dev, share the URL, read the comments on it.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "artifacts": "bin/artifacts.js"
+    "byagent": "bin/byagent.js"
   },
   "files": [
     "bin",
-    "src"
+    "src",
+    "README.md"
   ],
   "engines": {
     "node": ">=18"
   },
+  "keywords": [
+    "artifacts",
+    "publish",
+    "static-site",
+    "agent",
+    "claude",
+    "cli"
+  ],
+  "homepage": "https://byagent.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anup-a/artifacts.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/anup-a/artifacts/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "scripts": {
-    "test": "node --test test/unit.test.mjs test/e2e.test.mjs"
+    "test": "node --test test/unit.test.mjs test/markdown.test.mjs test/e2e.test.mjs"
+  },
+  "dependencies": {
+    "marked": "^18.0.13"
   }
 }

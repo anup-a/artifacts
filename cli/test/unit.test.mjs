@@ -377,7 +377,7 @@ test("portal-link rejects a missing end user without making a request", async (t
   const request = t.mock.method(globalThis, "fetch", () => { throw new Error("unexpected request"); });
   const result = await command(["portal-link", "--json"]);
   assert.equal(result.code, 2);
-  assert.match(JSON.parse(result.errors[0]).error.message, /usage: artifacts portal-link/);
+  assert.match(JSON.parse(result.errors[0]).error.message, /usage: byagent portal-link/);
   assert.equal(request.mock.callCount(), 0);
 });
 
@@ -403,8 +403,8 @@ test("help explains tenant commands and resolves the key creation URL", async ()
   assert.match(help, /--tag <t>/);
   assert.match(help, /--cover <file>/);
   assert.match(help, /--cover-style dots\|grid\|lines\|wash\|rings\|plain/);
-  assert.match(help, /artifacts whoami/);
-  assert.match(help, /artifacts portal-link <end-user id>/);
+  assert.match(help, /byagent whoami/);
+  assert.match(help, /byagent portal-link <end-user id>/);
   assert.match(help, /https:\/\/api\.example\/app\/keys/);
   assert.match(help, /POST \/api\/keys.*removed/);
   const explicit = await command(["login", "--api", "https://custom.example/", "--help"]);
@@ -439,5 +439,5 @@ test("share sends the action in the request body, so --off actually revokes", as
 
 test("share needs an artifact id", async () => {
   await assert.rejects(() => share({ token: "t", api: "https://api.example" }, parseArgs(["share"])),
-    /usage: artifacts share/);
+    /usage: byagent share/);
 });

@@ -14,7 +14,7 @@ export async function whoami(cfg) {
 }
 
 export async function portalLink(cfg, { positional }) {
-  if (!positional[0]) throw usage("usage: artifacts portal-link <end-user id>");
+  if (!positional[0]) throw usage("usage: byagent portal-link <end-user id>");
   const result = await apiJson(cfg, "POST", `/api/end-users/${encodeURIComponent(positional[0])}/portal-link`);
   return { json: result, human: [result.url] };
 }

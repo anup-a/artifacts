@@ -1,4 +1,5 @@
 .superpowers/
+node_modules/
 data/
 cover.out
 deploy/.env.free
