@@ -16,7 +16,7 @@ function labelsOf(a) {
 // Issuing and rotating are the same request, which is what makes rotation a
 // revocation: every link carrying the old code stops working.
 export async function share(cfg, { positional, flags }) {
-  need(positional, 1, "usage: artifacts share <id> [--off]");
+  need(positional, 1, "usage: byagent share <id> [--off]");
   const action = flags.off ? "revoke" : "issue";
   const a = await apiJson(cfg, "POST", `/api/artifacts/${encodeURIComponent(positional[0])}/share-code`, {
     headers: { "Content-Type": "application/json" },
@@ -35,7 +35,7 @@ export async function share(cfg, { positional, flags }) {
 }
 
 export async function get(cfg, { positional }) {
-  need(positional, 1, "usage: artifacts get <id>");
+  need(positional, 1, "usage: byagent get <id>");
   const a = await apiJson(cfg, "GET", `/api/artifacts/${encodeURIComponent(positional[0])}`);
   const labels = labelsOf(a);
   return {
@@ -69,7 +69,7 @@ export async function list(cfg, { flags }) {
 }
 
 export async function versions(cfg, { positional }) {
-  need(positional, 1, "usage: artifacts versions <id>");
+  need(positional, 1, "usage: byagent versions <id>");
   const res = await apiJson(cfg, "GET", `/api/artifacts/${encodeURIComponent(positional[0])}/versions`);
   const rows = res.versions || [];
   return {
@@ -79,7 +79,7 @@ export async function versions(cfg, { positional }) {
 }
 
 export async function rollback(cfg, { positional }) {
-  need(positional, 2, "usage: artifacts rollback <id> <version>");
+  need(positional, 2, "usage: byagent rollback <id> <version>");
   const [id, version] = positional;
   if (!/^\d+$/.test(version)) throw usage("version must be a positive integer");
   const res = await apiJson(cfg, "POST", `/api/artifacts/${encodeURIComponent(id)}/rollback/${version}`);
@@ -88,7 +88,7 @@ export async function rollback(cfg, { positional }) {
 
 // The API answers 204, so --json still gets an object to parse.
 export async function remove(cfg, { positional }) {
-  need(positional, 1, "usage: artifacts delete <id>");
+  need(positional, 1, "usage: byagent delete <id>");
   const id = positional[0];
   await apiJson(cfg, "DELETE", `/api/artifacts/${encodeURIComponent(id)}`);
   return { json: { id, deleted: true }, human: [`deleted ${id}`] };

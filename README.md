@@ -72,14 +72,13 @@ pruned versions cannot be reconstructed.
 
 ## CLI
 
-The `cli/` directory is the CLI package. It has no dependencies. It is not
-published to npm yet, so install it from the repo (`npx artifacts` would fetch
-an unrelated package that owns that name):
+The `cli/` directory is the CLI package, published to npm as
+[`byagent`](https://www.npmjs.com/package/byagent). Markdown rendering uses `marked`.
 
 ```
-npm install -g ./cli
+npm install -g byagent        # or: npx byagent <command>
 export ARTIFACTS_API=http://localhost:8080 ARTIFACTS_TOKEN=change-me
-artifacts publish ./site --title "Hello" --json
+byagent publish ./site --title "Hello" --json
 # => {"id":"...","url":"http://localhost:8080/a/.../","version":1,"end_user":null,"files":2,"bytes":1841,"uploaded":2}
 ```
 
@@ -108,8 +107,8 @@ Publish and list JSON include `end_user`, the external ID or `null`, plus
 `portal-link --json` returns `{url, expires_at}`; its default output is just
 the URL. `whoami --json` returns `{tenant:{id,kind,name},key:{id,name}}`.
 
-Use `artifacts publish ./site --private` for workspace-only viewing, and
-`artifacts publish ./site --public` to make it public. These flags are mutually
+Use `byagent publish ./site --private` for workspace-only viewing, and
+`byagent publish ./site --public` to make it public. These flags are mutually
 exclusive. New artifacts default to public; republishing without either flag
 preserves the server's current visibility, including changes made in the dashboard.
 The API manifest accepts `"visibility":"private"` or `"visibility":"public"`;
@@ -127,9 +126,9 @@ private artifacts but do not authenticate the browser viewer.
 
 A private artifact can also carry a **share code**: six digits that let anyone
 holding them read it, and comment on it, without signing in. Create, rotate or
-withdraw the code with `artifacts share <id>` (again to rotate, `--off` to stop)
+withdraw the code with `byagent share <id>` (again to rotate, `--off` to stop)
 or on the artifact's dashboard page; `GET /api/artifacts/:id`
-returns `share_code` and `share_url` while one is set, and `artifacts get <id>`
+returns `share_code` and `share_url` while one is set, and `byagent get <id>`
 prints both. List responses never include it.
 
 There are two ways in, both opening the same artifact and nothing else. The
@@ -220,7 +219,7 @@ key creation to 20/hour per tenant; portal links to 60/minute per tenant.
 
 Every served HTML page gets `<script src="/_rt/comments.js" data-artifact="…" data-version="…" defer>`
 injected before `</body>` on public artifacts, unless comments are switched off for that artifact
-(`artifacts publish --no-comments`, `comments_enabled:false` in the manifest,
+(`byagent publish --no-comments`, `comments_enabled:false` in the manifest,
 or the Comments switch on the dashboard's artifact page), in which case the
 page is served exactly as published. The runtime is vanilla JS with no dependencies, lives
 entirely in a shadow root, and fails closed: if the comments API is unreachable

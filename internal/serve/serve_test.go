@@ -242,7 +242,7 @@ func TestServeSkill(t *testing.T) {
 		t.Fatalf("content type %s", ct)
 	}
 	// The skill is only useful if it still teaches the publish and comment loop.
-	for _, want := range []string{"artifacts publish", "artifacts comments", "artifacts resolve"} {
+	for _, want := range []string{"byagent publish", "byagent comments", "byagent resolve"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("skill is missing %q", want)
 		}

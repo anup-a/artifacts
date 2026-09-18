@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const CLI_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const REPO = dirname(CLI_DIR);
-const BIN = join(CLI_DIR, "bin", "artifacts.js");
+const BIN = join(CLI_DIR, "bin", "byagent.js");
 const PORT = 8123;
 const BASE = `http://127.0.0.1:${PORT}`;
 const TOKEN = "e2e-token";
@@ -121,6 +121,18 @@ test("publish a single html file as index.html", async () => {
   assert.equal(existsSync(join(dir, ".artifacts.json")), false);
   const page = await (await fetch(`${BASE}/a/${res.id}/`)).text();
   assert.match(page, /single/);
+});
+
+test("publish a markdown file renders it and titles the artifact from the H1", async () => {
+  const dir = tmp("artifacts-md-");
+  const file = join(dir, "notes.md");
+  writeFileSync(file, "# Markdown e2e heading\n\nA paragraph.\n");
+  const res = json(["publish", file]);
+  assert.equal(existsSync(join(dir, ".artifacts.json")), false);
+  const page = await (await fetch(`${BASE}/a/${res.id}/`)).text();
+  assert.match(page, /<h1 id="markdown-e2e-heading">Markdown e2e heading/);
+  const got = json(["get", res.id]);
+  assert.equal(got.title, "Markdown e2e heading");
 });
 
 test("get, list and versions report the published artifact", () => {

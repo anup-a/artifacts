@@ -87,10 +87,10 @@ natively and cross-compiles, so nothing is emulated.
 Smoke it with the CLI:
 
 ```
-npm install -g ./cli   # not on npm yet; `npx artifacts` is someone else's package
-printf '%s\n' "$ARTIFACTS_TOKEN" | artifacts login --api https://app.byagent.dev
-artifacts whoami
-artifacts publish ./site --title "Hello"
+npm install -g byagent
+printf '%s\n' "$ARTIFACTS_TOKEN" | byagent login --api https://app.byagent.dev
+byagent whoami
+byagent publish ./site --title "Hello"
 ```
 
 Set `ARTIFACTS_TOKEN` to a key created at
@@ -146,9 +146,9 @@ content hashes and immutable cache headers.
 Integrators create a workspace in Settings, create a key there, and publish:
 
 ```
-artifacts publish ./site --end-user customer-42 --json
-artifacts list --end-user customer-42 --json
-artifacts portal-link customer-42
+byagent publish ./site --end-user customer-42 --json
+byagent list --end-user customer-42 --json
+byagent portal-link customer-42
 ```
 
 `--end-user` sends `X-Artifact-End-User`, an opaque 1 to 128 character
@@ -195,7 +195,7 @@ and comments. Existing admin keys stay in `admin` and lose access to the
 transferred artifacts. Create a destination key at `/app/keys` and update
 publisher credentials. Artifact `key_id` is historical attribution, not
 authorization; it may be null after a revoked key is collected. Verify the
-destination with `artifacts whoami` and `artifacts list` before resuming writes.
+destination with `byagent whoami` and `byagent list` before resuming writes.
 
 ## Validation box on a plain VPS (alternative)
 

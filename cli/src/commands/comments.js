@@ -15,7 +15,7 @@ function threadLines(t) {
 }
 
 export async function comments(cfg, { positional, flags }) {
-  if (!positional[0]) throw usage("usage: artifacts comments <id> [--open|--all] [--since <rfc3339>]");
+  if (!positional[0]) throw usage("usage: byagent comments <id> [--open|--all] [--since <rfc3339>]");
   if (flags.open && flags.all) throw usage("--open and --all are mutually exclusive");
   const status = flags.all ? "all" : "open";
   const res = await apiJson(cfg, "GET", `/api/artifacts/${encodeURIComponent(positional[0])}/comments`, {
@@ -30,7 +30,7 @@ export async function comments(cfg, { positional, flags }) {
 
 export async function reply(cfg, { positional }) {
   const [id, thread, body] = positional;
-  if (!id || !thread || !body) throw usage('usage: artifacts reply <id> <thread> "<text>"');
+  if (!id || !thread || !body) throw usage('usage: byagent reply <id> <thread> "<text>"');
   const c = await apiJson(cfg, "POST", `/api/artifacts/${encodeURIComponent(id)}/comments/${encodeURIComponent(thread)}/reply`, {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ body }),
@@ -40,7 +40,7 @@ export async function reply(cfg, { positional }) {
 
 export async function resolve(cfg, { positional }) {
   const [id, thread] = positional;
-  if (!id || !thread) throw usage("usage: artifacts resolve <id> <thread>");
+  if (!id || !thread) throw usage("usage: byagent resolve <id> <thread>");
   const t = await apiJson(cfg, "POST", `/api/artifacts/${encodeURIComponent(id)}/comments/${encodeURIComponent(thread)}/resolve`, {});
   return { json: t, human: [`resolved ${thread}`] };
 }

@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { basename, extname, join, relative, sep } from "node:path";
 import { CliError } from "./errors.js";
+import { renderMarkdown } from "./markdown.js";
 
 export const LINK_FILE = ".artifacts.json";
 
@@ -34,9 +35,27 @@ function walk(dir, base, out) {
   return out;
 }
 
+const MARKDOWN_EXTS = new Set([".md", ".markdown"]);
+// A directory without index.html is served from the first of these, rendered.
+const MARKDOWN_INDEX = ["index.md", "README.md", "readme.md"];
+
+function isMarkdown(path) {
+  return MARKDOWN_EXTS.has(extname(path).toLowerCase());
+}
+
+function renderedIndex(abs, body, title) {
+  const { html, title: pageTitle } = renderMarkdown(body.toString("utf8"), { title, fallbackTitle: basename(abs, extname(abs)) });
+  const buf = Buffer.from(html, "utf8");
+  return { file: { path: "index.html", abs, body: buf, sha256: sha256(buf), size: buf.length }, title: pageTitle };
+}
+
 // collectFiles turns a target into the manifest file list. A single .html file
-// is published as index.html so `artifacts publish page.html` just works.
-export function collectFiles(target) {
+// is published as index.html so `byagent publish page.html` just works. A
+// single .md file is rendered to a page first; a directory with no index.html
+// but an index.md or README.md is served from that, rendered, with the other
+// files kept as assets so relative images and links still resolve. `title`
+// is the --title flag; the result's title is what the page ended up with.
+export function collectFiles(target, { title } = {}) {
   let st;
   try {
     st = statSync(target);
@@ -46,11 +65,20 @@ export function collectFiles(target) {
   if (st.isDirectory()) {
     const files = walk(target, target, []);
     if (files.length === 0) throw new CliError(`${target} has no files to publish`, { exit: 2, code: "USAGE" });
-    return { files, dir: target };
+    if (files.some((f) => f.path === "index.html")) return { files, dir: target, title };
+    const md = MARKDOWN_INDEX.map((name) => files.find((f) => f.path === name)).find(Boolean);
+    if (!md) return { files, dir: target, title };
+    const rendered = renderedIndex(md.abs, md.body, title);
+    return { files: [rendered.file, ...files], dir: target, title: rendered.title };
   }
   const body = readFileSync(target);
+  if (isMarkdown(target)) {
+    const rendered = renderedIndex(target, body, title);
+    return { dir: null, files: [rendered.file], title: rendered.title };
+  }
   return {
     dir: null,
+    title,
     files: [{ path: "index.html", abs: target, body, sha256: sha256(body), size: body.length }],
   };
 }

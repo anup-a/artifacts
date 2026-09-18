@@ -39,7 +39,7 @@ if [ "${#rt}" -lt 2000 ]; then
   exit 1
 fi
 echo "runtime bundle served: ${#rt} bytes"
-curl -fsS "localhost:8091/skill.md" | grep -q 'artifacts publish' || { echo "FAIL: /skill.md is not the agent skill"; exit 1; }
+curl -fsS "localhost:8091/skill.md" | grep -q 'byagent publish' || { echo "FAIL: /skill.md is not the agent skill"; exit 1; }
 TH=$(curl -sf -H 'Content-Type: application/json' -d '{"author_name":"Smoke","body":"typo","anchor":{"kind":"text","quote":"hello"},"version":1}' "localhost:8091/c/$ID/comments")
 TID=$(echo "$TH" | sed -E 's/.*"id":"(th_[^"]+)".*/\1/')
 curl -sf -H "$H" "localhost:8091/api/artifacts/$ID/comments" | grep -q "$TID" || { echo "owner cannot see comment"; exit 1; }
