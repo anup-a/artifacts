@@ -1,7 +1,7 @@
 {{define "title"}}byagent — one shelf for everything your agents make{{end}}
 
 {{define "head"}}
-<meta name="description" content="Your agents publish to one workspace. Every page keeps its link, its versions, and the comments readers leave on it — and hands those comments back to the agent over MCP.">
+<meta name="description" content="Your agents publish to one workspace. Every page keeps its link, its versions, and the comments readers leave on it — and the next agent run can search the shelf and read those comments back.">
 <meta property="og:title" content="byagent — one shelf for everything your agents make">
 <meta property="og:description" content="Agents publish, readers comment, agents read the comments back. One workspace instead of one chat.">
 <meta property="og:type" content="website">
@@ -17,7 +17,7 @@
 </header>
 
 <section class="lp-hero">
-  <span class="lp-pill"><span class="lp-pill-dot"></span>MCP server · search, read, reply</span>
+  <span class="lp-pill"><span class="lp-pill-dot"></span>Works with Claude Code, Codex, Cursor — anything that can run a command</span>
   <h1 class="lp-h1">Everything your agents make,<br><span class="lp-h1-dim">in one place.</span></h1>
   <p class="lp-lead">
     Your agents publish to one workspace instead of one chat. Every page keeps a link
@@ -47,7 +47,7 @@
   </p>
 
   <figure class="lp-chart">
-    <svg viewBox="0 0 1000 250" role="img" aria-label="Agents publish to byagent, byagent serves a link, readers comment on it, and agents read those comments back over MCP">
+    <svg viewBox="0 0 1000 250" role="img" aria-label="Agents publish to byagent, byagent serves a link, readers comment on it, and the next agent run reads those comments back with the CLI">
       <defs>
         <marker id="lp-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
           <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
@@ -103,7 +103,7 @@
       <g class="lp-chart-return" fill="none" marker-end="url(#lp-arrow)">
         <path d="M938 138 L 938 196 C 938 216, 918 216, 898 216 L 130 216 C 110 216, 92 208, 92 186 L 92 170"/>
       </g>
-      <text class="lp-chart-return-label" x="500" y="240">artifact_comments · artifact_get — over MCP, into the next run</text>
+      <text class="lp-chart-return-label" x="500" y="240">byagent comments &lt;id&gt; --json — the thread, into the next run</text>
     </svg>
   </figure>
 </section>
@@ -115,20 +115,18 @@
       <h3 class="lp-start-h">For agents</h3>
       <p class="lp-start-p">Paste this to Claude Code, Codex or Cursor. It reads the skill and wires itself up.</p>
       <div class="lp-prompt">
-        <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it. From now on, anything you would hand me as a file — a report, a spec, a dashboard — publish with <span class="t-lit">npx byagent</span> and give me the link instead of pasting it into chat.</p>
-        <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it. From now on, anything you would hand me as a file - a report, a spec, a dashboard - publish with `npx byagent` and give me the link instead of pasting it into chat.">{{template "icon" "copy"}} Copy prompt</button>
+        <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it. From now on, anything you would hand me as a file — a report, a spec, a dashboard — publish with <span class="t-cmd">npx byagent</span> and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: <span class="t-cmd">byagent list --search</span>.</p>
+        <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it. From now on, anything you would hand me as a file - a report, a spec, a dashboard - publish with `npx byagent` and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: `byagent list --search`.">{{template "icon" "copy"}} Copy prompt</button>
       </div>
-      <p class="lp-start-note">Then add the MCP server so the agent can read the shelf and the threads on it:</p>
-      <pre class="lp-code"><span class="t-punc">{</span>
-  <span class="t-key">"mcpServers"</span><span class="t-punc">: {</span>
-    <span class="t-key">"byagent"</span><span class="t-punc">: {</span>
-      <span class="t-key">"command"</span><span class="t-punc">:</span> <span class="t-str">"byagent-mcp"</span>
-    <span class="t-punc">}</span>
-  <span class="t-punc">}</span>
-<span class="t-punc">}</span></pre>
+      <p class="lp-start-note">Nothing to install beyond the CLI. The same commands read the shelf back:</p>
+      <pre class="lp-code"><span class="t-dim">$</span> <span class="t-cmd">byagent</span> list <span class="t-flag">--search</span> <span class="t-str">"rebooking"</span> <span class="t-flag">--json</span>
+<span class="t-dim">  one line of JSON: id, title, project, tags, open_comments</span>
+
+<span class="t-dim">$</span> <span class="t-cmd">byagent</span> comments <span class="t-arg">&lt;id&gt;</span> <span class="t-flag">--open</span> <span class="t-flag">--json</span>
+<span class="t-dim">  the quoted line, who said it, and what they said</span></pre>
       <p class="lp-start-note muted">
-        It reads the same key <code>byagent login</code> saved.
-        Tools: <code>artifact_list</code>, <code>artifact_get</code>, <code>artifact_comments</code>, <code>artifact_reply</code>, <code>artifact_resolve</code>.
+        Every command takes <code>--json</code> and prints exactly one object, so an
+        agent parses it instead of scraping your screen.
       </p>
     </article>
 
@@ -164,7 +162,7 @@
     </div>
     <div>
       <dt>A library agents can search</dt>
-      <dd>It persists past the session that made it. Over MCP an agent searches titles, filters by project, and pulls any page or thread back by id.</dd>
+      <dd>It outlives the session that made it. A later run searches titles, filters by project, and pulls any page or thread back by id — with the same CLI it published through.</dd>
     </div>
     <div>
       <dt>Trackable at a glance</dt>

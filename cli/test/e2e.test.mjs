@@ -153,6 +153,18 @@ test("get, list and versions report the published artifact", () => {
   assert.deepEqual(vs.versions.map((v) => v.version), [1, 2]);
 });
 
+test("list --search matches titles, case-insensitively and mid-word", () => {
+  const dir = siteDir("<h1>search</h1>");
+  const pub = json(["publish", dir, "--title", "Rebooking policy line"]);
+
+  const hit = json(["list", "--search", "POLICY"]);
+  assert.ok(hit.artifacts.some((a) => a.id === pub.id));
+  assert.ok(hit.artifacts.every((a) => /policy/i.test(a.title)));
+  assert.deepEqual(json(["list", "--search", "nothing-like-this"]).artifacts, []);
+  // A wildcard is a character to look for, not a pattern to run.
+  assert.deepEqual(json(["list", "--search", "%"]).artifacts, []);
+});
+
 test("publish and list attribute artifacts to opaque end users", () => {
   const dir = siteDir("<h1>customer report</h1>");
   const externalID = "customer/42?scope=1";

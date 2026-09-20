@@ -34,7 +34,7 @@ Usage:
                   [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
   byagent get <id>
   byagent share <id> [--off]
-  byagent list [--end-user <id>] [--project <name>]
+  byagent list [--search <text>] [--end-user <id>] [--project <name>]
   byagent whoami
   byagent portal-link <end-user id>
   byagent versions <id>

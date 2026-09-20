@@ -40,8 +40,8 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"http://api.test",        // what you point the CLI at
 		"share.test/skill.md",    // what you paste to an agent
 		"share.test/a/",          // what a published link looks like
-		"mcpServers",             // how an agent reads the shelf back
-		"artifact_comments",      // and the tool that closes the loop
+		"list --search",          // how a later run finds what was published
+		"comments &lt;id&gt;",    // and how it reads the thread back
 		"<video",                 // the dashboard recording carries the product
 		"/app/static/dashboard.", // served as a hashed asset
 	} {
