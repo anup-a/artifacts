@@ -17,6 +17,8 @@ type landingData struct {
 	ExampleID  string // a plausible artifact id for the samples
 	ExampleURL string // what a published link looks like here
 	SkillURL   string // the agent skill this server serves
+	VideoURL   string // the dashboard recording, content-hashed
+	PosterURL  string // its first frame
 	SignIn     bool   // a sign-in provider is configured
 }
 
@@ -55,6 +57,8 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 		ExampleID:  exampleID,
 		ExampleURL: h.Cfg.ShareOrigin + "/a/" + exampleID + "/",
 		SkillURL:   h.Cfg.ShareOrigin + "/skill.md",
+		VideoURL:   h.static.videoURL,
+		PosterURL:  h.static.posterURL,
 		SignIn:     h.Cfg.WebEnabled(),
 	})
 }

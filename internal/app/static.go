@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//go:embed static/app.css static/app.js
+//go:embed static/app.css static/app.js static/dashboard.mp4 static/dashboard.jpg
 var staticFS embed.FS
 
 type asset struct {
@@ -18,15 +18,19 @@ type asset struct {
 // statics serves the stylesheet and script under content-hashed names so
 // they can be cached forever and still change on deploy.
 type statics struct {
-	files  map[string]asset
-	cssURL string
-	jsURL  string
+	files     map[string]asset
+	cssURL    string
+	jsURL     string
+	videoURL  string // landing page screen recording
+	posterURL string // its first frame, shown before the video plays
 }
 
 func newStatics() *statics {
 	s := &statics{files: map[string]asset{}}
 	s.cssURL = s.add("app", ".css", "text/css; charset=utf-8")
 	s.jsURL = s.add("app", ".js", "text/javascript; charset=utf-8")
+	s.videoURL = s.add("dashboard", ".mp4", "video/mp4")
+	s.posterURL = s.add("dashboard", ".jpg", "image/jpeg")
 	return s
 }
 

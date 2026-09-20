@@ -44,11 +44,14 @@ ID and secret. Without a provider, `/app/*` returns 503 and the API still works.
 ## Landing page
 
 The bare root of the share origin (`PUBLIC_SHARE_ORIGIN/`) serves a landing page:
-what the service does, the three-step quickstart with this deployment's own
-origins filled in, the CLI table, the agent skill link, and the self-host
-command. On the API origin the root still redirects to `/app/`, so a sign-in
-email lands on the dashboard. With no web app mounted (`Web` unset), the root
-stays a JSON 404.
+the publish command, a looping screen recording of the dashboard, three lines on
+what the link gives you, and the four commands that get you started, with this
+deployment's own origins filled in. The recording and its poster frame are
+embedded static assets (`internal/app/static/dashboard.mp4` and `.jpg`), served
+content-hashed and cached like the stylesheet.
+
+On the API origin the root still redirects to `/app/`, so a sign-in email lands
+on the dashboard. With no web app mounted (`Web` unset), the root stays a JSON 404.
 
 ## Dashboard and customer portals
 
