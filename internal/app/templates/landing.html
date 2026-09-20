@@ -1,0 +1,185 @@
+{{define "title"}}byagent — publish a page, get a link{{end}}
+
+{{define "head"}}
+<meta name="description" content="byagent publishes a Markdown file or a folder of static HTML as a versioned, commentable URL. One command from your terminal or your agent.">
+<meta property="og:title" content="byagent — publish a page, get a link">
+<meta property="og:description" content="One command turns a Markdown file or a folder of static HTML into a versioned URL you can send to anyone.">
+<meta property="og:type" content="website">
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing">
+
+<header class="lp-bar">
+  <span class="brand lp-brand">{{template "icon" "mark"}}<span>byagent</span></span>
+  <nav class="lp-nav" aria-label="Sections">
+    <a href="#start">Quickstart</a>
+    <a href="#what">What you get</a>
+    <a href="#cli">CLI</a>
+    <a href="#agents">Agents</a>
+    <a href="#selfhost">Self-host</a>
+  </nav>
+  <a class="btn lp-cta" href="{{$d.AppURL}}">Dashboard</a>
+</header>
+
+<section class="lp-hero">
+  <div class="lp-hero-copy">
+    <h1 class="lp-h1">Publish a page. Get a link.</h1>
+    <p class="lp-lead">
+      A Markdown file or a folder of static HTML goes in; a versioned URL comes out.
+      Send it to anyone, collect comments on the page itself, and publish again from the
+      same directory to update it in place.
+    </p>
+    <div class="lp-cmd">
+      <code>npx byagent publish ./report.md</code>
+      <button type="button" class="icon-btn" data-copy-text="npx byagent publish ./report.md" title="Copy command" aria-label="Copy command">{{template "icon" "copy"}}</button>
+    </div>
+    <p class="lp-under muted">Node 18 or newer. No build step, no config file, and readers need no account.</p>
+  </div>
+
+  <figure class="lp-term" aria-label="Terminal transcript of a publish">
+    <figcaption class="lp-term-bar"><span class="lp-dot"></span><span class="lp-dot"></span><span class="lp-dot"></span><span>zsh</span></figcaption>
+    <pre class="lp-term-body"><span class="lp-prompt">$</span> byagent publish ./report.md --tag plan
+<span class="lp-url">{{$d.ExampleURL}}</span>
+<span class="lp-dim">version 1, 1 files, 8214 bytes, 1 uploaded
+tags plan</span>
+
+<span class="lp-prompt">$</span> byagent publish ./report.md
+<span class="lp-url">{{$d.ExampleURL}}</span>
+<span class="lp-dim">version 2, 1 files, 8330 bytes, 1 uploaded</span></pre>
+  </figure>
+</section>
+
+<section class="lp-section" id="start">
+  <h2 class="lp-h2">Quickstart</h2>
+  <ol class="lp-steps">
+    <li>
+      <h3>Create a key</h3>
+      <p>{{if $d.SignIn}}Sign in at <a class="link" href="{{$d.KeysURL}}">{{$d.KeysURL}}</a> and create a named key. The full key is shown once.{{else}}This server has no sign-in configured, so keys come from its <code>ADMIN_TOKEN</code>.{{end}}</p>
+    </li>
+    <li>
+      <h3>Point the CLI at this server</h3>
+      <div class="lp-cmd is-block">
+        <code>echo "$KEY" | npx byagent login --api {{$d.APIOrigin}}</code>
+        <button type="button" class="icon-btn" data-copy-text='echo "$KEY" | npx byagent login --api {{$d.APIOrigin}}' title="Copy command" aria-label="Copy command">{{template "icon" "copy"}}</button>
+      </div>
+      <p class="muted">Writes <code>~/.artifacts/config.json</code>. <code>ARTIFACTS_API</code> and <code>ARTIFACTS_TOKEN</code> override it in CI.</p>
+    </li>
+    <li>
+      <h3>Publish</h3>
+      <div class="lp-cmd is-block">
+        <code>npx byagent publish ./site --project "Docs" --tag api</code>
+        <button type="button" class="icon-btn" data-copy-text='npx byagent publish ./site --project "Docs" --tag api' title="Copy command" aria-label="Copy command">{{template "icon" "copy"}}</button>
+      </div>
+      <p class="muted">The directory remembers its artifact in <code>.artifacts.json</code>, so publishing again keeps the same URL. A new directory is a new link.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="lp-section" id="what">
+  <h2 class="lp-h2">What the link gives you</h2>
+  <dl class="lp-facts">
+    <div>
+      <dt>Versions, and a way back</dt>
+      <dd>Every publish keeps the previous ones. Roll back with <code>byagent rollback &lt;id&gt; 3</code> or one click in the dashboard.</dd>
+    </div>
+    <div>
+      <dt>Comments on the page</dt>
+      <dd>A reader selects the line they mean and leaves a thread on it. Reply and resolve from the dashboard or with <code>byagent reply</code> and <code>byagent resolve</code>.</dd>
+    </div>
+    <div>
+      <dt>Private, or private with a code</dt>
+      <dd><code>--private</code> keeps it inside your workspace. <code>byagent share &lt;id&gt;</code> issues six digits that open that one page for someone outside; <code>--off</code> withdraws them.</dd>
+    </div>
+    <div>
+      <dt>Markdown, already styled</dt>
+      <dd>A <code>.md</code> file is rendered on publish: light and dark, heading anchors, a contents list, GFM tables and highlighted code. The first H1 becomes the title.</dd>
+    </div>
+    <div>
+      <dt>Projects, tags and covers</dt>
+      <dd><code>--project</code> and <code>--tag</code> group your artifacts and filter the dashboard. Each page gets a generated cover, used as its <code>og:image</code> in link previews.</dd>
+    </div>
+    <div>
+      <dt>Scriptable output</dt>
+      <dd>Every command takes <code>--json</code> and prints exactly one object on stdout. Errors print one object on stderr and exit non-zero.</dd>
+    </div>
+  </dl>
+</section>
+
+<section class="lp-section" id="cli">
+  <h2 class="lp-h2">CLI</h2>
+  <p class="lp-sub muted"><code>npm install -g byagent</code>, or <code>npx byagent &lt;command&gt;</code>. Full flags: <code>byagent &lt;command&gt; --help</code>.</p>
+  <table class="lp-table">
+    <tbody>
+      <tr><td><code>publish &lt;dir|file&gt;</code></td><td>Uploads what changed and publishes a version. <code>--title --project --tag --private --public --no-comments --cover</code></td></tr>
+      <tr><td><code>get &lt;id&gt;</code></td><td>URL, title, current version, open comments, project and tags</td></tr>
+      <tr><td><code>list</code></td><td>Everything in the workspace, filterable by <code>--project</code> or <code>--end-user</code></td></tr>
+      <tr><td><code>share &lt;id&gt;</code></td><td>Issues or rotates the six-digit code for a private page; <code>--off</code> withdraws it</td></tr>
+      <tr><td><code>versions &lt;id&gt;</code></td><td>Version history with per-version comment counts</td></tr>
+      <tr><td><code>rollback &lt;id&gt; &lt;n&gt;</code></td><td>Republishes an old version as the newest one</td></tr>
+      <tr><td><code>comments &lt;id&gt;</code></td><td>Threads with their anchor status; <code>--open</code>, <code>--all</code>, <code>--since</code></td></tr>
+      <tr><td><code>reply &lt;id&gt; &lt;thread&gt;</code></td><td>Posts an owner reply on a thread</td></tr>
+      <tr><td><code>resolve &lt;id&gt; &lt;thread&gt;</code></td><td>Marks a thread resolved</td></tr>
+      <tr><td><code>delete &lt;id&gt;</code></td><td>Soft-deletes the artifact; the URL stops working</td></tr>
+      <tr><td><code>whoami</code></td><td>Current workspace and key</td></tr>
+      <tr><td><code>portal-link &lt;user&gt;</code></td><td>Seven-day read-only customer portal, integrator workspaces only</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="lp-section" id="agents">
+  <h2 class="lp-h2">For agents</h2>
+  <div class="lp-two">
+    <div>
+      <p>
+        byagent exists so an agent can hand back a URL instead of a file path or a wall of
+        chat markdown. One command, one JSON object, and the page is live where a human can
+        open it, comment on it and come back to it.
+      </p>
+      <p>
+        This server serves the skill it expects agents to follow:
+        <a class="link" href="{{$d.SkillURL}}">{{$d.SkillURL}}</a>.
+        Save it as <code>SKILL.md</code> in your agent's skills directory.
+      </p>
+    </div>
+    <pre class="lp-code"><span class="lp-prompt">$</span> byagent publish ./notes.md --project Trips --tag notes --json
+{
+  "id": "{{$d.ExampleID}}",
+  "url": "{{$d.ExampleURL}}",
+  "version": 1,
+  "visibility": "public",
+  "project": "Trips",
+  "tags": ["notes"],
+  "files": 1, "bytes": 8214, "uploaded": 1
+}
+<span class="lp-dim">also: end_user, comments_enabled, cover_url, cover_style</span></pre>
+  </div>
+</section>
+
+<section class="lp-section" id="selfhost">
+  <h2 class="lp-h2">Self-host</h2>
+  <p>
+    One Go binary with SQLite or Postgres, local disk or S3. Published pages must not share
+    an origin with the dashboard, so set <code>PUBLIC_SHARE_ORIGIN</code> and
+    <code>PUBLIC_API_ORIGIN</code> to two hosts — here, <code>{{$d.ShareHost}}</code> and
+    <code>{{$d.APIHost}}</code>.
+  </p>
+  <div class="lp-cmd is-block">
+    <code>docker compose -f deploy/docker-compose.yml --env-file .env up -d</code>
+    <button type="button" class="icon-btn" data-copy-text="docker compose -f deploy/docker-compose.yml --env-file .env up -d" title="Copy command" aria-label="Copy command">{{template "icon" "copy"}}</button>
+  </div>
+</section>
+
+<footer class="lp-foot">
+  <span class="brand lp-brand">{{template "icon" "mark"}}<span>byagent</span></span>
+  <nav class="lp-foot-nav" aria-label="Elsewhere">
+    <a href="https://www.npmjs.com/package/byagent" rel="noopener">npm</a>
+    <a href="{{$d.SkillURL}}">skill.md</a>
+    <a href="/healthz">Status</a>
+    <a href="{{$d.AppURL}}">Dashboard</a>
+  </nav>
+</footer>
+
+</div>
+{{end}}

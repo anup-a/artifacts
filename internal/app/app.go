@@ -69,6 +69,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 		h.PortalLimiter = ratelimit.New(60)
 	}
 	mux.HandleFunc("GET /app/static/{name}", h.static.serve)
+	mux.HandleFunc("GET /{$}", h.headers(h.landing))
 	mux.HandleFunc("GET /p/{token}", h.headers(h.portal))
 
 	mux.HandleFunc("GET /app/login", h.public(h.loginPage))

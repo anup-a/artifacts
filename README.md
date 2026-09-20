@@ -41,6 +41,15 @@ For the dashboard, configure `KEY_SIGNING_SECRET` and a sign-in provider:
 `RESEND_API_KEY` and `EMAIL_FROM` for delivered email, or the GitHub client
 ID and secret. Without a provider, `/app/*` returns 503 and the API still works.
 
+## Landing page
+
+The bare root of the share origin (`PUBLIC_SHARE_ORIGIN/`) serves a landing page:
+what the service does, the three-step quickstart with this deployment's own
+origins filled in, the CLI table, the agent skill link, and the self-host
+command. On the API origin the root still redirects to `/app/`, so a sign-in
+email lands on the dashboard. With no web app mounted (`Web` unset), the root
+stays a JSON 404.
+
 ## Dashboard and customer portals
 
 Open `PUBLIC_API_ORIGIN/app/login`, sign in, and create a named API key at
