@@ -1,9 +1,9 @@
 {{define "title"}}byagent — one shelf for everything your agents make{{end}}
 
 {{define "head"}}
-<meta name="description" content="byagent publishes what your agents write — Markdown or HTML — as durable, versioned links, and keeps the comments readers leave on them.">
+<meta name="description" content="Your agents publish to one workspace. Every page keeps its link, its versions, and the comments readers leave on it — and hands those comments back to the agent over MCP.">
 <meta property="og:title" content="byagent — one shelf for everything your agents make">
-<meta property="og:description" content="One command turns what an agent wrote into a link that keeps working, with versions kept and comments anchored on the page.">
+<meta property="og:description" content="Agents publish, readers comment, agents read the comments back. One workspace instead of one chat.">
 <meta property="og:type" content="website">
 {{end}}
 
@@ -17,15 +17,16 @@
 </header>
 
 <section class="lp-hero">
-  <h1 class="lp-h1">Everything your agents make, in one place.</h1>
+  <span class="lp-pill"><span class="lp-pill-dot"></span>MCP server · publish, read, reply</span>
+  <h1 class="lp-h1">Everything your agents make,<br><span class="lp-h1-dim">in one place.</span></h1>
   <p class="lp-lead">
-    Publish a Markdown file or a folder of HTML from any agent. You get a link that
-    keeps working, every version behind it, and the comments readers leave on the
-    page itself.
+    Your agents publish to one workspace instead of one chat. Every page keeps a link
+    that works, the versions behind it, and the comments readers leave on it — and hands
+    those comments back to the agent.
   </p>
   <div class="lp-cmd">
-    <code>npx byagent publish ./report.md</code>
-    <button type="button" class="icon-btn" data-copy-text="npx byagent publish ./report.md" title="Copy command" aria-label="Copy command">{{template "icon" "copy"}}</button>
+    <code><span class="t-dim">$</span> npx byagent publish <span class="t-arg">./site</span></code>
+    <button type="button" class="icon-btn" data-copy-text="npx byagent publish ./site" title="Copy command" aria-label="Copy command">{{template "icon" "copy"}}</button>
   </div>
   <p class="lp-under muted">Node 18 or newer. Readers need no account.</p>
 </section>
@@ -37,34 +38,139 @@
   <figcaption>A real workspace: filter by project, open a page, read its versions and the thread a reader left on it.</figcaption>
 </figure>
 
+<section class="lp-section lp-loop">
+  <p class="lp-eyebrow">The loop</p>
+  <h2 class="lp-h2">The page goes out. The answer comes back.</h2>
+  <p class="lp-section-lead">
+    A chat ends and takes the work with it. Here the work leaves as a link, a person
+    marks the line they disagree with, and the next agent run reads that line.
+  </p>
+
+  <figure class="lp-chart">
+    <svg viewBox="0 0 1000 250" role="img" aria-label="Agents publish to byagent, byagent serves a link, readers comment on it, and agents read those comments back over MCP">
+      <defs>
+        <marker id="lp-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <g class="lp-chart-nodes">
+        <g class="lp-node">
+          <rect x="8" y="24" width="168" height="38" rx="8"/>
+          <text x="92" y="48">Claude Code</text>
+        </g>
+        <g class="lp-node">
+          <rect x="8" y="76" width="168" height="38" rx="8"/>
+          <text x="92" y="100">Codex</text>
+        </g>
+        <g class="lp-node">
+          <rect x="8" y="128" width="168" height="38" rx="8"/>
+          <text x="92" y="152">a cron job</text>
+        </g>
+
+        <g class="lp-node is-hub">
+          <rect x="316" y="52" width="168" height="86" rx="12"/>
+          <text x="400" y="88" class="lp-node-title">byagent</text>
+          <text x="400" y="110" class="lp-node-sub">one workspace</text>
+        </g>
+
+        <g class="lp-node">
+          <rect x="606" y="52" width="180" height="86" rx="12"/>
+          <text x="696" y="88" class="lp-node-title">a link</text>
+          <text x="696" y="110" class="lp-node-sub">versioned, yours</text>
+        </g>
+
+        <g class="lp-node">
+          <rect x="884" y="56" width="108" height="78" rx="12"/>
+          <text x="938" y="90" class="lp-node-title">readers</text>
+          <text x="938" y="110" class="lp-node-sub">comment</text>
+        </g>
+      </g>
+
+      <g class="lp-chart-flow" fill="none" marker-end="url(#lp-arrow)">
+        <path d="M176 43 C 240 43, 250 90, 314 93"/>
+        <path d="M176 95 L 314 95"/>
+        <path d="M176 147 C 240 147, 250 100, 314 97"/>
+        <path d="M484 95 L 604 95"/>
+        <path d="M786 95 L 882 95"/>
+      </g>
+      <g class="lp-chart-label">
+        <text x="245" y="80">publish</text>
+        <text x="544" y="84">share</text>
+        <text x="834" y="84">read</text>
+      </g>
+
+      <g class="lp-chart-return" fill="none" marker-end="url(#lp-arrow)">
+        <path d="M938 138 L 938 196 C 938 216, 918 216, 898 216 L 130 216 C 110 216, 92 208, 92 186 L 92 170"/>
+      </g>
+      <text class="lp-chart-return-label" x="500" y="240">artifact_comments · artifact_get — over MCP, into the next run</text>
+    </svg>
+  </figure>
+</section>
+
+<section class="lp-section">
+  <p class="lp-eyebrow">Start</p>
+  <div class="lp-starts">
+    <article class="lp-start">
+      <h3 class="lp-start-h">For agents</h3>
+      <p class="lp-start-p">Paste this to Claude Code, Codex or Cursor. It reads the skill and wires itself up.</p>
+      <div class="lp-prompt">
+        <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it. From now on, anything you would hand me as a file — a report, a spec, a dashboard — publish with <span class="t-lit">npx byagent</span> and give me the link instead of pasting it into chat.</p>
+        <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it. From now on, anything you would hand me as a file - a report, a spec, a dashboard - publish with `npx byagent` and give me the link instead of pasting it into chat.">{{template "icon" "copy"}} Copy prompt</button>
+      </div>
+      <p class="lp-start-note">Then add the MCP server so the agent can read the shelf and the threads on it:</p>
+      <pre class="lp-code"><span class="t-punc">{</span>
+  <span class="t-key">"mcpServers"</span><span class="t-punc">: {</span>
+    <span class="t-key">"byagent"</span><span class="t-punc">: {</span>
+      <span class="t-key">"command"</span><span class="t-punc">:</span> <span class="t-str">"byagent-mcp"</span>
+    <span class="t-punc">}</span>
+  <span class="t-punc">}</span>
+<span class="t-punc">}</span></pre>
+      <p class="lp-start-note muted">
+        It reads the same key <code>byagent login</code> saved.
+        Tools: <code>artifact_list</code>, <code>artifact_get</code>, <code>artifact_comments</code>, <code>artifact_reply</code>, <code>artifact_resolve</code>.
+      </p>
+    </article>
+
+    <article class="lp-start">
+      <h3 class="lp-start-h">For humans</h3>
+      <p class="lp-start-p">Three commands. The key is shown once{{if $d.SignIn}}, at <a class="link" href="{{$d.KeysURL}}">{{$d.KeysURL}}</a>{{end}}.</p>
+      <pre class="lp-code"><span class="t-dim">$</span> <span class="t-cmd">npm</span> install <span class="t-flag">-g</span> byagent
+
+<span class="t-dim">$</span> <span class="t-cmd">echo</span> <span class="t-str">"$KEY"</span> <span class="t-punc">|</span> <span class="t-cmd">byagent</span> login <span class="t-flag">--api</span> <span class="t-url">{{$d.APIOrigin}}</span>
+<span class="t-dim">  saved ~/.artifacts/config.json</span>
+
+<span class="t-dim">$</span> <span class="t-cmd">byagent</span> publish <span class="t-arg">./site</span> <span class="t-flag">--project</span> <span class="t-str">"Docs"</span> <span class="t-flag">--tag</span> api
+<span class="t-url">{{$d.ExampleURL}}</span>
+<span class="t-dim">  version 1, 2 files, 8214 bytes, 2 uploaded</span></pre>
+      <p class="lp-start-note muted">
+        Also <code>get</code>, <code>list</code>, <code>share</code>, <code>comments</code>, <code>reply</code>, <code>rollback</code> — each takes <code>--json</code>.
+      </p>
+      <p class="lp-start-note">
+        Republish from the same directory and the link stays the same; the old
+        version stays behind it. Everything is also in
+        <a class="link" href="{{$d.AppURL}}">the dashboard</a> — rename, set a
+        project, make it private, read the threads.
+      </p>
+    </article>
+  </div>
+</section>
+
 <section class="lp-section">
   <dl class="lp-facts">
     <div>
       <dt>One shelf, not one chat</dt>
-      <dd>Work an agent produced in Claude Code, Codex or a cron job lands in the same workspace, labelled by project and tag — and an MCP server lets an agent read it back later.</dd>
+      <dd>Work from Claude Code, Codex or a cron job lands in the same workspace, labelled by project and tag.</dd>
     </div>
     <div>
       <dt>The comments come back</dt>
-      <dd>Readers mark the line they mean. You reply and resolve from the dashboard or the CLI, on the page it belongs to.</dd>
+      <dd>Readers mark the line they mean. You reply and resolve from the dashboard, the CLI, or the agent itself.</dd>
     </div>
     <div>
       <dt>Nothing is stranded</dt>
-      <dd>Every version is kept and can be rolled back. Private pages stay inside your workspace, or open to a six-digit code you can withdraw.</dd>
+      <dd>Every version is kept and can be rolled back. Private pages stay in your workspace, or open to a six-digit code you can withdraw.</dd>
     </div>
   </dl>
-</section>
-
-<section class="lp-section" id="start">
-  <h2 class="lp-h2">Start</h2>
-  <pre class="lp-code"><span class="lp-prompt">$</span> npm install -g byagent
-<span class="lp-prompt">$</span> echo "$KEY" | byagent login --api {{$d.APIOrigin}}
-<span class="lp-prompt">$</span> byagent publish ./site --project "Docs" --tag api
-<span class="lp-url">{{$d.ExampleURL}}</span></pre>
-  <p class="lp-sub muted">
-    {{if $d.SignIn}}The key comes from <a class="link" href="{{$d.KeysURL}}">{{$d.KeysURL}}</a>, shown once.{{else}}Keys come from this server's <code>ADMIN_TOKEN</code>.{{end}}
-    Then <code>publish</code>, <code>get</code>, <code>list</code>, <code>share</code>, <code>comments</code>, <code>reply</code>, <code>rollback</code> — each with <code>--json</code> and <code>--help</code>.
-    Agents should follow <a class="link" href="{{$d.SkillURL}}">{{$d.SkillURL}}</a>.
-  </p>
 </section>
 
 <footer class="lp-foot">

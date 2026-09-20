@@ -35,12 +35,15 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		t.Fatalf("content type %q", ct)
 	}
 	for _, want := range []string{
-		"npx byagent publish",  // the command that is the whole product
-		"http://api.test/app/", // the way to the dashboard
-		"byagent login --api",  // how you get a key in
-		"share.test/a/",        // what a published link looks like
-		"<video",               // the dashboard recording carries the product
-		"/app/static/dashboard.",
+		"npx byagent publish",    // the command that is the whole product
+		"http://api.test/app/",   // the way to the dashboard
+		"http://api.test",        // what you point the CLI at
+		"share.test/skill.md",    // what you paste to an agent
+		"share.test/a/",          // what a published link looks like
+		"mcpServers",             // how an agent reads the shelf back
+		"artifact_comments",      // and the tool that closes the loop
+		"<video",                 // the dashboard recording carries the product
+		"/app/static/dashboard.", // served as a hashed asset
 	} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("landing page is missing %q", want)
