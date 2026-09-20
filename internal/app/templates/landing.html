@@ -1,8 +1,8 @@
-{{define "title"}}byagent — one shelf for everything your agents make{{end}}
+{{define "title"}}byagent: one shelf for everything your agents make{{end}}
 
 {{define "head"}}
-<meta name="description" content="Your agents publish to one workspace. Every page keeps its link, its versions, and the comments readers leave on it — and the next agent run can search the shelf and read those comments back.">
-<meta property="og:title" content="byagent — one shelf for everything your agents make">
+<meta name="description" content="Your agents publish to one workspace. Every page keeps its link, its versions, and the comments readers leave on it. The next agent run can search the shelf and read those comments back.">
+<meta property="og:title" content="byagent: one shelf for everything your agents make">
 <meta property="og:description" content="Agents publish, readers comment, agents read the comments back. One workspace instead of one chat.">
 <meta property="og:type" content="website">
 {{end}}
@@ -17,11 +17,11 @@
 </header>
 
 <section class="lp-hero">
-  <span class="lp-pill"><span class="lp-pill-dot"></span>Works with Claude Code, Codex, Cursor — anything that can run a command</span>
+  <span class="lp-pill"><span class="lp-pill-dot"></span>Works with Claude Code, Codex, Cursor, or anything that can run a command</span>
   <h1 class="lp-h1">Everything your agents make,<br><span class="lp-h1-dim">in one place.</span></h1>
   <p class="lp-lead">
     Your agents publish to one workspace instead of one chat. Every page keeps its link,
-    its versions and the comments readers leave — and the next run can read them back.
+    its versions and the comments readers leave, and the next run can read them back.
   </p>
   <div class="lp-cmd">
     <code><span class="t-dim">$</span> npx byagent publish <span class="t-arg">./site</span></code>
@@ -43,7 +43,7 @@
            alt="A comment thread on one page: a reader quotes a line and replies to it, and the owner answers that version 3 makes the change">
     </picture>
   </div>
-  <figcaption>Every page by project and day — and on each one, the thread a reader left on the line they meant.</figcaption>
+  <figcaption>Every page by project and day. On each one, the thread a reader left on the line they meant.</figcaption>
 </figure>
 
 <section class="lp-section lp-loop">
@@ -107,7 +107,7 @@
       <g class="lp-chart-return" fill="none" marker-end="url(#lp-arrow)">
         <path d="M938 138 L 938 196 C 938 216, 918 216, 898 216 L 130 216 C 110 216, 92 208, 92 186 L 92 170"/>
       </g>
-      <text class="lp-chart-return-label" x="500" y="240">byagent comments &lt;id&gt; --json — the thread, into the next run</text>
+      <text class="lp-chart-return-label" x="500" y="240">byagent comments &lt;id&gt; --json: the thread, into the next run</text>
     </svg>
   </figure>
 
@@ -134,8 +134,8 @@
       <h3 class="lp-start-h">For agents</h3>
       <p class="lp-start-p">Paste this to Claude Code, Codex or Cursor.</p>
       <div class="lp-prompt">
-        <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it. From now on, anything you would hand me as a file — a report, a spec, a dashboard — publish with <span class="t-cmd">npx byagent</span> and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: <span class="t-cmd">byagent list --search</span>.</p>
-        <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it. From now on, anything you would hand me as a file - a report, a spec, a dashboard - publish with `npx byagent` and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: `byagent list --search`.">{{template "icon" "copy"}} Copy prompt</button>
+        <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it. From now on, anything you would hand me as a file (a report, a spec, a dashboard), publish with <span class="t-cmd">npx byagent</span> and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: <span class="t-cmd">byagent list --search</span>.</p>
+        <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it. From now on, anything you would hand me as a file (a report, a spec, a dashboard), publish with `npx byagent` and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: `byagent list --search`.">{{template "icon" "copy"}} Copy prompt</button>
       </div>
       <p class="lp-start-note muted">
         The same CLI reads the shelf back: every command takes <code>--json</code>
