@@ -113,7 +113,7 @@ func toolCatalog() []toolDef {
 	return []toolDef{
 		{
 			Name:        "artifact_list",
-			Description: "List artifacts for the authenticated workspace. Maps to GET /api/artifacts?limit&cursor&end_user&project. There is no full-text search API — filter with project / end_user, or page with cursor.",
+			Description: "List artifacts for the authenticated workspace. Maps to GET /api/artifacts?limit&cursor&end_user&project&q. Search is over titles only (case-insensitive substring) — there is no full-text search of page contents.",
 			InputSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -121,6 +121,7 @@ func toolCatalog() []toolDef {
 					"cursor":   map[string]any{"type": "string", "description": "Opaque next_cursor from a previous list response"},
 					"end_user": map[string]any{"type": "string", "description": "Filter by opaque end-user / customer id"},
 					"project":  map[string]any{"type": "string", "description": "Filter by project slug/name"},
+					"q":        map[string]any{"type": "string", "description": "Case-insensitive substring match on the artifact title"},
 				},
 			},
 		},
@@ -201,6 +202,7 @@ func (s *server) callTool(params json.RawMessage) callResult {
 			Cursor:  strArg(args, "cursor"),
 			EndUser: strArg(args, "end_user"),
 			Project: strArg(args, "project"),
+			Query:   strArg(args, "q"),
 		})
 	case "artifact_get":
 		id := strArg(args, "id")

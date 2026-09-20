@@ -55,7 +55,15 @@ func (s *server) getArtifact(w http.ResponseWriter, r *http.Request) {
 func (s *server) listArtifacts(w http.ResponseWriter, r *http.Request) {
 	k, _ := KeyFrom(r.Context())
 	q := r.URL.Query()
-	f := store.ArtifactFilter{Limit: 50, EndUser: q.Get("end_user"), Project: strings.TrimSpace(q.Get("project"))}
+	// q is the same case-insensitive title match the dashboard's search box
+	// runs, so an agent holding a key can look the shelf up rather than page
+	// through all of it.
+	f := store.ArtifactFilter{
+		Limit:   50,
+		EndUser: q.Get("end_user"),
+		Project: strings.TrimSpace(q.Get("project")),
+		Query:   strings.TrimSpace(q.Get("q")),
+	}
 	if v := q.Get("limit"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 || n > 200 {

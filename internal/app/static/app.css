@@ -785,6 +785,7 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-prompt .t-url { word-break: break-all; }
 
 .lp-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin: 0; }
+.lp-facts.is-quad { grid-template-columns: repeat(4, 1fr); gap: 26px; }
 .lp-facts dt { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 .lp-facts dd { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--fg-2); }
 
@@ -795,6 +796,7 @@ textarea { resize: vertical; line-height: 1.45; }
 /* ---- Responsive -------------------------------------------------- */
 @media (max-width: 860px) {
   .lp-facts, .lp-starts { grid-template-columns: 1fr; gap: 22px; }
+  .lp-facts.is-quad { grid-template-columns: 1fr 1fr; gap: 22px 26px; }
   .lp-h1 { font-size: 32px; }
   .lp-h2 { font-size: 21px; }
   .lp-hero { padding: 40px 0 28px; }
