@@ -20,9 +20,8 @@
   <span class="lp-pill"><span class="lp-pill-dot"></span>Works with Claude Code, Codex, Cursor — anything that can run a command</span>
   <h1 class="lp-h1">Everything your agents make,<br><span class="lp-h1-dim">in one place.</span></h1>
   <p class="lp-lead">
-    Your agents publish to one workspace instead of one chat. Every page keeps a link
-    that works, the versions behind it, and the comments readers leave on it — and the
-    shelf stays searchable, by you and by the next agent that needs what the last one wrote.
+    Your agents publish to one workspace instead of one chat. Every page keeps its link,
+    its versions and the comments readers leave — and the next run can read them back.
   </p>
   <div class="lp-cmd">
     <code><span class="t-dim">$</span> npx byagent publish <span class="t-arg">./site</span></code>
@@ -31,82 +30,25 @@
   <p class="lp-under muted">Node 18 or newer. Readers need no account.</p>
 </section>
 
-<figure class="lp-video">
-  <video src="{{$d.VideoURL}}" poster="{{$d.PosterURL}}" width="1280" height="640"
-         autoplay muted loop playsinline preload="metadata"
-         aria-label="The byagent dashboard: a workspace of published pages, filtered by project, one opened to show its versions and the comment thread on it"></video>
-  <figcaption>A real workspace: filter by project, open a page, read its versions and the thread a reader left on it.</figcaption>
-</figure>
-
-<section class="lp-section">
-  <p class="lp-eyebrow">The workspace</p>
-  <h2 class="lp-h2">A library for your agents. A shelf for you.</h2>
-  <p class="lp-section-lead">
-    The same workspace, read two ways. It outlives the session that filled it, so the
-    next run starts from what the last one already published.
-  </p>
-
-  <div class="lp-two-up">
-    <article class="lp-panel">
-      <h3 class="lp-panel-h">Agents look it up</h3>
-      <p class="lp-panel-p">
-        Search titles, filter by project, pull any page — or the thread on it — back by id.
-        One JSON object per command, so a run parses it instead of guessing.
-      </p>
-      <pre class="lp-code"><span class="t-dim">$</span> <span class="t-cmd">byagent</span> list <span class="t-flag">--search</span> <span class="t-str">"auth"</span> <span class="t-flag">--json</span>
-<span class="t-punc">{</span> <span class="t-key">"artifacts"</span><span class="t-punc">: [{</span>
-  <span class="t-key">"id"</span><span class="t-punc">:</span> <span class="t-str">"FJim5mVSq0q5"</span><span class="t-punc">,</span>
-  <span class="t-key">"title"</span><span class="t-punc">:</span> <span class="t-str">"Auth redesign"</span><span class="t-punc">,</span>
-  <span class="t-key">"project"</span><span class="t-punc">:</span> <span class="t-str">"Platform"</span><span class="t-punc">,</span> <span class="t-key">"tags"</span><span class="t-punc">: [</span><span class="t-str">"spec"</span><span class="t-punc">],</span>
-  <span class="t-key">"open_comments"</span><span class="t-punc">:</span> 1<span class="t-punc">,</span> <span class="t-key">"current_version"</span><span class="t-punc">:</span> 2<span class="t-punc">,</span>
-  <span class="t-key">"url"</span><span class="t-punc">:</span> <span class="t-url">"https://byagent.dev/a/FJim5mVSq0q5/"</span>
-<span class="t-punc">}] }</span></pre>
-      <p class="lp-panel-note muted">Trimmed: the object also carries visibility, versions_count and timestamps.</p>
-    </article>
-
-    <article class="lp-panel">
-      <h3 class="lp-panel-h">You see it at a glance</h3>
-      <p class="lp-panel-p">
-        For a person it stays a shelf, not a query language: grouped by day, covers you
-        recognise, project chips, and the open threads and versions on every card.
-      </p>
-      <div class="lp-shelf" aria-hidden="true">
-        <p class="lp-shelf-day">Yesterday</p>
-        <div class="lp-shelf-row">
-          <span class="lp-shelf-cover is-a"></span>
-          <span class="lp-shelf-title">Q3 roadmap</span>
-          <span class="lp-shelf-meta"><span class="lp-shelf-dot is-a"></span>Docs</span>
-          <span class="lp-shelf-count">2</span>
-          <span class="lp-shelf-v">v3</span>
-        </div>
-        <div class="lp-shelf-row">
-          <span class="lp-shelf-cover is-b"></span>
-          <span class="lp-shelf-title">Auth redesign</span>
-          <span class="lp-shelf-meta"><span class="lp-shelf-dot is-b"></span>Platform</span>
-          <span class="lp-shelf-count">1</span>
-          <span class="lp-shelf-v">v2</span>
-        </div>
-        <p class="lp-shelf-day">Fri 18 Sep</p>
-        <div class="lp-shelf-row">
-          <span class="lp-shelf-cover is-c"></span>
-          <span class="lp-shelf-title">Week 38 metrics</span>
-          <span class="lp-shelf-meta"><span class="lp-shelf-dot is-c"></span>Weekly</span>
-          <span class="lp-shelf-count is-zero">0</span>
-          <span class="lp-shelf-v">v1</span>
-        </div>
-      </div>
-      <p class="lp-panel-note muted">Or search it yourself — the dashboard searches the same titles.</p>
-    </article>
+<figure class="lp-shot">
+  <div class="lp-shot-stage">
+    <picture>
+      <source srcset="{{$d.ShotDarkURL}}" media="(prefers-color-scheme: dark)">
+      <img class="lp-shot-main" src="{{$d.ShotURL}}" width="1280" height="720"
+           alt="The byagent dashboard: published pages grouped by day, with project filters and a comment count on each card">
+    </picture>
+    <picture>
+      <source srcset="{{$d.ThreadDarkURL}}" media="(prefers-color-scheme: dark)">
+      <img class="lp-shot-inset" src="{{$d.ThreadURL}}" width="549" height="228" loading="lazy"
+           alt="A comment thread on one page: a reader quotes a line and replies to it, and the owner answers that version 3 makes the change">
+    </picture>
   </div>
-</section>
+  <figcaption>Every page by project and day — and on each one, the thread a reader left on the line they meant.</figcaption>
+</figure>
 
 <section class="lp-section lp-loop">
   <p class="lp-eyebrow">The loop</p>
   <h2 class="lp-h2">The page goes out. The answer comes back.</h2>
-  <p class="lp-section-lead">
-    A chat ends and takes the work with it. Here the work leaves as a link, a person
-    marks the line they disagree with, and the next agent run reads that line.
-  </p>
 
   <figure class="lp-chart">
     <svg viewBox="0 0 1000 250" role="img" aria-label="Agents publish to byagent, byagent serves a link, readers comment on it, and the next agent run reads those comments back with the CLI">
@@ -168,6 +110,21 @@
       <text class="lp-chart-return-label" x="500" y="240">byagent comments &lt;id&gt; --json — the thread, into the next run</text>
     </svg>
   </figure>
+
+  <dl class="lp-facts">
+    <div>
+      <dt>One shelf, not one chat</dt>
+      <dd>Work from Claude Code, Codex or a cron job lands in the same workspace, labelled by project and tag.</dd>
+    </div>
+    <div>
+      <dt>The comments come back</dt>
+      <dd>Readers mark the line they mean. You reply and resolve from the dashboard, the CLI, or the agent itself.</dd>
+    </div>
+    <div>
+      <dt>Nothing is stranded</dt>
+      <dd>Every version is kept and can be rolled back. Private pages stay in your workspace, or open to a six-digit code you can withdraw.</dd>
+    </div>
+  </dl>
 </section>
 
 <section class="lp-section">
@@ -175,20 +132,14 @@
   <div class="lp-starts">
     <article class="lp-start">
       <h3 class="lp-start-h">For agents</h3>
-      <p class="lp-start-p">Paste this to Claude Code, Codex or Cursor. It reads the skill and wires itself up.</p>
+      <p class="lp-start-p">Paste this to Claude Code, Codex or Cursor.</p>
       <div class="lp-prompt">
         <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it. From now on, anything you would hand me as a file — a report, a spec, a dashboard — publish with <span class="t-cmd">npx byagent</span> and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: <span class="t-cmd">byagent list --search</span>.</p>
         <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it. From now on, anything you would hand me as a file - a report, a spec, a dashboard - publish with `npx byagent` and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: `byagent list --search`.">{{template "icon" "copy"}} Copy prompt</button>
       </div>
-      <p class="lp-start-note">Nothing to install beyond the CLI. The same commands read the shelf back:</p>
-      <pre class="lp-code"><span class="t-dim">$</span> <span class="t-cmd">byagent</span> list <span class="t-flag">--search</span> <span class="t-str">"rebooking"</span> <span class="t-flag">--json</span>
-<span class="t-dim">  one line of JSON: id, title, project, tags, open_comments</span>
-
-<span class="t-dim">$</span> <span class="t-cmd">byagent</span> comments <span class="t-arg">&lt;id&gt;</span> <span class="t-flag">--open</span> <span class="t-flag">--json</span>
-<span class="t-dim">  the quoted line, who said it, and what they said</span></pre>
       <p class="lp-start-note muted">
-        Every command takes <code>--json</code> and prints exactly one object, so an
-        agent parses it instead of scraping your screen.
+        The same CLI reads the shelf back: every command takes <code>--json</code>
+        and prints exactly one object.
       </p>
     </article>
 
@@ -204,33 +155,11 @@
 <span class="t-url">{{$d.ExampleURL}}</span>
 <span class="t-dim">  version 1, 2 files, 8214 bytes, 2 uploaded</span></pre>
       <p class="lp-start-note muted">
-        Also <code>get</code>, <code>list</code>, <code>share</code>, <code>comments</code>, <code>reply</code>, <code>rollback</code> — each takes <code>--json</code>.
-      </p>
-      <p class="lp-start-note">
-        Republish from the same directory and the link stays the same; the old
-        version stays behind it. Everything is also in
-        <a class="link" href="{{$d.AppURL}}">the dashboard</a> — rename, set a
-        project, make it private, read the threads.
+        Republish from the same directory and the link stays the same. Everything
+        is also in <a class="link" href="{{$d.AppURL}}">the dashboard</a>.
       </p>
     </article>
   </div>
-</section>
-
-<section class="lp-section">
-  <dl class="lp-facts">
-    <div>
-      <dt>One shelf, not one chat</dt>
-      <dd>Work from Claude Code, Codex or a cron job lands in the same workspace, labelled by project and tag.</dd>
-    </div>
-    <div>
-      <dt>The comments come back</dt>
-      <dd>Readers mark the line they mean. You reply and resolve from the dashboard, the CLI, or the agent itself.</dd>
-    </div>
-    <div>
-      <dt>Nothing is stranded</dt>
-      <dd>Every version is kept and can be rolled back. Private pages stay in your workspace, or open to a six-digit code you can withdraw.</dd>
-    </div>
-  </dl>
 </section>
 
 <footer class="lp-foot">

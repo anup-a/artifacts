@@ -678,7 +678,7 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-brand .ic { width: 20px; height: 20px; }
 .lp-cta { margin-left: auto; }
 
-/* The hero is one centred column: the recording below it is the wide thing
+/* The hero is one centred column: the screenshot below it is the wide thing
    on this page, and two wide things fight each other. */
 .lp-hero { max-width: 700px; margin: 0 auto; padding: 72px 0 40px; text-align: center; }
 .lp-pill {
@@ -700,16 +700,25 @@ textarea { resize: vertical; line-height: 1.45; }
 }
 .lp-cmd code { min-width: 0; background: none; border: 0; padding: 0; font-size: 13.5px; color: var(--fg); overflow-x: auto; white-space: nowrap; }
 
-/* The recording carries the product, so it gets the window treatment the
+/* The screenshot carries the product, so it gets the window treatment the
    dashboard's own surfaces use: hairline, radius, layered shadow. */
-.lp-video { margin: 0; }
-.lp-video video {
-  display: block; width: 100%; height: auto;
+.lp-shot { margin: 0; }
+.lp-shot-stage { position: relative; }
+.lp-shot img {
+  display: block; height: auto;
   background: var(--panel-2);
   border: 1px solid var(--line); border-radius: 12px;
   box-shadow: var(--shadow);
 }
-.lp-video figcaption { margin-top: 12px; text-align: center; font-size: 13px; color: var(--muted); }
+.lp-shot-main { width: 100%; }
+/* The thread sits over the shelf's corner and hangs off its edge, so the one
+   figure says both halves of the claim: where the work is, and what came back. */
+.lp-shot-inset {
+  position: absolute; right: -28px; bottom: -36px; width: 46%;
+  border-color: var(--line-strong);
+  box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 18px 48px -12px rgba(0,0,0,.28);
+}
+.lp-shot figcaption { margin-top: 56px; text-align: center; font-size: 13px; color: var(--muted); }
 
 .lp-code {
   margin: 0; padding: 14px 16px; overflow-x: auto;
@@ -722,8 +731,7 @@ textarea { resize: vertical; line-height: 1.45; }
    is weight and grey. */
 .t-cmd { color: var(--fg); font-weight: 600; }
 .t-flag, .t-arg { color: var(--fg-2); }
-.t-str, .t-key { color: var(--ok); }
-.t-key { font-weight: 500; }
+.t-str { color: var(--ok); }
 .t-url { color: var(--accent); }
 .t-punc { color: var(--faint); }
 .t-dim { color: var(--faint); user-select: none; }
@@ -734,8 +742,6 @@ textarea { resize: vertical; line-height: 1.45; }
   letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted);
 }
 .lp-h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; margin: 0 0 12px; }
-.lp-section-lead { font-size: 15px; line-height: 1.62; color: var(--fg-2); margin: 0; max-width: 62ch; }
-.lp-sub { font-size: 13.5px; line-height: 1.7; margin: 14px 0 0; max-width: 78ch; }
 
 /* The loop diagram. Drawn with the same hairline and radius as the cards so
    it reads as part of the interface, not an illustration dropped on top. */
@@ -756,54 +762,6 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-chart-return { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; color: var(--accent); }
 .lp-chart-return-label {
   text-anchor: middle; font: 11.5px var(--mono); fill: var(--accent);
-}
-
-/* One workspace explained twice: what an agent queries, what a person scans. */
-.lp-two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 26px; }
-.lp-panel {
-  min-width: 0; padding: 22px;
-  border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
-}
-.lp-panel-h { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 6px; }
-.lp-panel-p { font-size: 13.5px; line-height: 1.6; color: var(--fg-2); margin: 0 0 16px; }
-.lp-panel-note { font-size: 12px; line-height: 1.6; margin: 12px 0 0; }
-.lp-panel .lp-code { font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
-
-/* A few rows of the gallery, drawn rather than screenshotted so it stays
-   sharp, themed and translatable next to the recording above. */
-.lp-shelf { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2); padding: 12px 14px; }
-.lp-shelf-day {
-  margin: 10px 0 8px; font-size: 10.5px; font-weight: 600;
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint);
-}
-.lp-shelf-day:first-child { margin-top: 0; }
-.lp-shelf-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 7px 0; border-top: 1px solid var(--line);
-}
-.lp-shelf-cover { width: 34px; height: 22px; border-radius: 4px; flex: none; border: 1px solid var(--line); }
-.lp-shelf-cover.is-a { background: linear-gradient(135deg, #ede9fe, #f5f3ff); }
-.lp-shelf-cover.is-b { background: linear-gradient(135deg, #dbeafe, #eff6ff); }
-.lp-shelf-cover.is-c { background: linear-gradient(135deg, #dcfce7, #f0fdf4); }
-/* Three pale blocks in a row read as blown-out highlights on a dark page,
-   so the mock covers follow the theme rather than the real cover art. */
-@media (prefers-color-scheme: dark) {
-  .lp-shelf-cover.is-a { background: linear-gradient(135deg, #2a2440, #1b1a28); }
-  .lp-shelf-cover.is-b { background: linear-gradient(135deg, #1e2a44, #161f2c); }
-  .lp-shelf-cover.is-c { background: linear-gradient(135deg, #1b3226, #16231c); }
-}
-.lp-shelf-title { font-size: 12.5px; color: var(--fg); min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lp-shelf-meta { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--muted); }
-.lp-shelf-dot { width: 6px; height: 6px; border-radius: 50%; }
-.lp-shelf-dot.is-a { background: #8b5cf6; }
-.lp-shelf-dot.is-b { background: #3b82f6; }
-.lp-shelf-dot.is-c { background: #22c55e; }
-.lp-shelf-count::before { content: "⌾"; margin-right: 3px; color: var(--faint); }
-.lp-shelf-count { font-size: 11.5px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
-.lp-shelf-count.is-zero { color: var(--faint); }
-.lp-shelf-v {
-  font: 10.5px var(--mono); color: var(--muted);
-  border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
 }
 
 /* Two doors into the product, side by side: one you paste to an agent, one
@@ -832,7 +790,7 @@ textarea { resize: vertical; line-height: 1.45; }
 }
 .lp-prompt .t-url { word-break: break-all; }
 
-.lp-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin: 0; }
+.lp-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin: 36px 0 0; }
 .lp-facts dt { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 .lp-facts dd { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--fg-2); }
 
@@ -842,7 +800,10 @@ textarea { resize: vertical; line-height: 1.45; }
 
 /* ---- Responsive -------------------------------------------------- */
 @media (max-width: 860px) {
-  .lp-facts, .lp-starts, .lp-two-up { grid-template-columns: 1fr; gap: 22px; }
+  .lp-facts, .lp-starts { grid-template-columns: 1fr; gap: 22px; }
+  /* No room to overhang on a phone: the thread drops below the shelf. */
+  .lp-shot-inset { position: static; width: 100%; margin-top: 12px; }
+  .lp-shot figcaption { margin-top: 12px; }
   .lp-h1 { font-size: 32px; }
   .lp-h2 { font-size: 21px; }
   .lp-hero { padding: 40px 0 28px; }

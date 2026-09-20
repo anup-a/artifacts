@@ -35,18 +35,28 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		t.Fatalf("content type %q", ct)
 	}
 	for _, want := range []string{
-		"npx byagent publish",    // the command that is the whole product
-		"http://api.test/app/",   // the way to the dashboard
-		"http://api.test",        // what you point the CLI at
-		"share.test/skill.md",    // what you paste to an agent
-		"share.test/a/",          // what a published link looks like
-		"list --search",          // how a later run finds what was published
-		"comments &lt;id&gt;",    // and how it reads the thread back
-		"<video",                 // the dashboard recording carries the product
-		"/app/static/dashboard.", // served as a hashed asset
+		"npx byagent publish",          // the command that is the whole product
+		"http://api.test/app/",         // the way to the dashboard
+		"http://api.test",              // what you point the CLI at
+		"share.test/skill.md",          // what you paste to an agent
+		"share.test/a/",                // what a published link looks like
+		"list --search",                // how a later run finds what was published
+		"comments &lt;id&gt;",          // and how it reads the thread back
+		"<picture",                     // the dashboard screenshot carries the product
+		"/app/static/dashboard-light.", // served as a hashed asset
+		"/app/static/dashboard-dark.",  // and swapped with the reader's theme
+		"/app/static/thread-light.",    // the comment thread inset over it
+		"/app/static/thread-dark.",
 	} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("landing page is missing %q", want)
+		}
+	}
+	// The page is a pitch, not the manual: a still instead of a recording, and
+	// no JSON sample or drawn mock of the shelf the screenshot already shows.
+	for _, gone := range []string{"<video", "lp-two-up", "lp-shelf", `"artifacts"`} {
+		if strings.Contains(res.Body, gone) {
+			t.Errorf("landing page still carries %q", gone)
 		}
 	}
 	if strings.Contains(res.Body, "<aside class=\"sidebar\"") {
