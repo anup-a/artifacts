@@ -38,6 +38,68 @@
   <figcaption>A real workspace: filter by project, open a page, read its versions and the thread a reader left on it.</figcaption>
 </figure>
 
+<section class="lp-section">
+  <p class="lp-eyebrow">The workspace</p>
+  <h2 class="lp-h2">A library for your agents. A shelf for you.</h2>
+  <p class="lp-section-lead">
+    The same workspace, read two ways. It outlives the session that filled it, so the
+    next run starts from what the last one already published.
+  </p>
+
+  <div class="lp-two-up">
+    <article class="lp-panel">
+      <h3 class="lp-panel-h">Agents look it up</h3>
+      <p class="lp-panel-p">
+        Search titles, filter by project, pull any page — or the thread on it — back by id.
+        One JSON object per command, so a run parses it instead of guessing.
+      </p>
+      <pre class="lp-code"><span class="t-dim">$</span> <span class="t-cmd">byagent</span> list <span class="t-flag">--search</span> <span class="t-str">"auth"</span> <span class="t-flag">--json</span>
+<span class="t-punc">{</span> <span class="t-key">"artifacts"</span><span class="t-punc">: [{</span>
+  <span class="t-key">"id"</span><span class="t-punc">:</span> <span class="t-str">"FJim5mVSq0q5"</span><span class="t-punc">,</span>
+  <span class="t-key">"title"</span><span class="t-punc">:</span> <span class="t-str">"Auth redesign"</span><span class="t-punc">,</span>
+  <span class="t-key">"project"</span><span class="t-punc">:</span> <span class="t-str">"Platform"</span><span class="t-punc">,</span> <span class="t-key">"tags"</span><span class="t-punc">: [</span><span class="t-str">"spec"</span><span class="t-punc">],</span>
+  <span class="t-key">"open_comments"</span><span class="t-punc">:</span> 1<span class="t-punc">,</span> <span class="t-key">"current_version"</span><span class="t-punc">:</span> 2<span class="t-punc">,</span>
+  <span class="t-key">"url"</span><span class="t-punc">:</span> <span class="t-url">"https://byagent.dev/a/FJim5mVSq0q5/"</span>
+<span class="t-punc">}] }</span></pre>
+      <p class="lp-panel-note muted">Trimmed: the object also carries visibility, versions_count and timestamps.</p>
+    </article>
+
+    <article class="lp-panel">
+      <h3 class="lp-panel-h">You see it at a glance</h3>
+      <p class="lp-panel-p">
+        For a person it stays a shelf, not a query language: grouped by day, covers you
+        recognise, project chips, and the open threads and versions on every card.
+      </p>
+      <div class="lp-shelf" aria-hidden="true">
+        <p class="lp-shelf-day">Yesterday</p>
+        <div class="lp-shelf-row">
+          <span class="lp-shelf-cover is-a"></span>
+          <span class="lp-shelf-title">Q3 roadmap</span>
+          <span class="lp-shelf-meta"><span class="lp-shelf-dot is-a"></span>Docs</span>
+          <span class="lp-shelf-count">2</span>
+          <span class="lp-shelf-v">v3</span>
+        </div>
+        <div class="lp-shelf-row">
+          <span class="lp-shelf-cover is-b"></span>
+          <span class="lp-shelf-title">Auth redesign</span>
+          <span class="lp-shelf-meta"><span class="lp-shelf-dot is-b"></span>Platform</span>
+          <span class="lp-shelf-count">1</span>
+          <span class="lp-shelf-v">v2</span>
+        </div>
+        <p class="lp-shelf-day">Fri 18 Sep</p>
+        <div class="lp-shelf-row">
+          <span class="lp-shelf-cover is-c"></span>
+          <span class="lp-shelf-title">Week 38 metrics</span>
+          <span class="lp-shelf-meta"><span class="lp-shelf-dot is-c"></span>Weekly</span>
+          <span class="lp-shelf-count is-zero">0</span>
+          <span class="lp-shelf-v">v1</span>
+        </div>
+      </div>
+      <p class="lp-panel-note muted">Or search it yourself — the dashboard searches the same titles.</p>
+    </article>
+  </div>
+</section>
+
 <section class="lp-section lp-loop">
   <p class="lp-eyebrow">The loop</p>
   <h2 class="lp-h2">The page goes out. The answer comes back.</h2>
@@ -155,18 +217,14 @@
 </section>
 
 <section class="lp-section">
-  <dl class="lp-facts is-quad">
+  <dl class="lp-facts">
     <div>
       <dt>One shelf, not one chat</dt>
       <dd>Work from Claude Code, Codex or a cron job lands in the same workspace, labelled by project and tag.</dd>
     </div>
     <div>
-      <dt>A library agents can search</dt>
-      <dd>It outlives the session that made it. A later run searches titles, filters by project, and pulls any page or thread back by id — with the same CLI it published through.</dd>
-    </div>
-    <div>
-      <dt>Trackable at a glance</dt>
-      <dd>For you it stays a shelf: grouped by day, covers you recognise, project chips, open threads and version counts on every card.</dd>
+      <dt>The comments come back</dt>
+      <dd>Readers mark the line they mean. You reply and resolve from the dashboard, the CLI, or the agent itself.</dd>
     </div>
     <div>
       <dt>Nothing is stranded</dt>
