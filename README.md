@@ -41,6 +41,19 @@ For the dashboard, configure `KEY_SIGNING_SECRET` and a sign-in provider:
 `RESEND_API_KEY` and `EMAIL_FROM` for delivered email, or the GitHub client
 ID and secret. Without a provider, `/app/*` returns 503 and the API still works.
 
+## Landing page
+
+The bare root of the share origin (`PUBLIC_SHARE_ORIGIN/`) serves a landing page:
+the publish command, a screenshot of the dashboard with a comment thread inset
+over it, the publish-and-comment loop as a diagram with three lines under it, and
+the two ways to start, with this deployment's own origins filled in. The
+screenshots are embedded static assets (`internal/app/static/dashboard-*.webp`
+and `thread-*.webp`, a light and a dark one of each, swapped with the reader's
+theme), served content-hashed and cached like the stylesheet.
+
+On the API origin the root still redirects to `/app/`, so a sign-in email lands
+on the dashboard. With no web app mounted (`Web` unset), the root stays a JSON 404.
+
 ## Dashboard and customer portals
 
 Open `PUBLIC_API_ORIGIN/app/login`, sign in, and create a named API key at
@@ -88,7 +101,7 @@ byagent publish ./site --title "Hello" --json
 | `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--private\|--public] [--comments\|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
 | `get <id>` | URL, title, current version, open comment count, project and tags; the share code and its link when one is set |
 | `share <id> [--off]` | Issues a six-digit share code for a private artifact and prints it with a one-click link. Running it again rotates the code, stopping every link that carried the old one; `--off` withdraws it |
-| `list [--end-user <id>] [--project <name>]` | Workspace artifacts, optionally filtered to one customer or one project; prints project and tags |
+| `list [--search <text>] [--end-user <id>] [--project <name>]` | Workspace artifacts, optionally narrowed by a case-insensitive title match, one customer or one project; prints project and tags |
 | `whoami` | Current tenant ID, kind and name, plus the key ID and name |
 | `portal-link <end-user id>` | Seven-day read-only customer portal URL, integrator workspaces only |
 | `versions <id>` | Version history with per-version comment counts |

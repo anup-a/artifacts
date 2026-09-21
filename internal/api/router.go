@@ -53,13 +53,11 @@ func NewHandler(d Deps) (http.Handler, error) {
 		ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin,
 		UnlockSecret: d.Cfg.KeySecret, Now: d.Now, OnView: d.OnView,
 	}).Register(mux)
+	// The bare host root is not an API route. The browser app owns it: the
+	// landing page on the share origin, the dashboard on the API origin.
+	// Without the web app mounted it falls to the JSON 404 below.
 	if d.Web != nil {
 		d.Web(mux)
-		// The bare host root is not an API route: send people to the dashboard,
-		// on the API origin so byagent.dev/ lands on app.byagent.dev/app/.
-		mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, d.Cfg.APIOrigin+"/app/", http.StatusFound)
-		})
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))

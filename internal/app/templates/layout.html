@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.Title}} · Artifacts</title>
+<title>{{block "title" .}}{{.Title}} · Artifacts{{end}}</title>
 <link rel="icon" href="/favicon.svg">
+{{block "head" .}}{{end}}
 <link rel="stylesheet" href="{{.CSS}}">
 <script src="{{.JS}}" defer></script>
 </head>

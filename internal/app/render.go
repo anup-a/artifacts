@@ -18,7 +18,7 @@ import (
 //go:embed templates/*.html templates/partials/*.html
 var templateFS embed.FS
 
-var pageNames = []string{"login", "check_inbox", "artifacts", "artifact", "end_users", "keys", "usage", "settings", "portal", "error", "gate"}
+var pageNames = []string{"landing", "login", "check_inbox", "artifacts", "artifact", "end_users", "keys", "usage", "settings", "portal", "error", "gate"}
 
 // pages holds one template set per page, each sharing layout.html and the
 // partials (icon sprite, shared rows).

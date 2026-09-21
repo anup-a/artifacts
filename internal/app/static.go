@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//go:embed static/app.css static/app.js static/favicon.svg
+//go:embed static/app.css static/app.js static/theme.js static/favicon.svg static/dashboard-light.webp static/dashboard-dark.webp static/thread-light.webp static/thread-dark.webp
 var staticFS embed.FS
 
 type asset struct {
@@ -20,16 +20,26 @@ type asset struct {
 // exception: it sits at a fixed /favicon.svg because published pages link to
 // it by that path and browsers guess at it.
 type statics struct {
-	files  map[string]asset
-	cssURL string
-	jsURL  string
-	icon   asset
+	files         map[string]asset
+	cssURL        string
+	jsURL         string
+	themeJSURL    string // resolves the landing page's theme before first paint
+	shotURL       string // landing page dashboard screenshot
+	shotDarkURL   string // the same view for a reader on a dark theme
+	threadURL     string // a comment thread, inset over the dashboard
+	threadDarkURL string
+	icon          asset // the mark, at a fixed path
 }
 
 func newStatics() *statics {
 	s := &statics{files: map[string]asset{}}
 	s.cssURL = s.add("app", ".css", "text/css; charset=utf-8")
 	s.jsURL = s.add("app", ".js", "text/javascript; charset=utf-8")
+	s.themeJSURL = s.add("theme", ".js", "text/javascript; charset=utf-8")
+	s.shotURL = s.add("dashboard-light", ".webp", "image/webp")
+	s.shotDarkURL = s.add("dashboard-dark", ".webp", "image/webp")
+	s.threadURL = s.add("thread-light", ".webp", "image/webp")
+	s.threadDarkURL = s.add("thread-dark", ".webp", "image/webp")
 	body, err := staticFS.ReadFile("static/favicon.svg")
 	if err != nil {
 		panic(err) // embedded, so only a build mistake

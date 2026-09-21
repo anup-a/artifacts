@@ -13,7 +13,10 @@ go build -o "$HOME/bin/byagent-mcp" ./cmd/byagent-mcp
 Auth (required): set `ARTIFACTS_TOKEN` (or `BYAGENT_API_KEY`) in the MCP server env, or rely on `~/.artifacts/config.json` from `byagent login`. Optional `ARTIFACTS_API` / `BYAGENT_API` (default `https://app.byagent.dev`).
 
 Tools: `artifact_list`, `artifact_get`, `artifact_comments`, `artifact_reply`, `artifact_resolve`.  
-No publish in P0. **No fake search** — filter with `project` / `end_user` on `artifact_list`.
+No publish in P0. **No fake search**: `artifact_list` takes `q`, which is the
+case-insensitive title match the dashboard's search box runs — not a semantic
+or full-text search of page contents. Combine it with `project` / `end_user`,
+or page with `cursor`.
 
 ## Claude Code
 

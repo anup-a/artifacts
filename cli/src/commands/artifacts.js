@@ -54,7 +54,13 @@ export async function get(cfg, { positional }) {
 
 export async function list(cfg, { flags }) {
   const res = await apiJson(cfg, "GET", "/api/artifacts", {
-    query: { limit: flags.limit, cursor: flags.cursor, end_user: flags["end-user"], project: flags.project },
+    query: {
+      limit: flags.limit,
+      cursor: flags.cursor,
+      end_user: flags["end-user"],
+      project: flags.project,
+      q: flags.search,
+    },
   });
   const rows = res.artifacts || [];
   return {

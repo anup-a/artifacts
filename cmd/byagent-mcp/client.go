@@ -34,6 +34,7 @@ type listParams struct {
 	Cursor  string
 	EndUser string
 	Project string
+	Query   string
 }
 
 func (c *apiClient) listArtifacts(ctx context.Context, p listParams) (json.RawMessage, error) {
@@ -49,6 +50,9 @@ func (c *apiClient) listArtifacts(ctx context.Context, p listParams) (json.RawMe
 	}
 	if p.Project != "" {
 		q.Set("project", p.Project)
+	}
+	if p.Query != "" {
+		q.Set("q", p.Query)
 	}
 	path := "/api/artifacts"
 	if enc := q.Encode(); enc != "" {
