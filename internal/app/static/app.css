@@ -862,7 +862,9 @@ textarea { resize: vertical; line-height: 1.45; }
 
 /* Two doors into the product, side by side: one you paste to an agent, one
    you type yourself. */
-.lp-starts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 4px; }
+/* align-items: start, so the shorter card ends where its content ends
+   rather than stretching to match its neighbour and showing a blank foot. */
+.lp-starts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 4px; align-items: start; }
 .lp-start {
   min-width: 0; padding: 22px;
   border: 1px solid var(--line-strong); border-radius: 12px; background: var(--lp-surface);

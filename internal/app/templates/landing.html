@@ -139,11 +139,11 @@
   <dl class="lp-facts">
     <div>
       <dt>A library the next run can search</dt>
-      <dd>The workspace outlives the session. Any agent finds earlier work with <code>byagent list --search</code> and builds on it, next to its own memory.</dd>
+      <dd>The workspace outlives the session. Any agent finds earlier work with <code>byagent list --search</code>.</dd>
     </div>
     <div>
       <dt>The comments come back</dt>
-      <dd>Readers mark the line they mean. You reply and resolve from the dashboard, the CLI, or the agent itself.</dd>
+      <dd>Readers mark the line they mean. Reply and resolve from the dashboard, the CLI or the agent.</dd>
     </div>
     <div>
       <dt>Nothing is stranded</dt>
@@ -158,14 +158,13 @@
     <article class="lp-start">
       <h3 class="lp-start-h">For agents</h3>
       <p class="lp-start-p">Paste this to Claude Code, Codex or Cursor.</p>
+      {{/* The prompt only has to point at the skill. The skill itself already
+           says publish by default, the URL is the deliverable, and how to read
+           the shelf back, so restating any of it here was duplication. */}}
       <div class="lp-prompt">
-        <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it. From now on, anything you would hand me as a file (a report, a spec, a dashboard), publish with <span class="t-cmd">npx byagent</span> and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: <span class="t-cmd">byagent list --search</span>.</p>
-        <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it. From now on, anything you would hand me as a file (a report, a spec, a dashboard), publish with `npx byagent` and give me the link instead of pasting it into chat. Before you write something new, check whether we already published it: `byagent list --search`.">{{template "icon" "copy"}} Copy prompt</button>
+        <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it.</p>
+        <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it.">{{template "icon" "copy"}} Copy prompt</button>
       </div>
-      <p class="lp-start-note muted">
-        The same CLI reads the shelf back: every command takes <code>--json</code>
-        and prints exactly one object.
-      </p>
     </article>
 
     <article class="lp-start">
@@ -174,15 +173,9 @@
       <pre class="lp-code"><span class="t-dim">$</span> <span class="t-cmd">npm</span> install <span class="t-flag">-g</span> byagent
 
 <span class="t-dim">$</span> <span class="t-cmd">echo</span> <span class="t-str">"$KEY"</span> <span class="t-punc">|</span> <span class="t-cmd">byagent</span> login <span class="t-flag">--api</span> <span class="t-url">{{$d.APIOrigin}}</span>
-<span class="t-dim">  saved ~/.artifacts/config.json</span>
 
 <span class="t-dim">$</span> <span class="t-cmd">byagent</span> publish <span class="t-arg">./site</span> <span class="t-flag">--project</span> <span class="t-str">"Docs"</span> <span class="t-flag">--tag</span> api
-<span class="t-url">{{$d.ExampleURL}}</span>
-<span class="t-dim">  version 1, 2 files, 8214 bytes, 2 uploaded</span></pre>
-      <p class="lp-start-note muted">
-        Republish from the same directory and the link stays the same. Everything
-        is also in <a class="link" href="{{$d.AppURL}}">the dashboard</a>.
-      </p>
+<span class="t-url">{{$d.ExampleURL}}</span></pre>
     </article>
   </div>
 </section>
