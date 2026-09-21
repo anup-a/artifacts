@@ -237,6 +237,7 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	}
 	if meta {
 		body = InjectMeta(body, coverTitle(a), CoverURL(h.ShareOrigin, id))
+		body = InjectIcon(body)
 	}
 	if inject {
 		body = Inject(body, id, version, h.runtimeRev)
