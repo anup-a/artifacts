@@ -749,6 +749,10 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-chart svg { display: block; width: 100%; height: auto; }
 .lp-chart-nodes rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1; }
 .lp-chart-nodes .is-hub rect { fill: var(--panel-2); stroke: var(--fg-2); }
+/* Memory is the agent's own, so it is drawn as a dashed outline inside the
+   run's group: present, but not something byagent holds. */
+.lp-chart-nodes .is-memory rect { fill: none; stroke-dasharray: 4 3; }
+.lp-chart-group { fill: none; stroke: var(--line); stroke-width: 1; }
 .lp-chart-nodes text {
   text-anchor: middle; font: 12.5px var(--font); fill: var(--fg-2);
 }
@@ -763,6 +767,10 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-chart-return-label {
   text-anchor: middle; font: 11.5px var(--mono); fill: var(--accent);
 }
+.lp-chart-return-label.is-small { font-size: 10.5px; }
+/* A marker does not inherit the colour of the path that uses it, so the
+   return arrows get a head of their own in the accent. */
+.lp-arrow-return { fill: var(--accent); }
 
 /* Two doors into the product, side by side: one you paste to an agent, one
    you type yourself. */
@@ -793,6 +801,7 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin: 36px 0 0; }
 .lp-facts dt { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 .lp-facts dd { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--fg-2); }
+.lp-facts code { white-space: nowrap; }
 
 .lp-foot { display: flex; align-items: center; gap: 24px; margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); }
 .lp-foot-nav { display: flex; gap: 18px; margin-left: auto; font-size: 13px; color: var(--muted); }

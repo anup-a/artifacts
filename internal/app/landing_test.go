@@ -42,6 +42,8 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"share.test/a/",                // what a published link looks like
 		"list --search",                // how a later run finds what was published
 		"comments &lt;id&gt;",          // and how it reads the thread back
+		"searchable by every agent",    // the chart: the workspace is a library for agents too
+		"its own memory",               // and it sits next to what the agent remembers
 		"<picture",                     // the dashboard screenshot carries the product
 		"/app/static/dashboard-light.", // served as a hashed asset
 		"/app/static/dashboard-dark.",  // and swapped with the reader's theme
