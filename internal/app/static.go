@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//go:embed static/app.css static/app.js static/dashboard-light.webp static/dashboard-dark.webp static/thread-light.webp static/thread-dark.webp
+//go:embed static/app.css static/app.js static/theme.js static/dashboard-light.webp static/dashboard-dark.webp static/thread-light.webp static/thread-dark.webp
 var staticFS embed.FS
 
 type asset struct {
@@ -21,6 +21,7 @@ type statics struct {
 	files         map[string]asset
 	cssURL        string
 	jsURL         string
+	themeJSURL    string // resolves the landing page's theme before first paint
 	shotURL       string // landing page dashboard screenshot
 	shotDarkURL   string // the same view for a reader on a dark theme
 	threadURL     string // a comment thread, inset over the dashboard
@@ -31,6 +32,7 @@ func newStatics() *statics {
 	s := &statics{files: map[string]asset{}}
 	s.cssURL = s.add("app", ".css", "text/css; charset=utf-8")
 	s.jsURL = s.add("app", ".js", "text/javascript; charset=utf-8")
+	s.themeJSURL = s.add("theme", ".js", "text/javascript; charset=utf-8")
 	s.shotURL = s.add("dashboard-light", ".webp", "image/webp")
 	s.shotDarkURL = s.add("dashboard-dark", ".webp", "image/webp")
 	s.threadURL = s.add("thread-light", ".webp", "image/webp")

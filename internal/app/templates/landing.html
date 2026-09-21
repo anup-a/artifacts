@@ -5,6 +5,9 @@
 <meta property="og:title" content="byagent: one shelf for everything your agents make">
 <meta property="og:description" content="Agents publish, readers comment, agents read the comments back. One workspace instead of one chat.">
 <meta property="og:type" content="website">
+{{/* Not deferred: it puts the resolved theme on <html> before the first paint,
+     so a visitor who chose against their system setting sees no flash. */}}
+<script src="{{.Data.ThemeJS}}"></script>
 {{end}}
 
 {{define "content"}}
@@ -13,6 +16,11 @@
 
 <header class="lp-bar">
   <span class="brand lp-brand">{{template "icon" "mark"}}<span>byagent</span></span>
+  <div class="lp-theme" role="group" aria-label="Theme" data-theme-picker>
+    <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
+    <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
+    <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
+  </div>
   <a class="btn lp-cta" href="{{$d.AppURL}}">Dashboard</a>
 </header>
 
@@ -31,17 +39,18 @@
 </section>
 
 <figure class="lp-shot">
+  {{/* Two stills per figure rather than one <picture>: a <picture> answers only
+       to the system setting, and this page has a control of its own. CSS shows
+       the one that matches, and the other is lazy so it is never fetched. */}}
   <div class="lp-shot-stage">
-    <picture>
-      <source srcset="{{$d.ShotDarkURL}}" media="(prefers-color-scheme: dark)">
-      <img class="lp-shot-main" src="{{$d.ShotURL}}" width="1280" height="720"
-           alt="The byagent dashboard: published pages grouped by day, with project filters and a comment count on each card">
-    </picture>
-    <picture>
-      <source srcset="{{$d.ThreadDarkURL}}" media="(prefers-color-scheme: dark)">
-      <img class="lp-shot-inset" src="{{$d.ThreadURL}}" width="549" height="200" loading="lazy"
-           alt="A comment thread on one page: a reader quotes a line, asks to time-box the first step, and the owner answers underneath">
-    </picture>
+    <img class="lp-shot-main is-light" src="{{$d.ShotURL}}" width="1280" height="720"
+         alt="The byagent dashboard: published pages grouped by day, with project filters and a comment count on each card">
+    <img class="lp-shot-main is-dark" src="{{$d.ShotDarkURL}}" width="1280" height="720" loading="lazy"
+         alt="The byagent dashboard: published pages grouped by day, with project filters and a comment count on each card">
+    <img class="lp-shot-inset is-light" src="{{$d.ThreadURL}}" width="549" height="200" loading="lazy"
+         alt="A comment thread on one page: a reader quotes a line, asks to time-box the first step, and the owner answers underneath">
+    <img class="lp-shot-inset is-dark" src="{{$d.ThreadDarkURL}}" width="549" height="200" loading="lazy"
+         alt="A comment thread on one page: a reader quotes a line, asks to time-box the first step, and the owner answers underneath">
   </div>
   <figcaption>Every page by project and day. On each one, the thread a reader left on the line they meant.</figcaption>
 </figure>

@@ -21,7 +21,8 @@ type landingData struct {
 	ShotDarkURL   string // the same view in the dark theme
 	ThreadURL     string // a comment thread, inset over the screenshot
 	ThreadDarkURL string
-	SignIn        bool // a sign-in provider is configured
+	ThemeJS       string // resolves the chosen theme before first paint
+	SignIn        bool   // a sign-in provider is configured
 }
 
 // exampleID is a made-up artifact id, the same shape the server issues.
@@ -63,6 +64,7 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 		ShotDarkURL:   h.static.shotDarkURL,
 		ThreadURL:     h.static.threadURL,
 		ThreadDarkURL: h.static.threadDarkURL,
+		ThemeJS:       h.static.themeJSURL,
 		SignIn:        h.Cfg.WebEnabled(),
 	})
 }

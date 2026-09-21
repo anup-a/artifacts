@@ -44,11 +44,12 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"comments &lt;id&gt;",          // and how it reads the thread back
 		"searchable by every agent",    // the chart: the workspace is a library for agents too
 		"its own memory",               // and it sits next to what the agent remembers
-		"<picture",                     // the dashboard screenshot carries the product
-		"/app/static/dashboard-light.", // served as a hashed asset
+		"/app/static/dashboard-light.", // the dashboard screenshot, a hashed asset
 		"/app/static/dashboard-dark.",  // and swapped with the reader's theme
 		"/app/static/thread-light.",    // the comment thread inset over it
 		"/app/static/thread-dark.",
+		"/app/static/theme.",    // the script that resolves the theme before paint
+		`data-set-theme="dark"`, // and the control that sets it
 	} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("landing page is missing %q", want)
@@ -61,8 +62,35 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 			t.Errorf("landing page still carries %q", gone)
 		}
 	}
+	// The figure follows the chosen theme, which a <picture> cannot do: it
+	// only reads the system preference. So both stills ship and CSS picks.
+	if strings.Contains(res.Body, "<picture") {
+		t.Error("figure still uses <picture>, which cannot follow the theme control")
+	}
+	if n := strings.Count(res.Body, "lp-shot-main"); n != 2 {
+		t.Errorf("got %d shelf images, want one per theme", n)
+	}
+	if n := strings.Count(res.Body, "lp-shot-inset"); n != 2 {
+		t.Errorf("got %d thread images, want one per theme", n)
+	}
 	if strings.Contains(res.Body, "<aside class=\"sidebar\"") {
 		t.Error("landing page should not carry the dashboard shell")
+	}
+}
+
+// The theme script must not be deferred: it puts the resolved theme on <html>,
+// and if that lands after first paint the page flashes the other theme.
+func TestLandingThemeScriptIsNotDeferred(t *testing.T) {
+	e := fixture(t)
+	res := e.getHost("share.test", "/")
+	i := strings.Index(res.Body, "/app/static/theme.")
+	if i < 0 {
+		t.Fatal("no theme script on the page")
+	}
+	tag := res.Body[strings.LastIndex(res.Body[:i], "<script"):]
+	tag = tag[:strings.Index(tag, ">")+1]
+	if strings.Contains(tag, "defer") || strings.Contains(tag, "async") {
+		t.Errorf("theme script is %q, want it to block paint", tag)
 	}
 }
 
