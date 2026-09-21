@@ -671,9 +671,11 @@ textarea { resize: vertical; line-height: 1.45; }
    color-scheme theme.js puts on <html> before the first paint. */
 :root:has(.landing) {
   color-scheme: light dark;
-  --bg: light-dark(#fbfbfd, #08080a);
+  /* The light page is a grey stage, not near-white: the product shot is a
+     white app, and on an almost-white page its edge disappears. */
+  --bg: light-dark(#f0f0f5, #08080a);
   --panel: light-dark(#ffffff, #101014);
-  --panel-2: light-dark(#f5f5f9, #141419);
+  --panel-2: light-dark(#f7f7fb, #141419);
   --fg: light-dark(#16161a, #f4f4f6);
   --fg-2: light-dark(#4d4d59, #a8a8b4);
   --muted: light-dark(#71717f, #76767f);
@@ -690,7 +692,7 @@ textarea { resize: vertical; line-height: 1.45; }
     light-dark(rgba(91,61,245,.13), rgba(167,139,250,.30)),
     light-dark(rgba(91,61,245,.04), rgba(120,110,240,.10)) 45%, transparent 72%);
   --lp-edge: light-dark(rgba(20,20,45,.08), rgba(255,255,255,.10));
-  --lp-bar-bg: light-dark(rgba(251,251,253,.72), rgba(8,8,10,.72));
+  --lp-bar-bg: light-dark(rgba(240,240,245,.72), rgba(8,8,10,.72));
   --lp-surface: linear-gradient(180deg,
     light-dark(#ffffff, #121217), light-dark(#fbfbfd, #0e0e12));
 }
@@ -749,7 +751,7 @@ textarea { resize: vertical; line-height: 1.45; }
 }
 .lp-h1 { font-size: clamp(38px, 4.6vw, 58px); font-weight: 600; letter-spacing: -0.042em; line-height: 1.04; margin: 0 0 18px; }
 .lp-h1-dim {
-  background: linear-gradient(180deg, light-dark(#8a8a9a, #8f8fa0), light-dark(#b9b9c6, #4a4a55));
+  background: linear-gradient(180deg, light-dark(#6d6d80, #8f8fa0), light-dark(#9c9cae, #4a4a55));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .lp-lead { font-size: 17.5px; line-height: 1.62; color: var(--fg-2); margin: 0 auto 26px; max-width: 56ch; }
@@ -786,11 +788,11 @@ textarea { resize: vertical; line-height: 1.45; }
 /* The thread sits over the shelf's corner and hangs off its edge, so the one
    figure says both halves of the claim: where the work is, and what came back. */
 .lp-shot-inset {
-  position: absolute; right: -20px; bottom: -34px; width: 42%;
+  position: absolute; right: 16px; bottom: -28px; width: 34%;
   border-radius: 12px;
   box-shadow: 0 24px 60px -18px light-dark(rgba(20,20,45,.34), rgba(0,0,0,.95));
 }
-.lp-shot figcaption { margin-top: 56px; text-align: center; font-size: 13px; color: var(--muted); }
+.lp-shot figcaption { margin-top: 48px; text-align: center; font-size: 13px; color: var(--muted); }
 
 /* One still per theme. A <picture> answers only to the system setting, so the
    control on this page could never reach it; CSS shows the matching one and
