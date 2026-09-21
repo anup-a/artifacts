@@ -50,7 +50,50 @@ func metaTags(title, coverURL string) []byte {
 // the opening <head> tag when there is one, otherwise where the runtime tag
 // goes (before </body>, or appended).
 func InjectMeta(doc []byte, title, coverURL string) []byte {
-	chunk := metaTags(title, coverURL)
+	return insertInHead(doc, metaTags(title, coverURL))
+}
+
+// iconTag points a published page at the shelf mark. The path is absolute so
+// it resolves the same from /a/<id>/ and from a nested page inside it.
+var iconTag = []byte(`<link rel="icon" href="/favicon.svg">`)
+
+// InjectIcon gives a published page a favicon, but only when it declares no
+// icon of its own: the page belongs to whoever published it, so an author who
+// shipped their own mark keeps it.
+func InjectIcon(doc []byte) []byte {
+	if hasIcon(doc) {
+		return doc
+	}
+	return insertInHead(doc, iconTag)
+}
+
+// hasIcon reports whether the document's head already has a <link> tag
+// mentioning an icon: rel="icon", "shortcut icon", "apple-touch-icon" and the
+// unquoted spellings all contain the word.
+func hasIcon(doc []byte) bool {
+	head := bytes.ToLower(doc)
+	if i := bytes.Index(head, []byte("</head")); i >= 0 {
+		head = head[:i]
+	}
+	for {
+		i := bytes.Index(head, []byte("<link"))
+		if i < 0 {
+			return false
+		}
+		head = head[i+len("<link"):]
+		tag := head
+		if end := bytes.IndexByte(tag, '>'); end >= 0 {
+			tag = tag[:end]
+		}
+		if bytes.Contains(tag, []byte("icon")) {
+			return true
+		}
+	}
+}
+
+// insertInHead puts chunk right after the opening <head> tag when there is
+// one, otherwise where the runtime tag goes (before </body>, or appended).
+func insertInHead(doc, chunk []byte) []byte {
 	lower := bytes.ToLower(doc)
 	i := bytes.Index(lower, []byte("<head"))
 	if i < 0 {

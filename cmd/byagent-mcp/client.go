@@ -16,9 +16,9 @@ import (
 // apiClient talks to the byagent owner API with Bearer auth.
 // Routes match internal/api/router.go — do not invent endpoints.
 type apiClient struct {
-	base   string
-	token  string
-	http   *http.Client
+	base  string
+	token string
+	http  *http.Client
 }
 
 func newClient(cfg config) *apiClient {

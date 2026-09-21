@@ -28,6 +28,41 @@ func TestInjectMetaIntoHead(t *testing.T) {
 	}
 }
 
+func TestInjectIconIntoHead(t *testing.T) {
+	out := string(InjectIcon([]byte(`<!doctype html><html><HEAD><title>x</title></HEAD><body></body></html>`)))
+	if !strings.Contains(out, `<HEAD><link rel="icon" href="/favicon.svg"><title>x</title>`) {
+		t.Fatal(out)
+	}
+	// No head: it lands where the runtime tag goes.
+	out = string(InjectIcon([]byte(`<p>bare</p>`)))
+	if !strings.HasSuffix(out, `<link rel="icon" href="/favicon.svg">`) {
+		t.Fatal(out)
+	}
+}
+
+func TestInjectIconLeavesAnAuthorsOwnIcon(t *testing.T) {
+	for _, doc := range []string{
+		`<head><link rel="icon" href="/mine.png"></head>`,
+		`<head><link rel='shortcut icon' href='/mine.ico'></head>`,
+		`<head><link rel=icon href=/mine.svg></head>`,
+		`<head><link rel="apple-touch-icon" href="/mine.png"></head>`,
+	} {
+		if out := string(InjectIcon([]byte(doc))); out != doc {
+			t.Fatalf("overwrote the author's icon: %s", out)
+		}
+	}
+	// A link that is not an icon does not count as one.
+	styled := `<head><link rel="stylesheet" href="/a.css"></head>`
+	if out := string(InjectIcon([]byte(styled))); !strings.Contains(out, `href="/favicon.svg"`) {
+		t.Fatal(out)
+	}
+	// An icon declared after </head> is not the head's, so it does not count.
+	late := `<head></head><body><link rel="icon" href="/late.png"></body>`
+	if out := string(InjectIcon([]byte(late))); !strings.Contains(out, `href="/favicon.svg"`) {
+		t.Fatal(out)
+	}
+}
+
 func TestInjectMetaWithoutHeadGoesBeforeBodyClose(t *testing.T) {
 	out := string(InjectMeta([]byte(`<p>hi</p></body>`), "T", "http://s/c.svg"))
 	if !strings.HasSuffix(out, `content="summary_large_image"></body>`) || !strings.HasPrefix(out, "<p>hi</p><meta") {
