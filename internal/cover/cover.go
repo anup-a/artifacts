@@ -71,6 +71,34 @@ const (
 	neutral    = "#a3a3a3"
 )
 
+// The same card on a dark page. A cover is shown inside a dashboard tile and
+// as the page's og:image, so it cannot be near-white in both: on the dark
+// dashboard a row of them reads as lit slabs. The ground sits a shade above
+// the dark panel it lands on, the way the light ground sits a shade below the
+// white one.
+const (
+	darkGround     = "#181818"
+	darkForeground = "#ededed"
+	darkMuted      = "#8f8f8f"
+	darkNeutral    = "#6b6b6b"
+)
+
+// scheme is the one stylesheet a cover carries. Elements keep their light
+// colours as presentation attributes, which a stylesheet-aware renderer
+// overrides and a plain rasteriser (a social crawler, an SVG-to-PNG step)
+// still honours, so the light card remains the default everywhere.
+const scheme = `<style>` +
+	`@media(prefers-color-scheme:dark){` +
+	`.bg{fill:` + darkGround + `}` +
+	`.tt{fill:` + darkForeground + `}` +
+	`.mu{fill:` + darkMuted + `}` +
+	`.nu{fill:` + darkNeutral + `}` +
+	// Split by property: the stroked patterns carry fill="none", and a rule
+	// that set fill as well would flood them.
+	`.pf{fill:` + darkForeground + `}` +
+	`.ps{stroke:` + darkForeground + `}` +
+	`}</style>`
+
 // projectPalette is the six-colour palette shared with the dashboard's
 // project dots, so the card and the list agree on a project's colour.
 var projectPalette = []string{"#2563eb", "#16a34a", "#d97706", "#dc2626", "#7c3aed", "#0891b2"}
@@ -131,7 +159,8 @@ func Render(c Card) []byte {
 	b.Grow(4096)
 	b.WriteString(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img">`)
 	b.WriteString(`<title>` + html.EscapeString(title) + `</title>`)
-	b.WriteString(`<rect width="1200" height="630" fill="` + ground + `"/>`)
+	b.WriteString(scheme)
+	b.WriteString(`<rect class="bg" width="1200" height="630" fill="` + ground + `"/>`)
 	if hasProject {
 		drawWash(&b, accent)
 	}
@@ -162,16 +191,22 @@ func drawText(b *strings.Builder, title, project, foot, accent string) {
 	if project != "" {
 		py := first - titleSize - projectGap + projectSize
 		b.WriteString(`<circle cx="` + f(textX+5) + `" cy="` + f(py-projectSize*0.32) + `" r="5" fill="` + accent + `"/>`)
-		b.WriteString(`<text x="` + f(textX+22) + `" y="` + f(py) + `" font-family="` + fontStack + `" font-size="` + f(projectSize) + `" font-weight="500" fill="` + muted + `">` + html.EscapeString(project) + `</text>`)
+		b.WriteString(`<text class="mu" x="` + f(textX+22) + `" y="` + f(py) + `" font-family="` + fontStack + `" font-size="` + f(projectSize) + `" font-weight="500" fill="` + muted + `">` + html.EscapeString(project) + `</text>`)
 	}
 	for i, line := range lines {
 		y := first + float64(i)*titleLeading
-		b.WriteString(`<text x="` + f(textX) + `" y="` + f(y) + `" font-family="` + fontStack + `" font-size="` + f(titleSize) + `" font-weight="600" letter-spacing="-0.8" fill="` + foreground + `">` + html.EscapeString(line) + `</text>`)
+		b.WriteString(`<text class="tt" x="` + f(textX) + `" y="` + f(y) + `" font-family="` + fontStack + `" font-size="` + f(titleSize) + `" font-weight="600" letter-spacing="-0.8" fill="` + foreground + `">` + html.EscapeString(line) + `</text>`)
 	}
 	if foot != "" {
-		b.WriteString(`<text x="` + f(textX) + `" y="` + f(footerY) + `" font-family="` + fontStack + `" font-size="` + f(footerSize) + `" fill="` + muted + `">` + html.EscapeString(foot) + `</text>`)
+		b.WriteString(`<text class="mu" x="` + f(textX) + `" y="` + f(footerY) + `" font-family="` + fontStack + `" font-size="` + f(footerSize) + `" fill="` + muted + `">` + html.EscapeString(foot) + `</text>`)
 	}
-	b.WriteString(`<rect x="` + f(Width-textX-accentWidth) + `" y="` + f(footerY-accentHeight-2) + `" width="` + f(accentWidth) + `" height="` + f(accentHeight) + `" rx="3" fill="` + accent + `"/>`)
+	// A card with no project has a grey bar rather than a project colour, and
+	// grey is the one accent that has to dim on a dark ground.
+	barClass := ""
+	if accent == neutral {
+		barClass = ` class="nu"`
+	}
+	b.WriteString(`<rect` + barClass + ` x="` + f(Width-textX-accentWidth) + `" y="` + f(footerY-accentHeight-2) + `" width="` + f(accentWidth) + `" height="` + f(accentHeight) + `" rx="3" fill="` + accent + `"/>`)
 }
 
 // clampTitle wraps on spaces into at most maxLines lines of maxLineChars

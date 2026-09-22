@@ -126,6 +126,42 @@ func TestRenderIsDeterministicAndQuiet(t *testing.T) {
 	}
 }
 
+// A cover hangs in a dashboard that has a dark theme, so a card drawn only in
+// near-white is a lit slab on a dark page. The colours it can change carry a
+// dark rule; the light values stay on the elements as attributes, so a
+// renderer that ignores the stylesheet still gets the original card.
+func TestCoverCarriesADarkScheme(t *testing.T) {
+	for _, style := range Styles() {
+		s := string(Render(Card{ID: "x", Title: "Title", Project: "p", Host: "h.test", Style: style}))
+		if !strings.Contains(s, "prefers-color-scheme:dark") {
+			t.Errorf("%s: no dark rule", style)
+		}
+		for _, want := range []string{
+			`fill="#fafafa"`, // the light ground survives as the fallback
+			darkGround,       // and the dark one is in the stylesheet
+			darkForeground,
+			darkMuted,
+		} {
+			if !strings.Contains(s, want) {
+				t.Errorf("%s: missing %q", style, want)
+			}
+		}
+		// Every element the scheme recolours has to be reachable from it.
+		if strings.Count(s, `class="bg"`) != 1 {
+			t.Errorf("%s: want exactly one grounded rect", style)
+		}
+	}
+	// The title and the footer follow the scheme; the project colour does not,
+	// because it identifies the project rather than the page around it.
+	s := string(Render(Card{ID: "x", Title: "Title", Project: "p", Style: "dots"}))
+	if !strings.Contains(s, `class="tt"`) || !strings.Contains(s, `class="mu"`) {
+		t.Errorf("title and muted text must carry their classes: %s", s)
+	}
+	if !strings.Contains(s, `fill="`+ProjectColor("p")+`"`) {
+		t.Error("the project colour must stay literal")
+	}
+}
+
 func TestNoProjectOmitsLineAndUsesGrey(t *testing.T) {
 	s := string(Render(Card{ID: "x", Title: "T", Style: "dots"}))
 	if strings.Count(s, "<text") != 1 || !strings.Contains(s, `fill="`+neutral+`"`) {
