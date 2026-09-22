@@ -124,3 +124,33 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.ref_name }}
             ghcr.io/${{ github.repository }}:latest
+
+  # Every commit on main goes to the validation deployment. This used to be a
+  # laptop running `fly deploy`, which meant deploys depended on whose network
+  # was up: Fly's remote builder fails its TLS handshake on some of them
+  # ("authentication handshake failed: EOF"), and the fallback is building the
+  # image locally. A runner has none of that, so the build happens here.
+  deploy:
+    needs: [go, runtime, cli]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    concurrency:
+      # One deploy at a time, and a newer commit wins: this is a single
+      # machine, so overlapping releases would just fight over it.
+      group: deploy-artifacts-share
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --config deploy/fly.free.toml --app artifacts-share --remote-only
+      - name: the deployed page answers
+        run: |
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://byagent.dev/)
+            [ "$code" = "200" ] && echo "byagent.dev $code" && exit 0
+            sleep 5
+          done
+          echo "byagent.dev never returned 200"; exit 1
