@@ -989,13 +989,12 @@ a.deck:hover .deck-card-1 { transform: translate(24px, -13px) rotate(7.5deg) sca
 a.deck:hover .deck-card-2 { transform: translate(-24px, -18px) rotate(-8.5deg) scale(.93); }
 .deck-count {
   position: absolute; right: 9px; bottom: 9px; z-index: 4; min-width: 22px; padding: 1px 7px;
-  border-radius: 999px; background: var(--fg); color: var(--bg); font-size: 11.5px; font-weight: 600; text-align: center;
+  border-radius: 999px; background: var(--panel); color: var(--fg-2); border: 1px solid var(--line-strong);
+  font-size: 11.5px; font-weight: 600; text-align: center;
 }
 .deck-foot { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 12px 0 2px; font-size: 13px; }
 .deck-name { font-weight: 600; }
 .deck-foot time { margin-left: auto; color: var(--muted); font-size: 12.5px; white-space: nowrap; }
-.singles { align-items: center; margin-bottom: 14px; }
-.singles-label { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
 .merge-hint {
   display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 9px 12px;
   border: 1px dashed var(--line-strong); border-radius: 10px; background: var(--panel); font-size: 13px; color: var(--fg-2);

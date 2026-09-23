@@ -41,12 +41,12 @@ type mergeHint struct {
 }
 
 // shelfView is the collections row above the artifact stream: decks for
-// collections of two or more artifacts, chips for the single ones, and any
-// merge suggestions.
+// collections of two or more artifacts, and any merge suggestions. Single
+// artifact collections are left to the project chips and /app/collections,
+// so the row does not repeat a list the page already shows.
 type shelfView struct {
-	Decks   []deckView
-	Singles []deckView
-	Merges  []mergeHint
+	Decks  []deckView
+	Merges []mergeHint
 }
 
 func collectionURL(name string) string { return "/app/collections/" + url.PathEscape(name) }
@@ -116,8 +116,6 @@ func (h *Handler) shelf(all []store.CollectionSummary) *shelfView {
 	for _, c := range all {
 		if c.Count >= 2 {
 			s.Decks = append(s.Decks, h.deck(c))
-		} else {
-			s.Singles = append(s.Singles, h.deck(c))
 		}
 	}
 	if len(s.Decks) == 0 && len(s.Merges) == 0 {
