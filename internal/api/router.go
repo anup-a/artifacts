@@ -27,6 +27,8 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("POST /api/end-users/{external_id}/portal-link", s.withAuth(s.portalLink))
 	mux.HandleFunc("GET /api/artifacts", s.withAuth(s.listArtifacts))
 	mux.HandleFunc("GET /api/projects", s.withAuth(s.listProjects))
+	mux.HandleFunc("GET /api/collections", s.withAuth(s.listCollections))
+	mux.HandleFunc("GET /api/collections/{name}", s.withAuth(s.getCollection))
 	mux.HandleFunc("POST /api/artifacts/preflight", s.withAuth(s.preflight))
 	mux.HandleFunc("POST /api/artifacts", s.withAuth(s.createArtifact))
 	mux.HandleFunc("PUT /api/artifacts/{id}", s.withAuth(s.updateArtifact))

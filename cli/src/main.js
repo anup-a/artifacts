@@ -4,6 +4,7 @@ import { CliError, usage } from "./errors.js";
 import { publish } from "./commands/publish.js";
 import { get, list, share, versions, rollback, remove } from "./commands/artifacts.js";
 import { comments, reply, resolve } from "./commands/comments.js";
+import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
 import { whoami, portalLink } from "./commands/account.js";
 
@@ -15,6 +16,8 @@ const COMMANDS = {
   publish: { run: publish, needsConfig: true },
   get: { run: get, needsConfig: true },
   list: { run: list, needsConfig: true },
+  collections: { run: collections, needsConfig: true },
+  collection: { run: collection, needsConfig: true },
   share: { run: share, needsConfig: true },
   versions: { run: versions, needsConfig: true },
   rollback: { run: rollback, needsConfig: true },
@@ -35,6 +38,8 @@ Usage:
   byagent get <id>
   byagent share <id> [--off]
   byagent list [--search <text>] [--end-user <id>] [--project <name>]
+  byagent collections
+  byagent collection <name>
   byagent whoami
   byagent portal-link <end-user id>
   byagent versions <id>
@@ -76,6 +81,11 @@ copied in as _cover.<ext>. Without a cover the server draws a quiet OG-style
 card (title, project, host and date over a subtle pattern) in the
 --cover-style of your choice (default: derived from the id). Artifact JSON
 carries project, tags, cover_url, cover_style and published_at.
+Every artifact sharing a --project label forms a collection. collections lists
+them (name, count, last update, public share URL if shared), most recently
+active first; collection <name> lists one collection's artifacts in reading
+order: its saved order first, then by publish time. Reuse the exact same
+--project string for pages that belong together.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.

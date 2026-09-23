@@ -45,6 +45,8 @@ byagent publish ./notes.md --project "Hi Travel" --tag notes --json     # Markdo
 
 Always pass `--project` and 1–3 `--tag`s. Output includes `url` — that is the deliverable. Republish from the **same directory** to keep the URL (`.artifacts.json` binds it). New directory = new link.
 
+**Collections:** every artifact sharing a `--project` label forms a collection (read in publish order unless the owner reorders it). Before publishing a page that belongs with earlier ones, run `byagent collections --json` (or the MCP tool `collection_list`) and reuse the **exact** existing project string; a near-miss like `Hi-Travel` vs `Hi Travel` starts a second collection. `byagent collection "<name>" --json` (MCP `collection_get`) lists one collection's pages with their URLs.
+
 Use `--private` when the user requests non-public or workspace-only access. Use
 `--public` only when public access is intended; the two flags are mutually
 exclusive. New artifacts default to public, and omitting both preserves visibility
