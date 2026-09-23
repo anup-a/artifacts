@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -95,7 +94,7 @@ func (s *server) getCollection(w http.ResponseWriter, r *http.Request) {
 	if len(rows) > 0 {
 		activeAt = rows[0].UpdatedAt // ListArtifacts is newest-updated first
 	}
-	arts, err := s.artifactViews(r, courseOrder(rows, meta.Positions))
+	arts, err := s.artifactViews(r, store.CourseOrder(rows, meta.Positions))
 	if err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
@@ -103,36 +102,4 @@ func (s *server) getCollection(w http.ResponseWriter, r *http.Request) {
 	v := s.collectionFields(meta, len(rows), activeAt)
 	v["artifacts"] = arts
 	apierr.WriteJSON(w, 200, v)
-}
-
-// courseOrder returns a new slice in the collection's reading order: the
-// saved positions first, in their order, then every other artifact by
-// publish time (created_at ascending, ties by id). Positions naming an
-// artifact that is not in rows, or naming one twice, are skipped.
-func courseOrder(rows []store.Artifact, positions []string) []store.Artifact {
-	rest := append([]store.Artifact(nil), rows...)
-	sort.SliceStable(rest, func(i, j int) bool {
-		if !rest[i].CreatedAt.Equal(rest[j].CreatedAt) {
-			return rest[i].CreatedAt.Before(rest[j].CreatedAt)
-		}
-		return rest[i].ID < rest[j].ID
-	})
-	byID := make(map[string]store.Artifact, len(rows))
-	for _, a := range rows {
-		byID[a.ID] = a
-	}
-	out := make([]store.Artifact, 0, len(rows))
-	placed := map[string]bool{}
-	for _, id := range positions {
-		if a, ok := byID[id]; ok && !placed[id] {
-			placed[id] = true
-			out = append(out, a)
-		}
-	}
-	for _, a := range rest {
-		if !placed[a.ID] {
-			out = append(out, a)
-		}
-	}
-	return out
 }

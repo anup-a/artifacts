@@ -204,6 +204,8 @@ func TestGetCollectionNotFound(t *testing.T) {
 	}
 }
 
+// TestCourseOrder pins the reading order the API serves; the rule itself is
+// store.CourseOrder, shared with the dashboard.
 func TestCourseOrder(t *testing.T) {
 	base := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	art := func(id string, minute int) store.Artifact {
@@ -213,7 +215,7 @@ func TestCourseOrder(t *testing.T) {
 	in := []store.Artifact{art("c", 3), art("a", 1), art("b", 2), art("d", 1)}
 	got := func(positions []string) []string {
 		out := []string{}
-		for _, a := range courseOrder(in, positions) {
+		for _, a := range store.CourseOrder(in, positions) {
 			out = append(out, a.ID)
 		}
 		return out
