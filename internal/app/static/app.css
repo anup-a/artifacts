@@ -963,11 +963,37 @@ textarea { resize: vertical; line-height: 1.45; }
 .collections-row { margin-bottom: 28px; }
 .day-label-link { order: 2; text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12.5px; color: var(--fg-2); }
 .day-label-link:hover { color: var(--fg); }
-.shelf {
-  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 260px); gap: 20px;
-  overflow-x: auto; padding: 18px 4px 6px; margin: -14px -4px 10px; scroll-snap-type: x proximity;
-}
-.shelf .deck { scroll-snap-align: start; }
+/* One row on the bento's own columns: no scrolling, no deck cut in half.
+   The server sends at most four; narrower screens drop the last ones. */
+.shelf { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding-top: 4px; margin-bottom: 10px; }
+@media (max-width: 860px) { .shelf { grid-template-columns: repeat(2, minmax(0, 1fr)); } .shelf .deck:nth-child(n+3) { display: none; } }
+@media (max-width: 560px) { .shelf { grid-template-columns: minmax(0, 1fr); } .shelf .deck:nth-child(n+2) { display: none; } }
+.deck-shared { display: inline-flex; color: var(--muted); }
+.deck-shared .ic { width: 13px; height: 13px; }
+
+/* Project chips stay on one line; app.js hides what does not fit behind a
+   "+N more" chip that expands the row in place. */
+.chips[data-collapse].is-collapsed { flex-wrap: nowrap; overflow: hidden; }
+.chips[data-collapse].is-collapsed .pchip.is-overflow { display: none; }
+.pchip-more { cursor: pointer; font-family: inherit; color: var(--muted); border-style: dashed; }
+.pchip-more[hidden] { display: none; }
+.pchip-more:hover { color: var(--fg); }
+
+/* The artifacts list fits its card: fixed columns, the title takes what is
+   left and truncates, and narrow screens shed the secondary columns. */
+.artifacts-table { table-layout: fixed; }
+.artifacts-table .c-title { max-width: none; }
+.artifacts-table th.c-project { width: 140px; }
+.artifacts-table th.c-id { width: 160px; }
+.artifacts-table th.c-user { width: 130px; }
+.artifacts-table th.c-version { width: 76px; }
+.artifacts-table th.c-comments { width: 104px; }
+.artifacts-table th.c-when { width: 92px; }
+.artifacts-table th.actions { width: 124px; }
+.artifacts-table td.c-project, .artifacts-table td.c-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.artifacts-table .row-title { min-width: 0; }
+@media (max-width: 1100px) { .artifacts-table .c-id, .artifacts-table .c-version { display: none; } }
+@media (max-width: 720px) { .artifacts-table .c-project, .artifacts-table .c-comments, .artifacts-table .c-user { display: none; } }
 .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 30px 22px; padding-top: 14px; }
 .deck { display: block; color: inherit; padding: 12px 14px 0; border-radius: 12px; }
 .deck:hover { text-decoration: none; }

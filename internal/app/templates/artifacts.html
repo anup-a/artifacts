@@ -15,18 +15,21 @@
 
 {{with .Data.Shelf}}
 <section class="collections-row" aria-label="Collections">
-  <h2 class="day-label">Collections <a class="day-label-link" href="/app/collections" title="Every collection">View all</a></h2>
+  <h2 class="day-label">Collections <a class="day-label-link" href="/app/collections" title="Every collection">View all {{.Total}}</a></h2>
   {{if .Decks}}<div class="shelf">{{range .Decks}}{{template "deck" (dict $ .)}}{{end}}</div>{{end}}
   {{range .Merges}}{{template "merge-hint" (dict $ .)}}{{end}}
 </section>
 {{end}}
 
 {{if .Data.Projects}}
-<nav class="chips" aria-label="Projects">
+{{/* data-collapse: app.js keeps this to one line with a "+N more" toggle.
+     Without the script every chip simply wraps. */}}
+<nav class="chips" aria-label="Projects" data-collapse>
   <a class="pchip{{if not .Data.Project}} is-on{{end}}" href="{{.Data.ChipURL ""}}"{{if not .Data.Project}} aria-current="true"{{end}}>All</a>
   {{range .Data.Projects}}
   <a class="pchip{{if eq .Name $.Data.Project}} is-on{{end}}" href="{{$.Data.ChipURL .Name}}"{{if eq .Name $.Data.Project}} aria-current="true"{{end}}>{{.Name}}<span class="pchip-n">{{.Count}}</span></a>
   {{end}}
+  <button type="button" class="pchip pchip-more" data-chips-toggle hidden aria-expanded="false"></button>
 </nav>
 {{end}}
 
@@ -54,27 +57,26 @@
 <section class="day">
   {{if or .Data.Sections .Data.Grid}}<h2 class="day-label">Older</h2>{{end}}
 <div class="table-card">
-<table class="table">
+<table class="table artifacts-table">
   <thead><tr>
-    <th>Title</th><th>Project</th><th>Id</th>{{if .Viewer.Integrator}}<th>End user</th>{{end}}<th class="num">Version</th><th class="num">Comments</th><th>Updated</th><th class="actions"></th>
+    <th class="c-title">Title</th><th class="c-project">Project</th><th class="c-id">Id</th>{{if .Viewer.Integrator}}<th class="c-user">End user</th>{{end}}<th class="num c-version">Version</th><th class="num c-comments">Comments</th><th class="c-when">Updated</th><th class="actions"></th>
   </tr></thead>
   <tbody>
   {{range .Data.Rows}}
   <tr>
     <td class="c-title">
-      <a class="row-title" href="/app/artifacts/{{.Artifact.ID}}" data-peek><img class="thumb" src="{{.CoverURL}}" alt="" loading="lazy" width="44" height="26"><span class="truncate">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</span>{{template "visibility-badge" .Artifact}}</a>
+      <a class="row-title" href="/app/artifacts/{{.Artifact.ID}}" data-peek><img class="thumb" src="{{.CoverURL}}" alt="" loading="lazy" width="44" height="26"><span class="truncate">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</span>{{if eq .Artifact.Visibility "private"}}{{template "visibility-badge" .Artifact}}{{end}}</a>
     </td>
     <td class="c-project">{{if .Artifact.Project}}<a class="tile-project" href="{{$.Data.ChipURL (str .Artifact.Project)}}"><span class="dot" data-color="{{projectColor (str .Artifact.Project)}}"></span>{{str .Artifact.Project}}</a>{{else}}<span class="muted">—</span>{{end}}</td>
     <td class="c-id">
       <span class="chip"><code>{{.Artifact.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{.Artifact.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
     </td>
     {{if $.Viewer.Integrator}}<td class="c-user">{{if .Artifact.EndUser}}<a class="link" href="/app/artifacts?end_user={{str .Artifact.EndUser}}">{{str .Artifact.EndUser}}</a>{{else}}<span class="muted">—</span>{{end}}</td>{{end}}
-    <td class="num"><span class="badge mono">v{{.Artifact.CurrentVersion}}</span></td>
+    <td class="num c-version"><span class="badge mono">v{{.Artifact.CurrentVersion}}</span></td>
     <td class="num c-comments">{{if .Artifact.OpenComments}}<a class="count is-open" href="/app/artifacts/{{.Artifact.ID}}#comments" title="Open comments" data-peek>{{template "icon" "comment"}}{{.Artifact.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}{{if not .Artifact.CommentsEnabled}} <span class="badge off" title="Comments are off for this artifact">off</span>{{end}}</td>
-    <td class="when"><time datetime="{{.Artifact.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="{{when .Artifact.UpdatedAt}} UTC">{{ago .Artifact.UpdatedAt $.Now}}</time></td>
+    <td class="when c-when"><time datetime="{{.Artifact.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="{{when .Artifact.UpdatedAt}} UTC">{{ago .Artifact.UpdatedAt $.Now}}</time></td>
     <td class="actions">
       <div class="row-actions">
-        <a class="btn small" href="/app/artifacts/{{.Artifact.ID}}" data-peek>View</a>
         <a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
         <details class="menu-wrap">
           <summary class="icon-btn" aria-label="More actions" title="More">{{template "icon" "more"}}</summary>

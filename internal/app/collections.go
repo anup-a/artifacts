@@ -47,7 +47,12 @@ type mergeHint struct {
 type shelfView struct {
 	Decks  []deckView
 	Merges []mergeHint
+	Total  int // every collection, for "View all N"
 }
+
+// shelfDecks is one row of the bento below it: the shelf never scrolls or
+// cuts a deck in half, and CSS drops the last ones on narrower screens.
+const shelfDecks = 4
 
 func collectionURL(name string) string { return "/app/collections/" + url.PathEscape(name) }
 
@@ -112,9 +117,9 @@ func mergeHints(all []store.CollectionSummary) []mergeHint {
 }
 
 func (h *Handler) shelf(all []store.CollectionSummary) *shelfView {
-	s := &shelfView{Merges: mergeHints(all)}
+	s := &shelfView{Merges: mergeHints(all), Total: len(all)}
 	for _, c := range all {
-		if c.Count >= 2 {
+		if c.Count >= 2 && len(s.Decks) < shelfDecks {
 			s.Decks = append(s.Decks, h.deck(c))
 		}
 	}

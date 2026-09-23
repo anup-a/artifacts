@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -62,6 +63,42 @@ func TestArtifactsShowsCollectionShelf(t *testing.T) {
 		t.Fatal("a filtered list is already one collection: no shelf")
 	}
 	want(t, e.get("/app/artifacts"), 200, `href="/app/collections" `)
+}
+
+func TestShelfShowsFourDecksAndCountsTheRest(t *testing.T) {
+	e := fixture(t)
+	e.signIn("a@x.io")
+	e.daysAgo(0)
+	for i, p := range []string{"One", "Two", "Three", "Four", "Five", "Six"} {
+		for j := 0; j < 2; j++ {
+			id := fmt.Sprintf("deck%02d%06d", i, j)
+			e.publish(id, p+" page", "")
+			e.label(id, p)
+		}
+	}
+	e.publish("solo00000001", "Solo page", "")
+	e.label("solo00000001", "Solo")
+	res := e.get("/app/artifacts")
+	if n := count(res.Body, `class="deck" href=`); n != 4 {
+		t.Fatalf("the shelf is one row of four decks, got %d", n)
+	}
+	want(t, res, 200, `View all 7`,
+		// The chip row collapses to one line in the browser; the server
+		// ships the hook and a hidden toggle.
+		`class="chips" aria-label="Projects" data-collapse`, `data-chips-toggle hidden`)
+}
+
+func TestOlderTableHasNoDuplicateViewButton(t *testing.T) {
+	e := fixture(t)
+	e.signIn("a@x.io")
+	e.daysAgo(10)
+	e.publish("older0000001", "An older page", "")
+	e.daysAgo(0)
+	res := e.get("/app/artifacts")
+	want(t, res, 200, `class="table artifacts-table"`, `class="row-title" href="/app/artifacts/older0000001" data-peek`, `View details`)
+	if strings.Contains(res.Body, `>View</a>`) {
+		t.Fatal("the title already opens the peek; a View button only widens the table")
+	}
 }
 
 func TestCollectionsIndexListsEveryCollection(t *testing.T) {
