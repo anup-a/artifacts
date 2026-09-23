@@ -167,7 +167,7 @@
       .then(function (res) { return res.ok ? res.text() : ""; })
       .then(function (html) {
         var fresh = html && new DOMParser().parseFromString(html, "text/html").querySelector("main.content");
-        if (fresh) { main.innerHTML = fresh.innerHTML; relabelDays(main); }
+        if (fresh) { main.innerHTML = fresh.innerHTML; relabelDays(main); collapseAll(main); }
       }, function () {});
   }
 
@@ -238,6 +238,61 @@
     });
   }
   relabelDays(document);
+
+  // ---- One-line chip rows --------------------------------------------
+  // A [data-collapse] chip row keeps to one line: chips that do not fit are
+  // hidden behind a "+N more" chip that expands the row in place. The row
+  // starts open when the selected chip would be hidden, so the current
+  // filter is always visible. Without this script every chip wraps.
+  function collapseChips(nav) {
+    var toggle = nav.querySelector("[data-chips-toggle]");
+    if (!toggle) return;
+    var chips = Array.prototype.filter.call(nav.querySelectorAll(".pchip"), function (c) { return c !== toggle; });
+    nav.classList.remove("is-collapsed");
+    chips.forEach(function (c) { c.classList.remove("is-overflow"); });
+    toggle.hidden = true;
+    if (!chips.length) return;
+    var top = chips[0].offsetTop;
+    var wraps = chips.filter(function (c) { return c.offsetTop > top; });
+    if (!wraps.length) return;
+    var active = nav.querySelector(".pchip.is-on");
+    var open = nav.getAttribute("data-open") === "1" || wraps.indexOf(active) >= 0;
+    toggle.hidden = false;
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) {
+      toggle.textContent = "Show less";
+      return;
+    }
+    nav.classList.add("is-collapsed");
+    var hidden = 0;
+    for (var i = chips.length - 1; i > 0 && nav.scrollWidth > nav.clientWidth + 1; i--) {
+      if (chips[i] === active) continue;
+      chips[i].classList.add("is-overflow");
+      hidden++;
+      toggle.textContent = "+" + hidden + " more";
+    }
+    if (!hidden) toggle.hidden = true;
+  }
+
+  function collapseAll(root) {
+    Array.prototype.forEach.call(root.querySelectorAll(".chips[data-collapse]"), collapseChips);
+  }
+
+  document.addEventListener("click", function (ev) {
+    var toggle = ev.target.closest && ev.target.closest("[data-chips-toggle]");
+    if (!toggle) return;
+    var nav = toggle.closest(".chips[data-collapse]");
+    nav.setAttribute("data-open", toggle.getAttribute("aria-expanded") === "true" ? "0" : "1");
+    collapseChips(nav);
+  });
+
+  var chipTimer = 0;
+  window.addEventListener("resize", function () {
+    clearTimeout(chipTimer);
+    chipTimer = setTimeout(function () { collapseAll(document); }, 100);
+  });
+  collapseAll(document);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { collapseAll(document); });
 
   // ---- Reply boxes ---------------------------------------------------
   // Grow with their content; Cmd/Ctrl+Enter submits.

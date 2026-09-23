@@ -11,7 +11,7 @@
   <span class="deck-foot">
     <span class="dot" data-color="{{$d.Color}}"></span>
     <span class="deck-name truncate">{{$d.Name}}</span>
-    {{if $d.Shared}}<span class="badge" title="Shared as a public collection">Shared</span>{{end}}
+    {{if $d.Shared}}<span class="deck-shared" title="Shared as a public collection" aria-label="Shared">{{template "icon" "link"}}</span>{{end}}
     <time datetime="{{$d.ActiveAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}">{{ago $d.ActiveAt $p.Now}}</time>
   </span>
 </a>

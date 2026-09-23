@@ -62,7 +62,7 @@ func TestArtifactsListFilterAndDelete(t *testing.T) {
 	if strings.Contains(res.Body, "window.confirm") || strings.Contains(res.Body, "data-confirm") {
 		t.Fatal("native confirm dialog still used")
 	}
-	if strings.Contains(res.Body, "<th>End user</th>") {
+	if strings.Contains(res.Body, ">End user</th>") {
 		t.Fatal("personal tenant shows end user column")
 	}
 	res = e.get("/app/artifacts?q=quarter")
@@ -161,7 +161,7 @@ func TestEndUsersAndPortal(t *testing.T) {
 	res = e.get("/app/end-users")
 	want(t, res, 200, "customer/one", "customer/two", "Portal link")
 	res = e.get("/app/artifacts?end_user=customer/one")
-	want(t, res, 200, "For customer one", "<th>End user</th>", "Showing artifacts of end user")
+	want(t, res, 200, "For customer one", `<th class="c-user">End user</th>`, "Showing artifacts of end user")
 	if strings.Contains(res.Body, "For customer two") || strings.Contains(res.Body, "Nobody") {
 		t.Fatal("end_user filter ignored")
 	}

@@ -123,6 +123,30 @@ test("collections: decks, collection page, course order and public index", async
   await deck.hover();
   await shot(page, "artifacts-shelf");
 
+  // The shelf is one row that never scrolls sideways or cuts a deck.
+  const shelfFits = await page.locator(".shelf").evaluate((el) => el.scrollWidth <= el.clientWidth);
+  expect(shelfFits).toBe(true);
+
+  // Project chips keep to one line; on a narrow window the rest hide behind
+  // "+N more", which expands the row in place.
+  const chips = page.locator(".chips[data-collapse]");
+  const toggle = chips.locator("[data-chips-toggle]");
+  await expect(toggle).toBeHidden();
+  // Squeeze the row itself rather than the window, so the test does not hang
+  // on one platform's font metrics: five chips never fit in 220px.
+  await chips.evaluate((el) => { el.style.maxWidth = "220px"; window.dispatchEvent(new Event("resize")); });
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveText(/^\+\d+ more$/);
+  const oneLine = await chips.evaluate((el) => el.getBoundingClientRect().height);
+  expect(oneLine).toBeLessThan(40);
+  await toggle.click();
+  await expect(toggle).toHaveText("Show less");
+  expect(await chips.evaluate((el) => el.getBoundingClientRect().height)).toBeGreaterThan(oneLine);
+  await toggle.click();
+  await expect(toggle).toHaveText(/more$/);
+  await chips.evaluate((el) => { el.style.maxWidth = ""; window.dispatchEvent(new Event("resize")); });
+  await expect(toggle).toBeHidden();
+
   // The deck opens the collection in course order (publish order).
   await deck.click();
   await expect(page).toHaveURL(/\/app\/collections\/learnpath:%20Async%20Rust$/);
