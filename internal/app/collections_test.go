@@ -41,13 +41,18 @@ func TestArtifactsShowsCollectionShelf(t *testing.T) {
 		`<span class="deck-count">3</span>`,
 		`class="deck" href="/app/collections/Hi%20Travel"`,
 		`src="http://share.test/a/course000003/_cover.svg"`,
-		// Creatica has one artifact: a chip, never a one-card deck.
-		`class="pchip" href="/app/collections/Creatica"`,
+		// Creatica has one artifact: it stays in the project chips, never a one-card deck.
+		`class="pchip" href="/app/artifacts?project=Creatica">Creatica<span class="pchip-n">1</span>`,
 		// Hi-Travel and Hi Travel normalise to the same name: offer the merge.
 		`action="/app/collections/Hi-Travel/rename"`, `name="to" value="Hi Travel"`,
 	)
 	if strings.Contains(res.Body, `class="deck" href="/app/collections/Creatica"`) {
 		t.Fatal("a single artifact must not render as a deck")
+	}
+	// One colour mark per item: the chips and the shelf carry no second list
+	// of coloured dots.
+	if strings.Contains(res.Body, `singles`) || regexp.MustCompile(`class="pchip[^"]*"[^>]*><span class="dot"`).MatchString(res.Body) {
+		t.Fatal("no single-collection row and no dots in the project chips")
 	}
 	if n := count(res.Body, `class="deck-card`); n != 5 {
 		t.Fatalf("a deck of three and a deck of two, got %d cards", n)

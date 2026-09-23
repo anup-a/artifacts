@@ -8,10 +8,11 @@ const (
 	dotOpacity  = "0.10"
 	lineOpacity = "0.07"
 	ringOpacity = "0.07"
-	// The wash is the one style that carries the project colour, so it is
-	// allowed to be more present: a corner-anchored bloom that fades across
-	// most of the card, as in the approved mockup.
-	washOpacity  = "0.12"
+	// The wash carries the project colour as a corner-anchored bloom that fades
+	// across most of the card. It is a hint, not a tint: at 0.12 a gallery of
+	// covers read as pastel, so the dashboard's one colour mark per item is
+	// the dot beside its name, not the cover ground.
+	washOpacity  = "0.04"
 	dotPitch     = 24
 	gridPitch    = 48
 	linePitch    = 28

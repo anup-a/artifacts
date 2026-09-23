@@ -17,12 +17,6 @@
 <section class="collections-row" aria-label="Collections">
   <h2 class="day-label">Collections <a class="day-label-link" href="/app/collections" title="Every collection">View all</a></h2>
   {{if .Decks}}<div class="shelf">{{range .Decks}}{{template "deck" (dict $ .)}}{{end}}</div>{{end}}
-  {{if .Singles}}
-  <nav class="chips singles" aria-label="Single-artifact collections">
-    <span class="singles-label">Also</span>
-    {{range .Singles}}<a class="pchip" href="{{.URL}}"><span class="dot" data-color="{{.Color}}"></span>{{.Name}}</a>{{end}}
-  </nav>
-  {{end}}
   {{range .Merges}}{{template "merge-hint" (dict $ .)}}{{end}}
 </section>
 {{end}}
@@ -31,7 +25,7 @@
 <nav class="chips" aria-label="Projects">
   <a class="pchip{{if not .Data.Project}} is-on{{end}}" href="{{.Data.ChipURL ""}}"{{if not .Data.Project}} aria-current="true"{{end}}>All</a>
   {{range .Data.Projects}}
-  <a class="pchip{{if eq .Name $.Data.Project}} is-on{{end}}" href="{{$.Data.ChipURL .Name}}"{{if eq .Name $.Data.Project}} aria-current="true"{{end}}><span class="dot" data-color="{{projectColor .Name}}"></span>{{.Name}}<span class="pchip-n">{{.Count}}</span></a>
+  <a class="pchip{{if eq .Name $.Data.Project}} is-on{{end}}" href="{{$.Data.ChipURL .Name}}"{{if eq .Name $.Data.Project}} aria-current="true"{{end}}>{{.Name}}<span class="pchip-n">{{.Count}}</span></a>
   {{end}}
 </nav>
 {{end}}

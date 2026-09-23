@@ -117,7 +117,8 @@ test("collections: decks, collection page, course order and public index", async
     await expect.poll(() => img.evaluate((i) => i.complete && i.naturalWidth > 0)).toBe(true);
   }
   await expect(page.locator(".shelf a.deck", { hasText: "Hi Travel" }).locator(".deck-card")).toHaveCount(2);
-  await expect(page.locator(".singles a.pchip", { hasText: "Creatica" })).toBeVisible();
+  await expect(page.locator(".chips a.pchip", { hasText: "Creatica" })).toBeVisible();
+  await expect(page.locator(".shelf a.deck", { hasText: "Creatica" })).toHaveCount(0);
   await expect(page.locator(".merge-hint")).toContainText("Hi-Travel");
   await deck.hover();
   await shot(page, "artifacts-shelf");
