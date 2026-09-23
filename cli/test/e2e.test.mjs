@@ -330,6 +330,37 @@ test("publish --project/--tag/--cover labels the artifact, serves the cover and 
   assert.match(JSON.parse(badStyle.stderr).error.message, /cover_style/);
 });
 
+test("collections and collection read a project label back in publish order", () => {
+  const project = "e2e course/one";
+  const first = json(["publish", siteDir("<h1>lesson one</h1>"), "--title", "Lesson one", "--project", project]);
+  const second = json(["publish", siteDir("<h1>lesson two</h1>"), "--title", "Lesson two", "--project", project]);
+  // Republishing the first lesson makes it the newest, not the last.
+  const firstDir = siteDir("<h1>lesson one again</h1>");
+  const firstAgain = json(["publish", firstDir, "--id", first.id, "--title", "Lesson one"]);
+  assert.equal(firstAgain.id, first.id);
+
+  const listed = json(["collections"]).collections.find((c) => c.name === project);
+  assert.equal(listed.count, 2);
+  assert.equal(listed.share_url, null);
+  assert.deepEqual(listed.latest.map((a) => a.id), [first.id, second.id]);
+  const table = run(["collections"]).stdout.split("\n");
+  assert.match(table[0], /^NAME\s+COUNT\s+UPDATED\s+SHARED$/);
+  assert.ok(table.some((l) => l.startsWith(project) && /\s2\s/.test(l) && l.endsWith("-")));
+
+  const got = json(["collection", project]);
+  assert.equal(got.name, project);
+  assert.equal(got.count, 2);
+  assert.deepEqual(got.artifacts.map((a) => a.id), [first.id, second.id]);
+  assert.equal(got.artifacts[0].url, `${BASE}/a/${first.id}/`);
+  const human = run(["collection", project]).stdout.split("\n");
+  assert.match(human[0], /^e2e course\/one  2 artifacts  updated /);
+  assert.equal(human[1], `1. ${first.id}  Lesson one  ${BASE}/a/${first.id}/`);
+
+  const missing = run(["collection", "no-such-collection", "--json"]);
+  assert.equal(missing.code, 1);
+  assert.equal(JSON.parse(missing.stderr).error.code, "NOT_FOUND");
+});
+
 test("an artifact without a cover gets a generated one in the requested style", async () => {
   const dir = siteDir("<h1>generated</h1>");
   const pub = json(["publish", dir, "--title", "Generated <cover>", "--cover-style", "rings"]);

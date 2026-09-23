@@ -11,6 +11,8 @@ P0 tools (no publish, no fake search):
 | `artifact_comments` | `GET /api/artifacts/{id}/comments?status=&since=` |
 | `artifact_reply` | `POST /api/artifacts/{id}/comments/{thread}/reply` |
 | `artifact_resolve` | `POST /api/artifacts/{id}/comments/{thread}/resolve` |
+| `collection_list` | `GET /api/collections` |
+| `collection_get` | `GET /api/collections/{name}` |
 
 ## Auth
 

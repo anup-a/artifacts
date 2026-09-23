@@ -37,6 +37,8 @@ Flags: `--private | --public`, `--comments | --no-comments`, `--project <name>`,
 ```
 byagent get <id>                       # url, title, version, open comments, labels, share link
 byagent list [--project <name>]
+byagent collections                    # every --project label: count, last update, share URL
+byagent collection <name>              # one collection's artifacts in reading order, with urls
 byagent share <id> [--off]             # six-digit code for a private artifact; rerun to rotate
 byagent versions <id>
 byagent rollback <id> <version>
