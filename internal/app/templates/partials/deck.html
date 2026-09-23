@@ -1,0 +1,30 @@
+{{/* One collection as a stacked deck. Receives dict Page + Item (deckView).
+     Cards are drawn back to front; the transforms live in CSS classes because
+     the CSP forbids inline styles. */}}
+{{define "deck"}}
+{{$d := .Item}}{{$p := .Page}}
+<a class="deck" href="{{$d.URL}}" title="{{$d.Name}}">
+  <span class="deck-stack deck-n{{len $d.Covers}}">
+    {{range $i, $c := $d.Covers}}<span class="deck-card deck-card-{{$i}}"><img src="{{$c}}" alt="" loading="lazy" width="1200" height="630"></span>{{end}}
+    <span class="deck-count">{{$d.Count}}</span>
+  </span>
+  <span class="deck-foot">
+    <span class="dot" data-color="{{$d.Color}}"></span>
+    <span class="deck-name truncate">{{$d.Name}}</span>
+    {{if $d.Shared}}<span class="badge" title="Shared as a public collection">Shared</span>{{end}}
+    <time datetime="{{$d.ActiveAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}">{{ago $d.ActiveAt $p.Now}}</time>
+  </span>
+</a>
+{{end}}
+
+{{/* A merge suggestion. Receives dict Page + Item (mergeHint). */}}
+{{define "merge-hint"}}
+{{$m := .Item}}{{$p := .Page}}
+<form class="merge-hint" method="post" action="{{collectionURL $m.From}}/rename">
+  <input type="hidden" name="csrf" value="{{$p.Viewer.CSRF}}">
+  <input type="hidden" name="to" value="{{$m.To}}">
+  <span class="dot" data-color="{{$m.Color}}"></span>
+  <span><b>{{$m.From}}</b> ({{$m.FromCount}}) and <b>{{$m.To}}</b> ({{$m.ToCount}}) look like the same collection.</span>
+  <button type="submit" class="btn small">Merge into {{$m.To}}</button>
+</form>
+{{end}}

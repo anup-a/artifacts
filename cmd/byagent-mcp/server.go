@@ -173,6 +173,25 @@ func toolCatalog() []toolDef {
 				"required": []string{"id", "thread"},
 			},
 		},
+		{
+			Name:        "collection_list",
+			Description: "List collections for the authenticated workspace: every artifact sharing a project label forms one. Most recently active first, each with count, description, updated_at, share_url (null unless shared) and its 3 newest artifacts. Maps to GET /api/collections.",
+			InputSchema: map[string]any{
+				"type":                 "object",
+				"properties":           map[string]any{},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "collection_get",
+			Description: "Get one collection by its project name: metadata plus its artifacts in reading order (saved order first, then by publish time). Maps to GET /api/collections/{name}.",
+			InputSchema: map[string]any{
+				"type":                 "object",
+				"properties":           map[string]any{"name": map[string]any{"type": "string", "description": "Collection (project label) name, exactly as published"}},
+				"required":             []string{"name"},
+				"additionalProperties": false,
+			},
+		},
 	}
 }
 
@@ -238,6 +257,14 @@ func (s *server) callTool(params json.RawMessage) callResult {
 			return errResult("id and thread are required")
 		}
 		raw, err = s.client.resolve(ctx, id, thread)
+	case "collection_list":
+		raw, err = s.client.listCollections(ctx)
+	case "collection_get":
+		name := strArg(args, "name")
+		if strings.TrimSpace(name) == "" {
+			return errResult("name is required")
+		}
+		raw, err = s.client.getCollection(ctx, name)
 	default:
 		return errResult("unknown tool: " + p.Name)
 	}

@@ -99,6 +99,14 @@ func (c *apiClient) resolve(ctx context.Context, id, thread string) (json.RawMes
 	return c.do(ctx, http.MethodPost, path, nil)
 }
 
+func (c *apiClient) listCollections(ctx context.Context) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/api/collections", nil)
+}
+
+func (c *apiClient) getCollection(ctx context.Context, name string) (json.RawMessage, error) {
+	return c.do(ctx, http.MethodGet, "/api/collections/"+url.PathEscape(name), nil)
+}
+
 func (c *apiClient) do(ctx context.Context, method, path string, body []byte) (json.RawMessage, error) {
 	var rdr io.Reader
 	if body != nil {

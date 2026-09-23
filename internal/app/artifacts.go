@@ -33,6 +33,9 @@ type artifactsData struct {
 	Projects  []store.ProjectCount
 	Filtered  bool // search, end-user or project filter active
 	APIOrigin string
+	// Shelf is the collections row, only on the unfiltered first page: a
+	// filtered list is already one slice of the workspace.
+	Shelf *shelfView
 }
 
 // PageURL is the list URL with the current filters and the given cursor, so
@@ -122,6 +125,12 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 			d.Grid = h.grid(recent)
 		} else {
 			d.Sections = h.sections(recent, h.Now())
+			all, err := h.Store.Collections(r.Context(), v.Tenant.ID)
+			if err != nil {
+				h.fail(w, r, err)
+				return
+			}
+			d.Shelf = h.shelf(all)
 		}
 	}
 	for _, a := range older {

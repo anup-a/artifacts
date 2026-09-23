@@ -12,7 +12,7 @@ go build -o "$HOME/bin/byagent-mcp" ./cmd/byagent-mcp
 
 Auth (required): set `ARTIFACTS_TOKEN` (or `BYAGENT_API_KEY`) in the MCP server env, or rely on `~/.artifacts/config.json` from `byagent login`. Optional `ARTIFACTS_API` / `BYAGENT_API` (default `https://app.byagent.dev`).
 
-Tools: `artifact_list`, `artifact_get`, `artifact_comments`, `artifact_reply`, `artifact_resolve`.  
+Tools: `artifact_list`, `artifact_get`, `artifact_comments`, `artifact_reply`, `artifact_resolve`, `collection_list`, `collection_get`.  
 No publish in P0. **No fake search**: `artifact_list` takes `q`, which is the
 case-insensitive title match the dashboard's search box runs — not a semantic
 or full-text search of page contents. Combine it with `project` / `end_user`,
@@ -88,4 +88,4 @@ ARTIFACTS_API = "https://app.byagent.dev"
 
 ## Smoke check
 
-With the server on stdio you should see `tools/list` advertise the five tools above. A bad token yields a tool result with `isError: true` (not a JSON-RPC transport error).
+With the server on stdio you should see `tools/list` advertise the seven tools above. A bad token yields a tool result with `isError: true` (not a JSON-RPC transport error).

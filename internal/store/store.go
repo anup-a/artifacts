@@ -66,6 +66,28 @@ type ProjectCount struct {
 	Count int
 }
 
+// Collection is the saved metadata of one project label. Positions orders the
+// collection's artifacts (empty means publish order); ShareSlug, when set,
+// is the public index link /s/{slug}/.
+type Collection struct {
+	TenantID    string
+	Name        string
+	Description string
+	Positions   []string
+	ShareSlug   string
+	UpdatedAt   time.Time
+}
+
+// CollectionSummary is one collection as the dashboard lists it: its saved
+// metadata (empty when none), how many live artifacts carry the label, and
+// the newest of them for the stacked deck.
+type CollectionSummary struct {
+	Collection
+	Count    int
+	Latest   []Artifact
+	ActiveAt time.Time // updated_at of the newest live artifact
+}
+
 type Version struct {
 	ArtifactID string
 	Version    int
@@ -121,6 +143,15 @@ type Store interface {
 	// Projects lists the distinct project labels of a tenant's live artifacts
 	// with their counts, most used first.
 	Projects(ctx context.Context, tenantID string) ([]ProjectCount, error)
+	// Collections lists every project label as a collection, most recently
+	// active first, with saved metadata and the newest artifacts for the deck.
+	Collections(ctx context.Context, tenantID string) ([]CollectionSummary, error)
+	Collection(ctx context.Context, tenantID, name string) (Collection, error)
+	CollectionByShareSlug(ctx context.Context, slug string) (Collection, error)
+	SaveCollection(ctx context.Context, c Collection, at time.Time) error
+	// RenameCollection relabels a tenant's artifacts and moves the metadata,
+	// merging when the target label already exists.
+	RenameCollection(ctx context.Context, tenantID, from, to string, at time.Time) (int, error)
 	SoftDelete(ctx context.Context, id string, at time.Time) error
 	AddVersion(ctx context.Context, v Version, files []File) error
 	Versions(ctx context.Context, artifactID string) ([]Version, error)

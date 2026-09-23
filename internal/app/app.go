@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
@@ -92,6 +93,16 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/artifacts/{id}/meta", h.private(h.setMetadata))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/resolve", h.private(h.resolveThread))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/reply", h.private(h.replyThread))
+	mux.HandleFunc("GET /app/collections", h.private(h.collections))
+	mux.HandleFunc("GET /app/collections/{name}", h.private(h.collection))
+	mux.HandleFunc("POST /app/collections/{name}/meta", h.private(h.setCollectionDescription))
+	mux.HandleFunc("POST /app/collections/{name}/move", h.private(h.moveCollectionItem))
+	mux.HandleFunc("POST /app/collections/{name}/share", h.private(h.shareCollection))
+	mux.HandleFunc("POST /app/collections/{name}/rename", h.private(h.renameCollection))
+	mux.HandleFunc("GET /s/{slug}/{$}", h.headers(h.publicCollection))
+	mux.HandleFunc("GET /s/{slug}", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/s/"+url.PathEscape(r.PathValue("slug"))+"/", http.StatusMovedPermanently)
+	})
 	mux.HandleFunc("GET /app/end-users", h.private(h.endUsers))
 	mux.HandleFunc("POST /app/end-users/{external_id}/portal-link", h.private(h.portalLink))
 	mux.HandleFunc("GET /app/keys", h.private(h.keys))

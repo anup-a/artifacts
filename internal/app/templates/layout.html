@@ -50,6 +50,7 @@
 
     <nav class="nav" aria-label="Main">
       <a href="/app/artifacts"{{if eq .Section "artifacts"}} class="active" aria-current="page"{{end}}>{{template "icon" "artifacts"}}<span>Artifacts</span></a>
+      <a href="/app/collections"{{if eq .Section "collections"}} class="active" aria-current="page"{{end}}>{{template "icon" "collections"}}<span>Collections</span></a>
       {{if .Viewer.Integrator}}<a href="/app/end-users"{{if eq .Section "end-users"}} class="active" aria-current="page"{{end}}>{{template "icon" "users"}}<span>End users</span></a>{{end}}
       <a href="/app/keys"{{if eq .Section "keys"}} class="active" aria-current="page"{{end}}>{{template "icon" "key"}}<span>API keys</span></a>
       <a href="/app/usage"{{if eq .Section "usage"}} class="active" aria-current="page"{{end}}>{{template "icon" "usage"}}<span>Usage</span></a>

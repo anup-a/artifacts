@@ -405,6 +405,8 @@ test("help explains tenant commands and resolves the key creation URL", async ()
   assert.match(help, /--cover-style dots\|grid\|lines\|wash\|rings\|plain/);
   assert.match(help, /byagent whoami/);
   assert.match(help, /byagent portal-link <end-user id>/);
+  assert.match(help, /byagent collections\n/);
+  assert.match(help, /byagent collection <name>/);
   assert.match(help, /https:\/\/api\.example\/app\/keys/);
   assert.match(help, /POST \/api\/keys.*removed/);
   const explicit = await command(["login", "--api", "https://custom.example/", "--help"]);
@@ -435,6 +437,76 @@ test("share sends the action in the request body, so --off actually revokes", as
       assert.ok(result.human.some((l) => l.includes("no longer shared")));
     }
   }
+});
+
+test("collections prints one aligned row per collection and passes the JSON through", async (t) => {
+  const response = {
+    collections: [
+      { name: "Async Rust", count: 3, description: "", updated_at: "2026-09-23T10:00:00Z", share_url: "https://share.example/s/slug12345678/", latest: [] },
+      { name: "Hi Travel", count: 1, description: "trips", updated_at: "2026-09-22T09:00:00Z", share_url: null, latest: [] },
+    ],
+  };
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(url.pathname, "/api/collections");
+    assert.equal(options.method, "GET");
+    return Response.json(response);
+  });
+  const json = await command(["collections", "--json"]);
+  assert.equal(json.code, 0);
+  assert.deepEqual(json.output.map(JSON.parse), [response]);
+  const human = await command(["collections"]);
+  assert.equal(human.code, 0);
+  assert.equal(human.output.length, 3);
+  assert.match(human.output[0], /^NAME\s+COUNT\s+UPDATED\s+SHARED$/);
+  assert.match(human.output[1], /^Async Rust\s+3\s+2026-09-23T10:00:00Z\s+https:\/\/share\.example\/s\/slug12345678\/$/);
+  assert.match(human.output[2], /^Hi Travel\s+1\s+2026-09-22T09:00:00Z\s+-$/);
+  // Columns line up.
+  assert.equal(human.output[1].indexOf("3 "), human.output[0].indexOf("COUNT"));
+});
+
+test("collections says so when there are none", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => Response.json({ collections: [] }));
+  const human = await command(["collections"]);
+  assert.deepEqual(human.output, ["no collections; publish with --project <name> to start one"]);
+});
+
+test("collection encodes the name and lists artifacts in course order with urls", async (t) => {
+  const response = {
+    name: "Hi Travel/Q3", count: 2, description: "trips", updated_at: "2026-09-23T10:00:00Z",
+    share_url: "https://share.example/s/travelslug01/",
+    artifacts: [
+      { id: "artifact0001", title: "Intro", url: "https://share.example/a/artifact0001/", visibility: "public" },
+      { id: "artifact0002", title: "", url: "https://api.example/app/view/artifact0002/", visibility: "private" },
+    ],
+  };
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(url.pathname, "/api/collections/Hi%20Travel%2FQ3");
+    assert.equal(options.method, "GET");
+    return Response.json(response);
+  });
+  const json = await command(["collection", "Hi Travel/Q3", "--json"]);
+  assert.equal(json.code, 0);
+  assert.deepEqual(json.output.map(JSON.parse), [response]);
+  const human = await command(["collection", "Hi Travel/Q3"]);
+  assert.deepEqual(human.output, [
+    "Hi Travel/Q3  2 artifacts  updated 2026-09-23T10:00:00Z",
+    "trips",
+    "shared https://share.example/s/travelslug01/",
+    "1. artifact0001  Intro  https://share.example/a/artifact0001/",
+    "2. artifact0002  (untitled)  https://api.example/app/view/artifact0002/  [private]",
+  ]);
+});
+
+test("collection needs a name and reports a missing one as the server does", async (t) => {
+  const request = t.mock.method(globalThis, "fetch", () => { throw new Error("unexpected request"); });
+  const missing = await command(["collection", "--json"]);
+  assert.equal(missing.code, 2);
+  assert.match(JSON.parse(missing.errors[0]).error.message, /usage: byagent collection <name>/);
+  assert.equal(request.mock.callCount(), 0);
+  request.mock.mockImplementation(async () => Response.json({ error: { code: "NOT_FOUND", message: "collection not found" } }, { status: 404 }));
+  const unknown = await command(["collection", "Nope"]);
+  assert.equal(unknown.code, 1);
+  assert.match(unknown.errors[0], /collection not found/);
 });
 
 test("share needs an artifact id", async () => {
