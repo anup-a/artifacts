@@ -18,7 +18,7 @@ import (
 //go:embed templates/*.html templates/partials/*.html
 var templateFS embed.FS
 
-var pageNames = []string{"landing", "login", "check_inbox", "artifacts", "artifact", "end_users", "keys", "usage", "settings", "portal", "error", "gate"}
+var pageNames = []string{"landing", "login", "check_inbox", "artifacts", "artifact", "collections", "collection", "collection_public", "end_users", "keys", "usage", "settings", "portal", "error", "gate"}
 
 // pages holds one template set per page, each sharing layout.html and the
 // partials (icon sprite, shared rows).
@@ -38,6 +38,8 @@ var funcs = template.FuncMap{
 	"num":   formatNumber,
 	"str":   deref,
 	"path":  url.PathEscape,
+	// collectionURL is the dashboard page of one collection (project label).
+	"collectionURL": collectionURL,
 	// projectColor is the cover generator's palette, so dots match covers.
 	"projectColor": cover.ProjectColor,
 	"plural": func(n int, one, many string) string {
@@ -76,6 +78,8 @@ func (p page) Section() string {
 	switch {
 	case strings.HasPrefix(p.Path, "/app/artifacts"):
 		return "artifacts"
+	case strings.HasPrefix(p.Path, "/app/collections"):
+		return "collections"
 	case strings.HasPrefix(p.Path, "/app/end-users"):
 		return "end-users"
 	case strings.HasPrefix(p.Path, "/app/keys"):
