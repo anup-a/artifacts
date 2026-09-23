@@ -1042,6 +1042,7 @@ a.deck:hover .deck-card-2 { transform: translate(-24px, -18px) rotate(-8.5deg) s
 .course-move form { margin: 0; }
 .course-move .icon-btn[disabled] { opacity: .3; cursor: default; }
 .public-collection { max-width: 760px; margin: 0 auto; padding: 56px 20px 40px; }
+.public-collection > header { margin-bottom: 22px; }
 .public-kicker { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
 .public-collection .course-row { grid-template-columns: 30px 132px minmax(0, 1fr); }
 .public-foot { margin-top: 28px; font-size: 12.5px; color: var(--muted); text-align: center; }
