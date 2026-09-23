@@ -132,8 +132,9 @@ test("collections: decks, collection page, course order and public index", async
   const chips = page.locator(".chips[data-collapse]");
   const toggle = chips.locator("[data-chips-toggle]");
   await expect(toggle).toBeHidden();
-  // Five chips need about 500px; a phone-width window cannot hold them.
-  await page.setViewportSize({ width: 420, height: 960 });
+  // Squeeze the row itself rather than the window, so the test does not hang
+  // on one platform's font metrics: five chips never fit in 220px.
+  await chips.evaluate((el) => { el.style.maxWidth = "220px"; window.dispatchEvent(new Event("resize")); });
   await expect(toggle).toBeVisible();
   await expect(toggle).toHaveText(/^\+\d+ more$/);
   const oneLine = await chips.evaluate((el) => el.getBoundingClientRect().height);
@@ -143,7 +144,8 @@ test("collections: decks, collection page, course order and public index", async
   expect(await chips.evaluate((el) => el.getBoundingClientRect().height)).toBeGreaterThan(oneLine);
   await toggle.click();
   await expect(toggle).toHaveText(/more$/);
-  await page.setViewportSize({ width: 1360, height: 960 });
+  await chips.evaluate((el) => { el.style.maxWidth = ""; window.dispatchEvent(new Event("resize")); });
+  await expect(toggle).toBeHidden();
 
   // The deck opens the collection in course order (publish order).
   await deck.click();
