@@ -907,9 +907,12 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-facts dd { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--fg-2); }
 .lp-facts code { white-space: nowrap; }
 
-.lp-foot { display: flex; align-items: center; gap: 24px; margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); }
-.lp-foot-nav { display: flex; gap: 18px; margin-left: auto; font-size: 13px; color: var(--muted); }
+.lp-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); }
+.lp-foot-nav { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-left: auto; font-size: 13px; color: var(--muted); }
 .lp-foot-nav a:hover { color: var(--fg); }
+.lp-foot-maker { font-size: 13px; color: var(--muted); }
+.lp-foot-maker a { color: var(--fg-2); }
+.lp-foot-maker a:hover { color: var(--fg); }
 
 /* ---- Responsive -------------------------------------------------- */
 @media (max-width: 860px) {
