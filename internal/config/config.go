@@ -39,6 +39,11 @@ type Config struct {
 	EmailProvider      string
 	ResendAPIKey       string
 	EmailFrom          string
+	// GoogleAnalyticsID is the GA4 Measurement ID for first-party app
+	// surfaces (landing, login, /app/*). Empty disables the gtag snippet
+	// and keeps CSP free of Google Analytics hosts. Prefer
+	// GOOGLE_ANALYTICS_ID; GA_MEASUREMENT_ID is accepted as an alias.
+	GoogleAnalyticsID string
 	// TrustProxyHeaders makes rate limiting read CF-Connecting-IP /
 	// X-Forwarded-For. Enable it only when the server is reachable exclusively
 	// through a proxy that overwrites those headers; otherwise a client can
@@ -56,6 +61,10 @@ func FromEnv(getenv func(string) string) (Config, error) {
 			return v
 		}
 		return def
+	}
+	gaID := getenv("GOOGLE_ANALYTICS_ID")
+	if gaID == "" {
+		gaID = getenv("GA_MEASUREMENT_ID")
 	}
 	c := Config{
 		Addr:               get("ADDR", ":8080"),
@@ -77,6 +86,7 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		EmailProvider:      getenv("EMAIL_PROVIDER"),
 		ResendAPIKey:       getenv("RESEND_API_KEY"),
 		EmailFrom:          getenv("EMAIL_FROM"),
+		GoogleAnalyticsID:  gaID,
 
 		TrustProxyHeaders: get("TRUST_PROXY_HEADERS", "false") == "true",
 	}
