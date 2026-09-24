@@ -37,7 +37,8 @@ fly deploy --config deploy/fly.free.toml
 
 Import `ADMIN_TOKEN`, `KEY_SIGNING_SECRET`, `GITHUB_CLIENT_ID`,
 `GITHUB_CLIENT_SECRET`, and `EMAIL_PROVIDER=log` through stdin. Use the sign-in
-setup below to create the GitHub OAuth app first. Keep secret values out of
+setup below to create the GitHub OAuth app first. After the app is live, set GA with
+`fly secrets set GOOGLE_ANALYTICS_ID=G-DFTQ6Y5L6W --app artifacts-share` (see Google Analytics below). Keep secret values out of
 command arguments and source control.
 
 Then the certificates and DNS:
@@ -117,6 +118,22 @@ returns 404; people create named keys at `PUBLIC_API_ORIGIN/app/keys`.
 | `PUBLIC_SHARE_ORIGIN` | Published pages and viewer comments origin. Keep distinct from the API origin. |
 | `LIMIT_ARTIFACTS_PER_TENANT` | Live artifact limit shared by all keys of a tenant. Default 200. |
 | `LIMIT_ARTIFACTS_PER_KEY` | Deprecated fallback only when the tenant limit is unset; emits a deprecation log line. |
+| `GOOGLE_ANALYTICS_ID` | GA4 Measurement ID for first-party app surfaces (`/`, `/app/*`, login, landing on `app.byagent.dev`). Empty disables GA and keeps CSP free of Google hosts. Alias: `GA_MEASUREMENT_ID`. Not applied to published `/a/…` pages or the share-origin gate. |
+
+
+### Google Analytics (GA4)
+
+First-party app surfaces load GA4 when `GOOGLE_ANALYTICS_ID` is set. Published
+artifact pages under `/a/…` and the share-code gate never receive the snippet.
+
+For the Fly validation app (`artifacts-share`):
+
+```
+fly secrets set GOOGLE_ANALYTICS_ID=G-DFTQ6Y5L6W --app artifacts-share
+```
+
+Measurement ID `G-DFTQ6Y5L6W` is the byagent.dev GA4 stream. Leave the secret
+unset for local/dev so no third-party scripts load.
 
 For GitHub, create an OAuth app with the dashboard as its homepage and this
 authorization callback URL:

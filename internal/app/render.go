@@ -70,6 +70,10 @@ type page struct {
 	JS     string
 	Now    time.Time // reference point for relative times
 	Data   any
+	// AnalyticsID is the GA4 Measurement ID for first-party app surfaces.
+	// Empty skips the gtag snippet. GateArtifactAccess and /a/ denials leave
+	// this unset so customer-facing share UI never loads analytics.
+	AnalyticsID string
 }
 
 // Section is the nav entry the current path belongs to, so the detail page
@@ -92,6 +96,15 @@ func (p page) Section() string {
 	return ""
 }
 
+// analyticsIDFor returns the configured GA4 ID for first-party app surfaces
+// only. Published /a/… paths never get analytics, even when the env is set.
+func (h *Handler) analyticsIDFor(path string) string {
+	if strings.HasPrefix(path, "/a/") {
+		return ""
+	}
+	return h.Cfg.GoogleAnalyticsID
+}
+
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, name, title string, v *viewer, data any) {
 	h.renderRoot(w, r, status, name, "layout.html", title, v, data)
 }
@@ -99,7 +112,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, nam
 // renderRoot executes one named template of the page's set: "layout.html"
 // for a full page, "panel" for the shell-less fragment the side peek loads.
 func (h *Handler) renderRoot(w http.ResponseWriter, r *http.Request, status int, name, root, title string, v *viewer, data any) {
-	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: data}
+	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: data, AnalyticsID: h.analyticsIDFor(r.URL.Path)}
 	var buf bytes.Buffer
 	if err := pages[name].ExecuteTemplate(&buf, root, p); err != nil {
 		h.fail(w, r, fmt.Errorf("render %s: %w", name, err))
@@ -137,7 +150,7 @@ func (h *Handler) renderErrorData(w http.ResponseWriter, r *http.Request, d erro
 	if title == "" {
 		title = http.StatusText(status)
 	}
-	p := page{Title: title, Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: d}
+	p := page{Title: title, Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: d, AnalyticsID: h.analyticsIDFor(r.URL.Path)}
 	var buf bytes.Buffer
 	if err := pages["error"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
 		http.Error(w, msg, status)

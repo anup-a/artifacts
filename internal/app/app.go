@@ -134,9 +134,14 @@ const csp = "default-src 'self'; style-src 'self'; script-src 'self'; frame-ance
 
 // csp adds the share origin as the only allowed frame and image source, so
 // the artifact detail page can preview the published page and the gallery
-// can show the covers served next to it.
+// can show the covers served next to it. When Google Analytics is configured,
+// script-src / connect-src / img-src also allow the GA4 hosts; when the ID is
+// empty the header matches today's policy exactly.
 func (h *Handler) csp() string {
-	return csp + "; img-src 'self' data: " + h.Cfg.ShareOrigin + "; frame-src 'self' " + h.Cfg.ShareOrigin
+	if h.Cfg.GoogleAnalyticsID == "" {
+		return csp + "; img-src 'self' data: " + h.Cfg.ShareOrigin + "; frame-src 'self' " + h.Cfg.ShareOrigin
+	}
+	return "default-src 'self'; style-src 'self'; script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com; frame-ancestors 'none'; img-src 'self' data: " + h.Cfg.ShareOrigin + " https://www.google-analytics.com; frame-src 'self' " + h.Cfg.ShareOrigin + "; connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com"
 }
 
 // headers adds the browser hardening headers to every app response.
@@ -192,6 +197,9 @@ func (h *Handler) DenyArtifactAccess(w http.ResponseWriter, r *http.Request) {
 // it carries no session, no navigation, and no CSRF token: the code is the
 // only credential involved, and metering wrong guesses is the server's job,
 // not the form's.
+//
+// Analytics is intentionally omitted: this unlock UI is customer-facing on the
+// share origin, not a first-party app surface.
 func (h *Handler) GateArtifactAccess(w http.ResponseWriter, r *http.Request, g serve.GateView) {
 	hd := w.Header()
 	hd.Set("X-Frame-Options", "DENY")

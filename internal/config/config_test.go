@@ -25,6 +25,9 @@ func TestDefaults(t *testing.T) {
 	if c.DataDir != "./data" {
 		t.Fatalf("data dir: %q", c.DataDir)
 	}
+	if c.GoogleAnalyticsID != "" {
+		t.Fatalf("GoogleAnalyticsID must default empty, got %q", c.GoogleAnalyticsID)
+	}
 }
 
 func TestPostgresNeedsURL(t *testing.T) {
@@ -127,5 +130,31 @@ func TestTenantQuotaLegacyFallback(t *testing.T) {
 	get["LIMIT_ARTIFACTS_PER_TENANT"] = "0"
 	if _, err = FromEnv(env(get)); err == nil {
 		t.Fatal("invalid tenant limit accepted")
+	}
+}
+
+func TestGoogleAnalyticsID(t *testing.T) {
+	c, err := FromEnv(env(map[string]string{"ADMIN_TOKEN": "x", "GOOGLE_ANALYTICS_ID": "G-DFTQ6Y5L6W"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.GoogleAnalyticsID != "G-DFTQ6Y5L6W" {
+		t.Fatalf("GOOGLE_ANALYTICS_ID: got %q", c.GoogleAnalyticsID)
+	}
+	alias, err := FromEnv(env(map[string]string{"ADMIN_TOKEN": "x", "GA_MEASUREMENT_ID": "G-ALIAS"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if alias.GoogleAnalyticsID != "G-ALIAS" {
+		t.Fatalf("GA_MEASUREMENT_ID alias: got %q", alias.GoogleAnalyticsID)
+	}
+	prefer, err := FromEnv(env(map[string]string{
+		"ADMIN_TOKEN": "x", "GOOGLE_ANALYTICS_ID": "G-PRIMARY", "GA_MEASUREMENT_ID": "G-ALIAS",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prefer.GoogleAnalyticsID != "G-PRIMARY" {
+		t.Fatalf("GOOGLE_ANALYTICS_ID should win over alias: got %q", prefer.GoogleAnalyticsID)
 	}
 }
