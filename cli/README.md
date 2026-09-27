@@ -32,6 +32,19 @@ byagent publish ./notes.md --project "Personal" --tag notes --json
 
 Flags: `--private | --public`, `--comments | --no-comments`, `--project <name>`, `--tag <t>` (repeatable), `--cover <image>`, `--cover-style dots|grid|lines|wash|rings|plain`, `--end-user <id>`, `--id <id>`.
 
+## Agent hooks
+
+```
+byagent hooks install claude           # ~/.claude/settings.json
+byagent hooks install codex            # ~/.codex/hooks.json, then trust it in /hooks
+byagent hooks install claude --scope project   # ./.claude/settings.json instead
+byagent hooks uninstall claude
+```
+
+This adds a PostToolUse hook. When the agent writes a `.html` or `.md` page, the hook adds one line to the agent's context suggesting `byagent publish`. If the page's directory is already published, it suggests republishing instead. The hook never publishes anything itself.
+
+It stays out of the way: each file gets at most one nudge per session, with five nudges per session in total. It skips code trees (`src`, `public`, `node_modules`, ...), repo docs (`README.md`, `CLAUDE.md`, `AGENTS.md`, ...) and agent config under `~/.claude` and `~/.codex`. Set `BYAGENT_NUDGE=0` to silence it. The hook runs `byagent hooks run`, so install the CLI globally.
+
 ## Everything else
 
 ```

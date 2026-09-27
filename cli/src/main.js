@@ -7,6 +7,7 @@ import { comments, reply, resolve } from "./commands/comments.js";
 import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
 import { whoami, portalLink } from "./commands/account.js";
+import { hooks } from "./commands/hooks.js";
 
 // needsConfig is false for login, which builds its own config from its flags.
 const COMMANDS = {
@@ -25,6 +26,7 @@ const COMMANDS = {
   comments: { run: comments, needsConfig: true },
   reply: { run: reply, needsConfig: true },
   resolve: { run: resolve, needsConfig: true },
+  hooks: { run: hooks, needsConfig: false },
 };
 
 const help = (api) => `byagent - publish a page, share the URL, read the comments on it
@@ -48,6 +50,7 @@ Usage:
   byagent reply <id> <thread> "<text>"
   byagent resolve <id> <thread>
   byagent delete <id>
+  byagent hooks install|uninstall claude|codex [--scope user|project]
 
 A .md file (or a directory whose index is index.md / README.md) is rendered to
 a styled page on the way in; its first H1 becomes the title unless --title is
@@ -86,6 +89,13 @@ them (name, count, last update, public share URL if shared), most recently
 active first; collection <name> lists one collection's artifacts in reading
 order: its saved order first, then by publish time. Reuse the exact same
 --project string for pages that belong together.
+hooks install adds a PostToolUse hook to Claude Code (~/.claude/settings.json)
+or Codex (~/.codex/hooks.json); --scope project writes ./.claude or ./.codex
+instead. After the agent writes a .html or .md page, the hook adds a short
+note to its context suggesting byagent publish, or a republish when the
+directory is already bound. It never publishes. Each file is mentioned once
+per session, five at most; BYAGENT_NUDGE=0 silences it. byagent must be on
+PATH (npm install -g byagent). hooks uninstall removes only this hook.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.
