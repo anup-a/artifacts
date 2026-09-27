@@ -48,8 +48,10 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"/app/static/dashboard-dark.",  // and swapped with the reader's theme
 		"/app/static/thread-light.",    // the comment thread inset over it
 		"/app/static/thread-dark.",
-		"/app/static/theme.",    // the script that resolves the theme before paint
-		`data-set-theme="dark"`, // and the control that sets it
+		"/app/static/theme.",              // the script that resolves the theme before paint
+		`data-set-theme="dark"`,           // and the control that sets it
+		`href="mailto:hello@byagent.dev"`, // a way to reach a person
+		"Creatica",                        // and who is behind it
 	} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("landing page is missing %q", want)
