@@ -57,6 +57,10 @@ pages run in a sandbox without viewer commenting; owner comment management still
 works through the dashboard and CLI. Switching to public also exposes retained
 versions. Switching to private cannot revoke already downloaded copies.
 
+## Publish nudges
+
+With `byagent hooks install claude` (or `codex`), a line starting `byagent:` can appear after you write a `.html` or `.md` file. It is a reminder, not a command: publish the page, or republish the directory it names, once the page is finished, following the rules above. Ignore it for files that belong to a codebase.
+
 ## Markdown pages
 
 Start with a single `# Title` (it becomes the page title and the browser tab; 2–4 specific words). Use `##` / `###` for sections; three or more produce the sticky contents list. GFM tables, `- [ ]` task lists, fenced code with a language tag, and relative image paths all render. Put images next to the file and publish the **directory** so they ship. Do not embed raw HTML for layout; if you need it, the page belongs in the HTML lane. Republish the same file or directory to update in place.
