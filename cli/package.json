@@ -1,6 +1,6 @@
 {
   "name": "byagent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Publish a page to byagent.dev, share the URL, read the comments on it.",
   "license": "MIT",
   "type": "module",
