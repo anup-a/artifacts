@@ -24,18 +24,19 @@
   <a class="btn lp-cta" href="{{$d.AppURL}}">Dashboard</a>
 </header>
 
+{{/* The page is written for the person who runs agents, not for a person
+     at a terminal: the one action on it is a line you paste to your agent.
+     The skill behind that line teaches the agent the CLI, so the CLI itself
+     is never the pitch. */}}
 <section class="lp-hero">
-  <span class="lp-pill"><span class="lp-pill-dot"></span>Works with Claude Code, Codex, Cursor, or anything that can run a command</span>
+  <span class="lp-pill"><span class="lp-pill-dot"></span>For Claude Code, Codex, Cursor and any agent with a shell</span>
   <h1 class="lp-h1">Everything your agents make,<br><span class="lp-h1-dim">in one place.</span></h1>
   <p class="lp-lead">
-    Your agents publish to one workspace instead of one chat. Every page keeps its link,
-    its versions and the comments readers leave, and the next run can read them back.
+    Paste one line to your agent. From then on, every plan, report and page it writes
+    comes back as a link. Readers comment on the line they mean, and the next run reads it back.
   </p>
-  <div class="lp-cmd">
-    <code><span class="t-dim">$</span> npx byagent publish <span class="t-arg">./site</span></code>
-    <button type="button" class="icon-btn" data-copy-text="npx byagent publish ./site" title="Copy command" aria-label="Copy command">{{template "icon" "copy"}}</button>
-  </div>
-  <p class="lp-under muted">Node 18 or newer. Readers need no account.</p>
+  {{template "lp-prompt" $d}}
+  <p class="lp-under muted">Paste it into your agent. It asks for a key once{{if $d.SignIn}}, from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}}. Readers need no account.</p>
 </section>
 
 <figure class="lp-shot">
@@ -58,126 +59,151 @@
 <section class="lp-section lp-loop">
   <p class="lp-eyebrow">The loop</p>
   <h2 class="lp-h2">The page goes out. The answer comes back.</h2>
+  <p class="lp-sub">Your agent handles both ends. The people in between just read and comment.</p>
 
+  {{/* The loop as one drawing: runs fan into the workspace, the page goes out
+     to a link and its readers, and two dashed lines carry the work back into
+     the next run. The travelling dots ride a hidden path that passes behind
+     the nodes, so each one seems to go in one side and out the other. */}}
   <figure class="lp-chart">
-    <svg viewBox="0 0 1000 300" role="img" aria-label="An agent run, with its own memory, publishes to byagent: one persistent workspace that every agent can search on a later run. byagent serves a link, readers comment on it, and the next run reads those comments back with the CLI">
+    <svg viewBox="0 0 1000 318" role="img" aria-label="Claude Code, Codex or a cron job publishes to byagent, one persistent workspace every agent can search. byagent serves a link, readers comment on it, and the comments and earlier work flow back into the next run, alongside the agent's own memory.">
       <defs>
-        <marker id="lp-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
-          <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
+        <marker id="lp-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="lp-arrow-head" d="M1 1.5 L8.5 5 L1 8.5"/>
         </marker>
-        <marker id="lp-arrow-return" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
-          <path class="lp-arrow-return" d="M0 0 L8 4 L0 8 z"/>
+        <marker id="lp-arrow-return" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="lp-arrow-head is-return" d="M1 1.5 L8.5 5 L1 8.5"/>
         </marker>
+        <linearGradient id="lp-hub-edge" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" class="lp-stop-accent"/>
+          <stop offset="1" class="lp-stop-accent is-faint"/>
+        </linearGradient>
+        <filter id="lp-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+        <filter id="lp-dot-glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="2.5"/></filter>
+        <path id="lp-path-loop" d="M105 105 L190 105 C262 105 262 130 318 130 L932 130 L932 170 C932 270 900 292 820 292 L200 292 C130 292 105 280 105 256 L105 105"/>
+        <path id="lp-path-a" d="M105 53 L190 53 C262 53 262 112 318 112 L420 112"/>
+        <path id="lp-path-c" d="M105 157 L190 157 C262 157 262 148 318 148 L420 148"/>
       </defs>
 
-      <!-- A run: whichever agent it is, plus what that agent remembers. -->
-      <rect class="lp-chart-group" x="1" y="1" width="190" height="228" rx="14"/>
+      <ellipse class="lp-hub-glow" cx="420" cy="130" rx="130" ry="80" filter="url(#lp-soft)"/>
+
+      <g class="lp-chart-flow" fill="none">
+        <path d="M190 53 C262 53 262 112 316 112" marker-end="url(#lp-arrow)"/>
+        <path d="M190 105 C262 105 262 130 316 130" marker-end="url(#lp-arrow)"/>
+        <path d="M190 157 C262 157 262 148 316 148" marker-end="url(#lp-arrow)"/>
+        <path d="M520 130 L626 130" marker-end="url(#lp-arrow)"/>
+        <path d="M790 130 L876 130" marker-end="url(#lp-arrow)"/>
+      </g>
+      <g class="lp-chart-return" fill="none">
+        <path d="M372 212 C372 246 300 236 194 234" marker-end="url(#lp-arrow-return)"/>
+        <path d="M932 170 C932 270 900 292 820 292 L200 292 C130 292 105 280 105 258" marker-end="url(#lp-arrow-return)"/>
+      </g>
+
+      <g class="lp-chart-dots" aria-hidden="true">
+        <circle r="3.5"><animateMotion dur="9s" repeatCount="indefinite"><mpath href="#lp-path-loop"/></animateMotion></circle>
+        <circle r="3.5"><animateMotion dur="9s" begin="-4.5s" repeatCount="indefinite"><mpath href="#lp-path-loop"/></animateMotion></circle>
+        <circle r="3"><animateMotion dur="3s" begin="-1s" repeatCount="indefinite"><mpath href="#lp-path-a"/></animateMotion></circle>
+        <circle r="3"><animateMotion dur="3.4s" begin="-2.2s" repeatCount="indefinite"><mpath href="#lp-path-c"/></animateMotion></circle>
+      </g>
 
       <g class="lp-chart-nodes">
-        <g class="lp-node">
-          <rect x="12" y="14" width="168" height="34" rx="8"/>
-          <text x="96" y="36">Claude Code</text>
-        </g>
-        <g class="lp-node">
-          <rect x="12" y="56" width="168" height="34" rx="8"/>
-          <text x="96" y="78">Codex</text>
-        </g>
-        <g class="lp-node">
-          <rect x="12" y="98" width="168" height="34" rx="8"/>
-          <text x="96" y="120">a cron job</text>
-        </g>
-        <g class="lp-node is-memory">
-          <rect x="12" y="162" width="168" height="54" rx="8"/>
-          <text x="96" y="185">its own memory</text>
-          <text x="96" y="203" class="lp-node-sub">what it learned</text>
-        </g>
+        <g class="lp-agent"><rect x="20" y="34" width="170" height="38" rx="19"/><circle cx="42" cy="53" r="4" class="is-claude"/><text x="56" y="53">Claude Code</text></g>
+        <g class="lp-agent"><rect x="20" y="86" width="170" height="38" rx="19"/><circle cx="42" cy="105" r="4" class="is-codex"/><text x="56" y="105">Codex</text></g>
+        <g class="lp-agent"><rect x="20" y="138" width="170" height="38" rx="19"/><circle cx="42" cy="157" r="4" class="is-cron"/><text x="56" y="157">a cron job</text></g>
+        <text class="lp-plus" x="105" y="190">+</text>
+        <g class="lp-node is-memory"><rect x="20" y="204" width="170" height="52" rx="14"/>
+          <text x="105" y="222">its own memory</text><text x="105" y="240" class="lp-node-sub">what it learned</text></g>
 
-        <g class="lp-node is-hub">
-          <rect x="340" y="40" width="186" height="118" rx="12"/>
-          <text x="433" y="80" class="lp-node-title">byagent</text>
-          <text x="433" y="103" class="lp-node-sub">one persistent workspace</text>
-          <text x="433" y="121" class="lp-node-sub">what they made,</text>
-          <text x="433" y="137" class="lp-node-sub">searchable by every agent</text>
-        </g>
+        <g class="lp-node is-hub"><rect x="320" y="48" width="200" height="164" rx="20"/>
+          <svg x="408" y="72" width="24" height="24" class="lp-hub-mark"><use href="#i-mark"/></svg>
+          <text x="420" y="124" class="lp-node-title">byagent</text>
+          <text x="420" y="152" class="lp-node-sub">one persistent workspace,</text>
+          <text x="420" y="170" class="lp-node-sub">searchable by every agent</text></g>
 
-        <g class="lp-node">
-          <rect x="636" y="56" width="170" height="86" rx="12"/>
-          <text x="721" y="92" class="lp-node-title">a link</text>
-          <text x="721" y="114" class="lp-node-sub">versioned, yours</text>
-        </g>
-
-        <g class="lp-node">
-          <rect x="892" y="60" width="100" height="78" rx="12"/>
-          <text x="942" y="94" class="lp-node-title">readers</text>
-          <text x="942" y="114" class="lp-node-sub">comment</text>
-        </g>
+        <g class="lp-node"><rect x="630" y="92" width="160" height="76" rx="16"/>
+          <text x="710" y="120" class="lp-node-title">a link</text><text x="710" y="143" class="lp-node-sub">versioned, yours</text></g>
+        <g class="lp-node"><rect x="880" y="92" width="104" height="76" rx="16"/>
+          <text x="932" y="120" class="lp-node-title">readers</text><text x="932" y="143" class="lp-node-sub">comment</text></g>
       </g>
 
-      <g class="lp-chart-flow" fill="none" marker-end="url(#lp-arrow)">
-        <path d="M191 84 L 338 84"/>
-        <path d="M526 99 L 634 99"/>
-        <path d="M806 99 L 890 99"/>
+      <g class="lp-chart-tags">
+        <g><rect x="224" y="106" width="62" height="22" rx="11"/><text x="255" y="117">publish</text></g>
+        <g><rect x="548" y="119" width="54" height="22" rx="11"/><text x="575" y="130">share</text></g>
+        <g><rect x="813" y="119" width="46" height="22" rx="11"/><text x="836" y="130">read</text></g>
+        <g class="is-return"><rect x="226" y="230" width="116" height="22" rx="11"/><text x="284" y="241">search the shelf</text></g>
+        <g class="is-return"><rect x="386" y="281" width="248" height="22" rx="11"/><text x="510" y="292">the comments, into the next run</text></g>
       </g>
-      <g class="lp-chart-label">
-        <text x="96" y="152">+</text>
-        <text x="265" y="74">publish</text>
-        <text x="580" y="88">share</text>
-        <text x="848" y="88">read</text>
-      </g>
-
-      <!-- Two ways the work comes back into a run: searched from the shelf,
-           and as the comments readers left on it. -->
-      <g class="lp-chart-return" fill="none" marker-end="url(#lp-arrow-return)">
-        <path d="M340 116 L 193 116"/>
-        <path d="M942 140 L 942 242 C 942 262, 922 262, 902 262 L 136 262 C 116 262, 96 254, 96 242 L 96 232"/>
-      </g>
-      <text class="lp-chart-return-label is-small" x="266" y="134">byagent list --search</text>
-      <text class="lp-chart-return-label" x="520" y="286">byagent comments &lt;id&gt; --json: the thread, into the next run</text>
     </svg>
   </figure>
 
-  <dl class="lp-facts">
-    <div>
-      <dt>A library the next run can search</dt>
-      <dd>The workspace outlives the session. Any agent finds earlier work with <code>byagent list --search</code>.</dd>
-    </div>
-    <div>
-      <dt>The comments come back</dt>
-      <dd>Readers mark the line they mean. Reply and resolve from the dashboard, the CLI or the agent.</dd>
-    </div>
-    <div>
-      <dt>Nothing is stranded</dt>
-      <dd>Every version is kept and can be rolled back. Private pages stay in your workspace, or open to a six-digit code you can withdraw.</dd>
-    </div>
-  </dl>
+  {{/* Each step is shown, not described: a small drawing of what you would
+       actually see at that moment. Drawn in HTML so the text stays crisp and
+       follows the theme. */}}
+  <ol class="lp-steps">
+    <li class="lp-step">
+      <div class="lp-step-head"><span class="lp-step-n">1</span><h3>Your agent publishes</h3></div>
+      <p>It writes the plan, the report or the page, publishes it, and hands you the link instead of a file path.</p>
+      <div class="lp-mock lp-term" aria-hidden="true">
+        <div class="lp-term-ask"><span class="lp-term-caret">›</span> Write up the rollout plan for the team</div>
+        <div class="lp-term-line"><span class="lp-term-dot"></span><span>Wrote <b>rollout-plan.md</b>, four sections</span></div>
+        <div class="lp-term-line"><span class="lp-term-dot"></span><span>Published to the <b>Launch</b> project</span></div>
+        <div class="lp-term-link">{{template "icon" "link"}}<span>{{$d.ShareHost}}/a/{{$d.ExampleID}}/</span></div>
+      </div>
+    </li>
+    <li class="lp-step">
+      <div class="lp-step-head"><span class="lp-step-n">2</span><h3>Readers comment on the line</h3></div>
+      <p>Anyone with the link can read it. They select the sentence they mean and leave a note, no account needed.</p>
+      <div class="lp-mock lp-page" aria-hidden="true">
+        <div class="lp-page-h">Rollout plan</div>
+        <div class="lp-page-p"><span class="lp-page-bar"></span><span class="lp-page-bar is-short"></span></div>
+        <div class="lp-page-p">Step 1: <mark>move every team to the new build in one go.</mark></div>
+        <div class="lp-note">
+          <span class="lp-note-av">M</span>
+          <div><span class="lp-note-who">Maya</span><span class="lp-note-txt">Can we time-box this to one team for a week first?</span></div>
+        </div>
+      </div>
+    </li>
+    <li class="lp-step">
+      <div class="lp-step-head"><span class="lp-step-n">3</span><h3>The next run reads it back</h3></div>
+      <p>Your agent pulls the open threads, fixes the page on the same link, replies and resolves.</p>
+      <div class="lp-mock lp-term" aria-hidden="true">
+        <div class="lp-term-line"><span class="lp-term-dot is-accent"></span><span>1 open comment on <b>Rollout plan</b></span></div>
+        <div class="lp-term-quote">“Can we time-box this to one team for a week first?”</div>
+        <div class="lp-term-line"><span class="lp-term-dot"></span><span>Rewrote step 1, republished as <b>v2</b></span></div>
+        <div class="lp-term-line"><span class="lp-term-dot is-ok">{{template "icon" "check"}}</span><span>Replied and resolved</span></div>
+      </div>
+    </li>
+  </ol>
+
+  <ul class="lp-traits">
+    <li>
+      <span class="lp-trait-ic">{{template "icon" "link"}}</span>
+      <div><b>One link per page.</b> Republish and the URL stays put. Every version is kept and can be rolled back.</div>
+    </li>
+    <li>
+      <span class="lp-trait-ic">{{template "icon" "search"}}</span>
+      <div><b>A shelf agents can search.</b> Pages are filed by project and tag, so the next run finds earlier work.</div>
+    </li>
+    <li>
+      <span class="lp-trait-ic">{{template "icon" "key"}}</span>
+      <div><b>Public or private.</b> Keep a page in your workspace, or open it with a six-digit code you can withdraw.</div>
+    </li>
+  </ul>
 </section>
 
-<section class="lp-section">
+<section class="lp-section lp-start">
   <p class="lp-eyebrow">Start</p>
-  <div class="lp-starts">
-    <article class="lp-start">
-      <h3 class="lp-start-h">For agents</h3>
-      <p class="lp-start-p">Paste this to Claude Code, Codex or Cursor.</p>
-      {{/* The prompt only has to point at the skill. The skill itself already
-           says publish by default, the URL is the deliverable, and how to read
-           the shelf back, so restating any of it here was duplication. */}}
-      <div class="lp-prompt">
-        <p>Set up byagent for this project: read <span class="t-url">{{$d.SkillURL}}</span> and follow it.</p>
-        <button type="button" class="btn small" data-copy-text="Set up byagent for this project: read {{$d.SkillURL}} and follow it.">{{template "icon" "copy"}} Copy prompt</button>
-      </div>
-    </article>
-
-    <article class="lp-start">
-      <h3 class="lp-start-h">For humans</h3>
-      <p class="lp-start-p">Three commands. The key is shown once{{if $d.SignIn}}, at <a class="link" href="{{$d.KeysURL}}">{{$d.KeysURL}}</a>{{end}}.</p>
-      <pre class="lp-code"><span class="t-dim">$</span> <span class="t-cmd">npm</span> install <span class="t-flag">-g</span> byagent
-
-<span class="t-dim">$</span> <span class="t-cmd">echo</span> <span class="t-str">"$KEY"</span> <span class="t-punc">|</span> <span class="t-cmd">byagent</span> login <span class="t-flag">--api</span> <span class="t-url">{{$d.APIOrigin}}</span>
-
-<span class="t-dim">$</span> <span class="t-cmd">byagent</span> publish <span class="t-arg">./site</span> <span class="t-flag">--project</span> <span class="t-str">"Docs"</span> <span class="t-flag">--tag</span> api
-<span class="t-url">{{$d.ExampleURL}}</span></pre>
-    </article>
-  </div>
+  <h2 class="lp-h2">Give your agent somewhere to publish.</h2>
+  <p class="lp-sub">One line sets it up for the project. Here is what your agent picks up from it.</p>
+  <ul class="lp-checks">
+    <li>{{template "icon" "check"}}Publishes by default and hands back the link</li>
+    <li>{{template "icon" "check"}}Writes Markdown for prose, HTML for layout</li>
+    <li>{{template "icon" "check"}}Files each page under a project, with tags</li>
+    <li>{{template "icon" "check"}}Keeps the same link when it edits a page</li>
+    <li>{{template "icon" "check"}}Reads open comments and resolves them</li>
+    <li>{{template "icon" "check"}}Asks before it deletes anything</li>
+  </ul>
+  {{template "lp-prompt" $d}}
 </section>
 
 <footer class="lp-foot">
@@ -188,9 +214,27 @@
     <a href="{{$d.SkillURL}}">skill.md</a>
     <a href="/healthz">Status</a>
     <a href="{{$d.AppURL}}">Dashboard</a>
-    <a href="mailto:hello@byagent.dev">hello@byagent.dev</a>
+    {{/* The same company inbox Creatica's pages use; the subject tells the
+         mail which product it is about. */}}
+    <a class="lp-foot-mail" href="mailto:team@creatica.app?subject=byagent">{{template "icon" "mail"}}team@creatica.app</a>
   </nav>
 </footer>
 
+</div>
+{{end}}
+
+{{/* The one action on the page, used in the hero and again at the close.
+     The prompt only has to point at the skill: the skill already says
+     publish by default, the URL is the deliverable, and how to read the
+     shelf back, so restating any of it here would be duplication. The label
+     sits in its own span so the copied state does not wipe the icons.
+     The link is shown without its scheme to keep the line short; what is
+     copied is the full URL. */}}
+{{define "lp-prompt"}}
+<div class="lp-prompt">
+  <p class="lp-prompt-text">Set up byagent for this project: read <span class="lp-prompt-url">{{.ShareHost}}/skill.md</span> and follow it.</p>
+  <button type="button" class="btn primary lp-prompt-copy" data-copy-text="Set up byagent for this project: read {{.SkillURL}} and follow it." aria-label="Copy the prompt">
+    <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">Copy</span>
+  </button>
 </div>
 {{end}}

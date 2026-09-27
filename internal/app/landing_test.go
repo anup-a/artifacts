@@ -35,23 +35,24 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		t.Fatalf("content type %q", ct)
 	}
 	for _, want := range []string{
-		"npx byagent publish",          // the command that is the whole product
+		"Paste it into your agent",     // the one action on the page
+		"Copy the prompt",              // and the button that takes it
 		"http://api.test/app/",         // the way to the dashboard
-		"http://api.test",              // what you point the CLI at
+		"http://api.test/app/keys",     // where the key the agent asks for is made
 		"share.test/skill.md",          // what you paste to an agent
 		"share.test/a/",                // what a published link looks like
-		"list --search",                // how a later run finds what was published
-		"comments &lt;id&gt;",          // and how it reads the thread back
+		"The next run reads it back",   // the loop: comments come back into the agent
 		"searchable by every agent",    // the chart: the workspace is a library for agents too
 		"its own memory",               // and it sits next to what the agent remembers
+		"into the next run",            // and the thread flows back into the agent
+		"mailto:team@creatica.app",     // a way to reach a person
+		"Made by <a",                   // and who is behind it
 		"/app/static/dashboard-light.", // the dashboard screenshot, a hashed asset
 		"/app/static/dashboard-dark.",  // and swapped with the reader's theme
 		"/app/static/thread-light.",    // the comment thread inset over it
 		"/app/static/thread-dark.",
-		"/app/static/theme.",              // the script that resolves the theme before paint
-		`data-set-theme="dark"`,           // and the control that sets it
-		`href="mailto:hello@byagent.dev"`, // a way to reach a person
-		"Creatica",                        // and who is behind it
+		"/app/static/theme.",    // the script that resolves the theme before paint
+		`data-set-theme="dark"`, // and the control that sets it
 	} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("landing page is missing %q", want)
@@ -59,7 +60,8 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 	}
 	// The page is a pitch, not the manual: a still instead of a recording, and
 	// no JSON sample or drawn mock of the shelf the screenshot already shows.
-	for _, gone := range []string{"<video", "lp-two-up", "lp-shelf", `"artifacts"`} {
+	// It speaks to the agent, so the terminal walkthrough for people is gone.
+	for _, gone := range []string{"<video", "lp-two-up", "lp-shelf", `"artifacts"`, "For humans", "npm install -g"} {
 		if strings.Contains(res.Body, gone) {
 			t.Errorf("landing page still carries %q", gone)
 		}
