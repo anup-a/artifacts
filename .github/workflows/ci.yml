@@ -28,14 +28,19 @@ jobs:
         run: |
           if [ -n "$(gofmt -l .)" ]; then gofmt -l .; echo "run gofmt"; exit 1; fi
       - name: start minio
+        # MinIO's public defaults for a throwaway CI container, not a secret.
+        # Kept in env so secret scanners don't read them as a curl login.
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
         run: |
           # Chainguard's image: minio/minio left Docker Hub, and quay.io now
           # answers anonymous pulls with 401 UNAUTHORIZED. cgr.dev's :latest
           # tag is free and needs no login.
-          docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin cgr.dev/chainguard/minio:latest server /data
+          docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER -e MINIO_ROOT_PASSWORD cgr.dev/chainguard/minio:latest server /data
           for _ in $(seq 1 30); do curl -sf http://localhost:9000/minio/health/live >/dev/null && break; sleep 1; done
           # curl signs the S3 CreateBucket call itself, so no mc client image.
-          curl -sf --aws-sigv4 "aws:amz:us-east-1:s3" --user minioadmin:minioadmin -X PUT http://localhost:9000/artifacts-test
+          curl -sf --aws-sigv4 "aws:amz:us-east-1:s3" --user "$MINIO_ROOT_USER:$MINIO_ROOT_PASSWORD" -X PUT http://localhost:9000/artifacts-test
       - name: test (sqlite + s3)
         env:
           TEST_S3: "1"
