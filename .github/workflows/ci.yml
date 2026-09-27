@@ -29,16 +29,13 @@ jobs:
           if [ -n "$(gofmt -l .)" ]; then gofmt -l .; echo "run gofmt"; exit 1; fi
       - name: start minio
         run: |
-          # quay.io, not Docker Hub: anonymous Hub pulls are denied from GitHub
-          # runners ("pull access denied for minio/minio"). quay.io is MinIO's
-          # own second registry and needs no login.
-          docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin quay.io/minio/minio server /data
+          # Chainguard's image: minio/minio left Docker Hub, and quay.io now
+          # answers anonymous pulls with 401 UNAUTHORIZED. cgr.dev's :latest
+          # tag is free and needs no login.
+          docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin cgr.dev/chainguard/minio:latest server /data
           for _ in $(seq 1 30); do curl -sf http://localhost:9000/minio/health/live >/dev/null && break; sleep 1; done
-          # dl.min.io now returns 410 Gone for every mc build, so the client comes
-          # from its container. Both commands run in one container because the
-          # alias is written into that container's config.
-          docker run --rm --network host --entrypoint sh quay.io/minio/mc -c \
-            "mc alias set m http://localhost:9000 minioadmin minioadmin && mc mb m/artifacts-test"
+          # curl signs the S3 CreateBucket call itself, so no mc client image.
+          curl -sf --aws-sigv4 "aws:amz:us-east-1:s3" --user minioadmin:minioadmin -X PUT http://localhost:9000/artifacts-test
       - name: test (sqlite + s3)
         env:
           TEST_S3: "1"
