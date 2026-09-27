@@ -759,15 +759,6 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-lead { font-size: 17.5px; line-height: 1.62; color: var(--fg-2); margin: 0 auto 26px; max-width: 56ch; }
 .lp-under { font-size: 13px; margin: 12px 0 0; }
 
-.lp-cmd {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: light-dark(#ffffff, #0d0d11); border: 1px solid var(--line-strong); border-radius: var(--radius);
-  padding: 9px 9px 9px 14px; max-width: 100%;
-  box-shadow: 0 1px 0 var(--lp-edge) inset, var(--shadow);
-}
-.lp-cmd code { min-width: 0; background: none; border: 0; padding: 0; font-size: 14px; color: var(--fg); overflow-x: auto; white-space: nowrap; }
-.lp-cmd .t-dim { color: var(--ok); }
-
 /* The screenshot carries the product, so it stands on the glow and is lit
    along its top edge, the way a window is lit from above. */
 .lp-shot { margin: 8px 0 0; }
@@ -807,12 +798,6 @@ textarea { resize: vertical; line-height: 1.45; }
   :root:not([data-theme="light"]) .lp-shot .is-dark { display: block; }
 }
 
-.lp-code {
-  margin: 0; padding: 14px 16px; overflow-x: auto;
-  font: 12.5px/1.85 var(--mono); color: var(--fg);
-  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2);
-}
-
 /* Code tokens. Near-monochrome on purpose: one hue for a value you would
    type (green), one for an address you would open (blue), everything else
    is weight and grey. */
@@ -833,90 +818,210 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-eyebrow::before { content: "0" counter(lp-sec) " / "; color: var(--faint); font-variant-numeric: tabular-nums; }
 .lp-h2 { font-size: 30px; font-weight: 600; letter-spacing: -0.03em; margin: 0 0 12px; }
 
-/* The loop diagram. Drawn with the same hairline and radius as the cards so
-   it reads as part of the interface, not an illustration dropped on top. */
-.lp-chart { margin: 30px 0 0; }
-.lp-chart svg { display: block; width: 100%; height: auto; }
-.lp-chart-nodes rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1; }
-.lp-chart-nodes .is-hub rect { fill: light-dark(#f7f4ff, #16131f); stroke: var(--accent); }
-/* Memory is the agent's own, so it is drawn as a dashed outline inside the
-   run's group: present, but not something byagent holds. */
-.lp-chart-nodes .is-memory rect { fill: none; stroke-dasharray: 4 3; }
-.lp-chart-group { fill: none; stroke: var(--line); stroke-width: 1; }
-.lp-chart-nodes text {
-  text-anchor: middle; font: 12.5px var(--font); fill: var(--fg-2);
-}
-.lp-chart-nodes .lp-node-title { font-size: 15px; font-weight: 600; fill: var(--fg); }
-.lp-chart-nodes .lp-node-sub { font-size: 11.5px; fill: var(--muted); }
-.lp-chart-flow { stroke: var(--line-strong); stroke-width: 1.5; color: var(--line-strong); }
-.lp-chart-label text {
-  text-anchor: middle; font: 11px var(--font); fill: var(--muted);
-  letter-spacing: 0.04em;
-}
-.lp-chart-return { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; color: var(--accent); }
-.lp-chart-return-label {
-  text-anchor: middle; font: 11.5px var(--mono); fill: var(--accent);
-}
-.lp-chart-return-label.is-small { font-size: 10.5px; }
-/* A marker does not inherit the colour of the path that uses it, so the
-   return arrows get a head of their own in the accent. */
-.lp-arrow-return { fill: var(--accent); }
+.lp-sub { font-size: 16px; line-height: 1.6; color: var(--fg-2); margin: 0; max-width: 60ch; }
 
-/* Two doors into the product, side by side: one you paste to an agent, one
-   you type yourself. */
-/* align-items: start, so the shorter card ends where its content ends
-   rather than stretching to match its neighbour and showing a blank foot. */
-.lp-starts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 4px; align-items: start; }
-.lp-start {
-  min-width: 0; padding: 22px;
-  border: 1px solid var(--line-strong); border-radius: 12px; background: var(--lp-surface);
-  box-shadow: 0 1px 0 var(--lp-edge) inset, 0 18px 40px -24px light-dark(rgba(20,20,45,.18), rgba(0,0,0,.9));
-}
-.lp-start-h { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 6px; }
-.lp-start-p { font-size: 13.5px; line-height: 1.6; color: var(--fg-2); margin: 0 0 16px; }
-.lp-start-note { font-size: 12.5px; line-height: 1.65; color: var(--fg-2); margin: 14px 0 8px; }
-.lp-start-note:last-child { margin-bottom: 0; }
-/* Inside a half-width card a command line would run off the edge, and a
-   horizontal scrollbar on a transcript reads as breakage: wrap instead. */
-.lp-start .lp-code { font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
-
-/* The paste-to-your-agent block: prose, not a shell command, so it is set
-   as text with a copy button rather than a terminal. */
+/* The one action on the page, drawn as a message waiting to be sent: the
+   sentence in the body face, the link as a chip, the copy button where a
+   send button would sit. */
 .lp-prompt {
-  border: 1px solid var(--line-strong); border-radius: var(--radius);
-  background: light-dark(#fbfbfd, #0b0b0f); padding: 14px 16px 12px;
+  display: flex; align-items: center; gap: 16px;
+  max-width: 728px; margin: 0 auto; padding: 10px 10px 10px 20px; text-align: left;
+  border: 1px solid var(--line-strong); border-radius: 16px;
+  background: var(--lp-surface);
+  box-shadow: 0 1px 0 var(--lp-edge) inset,
+    0 24px 60px -28px light-dark(rgba(60,40,180,.35), rgba(0,0,0,.9));
+  transition: border-color .15s ease, box-shadow .15s ease;
 }
-.lp-prompt p {
-  margin: 0 0 12px; font: 13px/1.65 var(--mono); color: var(--fg);
+.lp-prompt:hover, .lp-prompt:focus-within {
+  border-color: light-dark(rgba(91,61,245,.45), rgba(167,139,250,.45));
 }
-.lp-prompt .t-url { word-break: break-all; }
+.lp-prompt-text { flex: 1; min-width: 0; margin: 0; font-size: 15.5px; line-height: 1.55; color: var(--fg); }
+.lp-prompt-url {
+  display: inline-block; padding: 0 7px; border-radius: 6px;
+  font: 13.5px/1.6 var(--mono); color: var(--accent); white-space: nowrap;
+  background: light-dark(rgba(91,61,245,.08), rgba(167,139,250,.12));
+}
+.lp-prompt-copy { flex: none; min-width: 108px; justify-content: center; height: 40px; padding: 0 16px; gap: 7px; border-radius: 10px; font-size: 13.5px; font-weight: 500; }
+.lp-prompt-copy .lp-copy-ic, .lp-prompt-copy .lp-copied-ic { display: inline-flex; }
+.lp-prompt-copy .lp-copied-ic { display: none; }
+/* Filled green rather than green text: the global copied rule would put
+   green on green here, so this one wins it back to white. */
+.lp-prompt-copy.is-copied, .lp-prompt-copy.is-copied:hover { background: light-dark(#1a7f37, #1f9d57); border-color: transparent; }
+.lp-prompt-copy.is-copied, .lp-prompt-copy.is-copied .ic { color: #fff !important; }
+.lp-prompt-copy.is-copied .lp-copy-ic { display: none; }
+.lp-prompt-copy.is-copied .lp-copied-ic { display: inline-flex; }
+.lp-prompt-copy .menu-item-text { flex: none; overflow: visible; }
 
-/* Each fact is its own card with the accent on top, so the row reads as three
-   things rather than one paragraph set in three columns. */
-.lp-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 44px 0 0; }
-.lp-facts > div {
-  padding: 18px 18px 20px; border: 1px solid var(--line);
-  border-radius: 12px; background: var(--panel);
-  box-shadow: 0 1px 0 var(--lp-edge) inset;
+/* The loop diagram. Hairlines and radii match the cards so it reads as part
+   of the interface; the only colour is the accent, on the hub and on the two
+   lines that bring the work back. */
+.lp-chart { margin: 36px 0 8px; }
+.lp-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.lp-chart text { font: 12.5px var(--font); fill: var(--fg-2); dominant-baseline: central; }
+.lp-hub-glow { fill: light-dark(rgba(91,61,245,.16), rgba(167,139,250,.22)); }
+.lp-stop-accent { stop-color: var(--accent); }
+.lp-stop-accent.is-faint { stop-color: var(--line-strong); }
+
+.lp-agent rect, .lp-node rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1; }
+.lp-agent text { font-size: 13px; fill: var(--fg); }
+.lp-agent .is-claude { fill: #d97757; }
+.lp-agent .is-codex { fill: var(--fg); }
+.lp-agent .is-cron { fill: var(--ok); }
+.lp-node text { text-anchor: middle; }
+.lp-node .lp-node-title { font-size: 15px; font-weight: 600; fill: var(--fg); letter-spacing: -0.01em; }
+.lp-node .lp-node-sub { font-size: 11.5px; fill: var(--muted); }
+/* Memory is the agent's own, so it is only outlined: there, but not held here. */
+.lp-node.is-memory rect { fill: none; stroke-dasharray: 4 4; }
+.lp-node.is-memory text:first-of-type { fill: var(--fg-2); }
+.lp-plus { text-anchor: middle; fill: var(--faint) !important; font-size: 14px !important; }
+.lp-node.is-hub rect { fill: light-dark(#fbfaff, #14111d); stroke: url(#lp-hub-edge); stroke-width: 1.5; }
+.lp-node.is-hub .lp-node-title { font-size: 19px; }
+.lp-hub-mark { color: var(--accent); }
+.lp-hub-mark use { color: var(--accent); }
+
+.lp-chart-flow { stroke: light-dark(#c6c6d2, #34343e); stroke-width: 1.5; stroke-linecap: round; }
+.lp-chart-return { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 6; stroke-linecap: round; opacity: .85; }
+.lp-arrow-head { fill: none; stroke: light-dark(#c6c6d2, #34343e); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.lp-arrow-head.is-return { stroke: var(--accent); }
+
+.lp-chart-tags rect { fill: var(--bg); stroke: var(--line-strong); stroke-width: 1; }
+.lp-chart-tags text { text-anchor: middle; font-size: 11px; fill: var(--muted); letter-spacing: 0.02em; }
+.lp-chart-tags .is-return rect { stroke: light-dark(rgba(91,61,245,.35), rgba(167,139,250,.4)); }
+.lp-chart-tags .is-return text { fill: var(--accent); }
+
+.lp-chart-dots circle { fill: var(--accent); filter: drop-shadow(0 0 4px var(--accent)); }
+
+/* The dashes drift the way the work travels, slowly enough to read as flow
+   rather than as a loading state. */
+@keyframes lp-flow { to { stroke-dashoffset: -22; } }
+.lp-chart-return path { animation: lp-flow 1.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .lp-chart-return path { animation: none; }
+  .lp-chart-dots { display: none; }
 }
-.lp-facts > div::before {
-  content: ""; display: block; width: 26px; height: 2px; margin-bottom: 14px;
-  border-radius: 2px; background: var(--accent);
+
+/* The loop, told in three steps. A hairline runs through the numbers so the
+   row reads as one sequence rather than three cards that happen to align. */
+.lp-steps {
+  position: relative; list-style: none; padding: 0; margin: 40px 0 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px;
 }
-.lp-facts dt { font-size: 14.5px; font-weight: 600; margin-bottom: 6px; }
-.lp-facts dd { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--fg-2); }
-.lp-facts code { white-space: nowrap; }
+.lp-steps::before {
+  content: ""; position: absolute; top: 13px; left: 14px; right: 14px; height: 1px;
+  background: linear-gradient(90deg, var(--accent), var(--line-strong) 60%, var(--accent));
+  opacity: .5;
+}
+/* Subgrid, so the three drawings start on one line and end on one line
+   whatever length the sentence above each of them runs to. */
+.lp-step { position: relative; display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; min-width: 0; }
+.lp-step-head { display: flex; align-items: center; gap: 12px; width: fit-content; margin-bottom: 12px; padding-right: 14px; background: var(--bg); }
+.lp-step-head h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.lp-step-n {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg); border: 1px solid var(--accent); color: var(--accent);
+  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.lp-step > p { margin: 0 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--fg-2); }
+
+/* The drawings. Same hairline, radius and surface as the product shot, so
+   they read as small views of the product rather than illustrations. */
+.lp-mock {
+  min-height: 176px; padding: 16px;
+  border: 1px solid var(--line-strong); border-radius: 12px; background: var(--lp-surface);
+  box-shadow: 0 1px 0 var(--lp-edge) inset, 0 18px 40px -26px light-dark(rgba(20,20,45,.22), rgba(0,0,0,.9));
+  font-size: 12.5px; line-height: 1.5; color: var(--fg-2);
+}
+.lp-mock b { color: var(--fg); font-weight: 600; }
+.lp-term { display: flex; flex-direction: column; gap: 9px; font-family: var(--mono); font-size: 12px; }
+.lp-term-ask { color: var(--fg); padding-bottom: 9px; border-bottom: 1px dashed var(--line-strong); }
+.lp-term-caret { color: var(--accent); margin-right: 4px; }
+.lp-term-line { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.lp-term-dot {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--faint);
+}
+.lp-term-dot.is-accent { background: var(--accent); }
+.lp-term-dot.is-ok { width: 14px; height: 14px; margin: 0 -3px; background: var(--ok); color: #fff; }
+.lp-term-dot .ic { width: 10px; height: 10px; vertical-align: 0; }
+.lp-term-link {
+  display: flex; align-items: center; gap: 7px; align-self: flex-start; max-width: 100%;
+  margin-top: 2px; padding: 5px 10px; border-radius: 999px;
+  background: light-dark(rgba(91,61,245,.08), rgba(167,139,250,.12)); color: var(--accent);
+}
+.lp-term-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-term-link .ic { width: 13px; height: 13px; vertical-align: 0; }
+.lp-term-quote { margin-left: 17px; padding-left: 10px; border-left: 2px solid var(--accent); color: var(--fg); font-family: var(--font); font-style: italic; }
+
+.lp-page-h { font-size: 15px; font-weight: 600; color: var(--fg); letter-spacing: -0.01em; margin-bottom: 10px; }
+.lp-page-p { margin-bottom: 10px; color: var(--fg-2); }
+.lp-page-bar { display: block; height: 7px; margin-bottom: 6px; border-radius: 4px; background: var(--line); }
+.lp-page-bar.is-short { width: 62%; }
+.lp-page mark {
+  color: var(--fg); background: light-dark(rgba(255,196,0,.28), rgba(255,196,0,.22));
+  border-bottom: 2px solid light-dark(#e0a800, #f5c542); padding: 0 1px;
+}
+.lp-note {
+  display: flex; gap: 9px; align-items: flex-start; margin-left: 18px; padding: 9px 11px;
+  border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.lp-note-av {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: light-dark(#fde7c8, #3a2a10); color: light-dark(#8a5300, #f5c542);
+  font-size: 10.5px; font-weight: 600;
+}
+.lp-note-who { display: block; font-weight: 600; color: var(--fg); font-size: 12px; }
+.lp-note-txt { display: block; font-size: 12px; }
+
+/* What holds between runs: three plain lines with an icon each, lighter
+   than the steps above so the eye does not read them as a fourth step. */
+.lp-traits {
+  list-style: none; padding: 28px 0 0; margin: 48px 0 0; border-top: 1px dashed var(--line-strong);
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px;
+}
+.lp-traits li { display: flex; gap: 12px; font-size: 14px; line-height: 1.6; color: var(--fg-2); }
+.lp-traits b { color: var(--fg); font-weight: 600; }
+.lp-trait-ic {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: light-dark(rgba(91,61,245,.08), rgba(167,139,250,.12)); color: var(--accent);
+}
+.lp-trait-ic .ic { vertical-align: 0; }
+
+/* The close repeats the one action, centred, with what the agent learns
+   from it laid out above. */
+.lp-start { text-align: center; }
+.lp-start .lp-sub { margin: 0 auto; }
+.lp-checks {
+  list-style: none; padding: 0; margin: 28px auto 32px; max-width: 720px; text-align: left;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px 32px;
+}
+.lp-checks li { display: flex; gap: 10px; font-size: 14px; line-height: 1.5; color: var(--fg-2); }
+.lp-checks .ic { width: 16px; height: 16px; margin-top: 2px; color: var(--ok); }
 
 .lp-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); }
-.lp-foot-nav { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-left: auto; font-size: 13px; color: var(--muted); }
+.lp-foot-nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px 18px; margin-left: auto; font-size: 13px; color: var(--muted); }
 .lp-foot-nav a:hover { color: var(--fg); }
 .lp-foot-maker { font-size: 13px; color: var(--muted); }
 .lp-foot-maker a { color: var(--fg-2); }
 .lp-foot-maker a:hover { color: var(--fg); }
+.lp-foot-mail { display: inline-flex; align-items: center; gap: 6px; }
+.lp-foot-mail .ic { width: 14px; height: 14px; vertical-align: 0; }
 
 /* ---- Responsive -------------------------------------------------- */
 @media (max-width: 860px) {
-  .lp-facts, .lp-starts { grid-template-columns: 1fr; gap: 16px; }
+  .lp-steps, .lp-traits, .lp-checks { grid-template-columns: 1fr; }
+  .lp-steps { gap: 36px; }
+  .lp-steps::before { display: none; }
+  .lp-mock { min-height: 0; }
+  .lp-prompt { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
+  .lp-prompt-copy { justify-content: center; }
+  /* Below this the drawing's labels would shrink past reading, so it keeps
+     its size and scrolls sideways instead. */
+  .lp-chart { overflow-x: auto; margin-right: -24px; padding-right: 24px; }
+  .lp-chart svg { width: 820px; }
   /* No room to overhang on a phone: the thread drops below the shelf. */
   .lp-shot-inset { position: static; width: 100%; margin-top: 12px; right: auto; bottom: auto; }
   .lp-shot figcaption { margin-top: 12px; }
@@ -925,10 +1030,6 @@ textarea { resize: vertical; line-height: 1.45; }
   .lp-hero { padding: 48px 0 28px; }
   .lp-bar { gap: 10px; }
   .lp-section { padding-top: 32px; margin-top: 32px; }
-  /* The diagram is four nodes wide; below this it would be unreadable, so
-     it scrolls rather than shrinking into hairlines. */
-  .lp-chart { overflow-x: auto; }
-  .lp-chart svg { width: 900px; }
   .shell { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; border-right: 0; border-bottom: 1px solid var(--line); }
   .brand { margin: 0; }
