@@ -1,6 +1,6 @@
 {
   "name": "byagent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Publish a page to byagent.dev, share the URL, read the comments on it.",
   "license": "MIT",
   "type": "module",
@@ -37,7 +37,7 @@
     "access": "public"
   },
   "scripts": {
-    "test": "node --test test/unit.test.mjs test/markdown.test.mjs test/e2e.test.mjs"
+    "test": "node --test test/unit.test.mjs test/hooks.test.mjs test/markdown.test.mjs test/e2e.test.mjs"
   },
   "dependencies": {
     "marked": "^18.0.13"

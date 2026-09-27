@@ -110,6 +110,7 @@ byagent publish ./site --title "Hello" --json
 | `reply <id> <thread> "<text>"` | Posts an owner reply on a thread |
 | `resolve <id> <thread>` | Marks a thread resolved |
 | `delete <id>` | Soft-deletes the artifact; the URL stops working |
+| `hooks install\|uninstall claude\|codex [--scope user\|project]` | Adds (or removes) a PostToolUse hook in Claude Code or Codex that nudges the agent to publish, or republish, `.html` and `.md` pages it writes. It never publishes by itself; once per file, five per session at most; `BYAGENT_NUDGE=0` silences it |
 
 Config comes from `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else
 `~/.artifacts/config.json`. Every command takes `--json` and then prints exactly
