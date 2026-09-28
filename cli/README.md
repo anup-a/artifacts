@@ -29,6 +29,7 @@ byagent publish ./notes.md --project "Personal" --tag notes --json
 - A single `.html` file becomes `index.html`.
 - A `.md` file, or a directory whose index is `index.md` / `README.md`, is rendered to a styled page: light and dark themes, heading anchors, a sticky table of contents, GitHub-flavoured tables and task lists, highlighted code fences. The first H1 is the title unless `--title` is given. Images referenced relative to the file ship with it when you publish the directory.
 - The directory's `.artifacts.json` remembers the artifact id, project and tags, so publishing the same directory again updates the same URL.
+- A `.byagent.json` at a project root, `{"collection": "Puzzled"}`, makes that collection the default `--project` for every publish below it. The nearest one wins, so a monorepo can give each app its own. It holds no key, so commit it.
 
 Flags: `--private | --public`, `--comments | --no-comments`, `--project <name>`, `--tag <t>` (repeatable), `--cover <image>`, `--cover-style dots|grid|lines|wash|rings|plain`, `--end-user <id>`, `--id <id>`.
 
@@ -44,6 +45,17 @@ byagent hooks uninstall claude
 This adds a PostToolUse hook. When the agent writes a `.html` or `.md` page, the hook adds one line to the agent's context suggesting `byagent publish`. If the page's directory is already published, it suggests republishing instead. The hook never publishes anything itself.
 
 It stays out of the way: each file gets at most one nudge per session, with five nudges per session in total. It skips code trees (`src`, `public`, `node_modules`, ...), repo docs (`README.md`, `CLAUDE.md`, `AGENTS.md`, ...) and agent config under `~/.claude` and `~/.codex`. Set `BYAGENT_NUDGE=0` to silence it. The hook runs `byagent hooks run`, so install the CLI globally.
+
+## Briefs
+
+A brief is the page an agent leaves for whoever picks the work up next: another agent, another machine, or you.
+
+```
+byagent brief                          # BRIEF.md, its published version and the open comments on it
+byagent brief push                     # publish BRIEF.md into the folder's collection
+```
+
+`BRIEF.md` sits next to `.byagent.json`. Where there is no `BRIEF.md` (a fresh clone, another machine), `byagent brief` reads the pushed copy back; `--project <name>` names the collection from anywhere, and the MCP tool `brief_get` does the same for agents without a shell. `brief push` files it into that collection with the tag `brief` and updates the same page every time, so each collection has one brief and one URL. A new brief starts private. An unchanged file is not sent again, and the publish hook never nudges about it. Push when the work changes state (started, blocked, handed off, done), not after every turn.
 
 ## Everything else
 

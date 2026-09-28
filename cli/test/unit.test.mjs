@@ -9,6 +9,7 @@ import { resolveConfig, saveConfig, configPath } from "../src/config.js";
 import { collectFiles, readLink, writeLink } from "../src/files.js";
 import { publish, labelsOf, resolveCover } from "../src/commands/publish.js";
 import { list, share } from "../src/commands/artifacts.js";
+import { findProject } from "../src/project.js";
 import { main } from "../src/main.js";
 
 function tmp() {
@@ -113,6 +114,44 @@ test("labelsOf prefers flags over the link file and keeps remembered labels", ()
   assert.deepEqual(labelsOf({ project: "New", tag: ["y"], "cover-style": "rings" }, link), { project: "New", tags: ["y"], coverStyle: "rings" });
   assert.deepEqual(labelsOf({ project: "" }, link), { project: "", tags: ["x"] });
   assert.deepEqual(labelsOf({}, {}), {});
+});
+
+test("labelsOf falls back to the folder collection only when flags and link are silent", () => {
+  assert.deepEqual(labelsOf({}, {}, "Puzzled"), { project: "Puzzled" });
+  assert.deepEqual(labelsOf({}, { project: "Old" }, "Puzzled"), { project: "Old" });
+  assert.deepEqual(labelsOf({ project: "New" }, {}, "Puzzled"), { project: "New" });
+});
+
+test("findProject finds the nearest .byagent.json and rejects a bad one", () => {
+  const root = tmp();
+  mkdirSync(join(root, "apps", "desk", "docs"), { recursive: true });
+  writeFileSync(join(root, ".byagent.json"), JSON.stringify({ collection: " factory " }));
+  writeFileSync(join(root, "apps", "desk", ".byagent.json"), JSON.stringify({ collection: "desk" }));
+  assert.deepEqual(findProject(join(root, "apps")), { root, path: join(root, ".byagent.json"), collection: "factory" });
+  assert.equal(findProject(join(root, "apps", "desk", "docs")).collection, "desk");
+  assert.equal(findProject(join(root, "apps", "desk", "docs")).root, join(root, "apps", "desk"));
+
+  const bad = tmp();
+  writeFileSync(join(bad, ".byagent.json"), JSON.stringify({ collection: "" }));
+  assert.throws(() => findProject(bad), (e) => e.code === "CONFIG" && /needs "collection"/.test(e.message));
+  writeFileSync(join(bad, ".byagent.json"), "{nope");
+  assert.throws(() => findProject(bad), (e) => e.code === "CONFIG");
+});
+
+test("collectFiles ships a markdown file's own text only when asked", () => {
+  const dir = tmp();
+  writeFileSync(join(dir, "BRIEF.md"), "# Brief\n");
+  assert.deepEqual(collectFiles(join(dir, "BRIEF.md")).files.map((f) => f.path), ["index.html"]);
+  const withSource = collectFiles(join(dir, "BRIEF.md"), { source: "brief.md" }).files;
+  assert.deepEqual(withSource.map((f) => f.path), ["index.html", "brief.md"]);
+  assert.equal(withSource[1].body.toString(), "# Brief\n");
+});
+
+test("collectFiles never uploads the project config", () => {
+  const dir = tmp();
+  writeFileSync(join(dir, "index.html"), "<h1>hi</h1>");
+  writeFileSync(join(dir, ".byagent.json"), JSON.stringify({ collection: "c" }));
+  assert.deepEqual(collectFiles(dir).files.map((f) => f.path), ["index.html"]);
 });
 
 test("resolveCover references a file inside the directory and copies one from outside", () => {

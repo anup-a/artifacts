@@ -6,9 +6,10 @@ import { renderMarkdown } from "./markdown.js";
 
 export const LINK_FILE = ".artifacts.json";
 
-// Never uploaded: version control, installed dependencies, and the link file
-// itself (it names the artifact, so shipping it would leak the id into the page).
-const SKIP = new Set([".git", "node_modules", LINK_FILE]);
+// Never uploaded: version control, installed dependencies, the link file
+// itself (it names the artifact, so shipping it would leak the id into the
+// page) and the project config, which is about the folder, not the page.
+const SKIP = new Set([".git", "node_modules", LINK_FILE, ".byagent.json"]);
 
 function sha256(buf) {
   return createHash("sha256").update(buf).digest("hex");
@@ -55,7 +56,9 @@ function renderedIndex(abs, body, title) {
 // but an index.md or README.md is served from that, rendered, with the other
 // files kept as assets so relative images and links still resolve. `title`
 // is the --title flag; the result's title is what the page ended up with.
-export function collectFiles(target, { title } = {}) {
+// `source` names a path to ship a single .md file's own text under, next to
+// the rendered page, so it can be read back as Markdown.
+export function collectFiles(target, { title, source } = {}) {
   let st;
   try {
     st = statSync(target);
@@ -74,7 +77,9 @@ export function collectFiles(target, { title } = {}) {
   const body = readFileSync(target);
   if (isMarkdown(target)) {
     const rendered = renderedIndex(target, body, title);
-    return { dir: null, files: [rendered.file], title: rendered.title };
+    const files = [rendered.file];
+    if (source) files.push({ path: source, abs: target, body, sha256: sha256(body), size: body.length });
+    return { dir: null, files, title: rendered.title };
   }
   return {
     dir: null,

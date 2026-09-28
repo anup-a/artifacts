@@ -23,12 +23,12 @@ function tmp(prefix) {
 
 // run returns {code, stdout, stderr}; a failing command is a normal result here
 // because several tests assert on the error envelope.
-function run(args, { cwd = CLI_DIR, input } = {}) {
+function run(args, { cwd = CLI_DIR, input, home } = {}) {
   const r = spawnSync(process.execPath, [BIN, ...args], {
     cwd,
     input,
     encoding: "utf8",
-    env: { ...process.env, ARTIFACTS_TOKEN: TOKEN, ARTIFACTS_API: BASE },
+    env: { ...process.env, ARTIFACTS_TOKEN: TOKEN, ARTIFACTS_API: BASE, ...(home ? { HOME: home } : {}) },
   });
   return { code: r.status, stdout: r.stdout.trim(), stderr: r.stderr.trim() };
 }
@@ -359,6 +359,75 @@ test("collections and collection read a project label back in publish order", ()
   const missing = run(["collection", "no-such-collection", "--json"]);
   assert.equal(missing.code, 1);
   assert.equal(JSON.parse(missing.stderr).error.code, "NOT_FOUND");
+});
+
+test("a .byagent.json collection labels every publish below it", () => {
+  const root = tmp("artifacts-proj-");
+  writeFileSync(join(root, ".byagent.json"), JSON.stringify({ collection: "e2e folder" }));
+  mkdirSync(join(root, "docs"));
+  writeFileSync(join(root, "docs", "notes.md"), "# Folder notes\n\nhi\n");
+  const pub = json(["publish", "docs/notes.md"], { cwd: root });
+  assert.equal(pub.project, "e2e folder");
+  assert.equal(json(["publish", "docs/notes.md", "--project", "other"], { cwd: root }).project, "other");
+});
+
+test("brief push keeps one private page per collection and skips an unchanged file", async () => {
+  const root = tmp("artifacts-brief-");
+  const home = tmp("artifacts-home-");
+  const opts = { cwd: join(root, "src"), home };
+  mkdirSync(join(root, "src"));
+  writeFileSync(join(root, ".byagent.json"), JSON.stringify({ collection: "e2e brief" }));
+
+  const none = run(["brief", "push"], opts);
+  assert.equal(none.code, 2);
+  assert.match(none.stderr, /no BRIEF\.md in /);
+
+  writeFileSync(join(root, "BRIEF.md"), "# GA4 fix\n\nNext move: deploy the CSP change.\n");
+  const first = json(["brief", "push"], opts);
+  assert.equal(first.changed, true);
+  assert.equal(first.version, 1);
+  assert.equal(first.visibility, "private");
+  const art = json(["get", first.id]);
+  assert.equal(art.project, "e2e brief");
+  assert.deepEqual(art.tags, ["brief"]);
+  assert.equal(art.title, "GA4 fix");
+
+  const same = run(["brief", "push"], opts);
+  assert.equal(same.code, 0);
+  assert.equal(same.stdout, "brief unchanged");
+
+  writeFileSync(join(root, "BRIEF.md"), "# GA4 fix\n\nBlocked: needs the Fly token.\n");
+  const second = json(["brief", "push"], opts);
+  assert.equal(second.id, first.id);
+  assert.equal(second.version, 2);
+
+  // Another machine has no push state: it finds the same page by tag.
+  const second_home = tmp("artifacts-home-");
+  writeFileSync(join(root, "BRIEF.md"), "# GA4 fix\n\nDone.\n");
+  const elsewhere = json(["brief", "push"], { ...opts, home: second_home });
+  assert.equal(elsewhere.id, first.id);
+  assert.equal(elsewhere.version, 3);
+
+  const shown = json(["brief"], opts);
+  assert.equal(shown.collection, "e2e brief");
+  assert.equal(shown.exists, true);
+  assert.match(shown.content, /Done\./);
+  assert.equal(shown.artifact.id, first.id);
+  assert.equal(shown.artifact.version, 3);
+  const human = run(["brief"], opts).stdout.split("\n");
+  assert.match(human[0], /^BRIEF\.md  \(collection e2e brief, v3, 0 open comments\)$/);
+  assert.ok(human.includes("Done."));
+  assert.equal(shown.source, "local");
+
+  // A folder with the config but no BRIEF.md (a cloud agent, a fresh clone)
+  // reads the pushed Markdown back from the server.
+  const clone = tmp("artifacts-clone-");
+  writeFileSync(join(clone, ".byagent.json"), JSON.stringify({ collection: "e2e brief" }));
+  const remote = json(["brief"], { cwd: clone, home });
+  assert.equal(remote.source, "remote");
+  assert.equal(remote.content, "# GA4 fix\n\nDone.\n");
+  assert.equal(run(["brief"], { cwd: clone, home }).stdout.split("\n")[0], "published brief  (collection e2e brief, v3, 0 open comments)");
+  assert.equal(json(["brief", "--project", "e2e brief"], { cwd: tmp("artifacts-empty-"), home }).content, "# GA4 fix\n\nDone.\n");
 });
 
 test("an artifact without a cover gets a generated one in the requested style", async () => {

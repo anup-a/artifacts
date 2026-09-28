@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -105,6 +106,35 @@ func (c *apiClient) listCollections(ctx context.Context) (json.RawMessage, error
 
 func (c *apiClient) getCollection(ctx context.Context, name string) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/api/collections/"+url.PathEscape(name), nil)
+}
+
+// errNotFound marks a 404 so callers can tell "no such file" from a failure.
+var errNotFound = errors.New("not found")
+
+// readFile returns one published file's bytes as text:
+// GET /api/artifacts/{id}/files/{path}.
+func (c *apiClient) readFile(ctx context.Context, id, path string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base+"/api/artifacts/"+url.PathEscape(id)+"/files/"+path, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return "", errNotFound
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("API GET files/%s: %s", path, strings.TrimSpace(string(raw)))
+	}
+	return string(raw), nil
 }
 
 func (c *apiClient) do(ctx context.Context, method, path string, body []byte) (json.RawMessage, error) {

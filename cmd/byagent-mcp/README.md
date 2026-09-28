@@ -13,6 +13,7 @@ P0 tools (no publish, no fake search):
 | `artifact_resolve` | `POST /api/artifacts/{id}/comments/{thread}/resolve` |
 | `collection_list` | `GET /api/collections` |
 | `collection_get` | `GET /api/collections/{name}` |
+| `brief_get` | `GET /api/artifacts?project=` (tag `brief`), then `GET /api/artifacts/{id}/files/brief.md` and open comments |
 
 ## Auth
 
