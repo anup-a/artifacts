@@ -8,6 +8,7 @@ import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
 import { whoami, portalLink } from "./commands/account.js";
 import { hooks } from "./commands/hooks.js";
+import { brief } from "./commands/brief.js";
 
 // needsConfig is false for login, which builds its own config from its flags.
 const COMMANDS = {
@@ -27,6 +28,7 @@ const COMMANDS = {
   reply: { run: reply, needsConfig: true },
   resolve: { run: resolve, needsConfig: true },
   hooks: { run: hooks, needsConfig: false },
+  brief: { run: brief, needsConfig: true },
 };
 
 const help = (api) => `byagent - publish a page, share the URL, read the comments on it
@@ -51,6 +53,7 @@ Usage:
   byagent resolve <id> <thread>
   byagent delete <id>
   byagent hooks install|uninstall claude|codex [--scope user|project]
+  byagent brief [push [--private|--public] [--project <name>]]
 
 A .md file (or a directory whose index is index.md / README.md) is rendered to
 a styled page on the way in; its first H1 becomes the title unless --title is
@@ -96,6 +99,16 @@ note to its context suggesting byagent publish, or a republish when the
 directory is already bound. It never publishes. Each file is mentioned once
 per session, five at most; BYAGENT_NUDGE=0 silences it. byagent must be on
 PATH (npm install -g byagent). hooks uninstall removes only this hook.
+A .byagent.json at a project root, {"collection": "<name>"}, makes that
+collection the default --project for every publish below it; the nearest file
+wins. Commit it: it holds no key.
+brief prints the folder's BRIEF.md (next to .byagent.json, else here), its
+published version and the open comments on it; with no local BRIEF.md it
+reads the pushed copy back. brief push publishes BRIEF.md
+into the collection, tagged brief, updating the same page every time; a new
+brief starts private. An unchanged file is not sent again. Briefs are for the
+next agent or person to pick the work up: push one when the work changes
+state (started, blocked, handed off, done), not after every turn.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.

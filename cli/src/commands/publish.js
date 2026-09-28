@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { copyFileSync, readFileSync, statSync } from "node:fs";
-import { extname, join, relative, resolve, sep } from "node:path";
+import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { apiJson } from "../client.js";
 import { collectFiles, readLink, writeLink } from "../files.js";
+import { findProject } from "../project.js";
 import { CliError, usage } from "../errors.js";
 
 const USAGE = "usage: byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>] [--private|--public] [--comments|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]";
@@ -66,18 +67,21 @@ export function resolveCover(coverFlag, dir, files, title) {
 }
 
 // labelsOf merges the flags with what the link file remembers. Flags win; a
-// republish without flags keeps the remembered project and tags.
-export function labelsOf(flags, link) {
+// republish without flags keeps the remembered project and tags. With neither,
+// the folder's .byagent.json collection is the project.
+export function labelsOf(flags, link, collection) {
   const labels = {};
   if (flags.project !== undefined) labels.project = flags.project;
   else if (link.project) labels.project = link.project;
+  else if (collection) labels.project = collection;
   if (flags.tag !== undefined) labels.tags = flags.tag;
   else if (Array.isArray(link.tags) && link.tags.length) labels.tags = link.tags;
   if (flags["cover-style"] !== undefined) labels.coverStyle = flags["cover-style"];
   return labels;
 }
 
-export async function publish(cfg, { positional, flags }) {
+// source is not a flag: brief push sets it to keep the Markdown next to the page.
+export async function publish(cfg, { positional, flags, source }) {
   const target = positional[0];
   if (!target) throw usage(USAGE);
   if (flags.private && flags.public) throw usage("--private and --public are mutually exclusive");
@@ -85,10 +89,11 @@ export async function publish(cfg, { positional, flags }) {
 
   // A Markdown target is rendered on the way in and supplies the title when
   // --title is absent (its first H1, else the file name).
-  const collected = collectFiles(target, { title: flags.title });
+  const collected = collectFiles(target, { title: flags.title, source });
   const dir = collected.dir;
   const link = readLink(dir);
-  const labels = labelsOf(flags, link.api === cfg.api ? link : {});
+  const folder = findProject(dir || dirname(resolve(target)));
+  const labels = labelsOf(flags, link.api === cfg.api ? link : {}, folder && folder.collection);
   const { cover, files } = resolveCover(flags.cover, dir, collected.files, flags.title);
   if (cover !== undefined) labels.cover = cover;
   const manifest = manifestOf(files, collected.title, commentsFlag(flags), labels, visibility);

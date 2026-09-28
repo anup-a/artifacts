@@ -32,6 +32,7 @@ test("isPageCandidate keeps pages and skips code, agent config and repo docs", (
   assert.ok(!ok("/h/code/app/main.go"));
   assert.ok(!ok("/h/code/app/README.md"));
   assert.ok(!ok("/h/code/app/CLAUDE.md"));
+  assert.ok(!ok("/h/code/app/BRIEF.md"));
   assert.ok(!ok("/h/code/app/src/index.html"));
   assert.ok(!ok("/h/code/app/node_modules/x/readme.markdown"));
   assert.ok(!ok("/h/.claude/plans/p.md"));

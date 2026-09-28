@@ -16,9 +16,10 @@ const MATCHERS = { claude: "Write|Edit|MultiEdit", codex: "apply_patch" };
 const PAGE_EXTS = new Set([".html", ".htm", ".md", ".markdown"]);
 
 // Files an agent edits all day that are not pages anyone reads as one.
+// brief.md has its own command, brief push, and is published on purpose.
 const SKIP_NAMES = new Set([
   "readme.md", "changelog.md", "license.md", "contributing.md", "security.md", "code_of_conduct.md",
-  "claude.md", "agents.md", "skill.md", "memory.md",
+  "claude.md", "agents.md", "skill.md", "memory.md", "brief.md",
 ]);
 
 // Code trees: HTML here is an app's template, not an artifact.

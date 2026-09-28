@@ -22,6 +22,23 @@ async function send(cfg, method, path, { query, body, headers } = {}) {
   return res;
 }
 
+// apiText returns a raw body, such as a published file read back. Errors
+// carry the server's code like apiJson's do.
+export async function apiText(cfg, method, path, opts = {}) {
+  const res = await send(cfg, method, path, opts);
+  const text = await res.text();
+  if (res.ok) return text;
+  let e = {};
+  try {
+    e = JSON.parse(text).error || {};
+  } catch {}
+  throw new CliError(e.message || `request failed with ${res.status}`, {
+    code: e.code || "HTTP_ERROR",
+    status: res.status,
+    requestId: res.headers.get("X-Request-Id") || "",
+  });
+}
+
 // apiJson returns the parsed body, or null for 204. Any non-2xx becomes a
 // CliError carrying the server's error code and request id.
 export async function apiJson(cfg, method, path, opts = {}) {

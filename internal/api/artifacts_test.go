@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -96,5 +97,47 @@ func TestOtherKeyCannotSee(t *testing.T) {
 	}
 	if code, _ := do(t, authReq(t, "DELETE", srv.URL+"/api/artifacts/"+id, k2)); code != 404 {
 		t.Fatalf("cross-key delete: %d", code)
+	}
+}
+
+func TestArtifactFileReadsSourceBack(t *testing.T) {
+	srv, d, tok := newTestServer(t, false)
+	_, b := do(t, publishReq(t, "POST", srv.URL+"/api/artifacts", tok, "Brief", []pubFile{{"index.html", "<h1>v1</h1>"}, {"brief.md", "# v1"}}, nil))
+	id := b["id"].(string)
+	if code, _ := do(t, publishReq(t, "PUT", srv.URL+"/api/artifacts/"+id, tok, "Brief", []pubFile{{"index.html", "<h1>v2</h1>"}, {"brief.md", "# v2"}}, nil)); code != 200 {
+		t.Fatal(code)
+	}
+	read := func(path, tok string) (int, string, http.Header) {
+		t.Helper()
+		res, err := http.DefaultClient.Do(authReq(t, "GET", srv.URL+"/api/artifacts/"+id+"/files/"+path, tok))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		body, _ := io.ReadAll(res.Body)
+		return res.StatusCode, string(body), res.Header
+	}
+	code, body, h := read("brief.md", tok)
+	if code != 200 || body != "# v2" {
+		t.Fatalf("current: %d %q", code, body)
+	}
+	if h.Get("Content-Disposition") != "attachment" || h.Get("Content-Security-Policy") != "sandbox" || h.Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("headers %v", h)
+	}
+	// The page comes back as published, without the comment runtime.
+	if code, body, _ = read("index.html", tok); code != 200 || body != "<h1>v2</h1>" {
+		t.Fatalf("index: %d %q", code, body)
+	}
+	if code, body, _ = read("brief.md?version=1", tok); code != 200 || body != "# v1" {
+		t.Fatalf("pinned: %d %q", code, body)
+	}
+	if code, _, _ = read("brief.md?version=x", tok); code != 400 {
+		t.Fatalf("bad version: %d", code)
+	}
+	if code, _, _ = read("nope.md", tok); code != 404 {
+		t.Fatalf("missing file: %d", code)
+	}
+	if code, _, _ = read("brief.md", mintKey(t, d, "personal")); code != 404 {
+		t.Fatalf("other workspace: %d", code)
 	}
 }
