@@ -10,7 +10,15 @@ import (
 	"strings"
 )
 
-// JSON-RPC 2.0 + MCP Content-Length framing (same wire format as LSP).
+// JSON-RPC 2.0 over stdio. MCP's stdio transport is one JSON message per
+// line; LSP-style Content-Length headers are still accepted for clients that
+// send them, and each reply goes out framed the way its request came in.
+
+// wire is the output side: it remembers how the last request was framed.
+type wire struct {
+	io.Writer
+	lines bool
+}
 
 type jsonRPCRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
@@ -39,41 +47,61 @@ const (
 	rpcInternalError  = -32603
 )
 
-func readMessage(r *bufio.Reader) ([]byte, error) {
-	headers := map[string]string{}
-	for {
+// readMessage returns the next message and whether it arrived as a bare
+// line. A line starting with "{" is a whole message; anything else starts a
+// header block. Blank lines between messages are skipped.
+func readMessage(r *bufio.Reader) ([]byte, bool, error) {
+	var first string
+	for first == "" {
 		line, err := r.ReadString('\n')
-		if err != nil {
-			return nil, err
+		first = strings.TrimSpace(line)
+		if err != nil && (err != io.EOF || first == "") {
+			return nil, false, err
 		}
+	}
+	if strings.HasPrefix(first, "{") {
+		return []byte(first), true, nil
+	}
+	headers := map[string]string{}
+	line := first
+	for {
 		line = strings.TrimRight(line, "\r\n")
 		if line == "" {
 			break
 		}
 		i := strings.IndexByte(line, ':')
 		if i < 0 {
-			return nil, fmt.Errorf("malformed header: %q", line)
+			return nil, false, fmt.Errorf("malformed header: %q", line)
 		}
 		key := strings.TrimSpace(line[:i])
 		val := strings.TrimSpace(line[i+1:])
 		headers[strings.ToLower(key)] = val
+		next, err := r.ReadString('\n')
+		if err != nil {
+			return nil, false, err
+		}
+		line = next
 	}
 	cl, ok := headers["content-length"]
 	if !ok {
-		return nil, fmt.Errorf("missing Content-Length")
+		return nil, false, fmt.Errorf("missing Content-Length")
 	}
 	n, err := strconv.Atoi(cl)
 	if err != nil || n < 0 {
-		return nil, fmt.Errorf("invalid Content-Length: %q", cl)
+		return nil, false, fmt.Errorf("invalid Content-Length: %q", cl)
 	}
 	buf := make([]byte, n)
 	if _, err := io.ReadFull(r, buf); err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return buf, nil
+	return buf, false, nil
 }
 
 func writeMessage(w io.Writer, payload []byte) error {
+	if wr, ok := w.(*wire); ok && wr.lines {
+		_, err := wr.Write(append(payload, '\n'))
+		return err
+	}
 	var hdr bytes.Buffer
 	fmt.Fprintf(&hdr, "Content-Length: %d\r\n\r\n", len(payload))
 	if _, err := w.Write(hdr.Bytes()); err != nil {
