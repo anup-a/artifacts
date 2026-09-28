@@ -45,7 +45,7 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"searchable by every agent",    // the chart: the workspace is a library for agents too
 		"its own memory",               // and it sits next to what the agent remembers
 		"into the next run",            // and the thread flows back into the agent
-		"mailto:team@creatica.app",     // a way to reach a person
+		"mailto:hello@byagent.dev",     // a way to reach a person
 		"Made by <a",                   // and who is behind it
 		"/app/static/dashboard-light.", // the dashboard screenshot, a hashed asset
 		"/app/static/dashboard-dark.",  // and swapped with the reader's theme

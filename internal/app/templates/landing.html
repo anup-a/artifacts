@@ -214,9 +214,9 @@
     <a href="{{$d.SkillURL}}">skill.md</a>
     <a href="/healthz">Status</a>
     <a href="{{$d.AppURL}}">Dashboard</a>
-    {{/* The same company inbox Creatica's pages use; the subject tells the
-         mail which product it is about. */}}
-    <a class="lp-foot-mail" href="mailto:team@creatica.app?subject=byagent">{{template "icon" "mail"}}team@creatica.app</a>
+    {{/* Namecheap forwards hello@ to the owner's inbox. There is no other mailbox
+         on this domain, so a new address needs a forwarder added first. */}}
+    <a class="lp-foot-mail" href="mailto:hello@byagent.dev">{{template "icon" "mail"}}hello@byagent.dev</a>
   </nav>
 </footer>
 
