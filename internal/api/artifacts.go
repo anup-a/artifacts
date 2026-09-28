@@ -1,6 +1,7 @@
 package api
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -147,6 +148,57 @@ func (s *server) listVersions(w http.ResponseWriter, r *http.Request) {
 		out = append(out, map[string]any{"version": v.Version, "created_at": v.CreatedAt, "bytes": v.Bytes, "files": v.FileCount, "comment_count": counts[v.Version]})
 	}
 	apierr.WriteJSON(w, 200, map[string]any{"versions": out})
+}
+
+// artifactFile streams one file of the current version, or of ?version=N,
+// exactly as published: no comment runtime, no meta tags. It is how a key
+// holder reads a page's source back, such as the brief.md that brief push
+// ships next to the rendered page. The bytes go out as an attachment under a
+// sandbox CSP, so a browser never runs them on the API origin.
+func (s *server) artifactFile(w http.ResponseWriter, r *http.Request) {
+	a, e := s.ownedArtifact(r, r.PathValue("id"))
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	version := a.CurrentVersion
+	if v := r.URL.Query().Get("version"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 {
+			apierr.Write(w, r, apierr.Invalid("version must be a positive integer"))
+			return
+		}
+		version = n
+	}
+	files, err := s.Store.Files(r.Context(), a.ID, version)
+	if err != nil {
+		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	path := r.PathValue("path")
+	var f *store.File
+	for i := range files {
+		if files[i].Path == path {
+			f = &files[i]
+			break
+		}
+	}
+	if f == nil {
+		apierr.Write(w, r, apierr.NotFound("file"))
+		return
+	}
+	rc, size, err := s.Blobs.Get(r.Context(), f.SHA256)
+	if err != nil {
+		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	defer rc.Close()
+	w.Header().Set("Content-Type", f.ContentType)
+	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	w.Header().Set("Content-Disposition", "attachment")
+	w.Header().Set("Content-Security-Policy", "sandbox")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	io.Copy(w, rc)
 }
 
 func (s *server) rollback(w http.ResponseWriter, r *http.Request) {
