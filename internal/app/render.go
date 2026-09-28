@@ -74,6 +74,7 @@ type page struct {
 	// Empty skips the gtag snippet. GateArtifactAccess and /a/ denials leave
 	// this unset so customer-facing share UI never loads analytics.
 	AnalyticsID string
+	GAJS        string // the script that starts GA4 with AnalyticsID
 }
 
 // Section is the nav entry the current path belongs to, so the detail page
@@ -112,7 +113,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, nam
 // renderRoot executes one named template of the page's set: "layout.html"
 // for a full page, "panel" for the shell-less fragment the side peek loads.
 func (h *Handler) renderRoot(w http.ResponseWriter, r *http.Request, status int, name, root, title string, v *viewer, data any) {
-	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: data, AnalyticsID: h.analyticsIDFor(r.URL.Path)}
+	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: data, AnalyticsID: h.analyticsIDFor(r.URL.Path), GAJS: h.static.gaJSURL}
 	var buf bytes.Buffer
 	if err := pages[name].ExecuteTemplate(&buf, root, p); err != nil {
 		h.fail(w, r, fmt.Errorf("render %s: %w", name, err))
@@ -150,7 +151,7 @@ func (h *Handler) renderErrorData(w http.ResponseWriter, r *http.Request, d erro
 	if title == "" {
 		title = http.StatusText(status)
 	}
-	p := page{Title: title, Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: d, AnalyticsID: h.analyticsIDFor(r.URL.Path)}
+	p := page{Title: title, Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: d, AnalyticsID: h.analyticsIDFor(r.URL.Path), GAJS: h.static.gaJSURL}
 	var buf bytes.Buffer
 	if err := pages["error"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
 		http.Error(w, msg, status)
