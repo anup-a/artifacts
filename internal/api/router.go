@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/anup-a/artifacts/internal/agents"
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/ids"
@@ -56,6 +57,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 		ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin,
 		UnlockSecret: d.Cfg.KeySecret, Now: d.Now, OnView: d.OnView,
 	}).Register(mux)
+	// The pages written for agents and crawlers: /agents, /llms.txt,
+	// /robots.txt, /sitemap.xml and the rest. Public, no key.
+	(&agents.Handler{Cfg: d.Cfg}).Register(mux)
 	// The bare host root is not an API route. The browser app owns it: the
 	// landing page on the share origin, the dashboard on the API origin.
 	// Without the web app mounted it falls to the JSON 404 below.

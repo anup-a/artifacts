@@ -17,6 +17,9 @@ type landingData struct {
 	ExampleID     string // a plausible artifact id for the samples
 	ExampleURL    string // what a published link looks like here
 	SkillURL      string // the agent skill this server serves
+	AgentsURL     string // the read-only entrypoint written for agents
+	CanonicalURL  string // the share origin's root, what search engines index
+	IconURL       string // an absolute raster icon for link previews
 	ShotURL       string // the dashboard screenshot, content-hashed
 	ShotDarkURL   string // the same view in the dark theme
 	ThreadURL     string // a comment thread, inset over the screenshot
@@ -60,6 +63,9 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 		ExampleID:     exampleID,
 		ExampleURL:    h.Cfg.ShareOrigin + "/a/" + exampleID + "/",
 		SkillURL:      h.Cfg.ShareOrigin + "/skill.md",
+		AgentsURL:     h.Cfg.ShareOrigin + "/agents",
+		CanonicalURL:  h.Cfg.ShareOrigin + "/",
+		IconURL:       h.Cfg.ShareOrigin + "/favicon-192.png",
 		ShotURL:       h.static.shotURL,
 		ShotDarkURL:   h.static.shotDarkURL,
 		ThreadURL:     h.static.threadURL,

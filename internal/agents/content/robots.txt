@@ -1,0 +1,11 @@
+{{define "robots.txt"}}# byagent. Agents: start at {{.Share}}/agents or {{.Share}}/llms.txt
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /api/
+Disallow: /c/
+Disallow: /p/
+Disallow: /_rt/
+
+Sitemap: {{.Share}}/sitemap.xml
+{{end}}

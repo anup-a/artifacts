@@ -7,13 +7,14 @@ import (
 )
 
 // inlineScript matches a <script> tag with no src: the CSP has no
-// 'unsafe-inline', so a browser refuses to run one.
+// 'unsafe-inline', so a browser refuses to run one. JSON-LD is a data block
+// the browser never runs, so the CSP does not touch it and it is let through.
 var inlineScript = regexp.MustCompile(`<script(?:\s[^>]*)?>`)
 
 func inlineScripts(body string) []string {
 	var found []string
 	for _, tag := range inlineScript.FindAllString(body, -1) {
-		if !strings.Contains(tag, " src=") {
+		if !strings.Contains(tag, " src=") && !strings.Contains(tag, `type="application/ld+json"`) {
 			found = append(found, tag)
 		}
 	}
