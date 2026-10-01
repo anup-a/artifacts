@@ -52,17 +52,38 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"/app/static/dashboard-dark.",  // and swapped with the reader's theme
 		"/app/static/thread-light.",    // the comment thread inset over it
 		"/app/static/thread-dark.",
-		"/app/static/theme.",    // the script that resolves the theme before paint
-		`data-set-theme="dark"`, // and the control that sets it
+		"/app/static/theme.",                // the script that resolves the theme before paint
+		`data-set-theme="dark"`,             // and the control that sets it
+		"One shelf for everything",          // the positioning
+		"Anyone comments. Any agent reads.", // and its subhead
+		"Free. Readers need no account.",    // the microcopy under the action
+		`aria-label="Works with"`,           // the agents it works with, as names
+		"any agent with a shell",
+		"plan_v3_final.md",                    // before: the scattered files
+		">byagent comments<", "--open --json", // the agent reads comments as JSON
+		`"anchor_status"`, `"author_kind"`, // in the real shape the API returns
+		"byagent resolve k4m2Qv9pXz1A",  // and closes the thread
+		"byagent list --project Launch", // the shelf, searched
+		"byagent collections",
+		"BRIEF.md",            // the handoff note per project
+		"six-digit code",      // private pages
+		"byagent portal-link", // client portals
+		"lasts seven days",    // and how long a portal link lives
+		"<details>",           // the FAQ
+		"Does byagent train AI on my pages?",
+		"Fly.io in its Singapore region",
+		`href="/pricing"`, `href="/privacy"`, `href="/terms"`, `href="/security"`,
+		`href="/subprocessors"`, `href="/acceptable-use"`, `href="/acceptable-use#report"`,
 	} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("landing page is missing %q", want)
 		}
 	}
 	// The page is a pitch, not the manual: a still instead of a recording, and
-	// no JSON sample or drawn mock of the shelf the screenshot already shows.
-	// It speaks to the agent, so the terminal walkthrough for people is gone.
-	for _, gone := range []string{"<video", "lp-two-up", "lp-shelf", `"artifacts"`, "For humans", "npm install -g"} {
+	// no drawn mock of the shelf the screenshot already shows. It speaks to the
+	// agent, so the terminal walkthrough for people is gone. The footer links
+	// to real pages, not to the health check.
+	for _, gone := range []string{"<video", "lp-two-up", "lp-shelf", `"artifacts"`, "For humans", "npm install -g", `href="/healthz"`} {
 		if strings.Contains(res.Body, gone) {
 			t.Errorf("landing page still carries %q", gone)
 		}
@@ -141,8 +162,11 @@ func TestLandingHeadIsWrittenForSearch(t *testing.T) {
 		`<link rel="canonical" href="http://share.test/">`,
 		`<meta property="og:url" content="http://share.test/">`,
 		`<meta property="og:site_name" content="byagent">`,
-		`<meta name="twitter:card" content="summary">`,
-		`<meta property="og:image" content="http://share.test/favicon-192.png">`,
+		`<meta name="twitter:card" content="summary_large_image">`,
+		`<meta property="og:image" content="http://share.test/og-card.png">`,
+		`<meta property="og:image:width" content="1200">`,
+		`<meta property="og:image:height" content="630">`,
+		`<meta name="twitter:image" content="http://share.test/og-card.png">`,
 		`<link rel="icon" href="/favicon.ico" sizes="48x48">`,
 		`<link rel="apple-touch-icon" href="/apple-touch-icon.png">`,
 		`"@type":"WebSite","name":"byagent"`,
@@ -166,6 +190,7 @@ func TestFaviconsAtFixedPaths(t *testing.T) {
 		"/favicon-48.png":       "image/png",
 		"/favicon-192.png":      "image/png",
 		"/apple-touch-icon.png": "image/png",
+		"/og-card.png":          "image/png", // the link preview card
 	} {
 		res := e.getHost("share.test", path)
 		if res.StatusCode != 200 || res.Header.Get("Content-Type") != want {

@@ -1,0 +1,54 @@
+{{/* The bar and the footer of the public site: the landing page and the
+     policy and pricing pages next to it. Each takes the page's data, which
+     carries siteData (AppURL, SkillURL, AgentsURL). */}}
+
+{{define "site-bar"}}
+<header class="lp-bar">
+  <a class="brand lp-brand" href="/">{{template "icon" "mark"}}<span>byagent</span></a>
+  <div class="lp-theme" role="group" aria-label="Theme" data-theme-picker>
+    <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
+    <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
+    <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
+  </div>
+  <a class="btn lp-cta" href="{{.AppURL}}">Dashboard</a>
+</header>
+{{end}}
+
+{{define "site-foot"}}
+<footer class="lp-foot">
+  <div class="lp-foot-id">
+    <a class="brand lp-brand" href="/">{{template "icon" "mark"}}<span>byagent</span></a>
+    <span class="lp-foot-maker">Made by <a href="https://creatica.app" rel="noopener">Creatica</a></span>
+  </div>
+  <nav class="lp-foot-cols" aria-label="Site">
+    <div class="lp-foot-col">
+      <h2>Product</h2>
+      <a href="/pricing">Pricing</a>
+      <a href="{{.AgentsURL}}">For agents</a>
+      <a href="{{.SkillURL}}">skill.md</a>
+      <a href="https://www.npmjs.com/package/byagent" rel="noopener">npm package</a>
+      <a href="{{.AppURL}}">Dashboard</a>
+    </div>
+    <div class="lp-foot-col">
+      <h2>Legal</h2>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/security">Security</a>
+      <a href="/subprocessors">Subprocessors</a>
+      <a href="/acceptable-use">Acceptable use</a>
+    </div>
+    <div class="lp-foot-col">
+      <h2>Contact</h2>
+      {{/* Namecheap forwards hello@ to the owner's inbox. There is no other mailbox
+           on this domain, so a new address needs a forwarder added first. */}}
+      <a class="lp-foot-mail" href="mailto:hello@byagent.dev">{{template "icon" "mail"}}hello@byagent.dev</a>
+      <a href="/acceptable-use#report">Report abuse</a>
+    </div>
+  </nav>
+</footer>
+{{end}}
+
+{{/* The head every public page shares after its own title and description:
+     the theme resolved before first paint, so a visitor who chose against
+     their system setting sees no flash. Not deferred for that reason. */}}
+{{define "site-theme"}}<script src="{{.ThemeJS}}"></script>{{end}}

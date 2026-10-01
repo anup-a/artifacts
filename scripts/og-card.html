@@ -1,0 +1,69 @@
+<!doctype html>
+<!--
+  The landing page's link preview card, internal/app/static/og-card.png.
+  Same palette, mark and prompt box as the light landing page. Re-render
+  after editing, from the repo root:
+
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
+      --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 \
+      --screenshot=internal/app/static/og-card.png scripts/og-card.html
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #16161a;
+    background:
+      radial-gradient(70% 70% at 50% -12%, rgba(91,61,245,.16), rgba(91,61,245,.05) 45%, transparent 72%),
+      #f0f0f5;
+  }
+  .frame { position: absolute; inset: 0; padding: 64px 80px; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand svg { width: 38px; height: 38px; color: #16161a; }
+  h1 { margin: 64px 0 0; font-size: 76px; font-weight: 600; letter-spacing: -0.045em; line-height: 1.02; }
+  h1 .dim {
+    background: linear-gradient(180deg, #6d6d80, #9c9cae);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .tag { margin: 26px 0 0; font-size: 32px; font-weight: 500; letter-spacing: -0.02em; color: #5b3df5; }
+  .prompt {
+    margin-top: auto; display: flex; align-items: center; gap: 18px;
+    padding: 14px 14px 14px 26px; align-self: flex-start;
+    border: 1px solid #dcdce4; border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff, #fbfbfd);
+    box-shadow: 0 1px 0 rgba(20,20,45,.08) inset, 0 24px 60px -28px rgba(60,40,180,.35);
+    font-size: 22px; color: #16161a;
+  }
+  .prompt p { flex: 1; margin: 0; }
+  .url {
+    padding: 1px 9px; border-radius: 7px;
+    font: 20px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #5b3df5;
+    background: rgba(91,61,245,.08);
+  }
+  .copy {
+    padding: 12px 22px; border-radius: 12px; background: #16161a; color: #fff;
+    font-size: 19px; font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="brand">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><g fill="currentColor"><rect x="1.5" y="12.6" width="13" height="1.8" rx=".9"/><rect x="2.9" y="4.6" width="2.2" height="8.1" rx=".6"/><rect x="6.3" y="3" width="3" height="9.7" rx=".7"/><rect x="10.5" y="5.6" width="2.2" height="7.4" rx=".6" transform="rotate(11 11.6 13)"/></g></svg>
+    <span>byagent</span>
+  </div>
+  <h1>One shelf for everything<br><span class="dim">your agents make.</span></h1>
+  <p class="tag">Anyone comments. Any agent reads.</p>
+  <div class="prompt">
+    <p>Set up byagent for this project: read <span class="url">byagent.dev/skill.md</span> and follow it.</p>
+    <span class="copy">Copy</span>
+  </div>
+</div>
+</body>
+</html>

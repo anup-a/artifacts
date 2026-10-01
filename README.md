@@ -54,6 +54,13 @@ theme), served content-hashed and cached like the stylesheet.
 On the API origin the root still redirects to `/app/`, so a sign-in email lands
 on the dashboard. With no web app mounted (`Web` unset), the root stays a JSON 404.
 
+Next to it, in the same layout, are `/pricing`, `/privacy`, `/terms`,
+`/security`, `/subprocessors` and `/acceptable-use` (`internal/app/site.go`,
+templates in `internal/app/templates/`), plus `/pricing.md` for agents. The
+policies carry an effective date and version; bump both in `site.go` when the
+text changes. The limits on the pricing page come from the server's config.
+The link preview card is `/og-card.png`, rendered from `scripts/og-card.html`.
+
 ## Dashboard and customer portals
 
 Open `PUBLIC_API_ORIGIN/app/login`, sign in, and create a named API key at

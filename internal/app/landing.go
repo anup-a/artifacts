@@ -9,23 +9,20 @@ import (
 // landingData is the handful of facts the page cannot hardcode: where this
 // deployment's dashboard and published links actually live.
 type landingData struct {
+	siteData             // the bar and footer every public page shares
 	APIOrigin     string // what to pass to `byagent login --api`
 	APIHost       string // the same without the scheme, for prose
-	AppURL        string // dashboard front door
 	KeysURL       string // where a key is created
 	ShareHost     string // host published links are served from
 	ExampleID     string // a plausible artifact id for the samples
 	ExampleURL    string // what a published link looks like here
-	SkillURL      string // the agent skill this server serves
-	AgentsURL     string // the read-only entrypoint written for agents
 	CanonicalURL  string // the share origin's root, what search engines index
-	IconURL       string // an absolute raster icon for link previews
+	CardURL       string // the 1200 x 630 link preview card, absolute
 	ShotURL       string // the dashboard screenshot, content-hashed
 	ShotDarkURL   string // the same view in the dark theme
 	ThreadURL     string // a comment thread, inset over the screenshot
 	ThreadDarkURL string
-	ThemeJS       string // resolves the chosen theme before first paint
-	SignIn        bool   // a sign-in provider is configured
+	SignIn        bool // a sign-in provider is configured
 }
 
 // exampleID is a made-up artifact id, the same shape the server issues.
@@ -55,22 +52,19 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 	// this overrides the no-store the app headers set for signed-in pages.
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	h.render(w, r, 200, "landing", "byagent", nil, landingData{
+		siteData:      h.site(),
 		APIOrigin:     h.Cfg.APIOrigin,
 		APIHost:       apiHost,
-		AppURL:        h.Cfg.APIOrigin + "/app/",
 		KeysURL:       h.Cfg.APIOrigin + "/app/keys",
 		ShareHost:     originHost(h.Cfg.ShareOrigin),
 		ExampleID:     exampleID,
 		ExampleURL:    h.Cfg.ShareOrigin + "/a/" + exampleID + "/",
-		SkillURL:      h.Cfg.ShareOrigin + "/skill.md",
-		AgentsURL:     h.Cfg.ShareOrigin + "/agents",
 		CanonicalURL:  h.Cfg.ShareOrigin + "/",
-		IconURL:       h.Cfg.ShareOrigin + "/favicon-192.png",
+		CardURL:       h.Cfg.ShareOrigin + "/" + cardFile,
 		ShotURL:       h.static.shotURL,
 		ShotDarkURL:   h.static.shotDarkURL,
 		ThreadURL:     h.static.threadURL,
 		ThreadDarkURL: h.static.threadDarkURL,
-		ThemeJS:       h.static.themeJSURL,
 		SignIn:        h.Cfg.WebEnabled(),
 	})
 }

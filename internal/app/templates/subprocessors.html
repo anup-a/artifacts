@@ -1,0 +1,54 @@
+{{define "title"}}Subprocessors · byagent{{end}}
+
+{{define "head"}}
+<meta name="description" content="Every provider byagent uses to run the service, what each one receives, and where it is located.">
+<meta property="og:title" content="Subprocessors · byagent">
+{{template "doc-head" .Data}}
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing lp-docpage">
+{{template "site-bar" $d}}
+
+<article class="lp-doc">
+  <header class="lp-doc-head">
+    <p class="lp-doc-kicker">Legal</p>
+    <h1>Subprocessors</h1>
+    {{template "doc-meta" $d}}
+  </header>
+
+  <aside class="lp-summary" aria-label="Summary">
+    <h2>In short</h2>
+    <ul>
+      <li>Four providers help run byagent. Only Fly.io holds your pages and comments.</li>
+      <li>We update this list, with a new date, before we add a new subprocessor.</li>
+    </ul>
+  </aside>
+
+  <section>
+    <h2>The list</h2>
+    <p>Last updated {{$d.Effective}}.</p>
+    <div class="lp-table">
+      <table>
+        <thead><tr><th>Provider</th><th>Purpose</th><th>Data</th><th>Location</th></tr></thead>
+        <tbody>
+          <tr><td>Fly.io</td><td>Hosting: compute and storage</td><td>All service data: accounts, pages, versions, comments, view counts</td><td>Singapore region</td></tr>
+          <tr><td>Resend</td><td>Delivering sign-in emails</td><td>Email address</td><td>United States</td></tr>
+          <tr><td>GitHub</td><td>Sign-in, only if you choose GitHub</td><td>GitHub profile id, email and name</td><td>United States</td></tr>
+          <tr><td>Google</td><td>Google Analytics on our site pages and the dashboard</td><td>Usage data and cookie identifiers</td><td>United States</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Published pages may also load scripts, fonts and images from providers their owner chose, such as cdnjs.cloudflare.com, cdn.jsdelivr.net and Google Fonts. Those requests go from the reader's browser straight to the provider; we do not send them any data. See <a class="link" href="/privacy#collect">Privacy</a>.</p>
+  </section>
+
+  <section>
+    <h2>Changes</h2>
+    <p>Before we add a subprocessor, we update this page and its date. Questions go to <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>.</p>
+  </section>
+</article>
+
+{{template "site-foot" $d}}
+</div>
+{{end}}

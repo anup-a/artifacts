@@ -1,0 +1,13 @@
+{{/* Shared pieces of the policy and pricing pages (internal/app/site.go):
+     the effective date and version line, and the head tags after each
+     page's own description. */}}
+
+{{define "doc-meta"}}<p class="lp-doc-meta">Effective {{.Effective}} <span aria-hidden="true">·</span> Version {{.Version}}</p>{{end}}
+
+{{define "doc-head"}}
+<link rel="canonical" href="{{.ShareOrigin}}{{.Path}}">
+<meta property="og:site_name" content="byagent">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{.ShareOrigin}}{{.Path}}">
+{{template "site-theme" .}}
+{{end}}
