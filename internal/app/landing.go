@@ -23,6 +23,7 @@ type landingData struct {
 	ThreadURL     string // a comment thread, inset over the screenshot
 	ThreadDarkURL string
 	SignIn        bool // a sign-in provider is configured
+	Guest         bool // publishing without an account is on
 }
 
 // exampleID is a made-up artifact id, the same shape the server issues.
@@ -66,5 +67,6 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 		ThreadURL:     h.static.threadURL,
 		ThreadDarkURL: h.static.threadDarkURL,
 		SignIn:        h.Cfg.WebEnabled(),
+		Guest:         h.Cfg.GuestPublish,
 	})
 }

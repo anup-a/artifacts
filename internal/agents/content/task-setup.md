@@ -16,6 +16,8 @@ Part of {{.Share}}/agents.
 
 2. Get a key. A person signs in at {{.API}}/app/ and creates one at {{.API}}/app/keys. Keys are never created over the API, so if there is no key yet, ask the user for one.
 
+   No key and just trying it? Skip to the next page: `byagent publish` with nothing configured gets a guest key and saves it. Guest pages are public, three at most, and stop working after 24 hours. The JSON has `claim_url`: the user opens it, signs in and keeps the pages. Never publish anything private as a guest.
+
 3. Store it without printing it:
 
    ```sh

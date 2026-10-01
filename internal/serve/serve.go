@@ -209,6 +209,12 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	if meta {
 		etag = etag[:len(etag)-1] + "-" + titleHash(a.Title) + `"`
 	}
+	// Guest pages carry a badge until they are claimed, so the claim must
+	// change the tag too.
+	badge := isHTML && a.ExpiresAt != nil
+	if badge {
+		etag = etag[:len(etag)-1] + "-guest" + `"`
+	}
 	w.Header().Set("ETag", etag)
 	if !pinnedReq && p == "index.html" && h.OnView != nil {
 		h.OnView(id)
@@ -225,7 +231,7 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	}
 	defer rc.Close()
 	w.Header().Set("Content-Type", f.ContentType)
-	if !inject && !meta {
+	if !inject && !meta && !badge {
 		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 		io.Copy(w, rc)
 		return
@@ -241,6 +247,9 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	}
 	if inject {
 		body = Inject(body, id, version, h.runtimeRev)
+	}
+	if badge {
+		body = InjectGuestBadge(body, h.ShareOrigin)
 	}
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	w.Write(body)

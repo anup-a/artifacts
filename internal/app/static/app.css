@@ -1295,3 +1295,5 @@ a.deck:hover .deck-card-2 { transform: translate(-24px, -18px) rotate(-8.5deg) s
   .course-row { grid-template-columns: 24px 84px minmax(0, 1fr) auto; }
   .course-row time, .course-move { display: none; }
 }
+
+.claim-list { margin: 0 0 16px; padding-left: 18px; display: grid; gap: 6px; }

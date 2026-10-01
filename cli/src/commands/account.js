@@ -1,5 +1,6 @@
 import { apiJson } from "../client.js";
 import { usage } from "../errors.js";
+import { guestLines } from "../guest.js";
 
 export async function whoami(cfg) {
   const identity = await apiJson(cfg, "GET", "/api/me");
@@ -9,6 +10,7 @@ export async function whoami(cfg) {
     human: [
       `${tenant.name} (${tenant.kind}, ${tenant.id})`,
       `key ${key.name || "(unnamed)"} (${key.id})`,
+      ...guestLines(identity),
     ],
   };
 }

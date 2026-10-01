@@ -109,3 +109,15 @@ func insertInHead(doc, chunk []byte) []byte {
 	out = append(out, chunk...)
 	return append(out, doc[at:]...)
 }
+
+// guestBadge marks a page published without an account. Anyone can make one,
+// so a reader is told plainly that it is temporary and whose it is not: the
+// badge is the difference between a guest page and a byagent page.
+const guestBadge = `<a href="%s" target="_blank" rel="noopener" style="position:fixed;left:12px;bottom:12px;z-index:2147483646;` +
+	`font:500 12px/1.2 system-ui,sans-serif;color:#fff;background:rgba(20,20,20,.86);padding:6px 10px;border-radius:999px;text-decoration:none">` +
+	`Temporary guest page &middot; byagent</a>`
+
+// InjectGuestBadge adds the guest badge before </body>.
+func InjectGuestBadge(doc []byte, siteURL string) []byte {
+	return insertBeforeBody(doc, []byte(fmt.Sprintf(guestBadge, html.EscapeString(siteURL+"/"))))
+}

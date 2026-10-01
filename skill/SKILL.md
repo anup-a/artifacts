@@ -36,6 +36,8 @@ echo "$MY_KEY" | byagent login --api https://<api-host>
 
 Keys are created in the dashboard at `https://<api-host>/app/keys` after sign-in, never over the API. Never print the token. Every command takes `--json`; parse that object.
 
+**No key yet:** `byagent publish` still works. With nothing configured it gets a guest key from byagent.dev and saves it. Guest pages are public, three at most, and stop working 24 hours after the key was made. The JSON carries `guest: true`, `expires_at` and `claim_url`: give the user the page URL and the `claim_url`, and say the page is temporary until they open the claim link and sign in. As a guest, never publish anything private, internal or personal, since a guest page cannot be private; ask the user for a key instead.
+
 ```
 byagent publish ./plan-site --title "Q3 plan" --project "Hi Travel" --tag plan --tag q3 --json
 byagent publish ./notes.md --project "Hi Travel" --tag notes --json     # Markdown is rendered to a styled page

@@ -41,6 +41,9 @@ export function saveConfig({ token, api }, { home = homedir() } = {}) {
   return path;
 }
 
+// DEFAULT_API is where a guest key comes from when nothing is configured.
+export const DEFAULT_API = "https://app.byagent.dev";
+
 export function trimSlash(url) {
   return url.replace(/\/+$/, "");
 }

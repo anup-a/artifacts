@@ -20,10 +20,16 @@ func (s *server) me(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	apierr.WriteJSON(w, 200, map[string]any{
-		"tenant": map[string]any{"id": t.ID, "kind": t.Kind, "name": t.Name},
+	out := map[string]any{
+		"tenant": map[string]any{"id": t.ID, "kind": t.Kind, "name": t.Name, "plan": t.Plan},
 		"key":    map[string]any{"id": k.ID, "name": k.Name},
-	})
+	}
+	if g, ok := guestFrom(r.Context()); ok {
+		for f, v := range s.guestFields(g) {
+			out[f] = v
+		}
+	}
+	apierr.WriteJSON(w, 200, out)
 }
 
 // portalLink answers POST /api/end-users/{external_id}/portal-link with a

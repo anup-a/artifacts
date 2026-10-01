@@ -57,6 +57,9 @@ type Artifact struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	DeletedAt  *time.Time
+	// ExpiresAt is set on pages of an unclaimed guest workspace. Once it has
+	// passed, the store reads the artifact back as deleted at that moment.
+	ExpiresAt *time.Time
 }
 
 // ProjectCount is one row of Projects: a project label and how many live
@@ -128,6 +131,17 @@ type Store interface {
 	AuthStore
 	Migrate(ctx context.Context) error
 	CreateKey(ctx context.Context, hash, email string) (Key, error)
+	// CreateGuest makes a guest workspace with one key, for publishing
+	// without an account.
+	CreateGuest(ctx context.Context, hash, prefix string, now time.Time) (Key, error)
+	// ClaimGuest moves an unclaimed, unexpired guest workspace's live pages
+	// into dest, clears their expiry, revokes the guest key and marks the
+	// guest workspace claimed. It returns how many pages moved, or ErrNotFound when
+	// there is nothing left to claim.
+	ClaimGuest(ctx context.Context, guestTenantID, dest string, now time.Time) (int, error)
+	// ExpireGuests marks expired guest pages deleted and revokes the keys of
+	// guest workspaces past their deadline.
+	ExpireGuests(ctx context.Context, now time.Time) error
 	KeyByHash(ctx context.Context, hash string) (Key, error)
 	CreateArtifact(ctx context.Context, a Artifact) error
 	Artifact(ctx context.Context, id string) (Artifact, error)

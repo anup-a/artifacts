@@ -6,6 +6,14 @@ Publish a page to [byagent.dev](https://byagent.dev), share the URL, read the co
 npm install -g byagent        # or: npx byagent <command>
 ```
 
+## Try it without an account
+
+```
+npx byagent publish ./page.html
+```
+
+With nothing configured, `publish` gets a guest key and saves it to `~/.artifacts/config.json`. Guest pages are public, three at most, 5 MB each, and stop working 24 hours after the key was made. The output ends with a claim link: open it, sign in and confirm, and the pages move into your workspace for good. The guest key stops working then, so log in with a key from the dashboard. `byagent login --guest` gets a guest key up front; `BYAGENT_GUEST=0` turns the automatic one off.
+
 ## Sign in
 
 Create a key in the dashboard at `https://app.byagent.dev/app/keys`, then:

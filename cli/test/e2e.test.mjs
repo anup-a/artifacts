@@ -51,8 +51,10 @@ before(async () => {
       STORAGE: "local",
       DATA_DIR: dir,
       ADMIN_TOKEN: TOKEN,
-      KEY_SIGNING_SECRET: "",
-      EMAIL_PROVIDER: "",
+      // Sign-in is on only so guest keys can be issued (claiming needs it).
+      KEY_SIGNING_SECRET: "e2e-secret",
+      EMAIL_PROVIDER: "log",
+      GUEST_PUBLISH: "on",
       GITHUB_CLIENT_ID: "",
       GITHUB_CLIENT_SECRET: "",
       ADDR: `127.0.0.1:${PORT}`,
@@ -531,4 +533,42 @@ test("login verifies the key before writing the config file", () => {
   assert.equal(bad.status, 1);
   assert.equal(JSON.parse(bad.stderr).error.code, "UNAUTHORIZED");
   assert.equal(existsSync(join(badHome, ".artifacts", "config.json")), false);
+});
+
+test("publish with nothing configured gets a guest key, saves it and reuses it", () => {
+  const home = tmp("artifacts-guest-home-");
+  const env = { ...process.env, HOME: home, ARTIFACTS_API: BASE };
+  delete env.ARTIFACTS_TOKEN;
+  const guestRun = (args) => {
+    const r = spawnSync(process.execPath, [BIN, ...args, "--json"], { cwd: CLI_DIR, encoding: "utf8", env });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  const first = guestRun(["publish", siteDir("<p>guest one</p>")]);
+  assert.equal(first.guest, true);
+  assert.match(first.claim_url, /\/app\/claim\/t_/);
+  assert.ok(Date.parse(first.expires_at) > Date.now() + 23 * 3600 * 1000);
+  const saved = JSON.parse(readFileSync(join(home, ".artifacts", "config.json"), "utf8"));
+  assert.equal(saved.api, BASE);
+  assert.match(saved.token, /^ak_/);
+
+  // The second publish reuses the saved key: same workspace, same claim link.
+  const second = guestRun(["publish", siteDir("<p>guest two</p>")]);
+  assert.equal(second.claim_url, first.claim_url);
+  const me = guestRun(["whoami"]);
+  assert.equal(me.guest, true);
+  assert.equal(me.tenant.plan, "guest");
+
+  // Guest pages are public only.
+  const r = spawnSync(process.execPath, [BIN, "publish", siteDir(), "--private", "--json"], { cwd: CLI_DIR, encoding: "utf8", env });
+  assert.equal(r.status, 1);
+  assert.match(JSON.parse(r.stderr).error.message, /guest pages are public/);
+});
+
+test("BYAGENT_GUEST=0 keeps the not-configured error", () => {
+  const env = { ...process.env, HOME: tmp("artifacts-guest-off-"), ARTIFACTS_API: BASE, BYAGENT_GUEST: "0" };
+  delete env.ARTIFACTS_TOKEN;
+  const r = spawnSync(process.execPath, [BIN, "publish", siteDir(), "--json"], { cwd: CLI_DIR, encoding: "utf8", env });
+  assert.equal(r.status, 2);
+  assert.equal(JSON.parse(r.stderr).error.code, "NOT_CONFIGURED");
 });

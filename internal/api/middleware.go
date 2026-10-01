@@ -38,7 +38,12 @@ func (s *server) withAuth(next http.HandlerFunc) http.HandlerFunc {
 			apierr.Write(w, r, apierr.Unauthorized())
 			return
 		}
-		next(w, r.WithContext(withKey(r.Context(), k)))
+		ctx, e := s.guestCheck(r, k)
+		if e != nil {
+			apierr.Write(w, r, e)
+			return
+		}
+		next(w, r.WithContext(withKey(ctx, k)))
 	}
 }
 

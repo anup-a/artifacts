@@ -1,5 +1,6 @@
 import { parseArgs } from "./args.js";
 import { resolveConfig, trimSlash } from "./config.js";
+import { createGuest } from "./guest.js";
 import { CliError, usage } from "./errors.js";
 import { publish } from "./commands/publish.js";
 import { get, list, share, versions, rollback, remove } from "./commands/artifacts.js";
@@ -35,6 +36,7 @@ const help = (api) => `byagent - publish a page, share the URL, read the comment
 
 Usage:
   byagent login --api <url> [--token <key>]
+  byagent login --guest
   byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>]
                   [--private|--public]
                   [--comments|--no-comments] [--project <name>] [--tag <t>]...
@@ -62,6 +64,11 @@ given, and images or links relative to it keep working.
 Every command takes --json and then prints exactly one JSON object.
 Config comes from ARTIFACTS_TOKEN / ARTIFACTS_API, else ~/.artifacts/config.json.
 Create a key at ${api}/app/keys, then paste it with login or pipe it on stdin.
+With nothing configured, publish gets a guest key from https://app.byagent.dev
+(or ARTIFACTS_API) and saves it: no account needed. Guest pages are public,
+three at most, 5 MB each, and stop working 24 hours after the key was made.
+Publish prints a claim_url: open it, sign in and confirm to keep the pages;
+the guest key stops working then, so log in with a dashboard key. login --guest gets a guest key up front; BYAGENT_GUEST=0 disables it.
 POST /api/keys was removed. Keys belong to the workspace selected in the app.
 --end-user attributes or filters an opaque customer id. Publish and list JSON
 include end_user. portal-link is for integrator workspaces; links last 7 days.
@@ -121,6 +128,18 @@ or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.
 The artifact quota is LIMIT_ARTIFACTS_PER_TENANT; LIMIT_ARTIFACTS_PER_KEY is a
 deprecated fallback.`;
 
+// configFor resolves the saved config. A publish with nothing configured gets
+// a guest key instead of an error, so the first page needs no account;
+// BYAGENT_GUEST=0 turns that off.
+async function configFor(command, env) {
+  try {
+    return resolveConfig({ env });
+  } catch (e) {
+    if (command !== "publish" || e.code !== "NOT_CONFIGURED" || env.BYAGENT_GUEST === "0" || env.ARTIFACTS_TOKEN) throw e;
+    return (await createGuest({ env })).cfg;
+  }
+}
+
 export async function main(argv, { out = console.log, err = console.error, env = process.env } = {}) {
   let json = false;
   try {
@@ -133,7 +152,7 @@ export async function main(argv, { out = console.log, err = console.error, env =
     const entry = COMMANDS[command];
     if (!entry) throw usage(`unknown command ${command}`);
 
-    const cfg = entry.needsConfig ? resolveConfig({ env }) : null;
+    const cfg = entry.needsConfig ? await configFor(command, env) : null;
     const result = await entry.run(cfg, { positional, flags, env });
     if (json) out(JSON.stringify(result.json));
     else for (const line of result.human) out(line);

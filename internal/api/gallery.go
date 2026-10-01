@@ -183,6 +183,7 @@ func (s *server) galleryFields(a store.Artifact) map[string]any {
 	return map[string]any{
 		"project": a.Project, "tags": tags, "cover": a.CoverPath,
 		"cover_url": s.artifactViewURL(a) + "_cover.svg", "cover_style": style, "visibility": a.Visibility,
+		"expires_at": a.ExpiresAt,
 	}
 }
 
