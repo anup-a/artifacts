@@ -3,6 +3,7 @@ package app
 import (
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -119,5 +120,63 @@ func TestLandingRendersWithoutSignIn(t *testing.T) {
 	}
 	if strings.Contains(res.Body, "/app/login") {
 		t.Error("offers sign-in on a server that has none")
+	}
+}
+
+// Google showed "one shelf for everything your agents make", its own pick of
+// hero text for the snippet, and a globe for the icon. The head now says what
+// byagent is, short enough to be used as written, with a raster icon.
+func TestLandingHeadIsWrittenForSearch(t *testing.T) {
+	e := fixture(t)
+	body := e.getHost("share.test", "/").Body
+	title := regexp.MustCompile(`<title>([^<]*)</title>`).FindStringSubmatch(body)
+	if title == nil || !strings.HasPrefix(title[1], "byagent: ") || len(title[1]) > 60 || strings.Contains(title[1], "shelf") {
+		t.Errorf("title %q", title)
+	}
+	desc := regexp.MustCompile(`<meta name="description" content="([^"]*)">`).FindStringSubmatch(body)
+	if desc == nil || len(desc[1]) > 160 || !strings.HasPrefix(desc[1], "byagent is a CLI") {
+		t.Errorf("description %q", desc)
+	}
+	for _, want := range []string{
+		`<link rel="canonical" href="http://share.test/">`,
+		`<meta property="og:url" content="http://share.test/">`,
+		`<meta property="og:site_name" content="byagent">`,
+		`<meta name="twitter:card" content="summary">`,
+		`<meta property="og:image" content="http://share.test/favicon-192.png">`,
+		`<link rel="icon" href="/favicon.ico" sizes="48x48">`,
+		`<link rel="apple-touch-icon" href="/apple-touch-icon.png">`,
+		`"@type":"WebSite","name":"byagent"`,
+		`href="http://share.test/agents"`, // one quiet link for agents
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("landing head is missing %s", want)
+		}
+	}
+	head := body[:strings.Index(body, "</head>")]
+	if strings.Contains(head, "—") {
+		t.Error("the head has an em dash")
+	}
+}
+
+func TestFaviconsAtFixedPaths(t *testing.T) {
+	e := fixture(t)
+	for path, want := range map[string]string{
+		"/favicon.svg":          "image/svg+xml",
+		"/favicon.ico":          "image/x-icon",
+		"/favicon-48.png":       "image/png",
+		"/favicon-192.png":      "image/png",
+		"/apple-touch-icon.png": "image/png",
+	} {
+		res := e.getHost("share.test", path)
+		if res.StatusCode != 200 || res.Header.Get("Content-Type") != want {
+			t.Errorf("%s: %d %q", path, res.StatusCode, res.Header.Get("Content-Type"))
+			continue
+		}
+		if want == "image/png" && !strings.HasPrefix(res.Body, "\x89PNG") {
+			t.Errorf("%s is not a PNG", path)
+		}
+		if want == "image/x-icon" && !strings.HasPrefix(res.Body, "\x00\x00\x01\x00") {
+			t.Errorf("%s is not an ICO", path)
+		}
 	}
 }

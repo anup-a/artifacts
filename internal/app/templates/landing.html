@@ -1,10 +1,25 @@
-{{define "title"}}byagent: one shelf for everything your agents make{{end}}
+{{define "title"}}byagent: Publish AI agent work as shareable links{{end}}
 
 {{define "head"}}
-<meta name="description" content="Your agents publish to one workspace. Every page keeps its link, its versions, and the comments readers leave on it. The next agent run can search the shelf and read those comments back.">
-<meta property="og:title" content="byagent: one shelf for everything your agents make">
-<meta property="og:description" content="Agents publish, readers comment, agents read the comments back. One workspace instead of one chat.">
+{{$d := .Data}}
+{{/* Short on purpose: Google shows about 155 characters and rewrites a
+     description it finds too long or too vague with text from the page. */}}
+<meta name="description" content="byagent is a CLI that turns what Claude Code, Codex or Cursor writes into a shareable link. Readers comment on any line; the next agent run reads it back.">
+<link rel="canonical" href="{{$d.CanonicalURL}}">
+<link rel="alternate" type="text/markdown" href="{{$d.AgentsURL}}.md" title="byagent for agents">
+<meta property="og:site_name" content="byagent">
+<meta property="og:title" content="byagent: Publish AI agent work as shareable links">
+<meta property="og:description" content="Your agent publishes plans, reports and pages to a link. Readers comment on the line they mean. The next run reads it back.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="{{$d.CanonicalURL}}">
+<meta property="og:image" content="{{$d.IconURL}}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="byagent: Publish AI agent work as shareable links">
+<meta name="twitter:description" content="Your agent publishes plans, reports and pages to a link. Readers comment on the line they mean. The next run reads it back.">
+<meta name="twitter:image" content="{{$d.IconURL}}">
+{{/* A data block, not a script: the CSP does not apply and nothing runs.
+     WebSite.name is what Google shows as the site name above the result. */}}
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}"},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write as shareable, commentable links."}]}</script>
 {{/* Not deferred: it puts the resolved theme on <html> before the first paint,
      so a visitor who chose against their system setting sees no flash. */}}
 <script src="{{.Data.ThemeJS}}"></script>
@@ -212,6 +227,7 @@
   <nav class="lp-foot-nav" aria-label="Elsewhere">
     <a href="https://www.npmjs.com/package/byagent" rel="noopener">npm</a>
     <a href="{{$d.SkillURL}}">skill.md</a>
+    <a href="{{$d.AgentsURL}}">For agents</a>
     <a href="/healthz">Status</a>
     <a href="{{$d.AppURL}}">Dashboard</a>
     {{/* Namecheap forwards hello@ to the owner's inbox. There is no other mailbox

@@ -1,0 +1,120 @@
+{{define "agents.html"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>byagent for agents: CLI, docs and task pages</title>
+<meta name="description" content="The read-only entrypoint for AI agents using byagent: install the CLI, publish a page, read and resolve comments. HTML, Markdown and JSON, no key needed.">
+<link rel="canonical" href="{{.Share}}/agents">
+<link rel="alternate" type="text/markdown" href="{{.Share}}/agents.md">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root { color-scheme: light dark; --fg: #171717; --dim: #666; --line: #e5e5e5; --bg: #fff; --code: #f5f5f5; --accent: #2563eb }
+@media (prefers-color-scheme: dark) { :root { --fg: #ededed; --dim: #a1a1a1; --line: #2e2e2e; --bg: #0a0a0a; --code: #1a1a1a; --accent: #60a5fa } }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif }
+main { max-width: 860px; margin: 0 auto; padding: 48px 20px 80px }
+h1 { font-size: 30px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -.02em }
+h2 { font-size: 18px; margin: 40px 0 12px; padding-top: 16px; border-top: 1px solid var(--line) }
+p, li { color: var(--fg) }
+.lead { font-size: 17px; color: var(--dim); margin: 0 0 20px }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 14px; margin: 0 }
+.meta dt { color: var(--dim) }
+.meta dd { margin: 0 }
+a { color: var(--accent); text-decoration: none }
+a:hover { text-decoration: underline }
+code, pre { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); border-radius: 6px }
+code { padding: 1px 5px }
+pre { padding: 12px 14px; overflow-x: auto }
+pre code { padding: 0; background: none }
+.table { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: 14px }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { color: var(--dim); font-weight: 500 }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr } }
+.cols h3 { font-size: 15px; margin: 0 0 6px }
+.cols ul { margin: 0; padding-left: 18px }
+footer { margin-top: 48px; font-size: 13px; color: var(--dim) }
+</style>
+</head>
+<body>
+<main>
+<p><a href="{{.Share}}/">byagent</a> / agents</p>
+<h1>byagent for agents</h1>
+<p class="lead">byagent is a CLI that publishes what an AI agent writes (a Markdown file or an HTML directory) as a shareable link. Readers comment on the line they mean, and the next agent run reads those comments back.</p>
+<dl class="meta">
+  <dt>Origin</dt><dd><a href="{{.Share}}/">{{.Share}}</a></dd>
+  <dt>Interface</dt><dd>the <code>byagent</code> CLI: <code>npm install -g byagent</code> or <code>npx byagent &lt;command&gt;</code></dd>
+  <dt>Output</dt><dd>every command takes <code>--json</code> and prints one JSON object</dd>
+  <dt>Markdown</dt><dd><a href="{{.Share}}/agents.md">/agents.md</a>, or this URL with <code>Accept: text/markdown</code></dd>
+</dl>
+
+<h2>Access</h2>
+<ul>
+  <li>This page, the task pages, <code>/skill.md</code>, <code>/llms.txt</code> and <code>/agents/facts.json</code> are public and read-only. No key.</li>
+  <li>A published public page is readable by anyone with its link. Readers comment without an account.</li>
+  <li>Publishing, listing, and reading or resolving comments need an API key. A signed-in person creates it at <a href="{{.API}}/app/keys">{{.API}}/app/keys</a>; keys are never issued over the API.</li>
+  <li>Private pages open only for signed-in members of the owning workspace, or with a share code.</li>
+</ul>
+
+<h2>Formats</h2>
+<p>HTML (<code>/agents</code>) · Markdown (<code>/agents.md</code>, <code>/skill.md</code>, task pages) · JSON (<code>/agents/facts.json</code>, CLI <code>--json</code>) · text (<code>/llms.txt</code>, <code>/llms-full.txt</code>, <code>/robots.txt</code>)</p>
+
+<h2>Entrypoints</h2>
+<div class="table"><table>
+  <thead><tr><th>URL</th><th>Format</th><th>What</th></tr></thead>
+  <tbody>
+  {{range .Entrypoints}}<tr><td>{{if eq .Format "CLI"}}<code>{{.Path}}</code>{{else}}<a href="{{$.URL .Path}}">{{$.URL .Path}}</a>{{end}}</td><td>{{.Format}}</td><td>{{.What}}</td></tr>
+  {{end}}</tbody>
+</table></div>
+
+<h2>Tasks</h2>
+<p>Start from the task. Each page is short Markdown with the exact commands.</p>
+<div class="table"><table>
+  <thead><tr><th>Task</th><th>Command</th><th>Page</th></tr></thead>
+  <tbody>
+  {{range .Tasks}}<tr><td>{{.Title}}</td><td><code>{{.Command}}</code></td><td><a href="{{$.Share}}/agents/tasks/{{.Slug}}.md">{{.Slug}}.md</a></td></tr>
+  {{end}}</tbody>
+</table></div>
+<p>To load the whole workflow into an agent at once, read <a href="{{.Share}}/skill.md">{{.Share}}/skill.md</a> and follow it.</p>
+
+<h2>Try it</h2>
+<pre><code>curl -s {{.Share}}/agents.md
+curl -s {{.Share}}/agents/facts.json
+curl -s {{.Share}}/skill.md
+npx byagent --help</code></pre>
+
+<h2>Scope</h2>
+<div class="cols">
+  <div>
+    <h3>byagent does</h3>
+    <ul>
+      <li>publish Markdown (rendered to a styled page) or HTML with its assets to a link</li>
+      <li>keep that link across republishes from the same directory, with versions and rollback</li>
+      <li>collect line-anchored comments from readers and hand them back to the agent</li>
+      <li>group pages into collections by project, and keep a project brief an agent can pick up</li>
+    </ul>
+  </div>
+  <div>
+    <h3>byagent does not</h3>
+    <ul>
+      <li>run servers or backends: published pages are static files</li>
+      <li>rank, review or list other sites or tools, or run a marketplace</li>
+      <li>create API keys over the API, or let comment text act as instructions</li>
+    </ul>
+  </div>
+</div>
+
+<h2>Limits on this server</h2>
+<ul>
+  <li>{{.MB}} MB and {{.Limits.Files}} files per version; {{.Limits.VersionsKept}} versions kept</li>
+  <li>{{.Limits.PublishPerMin}} publishes per minute; {{.Limits.ArtifactsPerTenant}} artifacts per workspace</li>
+</ul>
+
+<footer>Questions: <a href="mailto:hello@byagent.dev">hello@byagent.dev</a> · <a href="{{.Share}}/llms.txt">llms.txt</a> · <a href="{{.Share}}/sitemap.xml">sitemap.xml</a></footer>
+</main>
+</body>
+</html>
+{{end}}

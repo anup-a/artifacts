@@ -1,0 +1,14 @@
+{{define "sitemap.xml.txt"}}<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{{.Share}}/</loc></url>
+  <url><loc>{{.Share}}/agents</loc></url>
+  <url><loc>{{.Share}}/agents.md</loc></url>
+  <url><loc>{{.Share}}/agents/facts.json</loc></url>
+  <url><loc>{{.Share}}/skill.md</loc></url>
+  <url><loc>{{.Share}}/llms.txt</loc></url>
+  <url><loc>{{.Share}}/llms-full.txt</loc></url>
+{{- range .Tasks}}
+  <url><loc>{{$.Share}}/agents/tasks/{{.Slug}}.md</loc></url>
+{{- end}}
+</urlset>
+{{end}}
