@@ -246,6 +246,37 @@ test("comments, reply and resolve walk a viewer thread end to end", async () => 
   assert.equal(json(["comments", pub.id, "--all"]).threads.length, 1);
 });
 
+test("comments --wait returns when a reader replies in an existing thread", async () => {
+  const dir = siteDir("<p>Ship the beta on Friday.</p>");
+  const pub = json(["publish", dir]);
+  const post = (path, body) => fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const thread = await (await post(`/c/${pub.id}/comments`, {
+    author_name: "Reader", body: "Friday is tight", anchor: { kind: "text", quote: "on Friday" }, version: 1,
+  })).json();
+
+  const waiter = spawn(process.execPath, [BIN, "comments", pub.id, "--wait", "--interval", "5", "--timeout", "60", "--json"], {
+    env: { ...process.env, ARTIFACTS_TOKEN: TOKEN, ARTIFACTS_API: BASE },
+  });
+  let out = "";
+  waiter.stdout.on("data", (d) => { out += d; });
+  const exited = new Promise((resolve) => waiter.on("close", resolve));
+
+  await new Promise((r) => setTimeout(r, 1500));
+  json(["reply", pub.id, thread.id, "moving it to Monday"]);
+  const reply = await post(`/c/${pub.id}/comments/${thread.id}/reply`, { author_name: "Reader", body: "Monday works" });
+  assert.equal(reply.status, 201);
+
+  assert.equal(await exited, 0);
+  const res = JSON.parse(out);
+  assert.equal(res.timed_out, false);
+  assert.equal(res.threads.length, 1);
+  assert.equal(res.threads[0].comments.at(-1).body, "Monday works");
+});
+
 test("publish --no-comments removes the runtime and closes the viewer API; --comments restores them", async () => {
   const dir = siteDir("<p>Quiet page.</p>");
   const off = json(["publish", dir, "--no-comments"]);

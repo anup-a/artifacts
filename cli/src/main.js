@@ -49,6 +49,7 @@ Usage:
   byagent versions <id>
   byagent rollback <id> <version>
   byagent comments <id> [--open|--all] [--since <rfc3339>]
+  byagent comments <id> --wait [--timeout <seconds>] [--interval <seconds>] [--since <rfc3339>]
   byagent reply <id> <thread> "<text>"
   byagent resolve <id> <thread>
   byagent delete <id>
@@ -68,6 +69,11 @@ include end_user. portal-link is for integrator workspaces; links last 7 days.
 comment API for that artifact; --comments turns it back on. Without either,
 a republish keeps the current setting (new artifacts start with comments on).
 Artifact JSON carries comments_enabled.
+comments --wait blocks until a reader leaves a new comment (a new thread or a
+reply in an old one), then prints the threads holding it and exits; owner
+replies never wake it. It polls every --interval seconds (default 20) and gives
+up after --timeout seconds (default 1800), printing timed_out: true. Run it in
+the background to have the agent pick up comments while it works.
 share issues a six-digit code for a private artifact and prints it with a
 one-click link; running it again rotates the code, which stops every link that
 carried the old one. share --off withdraws it. Anyone holding the code can open
