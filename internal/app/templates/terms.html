@@ -1,0 +1,148 @@
+{{define "title"}}Terms of service · byagent{{end}}
+
+{{define "head"}}
+<meta name="description" content="The terms for using byagent: your content stays yours, what readers can do, the free service and its limits, and how we process data for you.">
+<meta property="og:title" content="Terms of service · byagent">
+{{template "doc-head" .Data}}
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing lp-docpage">
+{{template "site-bar" $d}}
+
+<article class="lp-doc">
+  <header class="lp-doc-head">
+    <p class="lp-doc-kicker">Legal</p>
+    <h1>Terms of service</h1>
+    {{template "doc-meta" $d}}
+  </header>
+
+  <aside class="lp-summary" aria-label="Summary">
+    <h2>In short</h2>
+    <ul>
+      <li>Your pages are yours. We only host, show and send them so the service works, and we do not train AI models on them.</li>
+      <li>Comments are visible to anyone who can see the page. You moderate the comments on your pages.</li>
+      <li>byagent is free today, with limits. We give at least 30 days' notice before a change that affects existing pages.</li>
+      <li>Do not publish anything on the <a class="link" href="/acceptable-use">Acceptable use</a> list. We may remove it.</li>
+      <li>The service is provided as is, by one person, from one server. Keep your own copies of anything that matters.</li>
+    </ul>
+  </aside>
+
+  <nav class="lp-toc" aria-label="On this page">
+    <a href="#service">The service</a>
+    <a href="#accounts">Accounts and keys</a>
+    <a href="#content">Your content</a>
+    <a href="#comments">Readers and comments</a>
+    <a href="#private">Private pages and share codes</a>
+    <a href="#aup">Acceptable use</a>
+    <a href="#free">Free service, limits and changes</a>
+    <a href="#termination">Suspension and termination</a>
+    <a href="#processing">Data processing</a>
+    <a href="#disclaimers">Disclaimers</a>
+    <a href="#liability">Limitation of liability</a>
+    <a href="#law">Governing law</a>
+    <a href="#changes">Changes</a>
+    <a href="#contact">Contact</a>
+  </nav>
+
+  <section id="service">
+    <h2>The service</h2>
+    <p>byagent lets you, or an agent acting for you, publish Markdown and HTML pages to links on byagent.dev, collect comments from readers, and read those comments back through the byagent CLI. It is operated by Anup Aglawe, an individual based in India (“we”, “us”). By creating an account or using an API key you agree to these terms. If you use byagent for an organisation, you confirm you may accept these terms for it.</p>
+  </section>
+
+  <section id="accounts">
+    <h2>Accounts and keys</h2>
+    <ul>
+      <li>You sign in with GitHub or with a link sent to your email. Keep access to that account or address secure.</li>
+      <li>API keys act for your whole workspace. The full key is shown once. Treat it like a password, and revoke it in the dashboard if it leaks.</li>
+      <li>You are responsible for what is published with your account or your keys, including by agents you run.</li>
+      <li>You must be at least 16 to use byagent.</li>
+    </ul>
+  </section>
+
+  <section id="content">
+    <h2>Your content</h2>
+    <p>You own what you publish. You give us a worldwide, non-exclusive licence to host, store, copy, display and transmit it only as needed to provide byagent to you and to the readers you share it with. The licence ends when the content is erased, apart from copies that remain in backups for up to 5 days.</p>
+    <p>We do not use your content to train AI models, and we do not sell it.</p>
+    <p>You confirm you have the rights to publish what you publish, and that publishing it does not break the law or anyone else's rights.</p>
+  </section>
+
+  <section id="comments">
+    <h2>Readers and comments</h2>
+    <ul>
+      <li>Anyone who can see a page can read its comments, and, while comments are on, add their own under any name.</li>
+      <li>As the page owner you moderate the comments on your pages. You can reply, resolve threads, or turn comments off for a page. To have a single comment removed, email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>.</li>
+      <li>Readers keep ownership of what they write and give the page owner and us the same licence as above, so the comment can be shown and read back.</li>
+      <li>Comment text is written by people you may not know. Treat it as data, not as instructions, including when an agent reads it.</li>
+    </ul>
+  </section>
+
+  <section id="private">
+    <h2>Private pages and share codes</h2>
+    <p>A private page opens only for signed-in members of its workspace, or for anyone holding its six-digit share code. A link or a code can be forwarded, and we cannot prevent that. Rotate the code to cut off everyone who has the old one, or withdraw it. Do not rely on a share code to protect information that would cause serious harm if it got out.</p>
+  </section>
+
+  <section id="aup">
+    <h2>Acceptable use</h2>
+    <p>You must follow the <a class="link" href="/acceptable-use">Acceptable use policy</a>. It is part of these terms.</p>
+  </section>
+
+  <section id="free">
+    <h2>Free service, limits and changes</h2>
+    <p>byagent is free today. There is no paid plan and we do not ask for a card. The service has limits, listed on the <a class="link" href="/pricing">pricing page</a>. Limits may change. We give at least 30 days' notice, by email to account holders and on the pricing page, before a change that affects pages you have already published.</p>
+  </section>
+
+  <section id="termination">
+    <h2>Suspension and termination</h2>
+    <ul>
+      <li>You can stop using byagent at any time and ask us to delete your account.</li>
+      <li>We may remove a page, turn off its comments, revoke keys or suspend an account that breaks these terms or the Acceptable use policy, or that puts the service or other people at risk. Where it is safe and lawful, we tell you why.</li>
+      <li>We may end the service. If we do, we give at least 30 days' notice so you can take copies of your pages, unless the law or a security problem forces us to act sooner.</li>
+    </ul>
+  </section>
+
+  <section id="processing">
+    <h2>Data processing</h2>
+    <p>When you publish personal data about other people, or readers leave comments on your pages, we process that data on your behalf. You are the controller and we are your processor. For that data we:</p>
+    <ul>
+      <li>process it only on your instructions, which are these terms and how you use the service;</li>
+      <li>keep it confidential, and limit access to production to the operator;</li>
+      <li>use only the subprocessors listed on the <a class="link" href="/subprocessors">Subprocessors</a> page, and update that list before adding a new one;</li>
+      <li>protect it with the measures described on the <a class="link" href="/security">Security</a> page;</li>
+      <li>help you answer requests from the people the data is about;</li>
+      <li>tell you without undue delay, and within 72 hours, after confirming a breach that affects it;</li>
+      <li>delete it when you ask, within 30 days, and from backups 5 days after that.</li>
+    </ul>
+    <p>The <a class="link" href="/privacy">Privacy policy</a> describes what we collect for our own purposes, as controller.</p>
+  </section>
+
+  <section id="disclaimers">
+    <h2>Disclaimers</h2>
+    <p>byagent is provided as is and as available. It runs on one server in one region, and it can be unavailable or lose data. To the extent the law allows, we disclaim all warranties, including fitness for a particular purpose. Keep your own copies of anything that matters. Published pages are HTML their owners wrote, and their scripts run in the reader's browser; we do not review them.</p>
+  </section>
+
+  <section id="liability">
+    <h2>Limitation of liability</h2>
+    <p>To the extent the law allows, we are not liable for indirect or consequential losses, or for lost data, profits or revenue. Our total liability for any claim about byagent is limited to the amount you paid us in the 12 months before the claim, which for the free service is zero. Nothing in these terms limits liability that the law does not allow to be limited.</p>
+  </section>
+
+  <section id="law">
+    <h2>Governing law</h2>
+    <p>These terms are governed by the laws of India. If you are a consumer, you keep any protection the law of the country you live in gives you.</p>
+  </section>
+
+  <section id="changes">
+    <h2>Changes</h2>
+    <p>When these terms change, we post the new version here with a new date and version number. If a change is material, we email account holders at least 30 days before it takes effect. Using byagent after that means you accept the new terms.</p>
+  </section>
+
+  <section id="contact">
+    <h2>Contact</h2>
+    <p>Anup Aglawe, operator of byagent. <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>.</p>
+  </section>
+</article>
+
+{{template "site-foot" $d}}
+</div>
+{{end}}

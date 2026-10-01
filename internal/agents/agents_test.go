@@ -24,7 +24,7 @@ func server(t *testing.T) func(path, accept string) reply {
 	(&Handler{Cfg: config.Config{
 		ShareOrigin: "https://share.test",
 		APIOrigin:   "https://api.test",
-		Limits:      config.Limits{VersionBytes: 26214400, Files: 500, VersionsKept: 20, PublishPerMin: 10, ArtifactsPerTenant: 200, CommentBytes: 2048},
+		Limits:      config.Limits{VersionBytes: 26214400, Files: 500, VersionsKept: 20, PublishPerMin: 10, ArtifactsPerTenant: 200, CommentBytes: 2048, CommentsPerMin: 20},
 	}}).Register(mux)
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
@@ -48,7 +48,7 @@ func server(t *testing.T) func(path, accept string) reply {
 // publicPaths is every page this package serves, the ones the sitemap and
 // llms.txt point crawlers at.
 func publicPaths() []string {
-	out := []string{"/agents", "/agents.md", "/agents/facts.json", "/llms.txt", "/llms-full.txt", "/robots.txt", "/sitemap.xml"}
+	out := []string{"/agents", "/agents.md", "/agents/facts.json", "/pricing.md", "/llms.txt", "/llms-full.txt", "/robots.txt", "/sitemap.xml"}
 	for _, t := range tasks {
 		out = append(out, "/agents/tasks/"+t.Slug+".md")
 	}
@@ -61,7 +61,8 @@ func TestRoutesServeTheRightTypes(t *testing.T) {
 		"/agents":            {"text/html", "byagent for agents", "https://share.test/agents/tasks/publish.md", "https://api.test/app/keys", "npm install -g byagent", "curl -s https://share.test/agents.md"},
 		"/agents.md":         {"text/markdown", "# byagent for agents", "## Entrypoints", "## Tasks", "## Scope", "does not", "https://share.test/skill.md"},
 		"/agents/facts.json": {"application/json", `"name": "byagent"`},
-		"/llms.txt":          {"text/plain", "# byagent\n", "\n> ", "## Start here", "[Skill](https://share.test/skill.md)", "(https://share.test/agents/tasks/brief.md)"},
+		"/llms.txt":          {"text/plain", "# byagent\n", "\n> ", "## Start here", "[Skill](https://share.test/skill.md)", "(https://share.test/agents/tasks/brief.md)", "## Legal", "[Privacy](https://share.test/privacy)", "[Terms](https://share.test/terms)", "[Security](https://share.test/security)", "[Subprocessors](https://share.test/subprocessors)", "[Acceptable use](https://share.test/acceptable-use)", "[Pricing](https://share.test/pricing.md)"},
+		"/pricing.md":        {"text/markdown", "# byagent pricing", "no paid plan", "- 25 MB per published version", "- 500 files per version", "- 20 versions kept per page", "- 200 pages per workspace", "- 10 publishes a minute per key", "Comments up to 2 KB each", "30 days' notice", "hello@byagent.dev", "https://share.test/pricing"},
 		"/llms-full.txt":     {"text/plain", "# byagent for agents", "# Publish a page", "# Start from a project brief", "https://share.test/skill.md"},
 		"/robots.txt":        {"text/plain", "User-agent: *", "Allow: /", "Disallow: /api/", "Sitemap: https://share.test/sitemap.xml"},
 		"/sitemap.xml":       {"application/xml", "<loc>https://share.test/</loc>", "<loc>https://share.test/agents</loc>"},
@@ -175,7 +176,9 @@ func TestSitemapListsEveryPublicPage(t *testing.T) {
 	for _, u := range set.URLs {
 		listed[u.Loc] = true
 	}
-	for _, p := range append(publicPaths(), "/skill.md", "/") {
+	// The site pages internal/app serves on the share origin are listed too.
+	site := []string{"/", "/skill.md", "/pricing", "/privacy", "/terms", "/security", "/subprocessors", "/acceptable-use"}
+	for _, p := range append(publicPaths(), site...) {
 		if p == "/robots.txt" || p == "/sitemap.xml" {
 			continue
 		}

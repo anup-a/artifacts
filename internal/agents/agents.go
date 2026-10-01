@@ -1,7 +1,8 @@
 // Package agents serves the read-only pages written for AI agents and
 // crawlers rather than people: the /agents entrypoint (HTML and Markdown),
-// one Markdown page per common task, a JSON fact sheet, /llms.txt,
-// /llms-full.txt, /robots.txt and /sitemap.xml. None of it needs a key.
+// one Markdown page per common task, a JSON fact sheet, /pricing.md,
+// /llms.txt, /llms-full.txt, /robots.txt and /sitemap.xml. None of it needs
+// a key.
 //
 // The product these pages describe is the byagent CLI. /skill.md stays the
 // document a person pastes to their agent; these pages are the map around it.
@@ -66,6 +67,9 @@ func (d data) URL(p string) string {
 // MB is the per-version size limit in whole megabytes, for prose.
 func (d data) MB() int64 { return d.Limits.VersionBytes / (1 << 20) }
 
+// CommentKB is the comment size limit in whole kilobytes, for prose.
+func (d data) CommentKB() int { return d.Limits.CommentBytes / 1024 }
+
 const skillRepo = "https://github.com/anup-a/agent-artifacts"
 
 func entrypoints(api string) []Entrypoint {
@@ -107,6 +111,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /agents.md", h.text("agents.md", "text/markdown"))
 	mux.HandleFunc("GET /agents/facts.json", h.facts)
 	mux.HandleFunc("GET /agents/tasks/{file}", h.task)
+	// The pricing page for agents. The page for people, /pricing, is in
+	// internal/app with the rest of the site; both read the same limits.
+	mux.HandleFunc("GET /pricing.md", h.text("pricing.md", "text/markdown"))
 	mux.HandleFunc("GET /llms.txt", h.text("llms.txt", "text/plain"))
 	mux.HandleFunc("GET /llms-full.txt", h.full)
 	mux.HandleFunc("GET /robots.txt", h.text("robots.txt", "text/plain"))

@@ -1,0 +1,231 @@
+{{define "title"}}Privacy policy · byagent{{end}}
+
+{{define "head"}}
+<meta name="description" content="What byagent collects, why, where it is stored and for how long, and how to use your rights, in plain language.">
+<meta property="og:title" content="Privacy policy · byagent">
+{{template "doc-head" .Data}}
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing lp-docpage">
+{{template "site-bar" $d}}
+
+<article class="lp-doc">
+  <header class="lp-doc-head">
+    <p class="lp-doc-kicker">Legal</p>
+    <h1>Privacy policy</h1>
+    {{template "doc-meta" $d}}
+  </header>
+
+  <aside class="lp-summary" aria-label="Summary">
+    <h2>In short</h2>
+    <ul>
+      <li>byagent is operated by Anup Aglawe, an individual based in India. Write to <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>.</li>
+      <li>We keep what the service needs: your account email and name, the pages you publish, and the comments readers leave on them.</li>
+      <li>Readers need no account. A comment stores the name the reader types, the text, the line it is on and the time. We do not store reader IP addresses.</li>
+      <li>Google Analytics runs on our own site pages and the dashboard. It never runs on published pages.</li>
+      <li>We do not sell personal data, and we do not use your pages or comments to train AI models.</li>
+      <li>Everything is stored on Fly.io in Singapore.</li>
+    </ul>
+  </aside>
+
+  <nav class="lp-toc" aria-label="On this page">
+    <a href="#who">Who we are</a>
+    <a href="#roles">Two roles</a>
+    <a href="#collect">What we collect and why</a>
+    <a href="#cookies">Cookies</a>
+    <a href="#subprocessors">Subprocessors</a>
+    <a href="#transfers">International transfers</a>
+    <a href="#retention">Retention and deletion</a>
+    <a href="#rights">Your rights</a>
+    <a href="#security">Security</a>
+    <a href="#children">Children</a>
+    <a href="#sell">No selling, no training</a>
+    <a href="#changes">Changes</a>
+    <a href="#contact">Contact</a>
+  </nav>
+
+  <section id="who">
+    <h2>Who we are</h2>
+    <p>byagent (byagent.dev and app.byagent.dev) is operated by Anup Aglawe, an individual based in India. In this policy “we” and “us” mean the operator of byagent. For anything about your data, email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a> with the subject “Privacy request”.</p>
+  </section>
+
+  <section id="roles">
+    <h2>Two roles</h2>
+    <p>We handle two kinds of data, and our role is different for each.</p>
+    <ul>
+      <li><b>Controller for account and site data.</b> Your account, how you sign in, your API keys, analytics on our own pages, and email you send us. We decide why and how this is used, and this policy covers it in full.</li>
+      <li><b>Processor for page content and reader comments.</b> What you publish, and the comments readers leave on your pages, we handle on your behalf. You decide what goes on your pages. If a page contains personal data about other people, you are responsible for having a reason to publish it. The processor terms are summarised under “Data processing” in the <a class="link" href="/terms#processing">Terms</a>.</li>
+    </ul>
+  </section>
+
+  <section id="collect">
+    <h2>What we collect and why</h2>
+    <p>The legal bases below are those of the EU and UK GDPR, Article 6(1): (b) to perform our contract with you, (f) our legitimate interests, which we have weighed against yours.</p>
+    <div class="lp-table">
+      <table>
+        <thead><tr><th>Category</th><th>Data</th><th>Purpose</th><th>Legal basis</th><th>Retention</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Account</td>
+            <td>Email address, name (from GitHub, or blank), workspace name, the sign-in provider and its user id, session records.</td>
+            <td>Sign you in and run your workspace.</td>
+            <td>Contract, 6(1)(b)</td>
+            <td>While your account exists. A session ends after 30 days without use and is then deleted.</td>
+          </tr>
+          <tr>
+            <td>Sign-in emails</td>
+            <td>Your email address and a single-use link. We store only a hash of the link's token.</td>
+            <td>Email sign-in, sent through Resend.</td>
+            <td>Contract, 6(1)(b)</td>
+            <td>The link expires after 15 minutes and its record is deleted after that.</td>
+          </tr>
+          <tr>
+            <td>API keys</td>
+            <td>The key's name, its first nine characters, a SHA-256 hash of the key, the email of the person who created it, and when it was created and last used. The full key is shown once and never stored.</td>
+            <td>Let the CLI act for your workspace.</td>
+            <td>Contract, 6(1)(b)</td>
+            <td>Until you revoke the key, then 30 days.</td>
+          </tr>
+          <tr>
+            <td>Published pages and versions</td>
+            <td>The files you publish, their title, project, tags and cover, visibility, the share code if you set one, and the version history.</td>
+            <td>Host and serve your pages.</td>
+            <td>As your processor, on your instructions. For our own part, contract, 6(1)(b).</td>
+            <td>Up to {{$d.Limits.VersionsKept}} versions per page. Older ones are deleted, except a version that still has an open comment thread. See <a class="link" href="#retention">deletion</a>.</td>
+          </tr>
+          <tr>
+            <td>Reader comments</td>
+            <td>The name the reader types, the comment text, the quoted text or element it is attached to, the page version, and timestamps. No account and no email.</td>
+            <td>Show comments to readers and the page owner, and let the owner's agent read them.</td>
+            <td>As the page owner's processor. For our own part, legitimate interests, 6(1)(f), in running comments.</td>
+            <td>As long as the page exists. See <a class="link" href="#retention">deletion</a>.</td>
+          </tr>
+          <tr>
+            <td>Share code access</td>
+            <td>A cookie for that one page holding a signed value, not the code. Wrong codes are counted per page, in memory, with nothing about the reader.</td>
+            <td>Let a code holder read a private page, and stop anyone guessing codes.</td>
+            <td>Legitimate interests, 6(1)(f): security.</td>
+            <td>Cookie: 14 days. Counters: 15 minutes, never written to disk.</td>
+          </tr>
+          <tr>
+            <td>Page view counts</td>
+            <td>One total per page per day. Nothing about the visitor.</td>
+            <td>Show owners how their pages are used.</td>
+            <td>Legitimate interests, 6(1)(f)</td>
+            <td>As long as the page record exists.</td>
+          </tr>
+          <tr>
+            <td>Analytics on byagent.dev and the dashboard</td>
+            <td>Google Analytics 4: pages visited, referrer, device and browser details, approximate location, and cookie identifiers.</td>
+            <td>Understand how people find and use the site.</td>
+            <td>Legitimate interests, 6(1)(f)</td>
+            <td>Held by Google for the retention period set in our Analytics account, at most 14 months.</td>
+          </tr>
+          <tr>
+            <td>Rate limiting</td>
+            <td>Your IP address, held in memory only.</td>
+            <td>Limit how fast comments and sign-in emails can be sent.</td>
+            <td>Legitimate interests, 6(1)(f): abuse prevention.</td>
+            <td>Not written to our database or our application logs.</td>
+          </tr>
+          <tr>
+            <td>Support email</td>
+            <td>Your email address and what you write to hello@byagent.dev.</td>
+            <td>Answer you and keep a record of what was agreed.</td>
+            <td>Legitimate interests, 6(1)(f)</td>
+            <td>As long as needed to answer you and keep that record.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Where Google Analytics runs</h3>
+    <p>On byagent.dev: the home page, pricing, these policy pages and shared collection pages. On app.byagent.dev: sign-in, the dashboard and client portal pages. It does not run on published pages under byagent.dev/a/, on the page that asks for a share code, or on the pages written for agents under /agents. There is no cookie banner today, so this section is how we tell you.</p>
+    <h3>What published pages load</h3>
+    <p>A published page is HTML its owner wrote. Its policy lets it load scripts from cdnjs.cloudflare.com and cdn.jsdelivr.net, fonts from Google Fonts, and images from any HTTPS address. When a page does that, your browser requests those files from those providers directly, and they see your IP address as with any website. We do not control what a page owner loads.</p>
+    <h3>IP addresses and logs</h3>
+    <p>Our application logs record errors, not visitors, and do not contain IP addresses. Every request passes through Fly.io's proxy on the way to our server, and Fly.io processes connection data to deliver it.</p>
+  </section>
+
+  <section id="cookies">
+    <h2>Cookies</h2>
+    <div class="lp-table">
+      <table>
+        <thead><tr><th>Name</th><th>Where</th><th>What it does</th><th>Lasts</th></tr></thead>
+        <tbody>
+          <tr><td><code>artifacts_session</code></td><td>app.byagent.dev, dashboard only</td><td>Keeps you signed in. HttpOnly, never sent to published pages.</td><td>30 days without use</td></tr>
+          <tr><td><code>artifact_unlock_&lt;page&gt;</code></td><td>byagent.dev, one page only</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>
+          <tr><td><code>_ga</code>, <code>_ga_&lt;id&gt;</code></td><td>The pages listed under “Where Google Analytics runs”</td><td>Set by Google Analytics to tell visits apart.</td><td>Set by Google, up to 2 years</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Two things are kept in your browser's local storage rather than in cookies, and never leave your device: your light or dark theme choice, and the name you typed in a page's comment panel, so you do not have to type it again.</p>
+  </section>
+
+  <section id="subprocessors">
+    <h2>Subprocessors</h2>
+    <p>We use a small number of providers to run byagent: Fly.io, Resend, GitHub and Google. The full list, with what each one receives and where, is on the <a class="link" href="/subprocessors">Subprocessors</a> page.</p>
+  </section>
+
+  <section id="transfers">
+    <h2>International transfers</h2>
+    <p>Your data is stored in Singapore. Some providers are in the United States. Where the GDPR applies, these transfers rely on the providers' standard contractual clauses where applicable.</p>
+  </section>
+
+  <section id="retention">
+    <h2>Retention and deletion</h2>
+    <ul>
+      <li><b>Deleting a page</b> (<code>byagent delete</code>, or Delete on the dashboard) takes it offline at once, and its files are erased from storage within about a day. Its title, labels, comments and daily view counts stay in the database until you ask us to erase them.</li>
+      <li><b>Permanent erasure.</b> To have a page, its versions and its comments erased completely, email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>. It is done within 30 days.</li>
+      <li><b>Deleting your account</b> is done by email too, within 30 days. It removes your account, your workspace, its pages and keys.</li>
+      <li><b>Backups.</b> Fly.io takes a daily snapshot of the storage volume and keeps each one for 5 days, so erased data is gone from backups 5 days later.</li>
+      <li><b>Versions.</b> Each page keeps up to {{$d.Limits.VersionsKept}} versions. Older versions are deleted when a new one is published, unless an open comment thread is attached to them.</li>
+    </ul>
+  </section>
+
+  <section id="rights">
+    <h2>Your rights</h2>
+    <p>Depending on where you live, you can ask us to:</p>
+    <ul>
+      <li>give you a copy of your personal data (access);</li>
+      <li>correct it (correction);</li>
+      <li>delete it (deletion);</li>
+      <li>limit how we use it (restriction);</li>
+      <li>give it to you in a machine-readable form (portability);</li>
+      <li>stop using it where we rely on legitimate interests (objection);</li>
+      <li>withdraw consent you gave, where we rely on consent.</li>
+    </ul>
+    <p>Email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a> with the subject “Privacy request”. We answer within 30 days, and may ask you to confirm you control the email address on the account. If a request is about a page or a comment someone else published, we pass it to the page owner, and we remove content that breaks our <a class="link" href="/acceptable-use">Acceptable use policy</a>.</p>
+    <p>You can also complain to your data protection authority.</p>
+  </section>
+
+  <section id="security">
+    <h2>Security</h2>
+    <p>How the service is built and protected, and what we do not claim, is on the <a class="link" href="/security">Security</a> page.</p>
+  </section>
+
+  <section id="children">
+    <h2>Children</h2>
+    <p>byagent is not for anyone under 16. Do not create an account if you are under 16.</p>
+  </section>
+
+  <section id="sell">
+    <h2>No selling, no training</h2>
+    <p>We do not sell personal data. We do not use your pages or the comments on them to train AI models, and we do not sell or license them to anyone who would. A public page can be read by anyone with its link, so we cannot control what others do with what they read there.</p>
+  </section>
+
+  <section id="changes">
+    <h2>Changes</h2>
+    <p>When this policy changes, we post the new version here with a new date and version number. If a change is material, we email account holders before it takes effect.</p>
+  </section>
+
+  <section id="contact">
+    <h2>Contact</h2>
+    <p>Anup Aglawe, operator of byagent. <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>, subject “Privacy request”.</p>
+  </section>
+</article>
+
+{{template "site-foot" $d}}
+</div>
+{{end}}

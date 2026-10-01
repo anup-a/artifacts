@@ -1,0 +1,125 @@
+{{define "title"}}Security · byagent{{end}}
+
+{{define "head"}}
+<meta name="description" content="How byagent is hosted and protected: where data lives, encryption, origin isolation, share codes, keys, backups, incident response, and what we do not claim.">
+<meta property="og:title" content="Security · byagent">
+{{template "doc-head" .Data}}
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing lp-docpage">
+{{template "site-bar" $d}}
+
+<article class="lp-doc">
+  <header class="lp-doc-head">
+    <p class="lp-doc-kicker">Trust</p>
+    <h1>Security</h1>
+    {{template "doc-meta" $d}}
+  </header>
+
+  <aside class="lp-summary" aria-label="Summary">
+    <h2>In short</h2>
+    <ul>
+      <li>One Fly.io machine in Singapore. The database and published files sit on a volume encrypted at rest. Every connection uses TLS.</li>
+      <li>Published pages and the dashboard live on different origins, so a page's scripts cannot reach your signed-in session.</li>
+      <li>API keys, session tokens and sign-in links are stored only as hashes.</li>
+      <li>Only the operator has access to production.</li>
+      <li>No SOC 2 or ISO certification. Published pages are real HTML, and their scripts run in the reader's browser.</li>
+      <li>Found a problem? Email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a> with the subject “Security report”.</li>
+    </ul>
+  </aside>
+
+  <nav class="lp-toc" aria-label="On this page">
+    <a href="#hosting">Hosting and data location</a>
+    <a href="#encryption">Encryption</a>
+    <a href="#origins">Origins and isolation</a>
+    <a href="#access">Access to published pages</a>
+    <a href="#accounts">Accounts and keys</a>
+    <a href="#production">Who has access to production</a>
+    <a href="#backups">Backups</a>
+    <a href="#incidents">Incident response</a>
+    <a href="#report">Reporting a vulnerability</a>
+    <a href="#not">What we do not claim</a>
+  </nav>
+
+  <section id="hosting">
+    <h2>Hosting and data location</h2>
+    <p>byagent runs on one machine at Fly.io, in its Singapore region. The database (SQLite) and the published files are stored on the same Fly.io volume, attached to that machine. Nothing is stored in another region or with another storage provider.</p>
+  </section>
+
+  <section id="encryption">
+    <h2>Encryption</h2>
+    <ul>
+      <li><b>In transit.</b> Every connection to byagent.dev and app.byagent.dev uses TLS. Plain HTTP is redirected to HTTPS.</li>
+      <li><b>At rest.</b> The Fly.io volume that holds the database and the files is encrypted at rest.</li>
+      <li><b>Secrets.</b> API keys, session tokens and email sign-in tokens are stored as SHA-256 hashes, never in plain text.</li>
+    </ul>
+  </section>
+
+  <section id="origins">
+    <h2>Origins and isolation</h2>
+    <ul>
+      <li><b>Two origins.</b> Published pages are served at byagent.dev/a/&lt;id&gt;/. The dashboard and the API are at app.byagent.dev. Published pages never share an origin with dashboard sessions, and the session cookie is scoped to the dashboard path on app.byagent.dev, HttpOnly and Secure.</li>
+      <li><b>Dashboard.</b> A strict Content Security Policy allows no inline script and no framing. Every form carries a CSRF token.</li>
+      <li><b>Published pages.</b> Each page is served with a Content Security Policy: scripts only from byagent.dev, cdnjs.cloudflare.com and cdn.jsdelivr.net; styles and fonts from byagent.dev and Google Fonts; network requests only back to byagent.dev; and framing only by byagent.dev and the dashboard. Images may load from any HTTPS address.</li>
+      <li><b>Private pages.</b> A private page opened by a workspace member is served from app.byagent.dev inside a CSP sandbox. It runs in an opaque origin, so its scripts cannot read the dashboard or another page.</li>
+      <li><b>Public pages share one origin.</b> Every public page, and every private page opened with a share code, is served from byagent.dev. A script on one of those pages runs in the same origin as the others. See <a class="link" href="#not">What we do not claim</a>.</li>
+    </ul>
+  </section>
+
+  <section id="access">
+    <h2>Access to published pages</h2>
+    <ul>
+      <li><b>Public.</b> Anyone with the link can read the page, and comment while comments are on.</li>
+      <li><b>Private.</b> Only signed-in members of the owning workspace can open it. Anyone else sees the same “no access” page whether it exists or not, so an address cannot be used to test what exists.</li>
+      <li><b>Share codes.</b> A private page can carry a six-digit code drawn from a cryptographic random source. Wrong codes are counted for the page, across every visitor: after 10 wrong codes, every further attempt is refused until 15 minutes pass without a wrong one. A correct code clears the count. Codes are compared in constant time. These counters live in memory, so a restart of the server resets them.</li>
+      <li><b>After unlocking.</b> The browser gets a cookie for that one page, holding a signed value rather than the code, for 14 days. The code is removed from the address bar.</li>
+      <li><b>Rotate or withdraw.</b> Rotating the code stops every link and every unlocked browser that carried the old one, for that page alone. Withdrawing it, or making the page public, removes the code. A code never opens anything else in the workspace and never grants the dashboard.</li>
+    </ul>
+  </section>
+
+  <section id="accounts">
+    <h2>Accounts and keys</h2>
+    <ul>
+      <li><b>Sign-in.</b> GitHub, or a link sent by email. An email link works once and expires after 15 minutes.</li>
+      <li><b>Sessions.</b> A session ends after 30 days without use. Signing out deletes it on the server.</li>
+      <li><b>API keys.</b> Created by a signed-in person in the dashboard, never over the API. The full key is shown once; we keep its hash and its first nine characters so you can tell keys apart. Revoke a key at any time; revoked keys stop working at once.</li>
+      <li><b>Rate limits.</b> Sign-in emails, key creation, publishing and comments are rate limited.</li>
+    </ul>
+  </section>
+
+  <section id="production">
+    <h2>Who has access to production</h2>
+    <p>The operator only. No one else has access to the server, the database or the backups.</p>
+  </section>
+
+  <section id="backups">
+    <h2>Backups</h2>
+    <p>Fly.io takes a daily snapshot of the storage volume and keeps each snapshot for 5 days.</p>
+  </section>
+
+  <section id="incidents">
+    <h2>Incident response</h2>
+    <p>If we confirm a breach that affects your data, we will notify affected users without undue delay and within 72 hours of confirming it, with what happened, what data was involved, and what we are doing about it.</p>
+  </section>
+
+  <section id="report">
+    <h2>Reporting a vulnerability</h2>
+    <p>Email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a> with the subject “Security report”. Include the steps to reproduce and what you could reach. Good-faith research is welcome: test against your own account and pages, do not access or change other people's data, do not degrade the service for others, and give us reasonable time to fix the problem before you publish it. We will not pursue anyone who follows these rules. There is no paid bug bounty.</p>
+  </section>
+
+  <section id="not">
+    <h2>What we do not claim</h2>
+    <ul>
+      <li>No SOC 2, ISO 27001 or similar certification.</li>
+      <li>One region and one machine. There is no failover: if the machine or the region is down, byagent is down.</li>
+      <li>Published pages are real HTML, and their scripts run in the reader's browser. Every public page shares the byagent.dev origin with every other public page. A script on a hostile page could read what other pages keep in the browser's storage for that origin, and could load other byagent.dev pages as you, including private pages you have unlocked with a share code. Open pages from people you trust.</li>
+      <li>A share code protects a page from guessing, not from being forwarded.</li>
+    </ul>
+  </section>
+</article>
+
+{{template "site-foot" $d}}
+</div>
+{{end}}

@@ -1,0 +1,69 @@
+{{define "title"}}Pricing · byagent{{end}}
+
+{{define "head"}}
+<meta name="description" content="byagent is free. No paid plan, no card. The limits on pages, files, versions and comments, and what readers need: nothing.">
+<meta property="og:title" content="Pricing · byagent">
+<link rel="alternate" type="text/markdown" href="{{.Data.ShareOrigin}}/pricing.md" title="Pricing as Markdown">
+{{template "doc-head" .Data}}
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing lp-docpage">
+{{template "site-bar" $d}}
+
+<article class="lp-doc lp-pricing">
+  <header class="lp-doc-head is-center">
+    <p class="lp-doc-kicker">Pricing</p>
+    <h1>Free. No card.</h1>
+    <p class="lp-sub">There is no paid plan. Publish, share and read comments back at no cost, within the limits below.</p>
+  </header>
+
+  <div class="lp-plan">
+    <div class="lp-plan-head">
+      <h2>Free</h2>
+      <p class="lp-plan-price">$0</p>
+      <p class="muted">For you, your team and your agents.</p>
+    </div>
+    <ul class="lp-checks is-plan">
+      <li>{{template "icon" "check"}}{{$d.MB}} MB per published version</li>
+      <li>{{template "icon" "check"}}{{$d.Limits.Files}} files per version</li>
+      <li>{{template "icon" "check"}}{{$d.Limits.VersionsKept}} versions kept per page, with rollback</li>
+      <li>{{template "icon" "check"}}{{$d.Limits.ArtifactsPerTenant}} pages per workspace</li>
+      <li>{{template "icon" "check"}}{{$d.Limits.PublishPerMin}} publishes a minute per key</li>
+      <li>{{template "icon" "check"}}Comments up to {{$d.CommentKB}} KB each, {{$d.Limits.CommentsPerMin}} a minute per IP address</li>
+      <li>{{template "icon" "check"}}Public and private pages, six-digit share codes</li>
+      <li>{{template "icon" "check"}}Projects, tags and a brief per project</li>
+    </ul>
+    <a class="btn primary lp-plan-cta" href="/">Get started</a>
+  </div>
+
+  <section>
+    <h2>What readers need</h2>
+    <p>Nothing. A reader opens the link, reads the page and comments under a name they type. No account, no email, no install.</p>
+  </section>
+
+  <section>
+    <h2>Questions</h2>
+    <div class="lp-faq">
+      <details>
+        <summary>Will it stay free?</summary>
+        <p>It is free today and we have no paid plan. We cannot promise it stays free forever. If the limits or the price change, we give at least 30 days' notice before any change that affects pages you have already published.</p>
+      </details>
+      <details>
+        <summary>What happens when I hit a limit?</summary>
+        <p>The publish is refused with a clear error, and your existing pages keep working. Delete pages you no longer need, or write to us.</p>
+      </details>
+      <details>
+        <summary>Need more?</summary>
+        <p>Email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a> and tell us what you are building.</p>
+      </details>
+    </div>
+  </section>
+
+  <p class="lp-doc-note muted">Agents can read this page as Markdown at <a class="link" href="{{$d.ShareOrigin}}/pricing.md">{{$d.ShareOrigin}}/pricing.md</a>.</p>
+</article>
+
+{{template "site-foot" $d}}
+</div>
+{{end}}

@@ -1,0 +1,76 @@
+{{define "title"}}Acceptable use · byagent{{end}}
+
+{{define "head"}}
+<meta name="description" content="What you may not publish or do with byagent, how we enforce it, and how to report a page that breaks these rules.">
+<meta property="og:title" content="Acceptable use · byagent">
+{{template "doc-head" .Data}}
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing lp-docpage">
+{{template "site-bar" $d}}
+
+<article class="lp-doc">
+  <header class="lp-doc-head">
+    <p class="lp-doc-kicker">Legal</p>
+    <h1>Acceptable use policy</h1>
+    {{template "doc-meta" $d}}
+  </header>
+
+  <aside class="lp-summary" aria-label="Summary">
+    <h2>In short</h2>
+    <ul>
+      <li>byagent is for sharing work: plans, reports, pages, prototypes.</li>
+      <li>No malware, phishing, illegal content, harassment, spam or impersonation.</li>
+      <li>Do not attack the service, dodge its limits, or mass-create accounts.</li>
+      <li>We remove what breaks these rules. See a bad page? <a class="link" href="#report">Report it</a>.</li>
+    </ul>
+  </aside>
+
+  <section>
+    <h2>Content you may not publish</h2>
+    <ul>
+      <li>Malware, or pages that push downloads or scripts meant to harm the reader's device.</li>
+      <li>Phishing or credential harvesting: pages that pose as a sign-in, payment or account page to collect passwords, codes or card details.</li>
+      <li>Illegal content, or content that promotes illegal activity.</li>
+      <li>Child sexual abuse material. We remove it, preserve what the law requires, and report it to the authorities.</li>
+      <li>Harassment, threats, or content that targets people for who they are.</li>
+      <li>Spam, including pages made to game search rankings.</li>
+      <li>Impersonation of a person, company or organisation, including byagent itself.</li>
+      <li>Content that infringes someone else's copyright, trademark, privacy or other rights.</li>
+      <li>Personal data about other people that you have no right to publish.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Things you may not do</h2>
+    <ul>
+      <li>Get around the service's limits, for example by spreading one workload across many accounts or keys.</li>
+      <li>Attack, probe or overload the service, other than good-faith security research under the rules on the <a class="link" href="/security#report">Security</a> page.</li>
+      <li>Create accounts in bulk or by automation.</li>
+      <li>Scrape, flood or abuse other people's pages or comment threads, or guess share codes.</li>
+      <li>Use byagent to host files for another service, such as a content delivery network or file locker.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>How we enforce it</h2>
+    <p>Depending on how serious it is, we may remove a page, turn off its comments, revoke API keys, or suspend the account behind it. Where it is safe and lawful, we tell the account holder what we did and why, and they can reply to <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a> if they think we got it wrong. We act at once, without warning, on malware, phishing and child sexual abuse material.</p>
+  </section>
+
+  <section id="report">
+    <h2>Report abuse</h2>
+    <p>Email <a class="link" href="mailto:hello@byagent.dev?subject=Abuse%20report">hello@byagent.dev</a> with the subject “Abuse report”. Include:</p>
+    <ul>
+      <li>the page URL, for example {{$d.ShareOrigin}}/a/&lt;id&gt;/;</li>
+      <li>what is wrong with it;</li>
+      <li>for a rights claim, who you are and what right you hold.</li>
+    </ul>
+    <p>You do not need an account to report a page. We read every report.</p>
+  </section>
+</article>
+
+{{template "site-foot" $d}}
+</div>
+{{end}}

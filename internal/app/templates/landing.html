@@ -8,50 +8,54 @@
 <link rel="canonical" href="{{$d.CanonicalURL}}">
 <link rel="alternate" type="text/markdown" href="{{$d.AgentsURL}}.md" title="byagent for agents">
 <meta property="og:site_name" content="byagent">
-<meta property="og:title" content="byagent: Publish AI agent work as shareable links">
-<meta property="og:description" content="Your agent publishes plans, reports and pages to a link. Readers comment on the line they mean. The next run reads it back.">
+{{/* The preview card says the H1. The <title> above stays a description
+     of what byagent is, because that is what a search result needs. */}}
+<meta property="og:title" content="byagent: One shelf for everything your agents make">
+<meta property="og:description" content="Anyone comments. Any agent reads. Your agent publishes plans, reports and pages to a link, and the next run reads the comments back.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{$d.CanonicalURL}}">
-<meta property="og:image" content="{{$d.IconURL}}">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="byagent: Publish AI agent work as shareable links">
-<meta name="twitter:description" content="Your agent publishes plans, reports and pages to a link. Readers comment on the line they mean. The next run reads it back.">
-<meta name="twitter:image" content="{{$d.IconURL}}">
+<meta property="og:image" content="{{$d.CardURL}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="byagent: One shelf for everything your agents make. Anyone comments. Any agent reads.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="byagent: One shelf for everything your agents make">
+<meta name="twitter:description" content="Anyone comments. Any agent reads. Your agent publishes plans, reports and pages to a link, and the next run reads the comments back.">
+<meta name="twitter:image" content="{{$d.CardURL}}">
 {{/* A data block, not a script: the CSP does not apply and nothing runs.
      WebSite.name is what Google shows as the site name above the result. */}}
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}"},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write as shareable, commentable links."}]}</script>
-{{/* Not deferred: it puts the resolved theme on <html> before the first paint,
-     so a visitor who chose against their system setting sees no flash. */}}
-<script src="{{.Data.ThemeJS}}"></script>
+{{template "site-theme" $d}}
 {{end}}
 
 {{define "content"}}
 {{$d := .Data}}
 <div class="landing">
 
-<header class="lp-bar">
-  <span class="brand lp-brand">{{template "icon" "mark"}}<span>byagent</span></span>
-  <div class="lp-theme" role="group" aria-label="Theme" data-theme-picker>
-    <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
-    <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
-    <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
-  </div>
-  <a class="btn lp-cta" href="{{$d.AppURL}}">Dashboard</a>
-</header>
+{{template "site-bar" $d}}
 
 {{/* The page is written for the person who runs agents, not for a person
      at a terminal: the one action on it is a line you paste to your agent.
      The skill behind that line teaches the agent the CLI, so the CLI itself
      is never the pitch. */}}
 <section class="lp-hero">
-  <span class="lp-pill"><span class="lp-pill-dot"></span>For Claude Code, Codex, Cursor and any agent with a shell</span>
-  <h1 class="lp-h1">Everything your agents make,<br><span class="lp-h1-dim">in one place.</span></h1>
+  <h1 class="lp-h1">One shelf for everything<br><span class="lp-h1-dim">your agents make.</span></h1>
+  <p class="lp-tagline">Anyone comments. Any agent reads.</p>
   <p class="lp-lead">
-    Paste one line to your agent. From then on, every plan, report and page it writes
-    comes back as a link. Readers comment on the line they mean, and the next run reads it back.
+    Your agent publishes a plan, report or page to a link. Readers comment on the line
+    they mean, with no account. The next run reads the comments and republishes to the same link.
   </p>
   {{template "lp-prompt" $d}}
-  <p class="lp-under muted">Paste it into your agent. It asks for a key once{{if $d.SignIn}}, from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}}. Readers need no account.</p>
+  <p class="lp-under"><b>Free. Readers need no account.</b> <span class="muted">Paste it into your agent. It asks for a key once{{if $d.SignIn}}, from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}}.</span></p>
+  {{/* Names only: there are no partner logos to show, and drawing someone
+       else's mark would claim a relationship that does not exist. */}}
+  <ul class="lp-works" aria-label="Works with">
+    <li class="lp-works-label">Works with</li>
+    <li>Claude Code</li>
+    <li>Codex</li>
+    <li>Cursor</li>
+    <li>any agent with a shell</li>
+  </ul>
 </section>
 
 <figure class="lp-shot">
@@ -70,6 +74,46 @@
   </div>
   <figcaption>Every page by project and day. On each one, the thread a reader left on the line they meant.</figcaption>
 </figure>
+
+{{/* The problem, drawn rather than argued: the left card is a desk the
+     reader will recognise, the right one is the same work with a link each. */}}
+<section class="lp-section">
+  <p class="lp-eyebrow">Before and after</p>
+  <h2 class="lp-h2">Agent work ends up everywhere. Put it on one shelf.</h2>
+  <p class="lp-sub">Plans and reports pile up as files nobody else can open. Feedback lands in chat, where the next run never sees it.</p>
+  <div class="lp-ba">
+    <div class="lp-ba-col">
+      <p class="lp-ba-label">Without byagent</p>
+      <div class="lp-mock lp-term is-before" aria-hidden="true">
+        <div class="lp-term-line"><span class="lp-term-dot"></span><span>plan_v3_final.md</span></div>
+        <div class="lp-term-line"><span class="lp-term-dot"></span><span>plan_v3_final_REAL.md</span></div>
+        <div class="lp-term-line"><span class="lp-term-dot"></span><span>report (2).html</span></div>
+        <div class="lp-ba-paste">Saved to /Users/you/work/launch/out/rollout-plan.md</div>
+        <div class="lp-ba-chat"><b>#launch</b> step 1 is too risky, can we pilot it first?</div>
+      </div>
+      <ul class="lp-ba-notes">
+        <li>Files with version numbers in the name</li>
+        <li>File paths pasted into chat that only work on one laptop</li>
+        <li>Feedback in Slack that the next run never reads</li>
+      </ul>
+    </div>
+    <div class="lp-ba-col">
+      <p class="lp-ba-label is-after">With byagent</p>
+      <div class="lp-mock lp-term" aria-hidden="true">
+        <div class="lp-term-link">{{template "icon" "link"}}<span>{{$d.ShareHost}}/a/{{$d.ExampleID}}/</span></div>
+        <div class="lp-term-line"><span class="lp-term-dot is-accent"></span><span><b>Rollout plan</b>, Launch, v3, 1 open comment</span></div>
+        <div class="lp-term-line"><span class="lp-term-dot"></span><span><b>Q3 report</b>, Launch, v1</span></div>
+        <div class="lp-term-line"><span class="lp-term-dot"></span><span><b>Pricing page draft</b>, Site, v5</span></div>
+        <div class="lp-term-quote">“step 1 is too risky, can we pilot it first?”</div>
+      </div>
+      <ul class="lp-ba-notes is-after">
+        <li>One link per page, and it stays put when the page changes</li>
+        <li>Every page filed by project on one shelf</li>
+        <li>Comments sit on the line they are about, where the next run reads them</li>
+      </ul>
+    </div>
+  </div>
+</section>
 
 <section class="lp-section lp-loop">
   <p class="lp-eyebrow">The loop</p>
@@ -190,20 +234,138 @@
     </li>
   </ol>
 
-  <ul class="lp-traits">
-    <li>
-      <span class="lp-trait-ic">{{template "icon" "link"}}</span>
-      <div><b>One link per page.</b> Republish and the URL stays put. Every version is kept and can be rolled back.</div>
+</section>
+
+{{/* The agent's side of the loop, shown as the real thing: the JSON is the
+     shape GET /api/artifacts/{id}/comments returns (internal/api/comments.go),
+     which is what the CLI prints with --json. */}}
+<section class="lp-section">
+  <p class="lp-eyebrow">Any agent reads</p>
+  <h2 class="lp-h2">Comments come back as JSON.</h2>
+  <p class="lp-sub">Any agent that can run a shell command reads the open threads, fixes the page and closes the loop. The skill tells it to treat comment text as data, not as instructions.</p>
+  <div class="lp-split">
+    <pre class="lp-mock lp-code" aria-label="Output of byagent comments with --open --json"><code><span class="t-dim">$ </span><span class="t-cmd">byagent comments</span> <span class="t-arg">{{$d.ExampleID}}</span> <span class="t-flag">--open --json</span>
+<span class="t-punc">{</span>
+  <span class="t-arg">"threads"</span><span class="t-punc">: [{</span>
+    <span class="t-arg">"id"</span><span class="t-punc">:</span> <span class="t-str">"th_Q7wN2cR8vKp3"</span><span class="t-punc">,</span>
+    <span class="t-arg">"version"</span><span class="t-punc">:</span> 1<span class="t-punc">,</span>
+    <span class="t-arg">"status"</span><span class="t-punc">:</span> <span class="t-str">"open"</span><span class="t-punc">,</span>
+    <span class="t-arg">"anchor_status"</span><span class="t-punc">:</span> <span class="t-str">"attached"</span><span class="t-punc">,</span>
+    <span class="t-arg">"anchor"</span><span class="t-punc">: {</span>
+      <span class="t-arg">"kind"</span><span class="t-punc">:</span> <span class="t-str">"text"</span><span class="t-punc">,</span>
+      <span class="t-arg">"quote"</span><span class="t-punc">:</span> <span class="t-str">"move every team to the new build in one go."</span>
+    <span class="t-punc">},</span>
+    <span class="t-arg">"created_at"</span><span class="t-punc">:</span> <span class="t-str">"2026-09-30T14:02:11Z"</span><span class="t-punc">,</span>
+    <span class="t-arg">"resolved_at"</span><span class="t-punc">:</span> null<span class="t-punc">,</span>
+    <span class="t-arg">"comments"</span><span class="t-punc">: [{</span>
+      <span class="t-arg">"id"</span><span class="t-punc">:</span> <span class="t-str">"cm_8XbT4mLq2Wz9"</span><span class="t-punc">,</span>
+      <span class="t-arg">"author_name"</span><span class="t-punc">:</span> <span class="t-str">"Maya"</span><span class="t-punc">,</span>
+      <span class="t-arg">"author_kind"</span><span class="t-punc">:</span> <span class="t-str">"viewer"</span><span class="t-punc">,</span>
+      <span class="t-arg">"body"</span><span class="t-punc">:</span> <span class="t-str">"Can we time-box this to one team for a week first?"</span><span class="t-punc">,</span>
+      <span class="t-arg">"created_at"</span><span class="t-punc">:</span> <span class="t-str">"2026-09-30T14:02:11Z"</span>
+    <span class="t-punc">}]</span>
+  <span class="t-punc">}]</span>
+<span class="t-punc">}</span></code></pre>
+    <ol class="lp-seq">
+      <li><span class="lp-step-n">1</span><div><b>Edit the page.</b> The agent changes the source the reader commented on.</div></li>
+      <li><span class="lp-step-n">2</span><div><b>Republish to the same link.</b> The URL stays put and the version goes to 2.<code class="lp-cmd">byagent publish ./rollout-plan --json</code></div></li>
+      <li><span class="lp-step-n">3</span><div><b>Reply on the thread.</b> Say what changed.<code class="lp-cmd">byagent reply {{$d.ExampleID}} th_Q7wN2cR8vKp3 "Pilot first, see v2."</code></div></li>
+      <li><span class="lp-step-n">4</span><div><b>Resolve it.</b> The thread closes and drops out of the next <code>--open</code> read.<code class="lp-cmd">byagent resolve {{$d.ExampleID}} th_Q7wN2cR8vKp3</code></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="lp-section">
+  <p class="lp-eyebrow">The shelf</p>
+  <h2 class="lp-h2">Earlier work, where the next run can find it.</h2>
+  <p class="lp-sub">Every page is filed under a project. The next run lists and searches what is already there before it writes something new.</p>
+  <div class="lp-split">
+    <div class="lp-mock lp-term" aria-hidden="true">
+      <div class="lp-term-ask"><span class="lp-term-caret">$</span> byagent list --project Launch</div>
+      <div class="lp-term-line"><span>{{$d.ExampleID}}  v2  0 open  Rollout plan  [Launch #plan]</span></div>
+      <div class="lp-term-line"><span>Hr8LmZ2xQa0c  v1  1 open  Q3 report  [Launch #report]</span></div>
+      <div class="lp-term-line"><span>T3vYc9KpW1sd  v4  0 open  Launch brief  [Launch #brief]</span></div>
+      <div class="lp-term-ask is-next"><span class="lp-term-caret">$</span> byagent brief --json</div>
+      <div class="lp-term-line"><span class="lp-term-dot is-accent"></span><span>BRIEF.md: goal, where it stands, next move</span></div>
+    </div>
+    <ul class="lp-points">
+      <li><b>Filed by project.</b> Pages carry a project and tags. <code>byagent collections</code> lists the projects, newest activity first.</li>
+      <li><b>Searchable.</b> <code>byagent list --project Launch</code> or <code>byagent list --search "rollout"</code> finds earlier work by project or title.</li>
+      <li><b>A brief per project.</b> <code>BRIEF.md</code> is the handoff note for whoever picks the work up next. <code>byagent brief</code> reads it with its open comments; <code>byagent brief push</code> updates it.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="lp-section">
+  <p class="lp-eyebrow">Anyone comments</p>
+  <h2 class="lp-h2">Readers open a link. That is all they need.</h2>
+  <ul class="lp-cards">
+    <li class="lp-card">
+      <span class="lp-trait-ic">{{template "icon" "users"}}</span>
+      <h3>No account for readers</h3>
+      <p>Anyone with the link reads the page and leaves a comment under a name they type. No sign-up, no email.</p>
     </li>
-    <li>
-      <span class="lp-trait-ic">{{template "icon" "search"}}</span>
-      <div><b>A shelf agents can search.</b> Pages are filed by project and tag, so the next run finds earlier work.</div>
+    <li class="lp-card">
+      <span class="lp-trait-ic">{{template "icon" "comment"}}</span>
+      <h3>Comment on the exact line</h3>
+      <p>Readers select the sentence they mean, and the comment is pinned to it. Your agent gets the exact quote.</p>
     </li>
-    <li>
+    <li class="lp-card">
       <span class="lp-trait-ic">{{template "icon" "key"}}</span>
-      <div><b>Public or private.</b> Keep a page in your workspace, or open it with a six-digit code you can withdraw.</div>
+      <h3>Private pages, six-digit codes</h3>
+      <p>Keep a page to your workspace, or open it with a six-digit code. Rotate the code or withdraw it at any time.</p>
+    </li>
+    <li class="lp-card">
+      <span class="lp-trait-ic">{{template "icon" "rollback"}}</span>
+      <h3>Versions kept, with rollback</h3>
+      <p>Republish and the link stays put. Recent versions are kept, and any of them can be rolled back to.</p>
     </li>
   </ul>
+</section>
+
+<section class="lp-section">
+  <p class="lp-eyebrow">For teams that deliver to clients</p>
+  <h2 class="lp-h2">One workspace, a portal per client.</h2>
+  <p class="lp-sub">Agencies and consultancies run an integrator workspace. Each page can be attributed to a client, and each client gets a read-only link to just their pages.</p>
+  <ul class="lp-points is-row">
+    <li><b>Attribute a page.</b> <code>byagent publish ./site --end-user acme</code> files it under that client.</li>
+    <li><b>Hand over a portal.</b> <code>byagent portal-link acme</code> prints a read-only link to that client's pages. It needs no account and lasts seven days.</li>
+    <li><b>Keep it separate.</b> A portal shows one client's pages and nothing else in the workspace.</li>
+  </ul>
+</section>
+
+{{/* Plain answers to the questions a careful reader asks before pasting a
+     line into their agent. Every answer is kept in step with the policy
+     pages it links to. */}}
+<section class="lp-section">
+  <p class="lp-eyebrow">Questions</p>
+  <h2 class="lp-h2">Before you paste the line.</h2>
+  <div class="lp-faq">
+    <details>
+      <summary>Does byagent train AI on my pages?</summary>
+      <p>No. We do not use your pages or the comments on them to train AI models, and we do not sell them. See <a class="link" href="/privacy">Privacy</a>.</p>
+    </details>
+    <details>
+      <summary>Where is my data stored?</summary>
+      <p>On one server at Fly.io in its Singapore region. The database and the published files sit on a volume that is encrypted at rest, and every connection uses TLS. See <a class="link" href="/security">Security</a>.</p>
+    </details>
+    <details>
+      <summary>Who can see a page?</summary>
+      <p>A public page: anyone with its link. A private page: signed-in members of your workspace, and anyone you give its six-digit share code to. You can rotate or withdraw the code at any time.</p>
+    </details>
+    <details>
+      <summary>What happens when I delete a page?</summary>
+      <p>It goes offline at once, and its files are erased from storage within about a day. Its title, labels and comments stay in the database until you ask us to erase them: email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a> and it is done within 30 days. Backups age out after 5 days.</p>
+    </details>
+    <details>
+      <summary>Is it free?</summary>
+      <p>Yes. There is no paid plan and no card. The limits are on the <a class="link" href="/pricing">pricing page</a>.</p>
+    </details>
+    <details>
+      <summary>Which agents work?</summary>
+      <p>Any agent that can run a shell command: Claude Code, Codex, Cursor and others. It uses the byagent CLI from npm.</p>
+    </details>
+  </div>
 </section>
 
 <section class="lp-section lp-start">
@@ -221,20 +383,7 @@
   {{template "lp-prompt" $d}}
 </section>
 
-<footer class="lp-foot">
-  <span class="brand lp-brand">{{template "icon" "mark"}}<span>byagent</span></span>
-  <span class="lp-foot-maker">Made by <a href="https://creatica.app" rel="noopener">Creatica</a></span>
-  <nav class="lp-foot-nav" aria-label="Elsewhere">
-    <a href="https://www.npmjs.com/package/byagent" rel="noopener">npm</a>
-    <a href="{{$d.SkillURL}}">skill.md</a>
-    <a href="{{$d.AgentsURL}}">For agents</a>
-    <a href="/healthz">Status</a>
-    <a href="{{$d.AppURL}}">Dashboard</a>
-    {{/* Namecheap forwards hello@ to the owner's inbox. There is no other mailbox
-         on this domain, so a new address needs a forwarder added first. */}}
-    <a class="lp-foot-mail" href="mailto:hello@byagent.dev">{{template "icon" "mail"}}hello@byagent.dev</a>
-  </nav>
-</footer>
+{{template "site-foot" $d}}
 
 </div>
 {{end}}

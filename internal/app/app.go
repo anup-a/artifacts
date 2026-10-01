@@ -71,6 +71,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	}
 	mux.HandleFunc("GET /app/static/{name}", h.static.serve)
 	mux.HandleFunc("GET /{$}", h.headers(h.landing))
+	for path := range docPages {
+		mux.HandleFunc("GET "+path, h.headers(h.doc(path)))
+	}
 	for name := range iconFiles {
 		mux.HandleFunc("GET /"+name, h.static.serveIcon)
 	}

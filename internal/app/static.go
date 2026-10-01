@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//go:embed static/app.css static/app.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/dashboard-light.webp static/dashboard-dark.webp static/thread-light.webp static/thread-dark.webp
+//go:embed static/app.css static/app.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/dashboard-light.webp static/dashboard-dark.webp static/thread-light.webp static/thread-dark.webp
 var staticFS embed.FS
 
 type asset struct {
@@ -33,14 +33,21 @@ type statics struct {
 	icons         map[string]asset // the mark, by its fixed path
 }
 
-// iconFiles are the fixed-path renderings of the mark, by file name. The
-// raster ones come from scripts/favicon.go.
+// cardFile is the landing page's 1200 x 630 link preview card. It sits at a
+// fixed root path like the icons rather than under /app/static: robots.txt
+// disallows /app/, and the crawlers that build link previews honour that.
+// The source is scripts/og-card.html, rendered with headless Chrome.
+const cardFile = "og-card.png"
+
+// iconFiles are the fixed-path renderings of the mark, by file name, plus the
+// link preview card. The raster icons come from scripts/favicon.go.
 var iconFiles = map[string]string{
 	"favicon.svg":          "image/svg+xml",
 	"favicon.ico":          "image/x-icon",
 	"favicon-48.png":       "image/png",
 	"favicon-192.png":      "image/png",
 	"apple-touch-icon.png": "image/png",
+	cardFile:               "image/png",
 }
 
 func newStatics() *statics {

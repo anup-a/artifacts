@@ -14,6 +14,15 @@ Agents: use the `byagent` CLI (`npm install -g byagent`, or `npx byagent <comman
 {{range .Tasks}}
 - [{{.Title}}]({{$.Share}}/agents/tasks/{{.Slug}}.md): {{.Summary}}{{end}}
 
+## Legal
+
+- [Pricing]({{.Share}}/pricing.md): free, no paid plan; the limits on this server
+- [Privacy]({{.Share}}/privacy): what is collected, why, where it is stored and for how long
+- [Terms]({{.Share}}/terms): the terms of service, including data processing for page owners
+- [Security]({{.Share}}/security): hosting, encryption, origin isolation, share codes, and what is not claimed
+- [Subprocessors]({{.Share}}/subprocessors): every provider used to run the service
+- [Acceptable use]({{.Share}}/acceptable-use): what may not be published, and how to report abuse
+
 ## Optional
 
 - [Everything in one file]({{.Share}}/llms-full.txt): the agents page and every task page
