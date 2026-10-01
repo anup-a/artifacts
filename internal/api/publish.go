@@ -48,7 +48,7 @@ func (s *server) preflight(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.TooLarge("manifest too large"))
 		return
 	}
-	m, e := parseManifest(raw, s.Cfg.Limits)
+	m, e := parseManifest(raw, s.limitsFor(r.Context()))
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -90,7 +90,8 @@ func (s *server) missingBlobs(ctx context.Context, m manifest) ([]string, *apier
 // readPublish parses the multipart body: manifest first, then blob parts keyed by sha.
 // Blob parts are written to blob storage as they stream, so the returned set is what was uploaded.
 func (s *server) readPublish(w http.ResponseWriter, r *http.Request) (manifest, map[string]bool, *apierr.Error) {
-	r.Body = http.MaxBytesReader(w, r.Body, s.Cfg.Limits.VersionBytes+1<<20)
+	limits := s.limitsFor(r.Context())
+	r.Body = http.MaxBytesReader(w, r.Body, limits.VersionBytes+1<<20)
 	mr, err := r.MultipartReader()
 	if err != nil {
 		return manifest{}, nil, apierr.Invalid("body must be multipart/form-data")
@@ -103,7 +104,7 @@ func (s *server) readPublish(w http.ResponseWriter, r *http.Request) (manifest, 
 	if err != nil {
 		return manifest{}, nil, apierr.Invalid("manifest unreadable")
 	}
-	m, e := parseManifest(raw, s.Cfg.Limits)
+	m, e := parseManifest(raw, limits)
 	if e != nil {
 		return m, nil, e
 	}
@@ -236,11 +237,14 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	if n >= s.Cfg.Limits.ArtifactsPerTenant {
-		apierr.Write(w, r, apierr.Quota(fmt.Sprintf("artifact limit %d reached; delete one or upgrade", s.Cfg.Limits.ArtifactsPerTenant)))
+	if quota := s.limitsFor(r.Context()).ArtifactsPerTenant; n >= quota {
+		apierr.Write(w, r, apierr.Quota(fmt.Sprintf("artifact limit %d reached; delete one or upgrade", quota)))
 		return
 	}
 	m, _, e := s.readPublish(w, r)
+	if e == nil {
+		e = guestPublishCheck(r, m, external)
+	}
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -259,6 +263,9 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, Visibility: "public", CommentsEnabled: true, CreatedAt: now, UpdatedAt: now}
 	if m.Visibility != nil {
 		a.Visibility = *m.Visibility
+	}
+	if g, ok := guestFrom(r.Context()); ok {
+		a.ExpiresAt = &g.ExpiresAt
 	}
 	a, e = s.attachEndUser(r, a, k.TenantID, external)
 	if e != nil {
@@ -280,6 +287,11 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 func (s *server) publishResponse(a store.Artifact, version int) map[string]any {
 	out := s.galleryFields(a)
 	out["id"], out["url"], out["version"], out["end_user"], out["comments_enabled"] = a.ID, s.artifactViewURL(a), version, a.EndUser, a.CommentsEnabled
+	if a.ExpiresAt != nil {
+		for k, v := range s.guestFields(guestInfo{TenantID: a.TenantID, ExpiresAt: *a.ExpiresAt}) {
+			out[k] = v
+		}
+	}
 	return out
 }
 
@@ -303,6 +315,9 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m, _, e := s.readPublish(w, r)
+	if e == nil {
+		e = guestPublishCheck(r, m, external)
+	}
 	if e != nil {
 		apierr.Write(w, r, e)
 		return

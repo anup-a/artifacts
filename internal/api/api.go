@@ -21,7 +21,10 @@ type Deps struct {
 	PublishLimiter *ratelimit.Limiter
 	CommentLimiter *ratelimit.Limiter
 	PortalLimiter  *ratelimit.Limiter
-	Runtime        []byte // comments.js bytes served at /_rt/comments.js
+	// GuestLimiter meters POST /api/guest per client address. NewHandler
+	// defaults it to 5 an hour.
+	GuestLimiter *ratelimit.Limiter
+	Runtime      []byte // comments.js bytes served at /_rt/comments.js
 	// OnView is told about every page view of a current artifact index.
 	OnView func(artifactID string)
 	// Web mounts the browser app (/app, /p) on the same mux when set.

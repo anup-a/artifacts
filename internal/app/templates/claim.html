@@ -1,0 +1,20 @@
+{{define "content"}}
+<section class="card">
+  <div class="card-head">
+    <h2>Keep your guest pages</h2>
+    <span class="muted">Published without an account. They stop working {{when .Data.ExpiresAt}} UTC unless you keep them.</span>
+  </div>
+  {{if .Data.Pages}}
+  <ul class="claim-list">
+    {{range .Data.Pages}}<li><strong>{{if .Title}}{{.Title}}{{else}}{{.ID}}{{end}}</strong> <span class="muted">{{.ID}}</span></li>{{end}}
+  </ul>
+  {{else}}
+  <p class="muted">No pages left to keep.</p>
+  {{end}}
+  <p class="muted">Keeping moves these pages into <strong>{{.Viewer.Tenant.Name}}</strong>. Links, comments and versions stay as they are, and nothing expires. The guest key stops working, so give your agent a key from <a class="link" href="/app/keys">API keys</a>. Only keep pages you or your agent published.</p>
+  <form method="post" action="/app/claim/{{path .Data.Code}}">
+    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+    <button type="submit" class="btn primary">Keep them in {{.Viewer.Tenant.Name}}</button>
+  </form>
+</section>
+{{end}}

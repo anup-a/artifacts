@@ -46,7 +46,7 @@
     they mean, with no account. The next run reads the comments and republishes to the same link.
   </p>
   {{template "lp-prompt" $d}}
-  <p class="lp-under"><b>Free. Readers need no account.</b> <span class="muted">Paste it into your agent. It asks for a key once{{if $d.SignIn}}, from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}}.</span></p>
+  <p class="lp-under"><b>Free. Readers need no account.</b> <span class="muted">Paste it into your agent. {{if $d.Guest}}No account to try it: the first pages last 24 hours, and a free key{{if $d.SignIn}} from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}} keeps them.{{else}}It asks for a key once{{if $d.SignIn}}, from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}}.{{end}}</span></p>
   {{/* Names only: there are no partner logos to show, and drawing someone
        else's mark would claim a relationship that does not exist. */}}
   <ul class="lp-works" aria-label="Works with">

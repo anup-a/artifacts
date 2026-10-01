@@ -24,6 +24,9 @@ func (s *server) viewerCreateThread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a, e := s.loadArtifactForViewer(r, r.PathValue("id"))
+	if e == nil {
+		e = guestThreadCheck(a)
+	}
 	if e != nil {
 		apierr.Write(w, r, e)
 		return

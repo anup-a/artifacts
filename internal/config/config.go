@@ -49,7 +49,11 @@ type Config struct {
 	// through a proxy that overwrites those headers; otherwise a client can
 	// spoof them and escape per-IP limits.
 	TrustProxyHeaders bool
-	Limits            Limits
+	// GuestPublish turns on POST /api/guest: a 24-hour key for publishing
+	// without an account, claimable from the dashboard. It needs web sign-in,
+	// since claiming is how a guest keeps their pages. GUEST_PUBLISH=on.
+	GuestPublish bool
+	Limits       Limits
 }
 
 // WebEnabled reports whether at least one sign-in provider is configured.
@@ -89,6 +93,7 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		GoogleAnalyticsID:  gaID,
 
 		TrustProxyHeaders: get("TRUST_PROXY_HEADERS", "false") == "true",
+		GuestPublish:      getenv("GUEST_PUBLISH") == "on",
 	}
 	var err error
 	if c.Limits, err = limitsFromEnv(getenv); err != nil {
@@ -126,6 +131,9 @@ func FromEnv(getenv func(string) string) (Config, error) {
 	}
 	if c.WebEnabled() && c.KeySecret == "" {
 		return c, errors.New("web sign-in requires KEY_SIGNING_SECRET, including when ADMIN_TOKEN is set")
+	}
+	if c.GuestPublish && !c.WebEnabled() {
+		return c, errors.New("GUEST_PUBLISH=on requires web sign-in, so guests can claim their pages")
 	}
 	if c.AdminToken == "" && c.KeySecret == "" {
 		return c, errors.New("set ADMIN_TOKEN (self-host) or KEY_SIGNING_SECRET (managed)")

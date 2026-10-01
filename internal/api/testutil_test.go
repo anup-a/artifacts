@@ -16,6 +16,13 @@ import (
 // newTestServer boots sqlite+local in a temp dir. managed=false uses ADMIN_TOKEN "admin-token".
 func newTestServer(t *testing.T, managed bool) (*httptest.Server, Deps, string) {
 	t.Helper()
+	return newTestServerWith(t, managed, nil)
+}
+
+// newTestServerWith lets a test adjust the config and deps before the
+// handler is built.
+func newTestServerWith(t *testing.T, managed bool, adjust func(*Deps)) (*httptest.Server, Deps, string) {
+	t.Helper()
 	dir := t.TempDir()
 	cfg := config.Config{DB: "sqlite", Storage: "local", DataDir: dir, ShareOrigin: "http://share.test", APIOrigin: "http://api.test",
 		Limits: config.Limits{VersionBytes: 1 << 20, Files: 50, VersionsKept: 3, PublishPerMin: 100, ArtifactsPerTenant: 5, CommentBytes: 200, CommentsPerMin: 100, AnchorBytes: 1024}}
@@ -40,6 +47,9 @@ func newTestServer(t *testing.T, managed bool) (*httptest.Server, Deps, string) 
 		PublishLimiter: ratelimit.New(cfg.Limits.PublishPerMin), CommentLimiter: ratelimit.New(cfg.Limits.CommentsPerMin),
 		PortalLimiter: ratelimit.New(60),
 		Runtime:       []byte("/*runtime*/")}
+	if adjust != nil {
+		adjust(&d)
+	}
 	h, err := NewHandler(d)
 	if err != nil {
 		t.Fatal(err)

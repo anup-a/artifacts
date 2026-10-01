@@ -1,4 +1,9 @@
 {{define "content"}}
+{{if .Data.Claimed}}
+<div class="callout ok">
+  <div class="callout-head">{{template "icon" "check"}}<strong>Your guest pages are in <a class="link" href="/app/artifacts">Artifacts</a> now.</strong> The guest key has stopped working. Create a key below and run <code>byagent login</code> with it so your agent keeps publishing here.</div>
+</div>
+{{end}}
 {{if .Data.NewKey}}
 <div class="callout ok">
   <div class="callout-head">{{template "icon" "key"}}<strong>Your new key is ready.</strong> This is the only time the key is shown. Store it in your password manager or run <code>artifacts login</code> with it.</div>

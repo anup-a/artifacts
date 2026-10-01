@@ -4,16 +4,21 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/anup-a/artifacts/internal/agents"
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
 func NewHandler(d Deps) (http.Handler, error) {
+	if d.GuestLimiter == nil {
+		d.GuestLimiter = ratelimit.NewWindow(5, time.Hour)
+	}
 	s := &server{Deps: d}
 	if d.Cfg.AdminToken != "" {
 		k, err := ensureAdminKey(d)
@@ -25,6 +30,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /api/me", s.withAuth(s.me))
+	mux.HandleFunc("POST /api/guest", s.createGuest)
 	mux.HandleFunc("POST /api/end-users/{external_id}/portal-link", s.withAuth(s.portalLink))
 	mux.HandleFunc("GET /api/artifacts", s.withAuth(s.listArtifacts))
 	mux.HandleFunc("GET /api/projects", s.withAuth(s.listProjects))

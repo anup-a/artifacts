@@ -86,8 +86,13 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/login/email/verify", h.public(h.emailVerify))
 
 	mux.HandleFunc("GET /app/{$}", h.private(func(w http.ResponseWriter, r *http.Request, _ *viewer) {
+		if resumeClaim(w, r) {
+			return
+		}
 		http.Redirect(w, r, "/app/artifacts", http.StatusFound)
 	}))
+	mux.HandleFunc("GET /app/claim/{code}", h.public(h.claimPage))
+	mux.HandleFunc("POST /app/claim/{code}", h.private(h.claim))
 	mux.HandleFunc("GET /app/artifacts", h.private(h.artifacts))
 	mux.HandleFunc("GET /app/artifacts/{id}", h.private(h.artifactDetail))
 	mux.HandleFunc("POST /app/artifacts/{id}/delete", h.private(h.deleteArtifact))

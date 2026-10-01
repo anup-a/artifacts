@@ -25,6 +25,9 @@ func RunGC(ctx context.Context, d Deps, every time.Duration) {
 // gcOnce deletes zero-ref blobs, removing DB row before physical bytes to ensure a failure leaks rather than corrupts.
 // It also drops expired credentials (old revoked keys, sessions, magic links, oauth states).
 func gcOnce(ctx context.Context, d Deps, olderThan time.Time) error {
+	if err := d.Store.ExpireGuests(ctx, d.Now()); err != nil {
+		return err
+	}
 	if err := d.Store.DeleteExpiredCredentials(ctx, d.Now()); err != nil {
 		return err
 	}

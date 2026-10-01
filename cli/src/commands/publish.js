@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { guestLines } from "../guest.js";
 import { copyFileSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { apiJson } from "../client.js";
@@ -138,12 +139,14 @@ export async function publish(cfg, { positional, flags, source }) {
       visibility: res.visibility ?? "public",
       project: project ?? null, tags, cover_url: res.cover_url, cover_style: res.cover_style,
       files: files.length, bytes, uploaded: sent.size,
+      ...(res.guest ? { guest: true, expires_at: res.expires_at, claim_url: res.claim_url } : {}),
     },
     human: [
       `${res.url}`,
       `version ${res.version}, ${files.length} files, ${bytes} bytes, ${sent.size} uploaded${commentsOn ? "" : ", comments off"}`,
       ...(labelLine ? [labelLine] : []),
       ...(res.visibility === "private" ? ["private — sign in to the owning workspace to view"] : []),
+      ...guestLines(res),
     ],
   };
 }

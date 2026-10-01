@@ -116,6 +116,7 @@ returns 404; people create named keys at `PUBLIC_API_ORIGIN/app/keys`.
 | `EMAIL_FROM` | Verified sender for Resend, such as `artifacts <login@byagent.dev>`. |
 | `PUBLIC_API_ORIGIN` | API and dashboard origin, including scheme. Also used in magic links, portal links, and the OAuth callback. |
 | `PUBLIC_SHARE_ORIGIN` | Published pages and viewer comments origin. Keep distinct from the API origin. |
+| `GUEST_PUBLISH` | `on` enables `POST /api/guest`: a key that needs no account, lasts 24 hours and publishes up to three public pages of 5 MB, five keys an hour per address. Guest pages carry a "Temporary guest page" badge, and the claim link in every guest response moves them into a signed-in workspace and revokes the guest key. Requires web sign-in. Off by default. |
 | `LIMIT_ARTIFACTS_PER_TENANT` | Live artifact limit shared by all keys of a tenant. Default 200. |
 | `LIMIT_ARTIFACTS_PER_KEY` | Deprecated fallback only when the tenant limit is unset; emits a deprecation log line. |
 | `GOOGLE_ANALYTICS_ID` | GA4 Measurement ID for first-party app surfaces (`/`, `/app/*`, login, landing on `app.byagent.dev`). Empty disables GA and keeps CSP free of Google hosts. Alias: `GA_MEASUREMENT_ID`. Not applied to published `/a/…` pages or the share-origin gate. |
