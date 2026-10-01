@@ -68,6 +68,7 @@ byagent share <id> [--off]             # six-digit code for a private artifact; 
 byagent versions <id>
 byagent rollback <id> <version>
 byagent comments <id> [--open|--all] [--since <rfc3339>]
+byagent comments <id> --wait [--timeout <seconds>] [--interval <seconds>]
 byagent reply <id> <thread> "<text>"
 byagent resolve <id> <thread>
 byagent delete <id>                    # permanent

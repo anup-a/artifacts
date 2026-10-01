@@ -9,6 +9,7 @@ import { resolveConfig, saveConfig, configPath } from "../src/config.js";
 import { collectFiles, readLink, writeLink } from "../src/files.js";
 import { publish, labelsOf, resolveCover } from "../src/commands/publish.js";
 import { list, share } from "../src/commands/artifacts.js";
+import { comments, waitForComments } from "../src/commands/comments.js";
 import { findProject } from "../src/project.js";
 import { main } from "../src/main.js";
 
@@ -551,4 +552,86 @@ test("collection needs a name and reports a missing one as the server does", asy
 test("share needs an artifact id", async () => {
   await assert.rejects(() => share({ token: "t", api: "https://api.example" }, parseArgs(["share"])),
     /usage: byagent share/);
+});
+
+const CFG = { token: "t", api: "https://api.example" };
+const reader = (id, at = "2026-10-01T10:00:00Z") => ({ id, author_name: "Reader", author_kind: "viewer", body: id, created_at: at });
+const owner = (id) => ({ id, author_name: "Author", author_kind: "owner", body: id, created_at: "2026-10-01T10:05:00Z" });
+
+// fakeClock lets waitForComments poll without real delays: each sleep moves
+// the clock forward by the requested amount.
+function fakeClock() {
+  let t = 0;
+  return { now: () => t, sleep: async (ms) => { t += ms; } };
+}
+
+function servePolls(t, polls) {
+  const seen = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    seen.push(url);
+    const next = polls[Math.min(seen.length - 1, polls.length - 1)];
+    if (next instanceof Response) return next;
+    return Response.json({ threads: next });
+  });
+  return seen;
+}
+
+test("comments --wait wakes on a reader reply inside an existing thread, not on owner replies", async (t) => {
+  const old = { id: "th_1", status: "open", comments: [reader("c1")] };
+  const seen = servePolls(t, [
+    [old],
+    [{ ...old, comments: [reader("c1"), owner("c2")] }],
+    [{ ...old, comments: [reader("c1"), owner("c2"), reader("c3")] }],
+  ]);
+  const res = await waitForComments(CFG, "art1", { intervalMs: 20000, timeoutMs: 600000, ...fakeClock() });
+  assert.equal(res.timed_out, false);
+  assert.deepEqual(res.threads.map((th) => th.id), ["th_1"]);
+  assert.equal(seen.length, 3);
+  assert.equal(seen[0].searchParams.get("status"), "all");
+});
+
+test("comments --wait returns only threads with new reader comments", async (t) => {
+  servePolls(t, [
+    [{ id: "th_1", comments: [reader("c1")] }],
+    [{ id: "th_1", comments: [reader("c1")] }, { id: "th_2", comments: [reader("c2")] }],
+  ]);
+  const res = await waitForComments(CFG, "art1", { intervalMs: 20000, timeoutMs: 600000, ...fakeClock() });
+  assert.deepEqual(res.threads.map((th) => th.id), ["th_2"]);
+});
+
+test("comments --wait with --since counts comments written after it straight away", async (t) => {
+  const seen = servePolls(t, [[
+    { id: "th_old", comments: [reader("c1", "2026-10-01T09:00:00Z")] },
+    { id: "th_new", comments: [reader("c2", "2026-10-01T11:00:00Z")] },
+  ]]);
+  const res = await waitForComments(CFG, "art1", { intervalMs: 20000, timeoutMs: 600000, since: "2026-10-01T10:00:00Z", ...fakeClock() });
+  assert.deepEqual(res.threads.map((th) => th.id), ["th_new"]);
+  assert.equal(seen.length, 1);
+});
+
+test("comments --wait times out with timed_out true", async (t) => {
+  const seen = servePolls(t, [[{ id: "th_1", comments: [reader("c1")] }]]);
+  const res = await waitForComments(CFG, "art1", { intervalMs: 20000, timeoutMs: 60000, ...fakeClock() });
+  assert.deepEqual(res, { threads: [], timed_out: true });
+  assert.equal(seen.length, 4); // polls at 0, 20, 40 and 60 seconds
+});
+
+test("comments --wait retries a server hiccup but stops on a missing artifact", async (t) => {
+  servePolls(t, [
+    Response.json({ error: { code: "INTERNAL", message: "boom" } }, { status: 503 }),
+    [],
+    [{ id: "th_1", comments: [reader("c1")] }],
+  ]);
+  const res = await waitForComments(CFG, "art1", { intervalMs: 20000, timeoutMs: 600000, ...fakeClock() });
+  assert.deepEqual(res.threads.map((th) => th.id), ["th_1"]);
+
+  t.mock.restoreAll();
+  servePolls(t, [Response.json({ error: { code: "NOT_FOUND", message: "artifact not found" } }, { status: 404 })]);
+  await assert.rejects(waitForComments(CFG, "gone", { intervalMs: 20000, timeoutMs: 600000, ...fakeClock() }), /artifact not found/);
+});
+
+test("comments --wait rejects --open, --all and a too-short interval", async () => {
+  await assert.rejects(comments(CFG, { positional: ["a"], flags: { wait: true, open: true } }), /--wait/);
+  await assert.rejects(comments(CFG, { positional: ["a"], flags: { wait: true, interval: "1" } }), /--interval must be/);
+  await assert.rejects(comments(CFG, { positional: ["a"], flags: { wait: true, since: "yesterday" } }), /--since must be/);
 });

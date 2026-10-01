@@ -113,7 +113,8 @@ byagent publish ./site --title "Hello" --json
 | `portal-link <end-user id>` | Seven-day read-only customer portal URL, integrator workspaces only |
 | `versions <id>` | Version history with per-version comment counts |
 | `rollback <id> <version>` | Republishes an old version as the newest one |
-| `comments <id> [--open\|--all] [--since <rfc3339>]` | Threads with their anchor status and comments |
+| `comments <id> [--open\|--all] [--since <rfc3339>]` | Threads with their anchor status and comments; `--since` keeps threads started after that time |
+| `comments <id> --wait [--timeout <s>] [--interval <s>] [--since <rfc3339>]` | Blocks until a reader leaves a new comment (new thread or reply), prints those threads and exits; owner replies never wake it. Polls every 20 s and gives up after 1800 s by default with `timed_out: true` |
 | `reply <id> <thread> "<text>"` | Posts an owner reply on a thread |
 | `resolve <id> <thread>` | Marks a thread resolved |
 | `delete <id>` | Soft-deletes the artifact; the URL stops working |
