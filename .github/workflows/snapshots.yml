@@ -1,0 +1,33 @@
+name: snapshots
+# A daily image of the Hetzner box, kept for 5 days: the privacy policy
+# promises erased data leaves backups 5 days later. Hetzner's own Backups
+# option keeps 7, so it stays off and this replaces it.
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+jobs:
+  snapshot:
+    if: vars.DEPLOY_TARGET == 'hetzner'
+    runs-on: ubuntu-latest
+    env:
+      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      SERVER: byagent
+      KEEP_DAYS: "5"
+    steps:
+      - name: install hcloud
+        run: |
+          curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz | tar -xz hcloud
+          sudo install hcloud /usr/local/bin/hcloud
+      - name: take today's snapshot
+        run: hcloud server create-image --type snapshot --label app=byagent --label kind=daily --description "byagent $(date -u +%F)" "$SERVER"
+      - name: drop snapshots older than the window
+        run: |
+          cutoff=$(date -u -d "-${KEEP_DAYS} days" +%s)
+          # JSON carries RFC 3339 times; the table output is humanised.
+          hcloud image list --type snapshot --selector app=byagent,kind=daily -o json |
+            jq -r '.[] | "\(.id) \(.created)"' |
+            while read -r id created; do
+              ts=$(date -u -d "$created" +%s 2>/dev/null) || continue
+              if [ "$ts" -lt "$cutoff" ]; then echo "deleting $id ($created)"; hcloud image delete "$id"; fi
+            done

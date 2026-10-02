@@ -53,7 +53,11 @@ type Config struct {
 	// without an account, claimable from the dashboard. It needs web sign-in,
 	// since claiming is how a guest keeps their pages. GUEST_PUBLISH=on.
 	GuestPublish bool
-	Limits       Limits
+	// ReadOnly answers every write with 503 and pauses GC, so a snapshot
+	// taken while it is on is the last word: a server move loses nothing.
+	// READ_ONLY=on.
+	ReadOnly bool
+	Limits   Limits
 }
 
 // WebEnabled reports whether at least one sign-in provider is configured.
@@ -94,6 +98,7 @@ func FromEnv(getenv func(string) string) (Config, error) {
 
 		TrustProxyHeaders: get("TRUST_PROXY_HEADERS", "false") == "true",
 		GuestPublish:      getenv("GUEST_PUBLISH") == "on",
+		ReadOnly:          getenv("READ_ONLY") == "on",
 	}
 	var err error
 	if c.Limits, err = limitsFromEnv(getenv); err != nil {

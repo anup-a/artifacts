@@ -77,7 +77,24 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
-	return requestID(mux), nil
+	return requestID(readOnly(d.Cfg.ReadOnly, mux)), nil
+}
+
+// readOnly refuses every write while the server is being moved. Reads,
+// including page views and the health check, carry on as normal.
+func readOnly(on bool, next http.Handler) http.Handler {
+	if !on {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet, http.MethodHead, http.MethodOptions:
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Retry-After", "300")
+		apierr.Write(w, r, apierr.Unavailable("byagent is moving to a new server; publishing and comments are paused for a few minutes"))
+	})
 }
 
 func ensureAdminKey(d Deps) (store.Key, error) {

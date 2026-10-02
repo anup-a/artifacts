@@ -4,6 +4,92 @@ Operational reference for running `artifacts` on the managed deployment
 (Hetzner CX22 + Cloudflare + Neon + R2, per §3b of the
 [design spec](../docs/superpowers/specs/2026-09-15-artifacts-service-design.md)).
 
+## Production on Hetzner (behind a Cloudflare Tunnel)
+
+Why it replaced Fly: Fly bills every GB served and has no spending cap, so a
+viral page or a flood has no ceiling. One Hetzner box in an EU location costs
+a fixed monthly price with 20 TB of traffic included; Cloudflare in front
+absorbs floods. Same binary, same sqlite + local blobs, files in
+`deploy/hetzner/`.
+
+Shape: `cloudflared` dials out to Cloudflare and carries `byagent.dev` and
+`app.byagent.dev` to the server over the compose network. The box's firewall
+admits ssh only, so the app is unreachable except through Cloudflare, which
+is what makes `TRUST_PROXY_HEADERS=true` (CF-Connecting-IP) safe.
+
+On the box, `/opt/artifacts/` holds `docker-compose.yml`, `.env` (secrets,
+mode 600) and `data/` (sqlite + blobs, uid 65532).
+
+### One-time setup
+
+1. Hetzner Cloud project `byagent`, API token (read & write) in the Keychain:
+   `security add-generic-password -s hcloud -a byagent -w`.
+2. Cloudflare: add the `byagent.dev` zone and switch Namecheap's nameservers
+   to Cloudflare's. Check every record came across (A/AAAA for both hosts,
+   MX, TXT). Namecheap's email forwarding (`eforward*` MX) stops working off
+   Namecheap DNS: recreate the forwards in Cloudflare Email Routing.
+3. Cloudflare Zero Trust > Networks > Tunnels: create tunnel `byagent`
+   (cloudflared), token in the Keychain:
+   `security add-generic-password -s cloudflared -a byagent -w`.
+   Add no public hostnames yet.
+4. `./deploy/hetzner/provision.sh`: ssh keys (laptop + CI deploy key at
+   `~/.ssh/byagent_deploy`), an ssh-only firewall, and the server (cx23,
+   else cpx12 while Cost-Optimized plans are out of stock; fsn1, Ubuntu
+   24.04, cloud-init.yml). Prints the GitHub secrets for CI.
+
+### Move the data
+
+The Fly server must already run a build with `snapshot` and `dotenv`.
+
+```
+fly auth login
+./deploy/hetzner/ship.sh root@<ip>             # image + compose onto the box
+./deploy/hetzner/migrate.sh root@<ip>          # rehearsal: Fly stays live
+```
+
+The rehearsal copies Fly's settings (`artifacts-server dotenv`), database and
+files (`artifacts-server snapshot`, VACUUM INTO, so it is consistent while
+Fly serves) and starts them on the box. Check counts and a page:
+`ssh root@<ip> curl -s 127.0.0.1:8080/a/<id>/`.
+
+### Cutover
+
+1. `./deploy/hetzner/migrate.sh root@<ip> --final`. It sets `READ_ONLY=on`
+   on Fly first: pages keep serving, publishing and comments answer 503 with
+   Retry-After, so the final snapshot loses nothing.
+2. Cloudflare DNS: delete the A/AAAA records for `byagent.dev` and
+   `app.byagent.dev` (they point at Fly).
+3. Tunnel `byagent` > Public hostnames: `byagent.dev` and `app.byagent.dev`,
+   both to `http://artifacts:8080`. Cloudflare creates the proxied CNAMEs.
+4. Check: `curl -sI https://app.byagent.dev/healthz` answers 200 with a
+   `cf-ray` header and no `fly-request-id`. Publish a page, comment on it,
+   sign in.
+5. GitHub: secrets `HETZNER_HOST`, `HETZNER_SSH_KEY`, `HETZNER_KNOWN_HOSTS`
+   (from provision.sh) and `HCLOUD_TOKEN`; repo variable
+   `DEPLOY_TARGET=hetzner`. Pushes to main now ship to the box, and the
+   Fly deploy job stops.
+6. Rollback while Fly still exists: point the hostnames back at Fly
+   (delete the tunnel hostnames, re-add the A/AAAA records) and
+   `fly secrets unset READ_ONLY --app artifacts-share`. Writes made on the box
+   in between stay on the box.
+7. After a quiet week: `fly apps destroy artifacts-share` and remove the
+   `FLY_API_TOKEN` secret.
+
+### Running it
+
+- Deploy: push to main (CI runs `ship.sh`), or `./deploy/hetzner/ship.sh root@<ip>`.
+- Roll back a release: `docker tag artifacts:<sha> artifacts:local && docker compose up -d`
+  in `/opt/artifacts` (ship.sh keeps the five newest builds).
+- Logs: `cd /opt/artifacts && docker compose logs -f artifacts`.
+- Backups: `.github/workflows/snapshots.yml` takes a server snapshot daily
+  and deletes those older than 5 days, matching the privacy policy. Restore
+  by rebuilding the server from a snapshot in the Hetzner console. Hetzner's
+  own Backups option keeps 7 days, so it stays off.
+- Updates: unattended-upgrades installs security fixes and reboots at 04:30
+  UTC when needed; both containers restart on boot.
+- Encryption at rest is the customer's job on Hetzner Cloud; the box's
+  disk is not encrypted. Keep the public security page in line with that.
+
 ## Validation deployment (Fly)
 
 The cheapest way to put the product in front of real users: one Fly machine,

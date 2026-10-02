@@ -3,3 +3,5 @@ node_modules/
 data/
 cover.out
 deploy/.env.free
+deploy/hetzner/.env
+deploy/hetzner/*.tgz
