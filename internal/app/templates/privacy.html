@@ -176,8 +176,8 @@
   <section id="retention">
     <h2>Retention and deletion</h2>
     <ul>
-      <li><b>Deleting a page</b> (<code>byagent delete</code>, or Delete on the dashboard) takes it offline at once, and its files are erased from storage within about a day. Its title, labels, comments and daily view counts stay in the database until you ask us to erase them.</li>
-      <li><b>Permanent erasure.</b> To have a page, its versions and its comments erased completely, email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>. It is done within 30 days.</li>
+      <li><b>Deleting a page</b> (<code>byagent delete</code>, or Delete on the dashboard) is permanent and needs no email. It takes the page offline at once and erases its title, labels, versions, comments and daily view counts straight away. Its files are erased from storage within a day. Only the page id is kept, so the old link says the page is gone and the id is never reused.</li>
+      <li><b>Guest pages</b>, published without an account, are erased the same way 24 hours after the guest key was made, unless someone signs in and keeps them first.</li>
       <li><b>Deleting your account</b> is done by email too, within 30 days. It removes your account, your workspace, its pages and keys.</li>
       <li><b>Backups.</b> Fly.io takes a daily snapshot of the storage volume and keeps each one for 5 days, so erased data is gone from backups 5 days later.</li>
       <li><b>Versions.</b> Each page keeps up to {{$d.Limits.VersionsKept}} versions. Older versions are deleted when a new one is published, unless an open comment thread is attached to them.</li>

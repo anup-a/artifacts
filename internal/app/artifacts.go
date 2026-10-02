@@ -159,16 +159,11 @@ func (h *Handler) deleteArtifact(w http.ResponseWriter, r *http.Request, v *view
 		h.storeErr(w, r, err, "That artifact does not exist.")
 		return
 	}
-	now := h.Now()
-	if err := h.Store.SoftDelete(ctx, id, now); err != nil {
+	if err := h.Store.SoftDelete(ctx, id, h.Now()); err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	if err := h.Store.ResolveAllThreads(ctx, id, now); err != nil {
-		h.fail(w, r, err)
-		return
-	}
-	if _, err := h.Store.PruneVersions(ctx, id, 0); err != nil {
+	if err := h.Store.Erase(ctx, id); err != nil {
 		h.fail(w, r, err)
 		return
 	}

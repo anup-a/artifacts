@@ -167,6 +167,11 @@ type Store interface {
 	// merging when the target label already exists.
 	RenameCollection(ctx context.Context, tenantID, from, to string, at time.Time) (int, error)
 	SoftDelete(ctx context.Context, id string, at time.Time) error
+	// Erase empties a deleted artifact: comments, threads, view counts,
+	// versions and labels. The id stays reserved and answers 410.
+	Erase(ctx context.Context, id string) error
+	// Unerased lists deleted artifacts with something left to erase.
+	Unerased(ctx context.Context) ([]string, error)
 	AddVersion(ctx context.Context, v Version, files []File) error
 	Versions(ctx context.Context, artifactID string) ([]Version, error)
 	Files(ctx context.Context, artifactID string, version int) ([]File, error)
