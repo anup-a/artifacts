@@ -28,6 +28,17 @@ func gcOnce(ctx context.Context, d Deps, olderThan time.Time) error {
 	if err := d.Store.ExpireGuests(ctx, d.Now()); err != nil {
 		return err
 	}
+	// Expired guest pages, and pages deleted before delete erased them,
+	// are erased here; their blobs are then picked up below.
+	unerased, err := d.Store.Unerased(ctx)
+	if err != nil {
+		return err
+	}
+	for _, id := range unerased {
+		if err := d.Store.Erase(ctx, id); err != nil {
+			return err
+		}
+	}
 	if err := d.Store.DeleteExpiredCredentials(ctx, d.Now()); err != nil {
 		return err
 	}

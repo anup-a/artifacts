@@ -108,19 +108,13 @@ func (s *server) deleteArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	now := s.Now()
-	if err := s.Store.SoftDelete(r.Context(), a.ID, now); err != nil {
+	if err := s.Store.SoftDelete(r.Context(), a.ID, s.Now()); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	// Open threads protect their version from pruning, and after the delete the
-	// artifact answers 410 so nobody can resolve them. Resolve them here or the
-	// versions, and the blobs behind them, are retained forever.
-	if err := s.Store.ResolveAllThreads(r.Context(), a.ID, now); err != nil {
-		apierr.Write(w, r, apierr.Internal(err))
-		return
-	}
-	if _, err := s.Store.PruneVersions(r.Context(), a.ID, 0); err != nil {
+	// Delete is permanent: comments, views, versions and labels go now, and
+	// the blobs follow on the next GC.
+	if err := s.Store.Erase(r.Context(), a.ID); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}

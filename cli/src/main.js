@@ -86,6 +86,8 @@ one-click link; running it again rotates the code, which stops every link that
 carried the old one. share --off withdraws it. Anyone holding the code can open
 and comment on that artifact, and nothing else, without signing in. get shows
 the code; list never does.
+delete is permanent: the page, its versions, comments and view counts are
+erased, and the id only ever answers 410 after.
 --private restricts viewing to the signed-in owning workspace; --public makes
 the artifact publicly accessible. Omit both to preserve visibility on republish;
 new artifacts default to public. Artifact JSON carries visibility. Private URLs
