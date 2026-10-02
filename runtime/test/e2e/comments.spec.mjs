@@ -139,8 +139,17 @@ test("panel lists an existing thread and shows its highlight", async ({ page }) 
   await expect(mark).toHaveText("twelve percent");
   await expect(mark).toHaveAttribute("data-status", "attached");
 
+  // Highlights are hidden until the panel opens, and clicking one does nothing.
+  const root = page.locator("html");
   const shadow = page.locator("#artifacts-rt");
+  await expect(root).not.toHaveAttribute("data-artifacts-hl", "on");
+  await expect(mark).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await mark.click();
+  await expect(shadow.locator(".panel")).toHaveAttribute("data-open", "0");
+
   await shadow.locator(".launcher").click();
+  await expect(root).toHaveAttribute("data-artifacts-hl", "on");
+  await expect(mark).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(shadow.locator(".thread")).toHaveCount(1);
   await expect(shadow.locator(".thread")).toContainText("Is twelve percent right?");
   await expect(shadow.locator(".thread")).toContainText("Dana");

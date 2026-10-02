@@ -1,6 +1,6 @@
 // The right-hand thread panel: a Linear-style inspector. Everything lives in
 // the shadow root, so the host page's CSS cannot reach in and ours cannot leak.
-import { setActive } from "./highlight.js";
+import { setActive, setShown } from "./highlight.js";
 import { THEME, el, autogrow, snippet } from "./theme.js";
 import { icon } from "./icons.js";
 import { relativeTime, avatarHue, initial } from "./format.js";
@@ -163,11 +163,13 @@ export function mountPanel(shadow, ctx) {
   function open() {
     panel.setAttribute("data-open", "1");
     launcher.setAttribute("data-open", "1");
+    setShown(true);
     reserveSpace(true);
   }
   function close() {
     panel.setAttribute("data-open", "0");
     launcher.setAttribute("data-open", "0");
+    setShown(false);
     reserveSpace(false);
   }
   function toggle() {
