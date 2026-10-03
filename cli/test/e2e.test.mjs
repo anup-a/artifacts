@@ -572,3 +572,25 @@ test("BYAGENT_GUEST=0 keeps the not-configured error", () => {
   assert.equal(r.status, 2);
   assert.equal(JSON.parse(r.stderr).error.code, "NOT_CONFIGURED");
 });
+
+test("mark shows readers what is happening to their comment", async () => {
+  const pub = json(["publish", siteDir("<p>The quick brown fox.</p>")]);
+  const created = await fetch(`${BASE}/c/${pub.id}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ author_name: "Reader", body: "colour or color?", anchor: { kind: "text", quote: "quick brown fox" }, version: 1 }),
+  });
+  const thread = await created.json();
+  assert.equal(thread.progress, "");
+
+  assert.equal(json(["mark", pub.id, thread.id, "working"]).progress, "working");
+  const seenByReader = await (await fetch(`${BASE}/c/${pub.id}/comments`)).json();
+  assert.equal(seenByReader.threads[0].progress, "working");
+
+  const noNote = run(["mark", pub.id, thread.id, "declined", "--json"]);
+  assert.equal(noNote.code, 2);
+  const declined = json(["mark", pub.id, thread.id, "declined", "--note", "Keeping British spelling."]);
+  assert.equal(declined.progress, "declined");
+  assert.equal(declined.status, "resolved");
+  assert.equal(declined.comments.at(-1).body, "Keeping British spelling.");
+});

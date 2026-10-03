@@ -53,6 +53,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("GET /api/artifacts/{id}/comments", s.withAuth(s.ownerListComments))
 	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/reply", s.withAuth(s.ownerReply))
 	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/resolve", s.withAuth(s.ownerResolve))
+	mux.HandleFunc("POST /api/artifacts/{id}/comments/{thread}/progress", s.withAuth(s.ownerProgress))
 	var sessions *auth.Sessions
 	if d.Cfg.WebEnabled() {
 		sessions = &auth.Sessions{Store: d.Store, Now: d.Now, Secure: auth.SecureOrigin(d.Cfg.APIOrigin)}

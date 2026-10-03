@@ -107,3 +107,22 @@ export async function resolve(cfg, { positional }) {
   const t = await apiJson(cfg, "POST", `/api/artifacts/${encodeURIComponent(id)}/comments/${encodeURIComponent(thread)}/resolve`, {});
   return { json: t, human: [`resolved ${thread}`] };
 }
+
+const PROGRESS = ["seen", "working", "declined"];
+
+// mark tells readers what is happening to their comment: seen, working, or
+// declined (which needs --note with the reason and also resolves the thread).
+export async function mark(cfg, { positional, flags }) {
+  const [id, thread, progress] = positional;
+  if (!id || !thread || !PROGRESS.includes(progress)) {
+    throw usage('usage: byagent mark <id> <thread> seen|working|declined [--note "<text>"]');
+  }
+  if (progress === "declined" && !flags.note) throw usage("declined needs --note saying why");
+  const body = { progress };
+  if (flags.note) body.note = String(flags.note);
+  const t = await apiJson(cfg, "POST", `/api/artifacts/${encodeURIComponent(id)}/comments/${encodeURIComponent(thread)}/progress`, {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return { json: t, human: [`${thread}: ${progress}${t.status === "resolved" ? ", resolved" : ""}`] };
+}

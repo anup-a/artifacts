@@ -7,6 +7,7 @@
     <span class="thread-tags">
       <span class="badge mono">v{{$t.Version}}</span>
       {{if eq $t.AnchorStatus "drifted"}}<span class="badge warn">drifted</span>{{else if eq $t.AnchorStatus "orphaned"}}<span class="badge warn">orphaned</span>{{end}}
+      {{if eq $t.Progress "seen"}}<span class="badge">seen</span>{{else if eq $t.Progress "working"}}<span class="badge ok">working on it</span>{{else if eq $t.Progress "declined"}}<span class="badge warn">declined</span>{{end}}
       {{if eq $t.Status "resolved"}}<span class="badge">resolved{{if $t.ResolvedAt}} · <time title="{{when $t.ResolvedAt}} UTC">{{ago $t.ResolvedAt $p.Now}}</time>{{end}}</span>{{end}}
     </span>
   </header>

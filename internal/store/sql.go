@@ -271,11 +271,11 @@ func (s *sqlStore) CreateThread(ctx context.Context, t Thread, first Comment) er
 	return tx.Commit()
 }
 
-const threadCols = `id,artifact_id,version,anchor_json,status,anchor_status,created_at,resolved_at`
+const threadCols = `id,artifact_id,version,anchor_json,status,anchor_status,created_at,resolved_at,progress`
 
 func scanThread(row interface{ Scan(...any) error }) (Thread, error) {
 	var t Thread
-	err := row.Scan(&t.ID, &t.ArtifactID, &t.Version, &t.AnchorJSON, &t.Status, &t.AnchorStatus, &t.CreatedAt, &t.ResolvedAt)
+	err := row.Scan(&t.ID, &t.ArtifactID, &t.Version, &t.AnchorJSON, &t.Status, &t.AnchorStatus, &t.CreatedAt, &t.ResolvedAt, &t.Progress)
 	return t, notFound(err)
 }
 
@@ -387,4 +387,11 @@ func (s *sqlStore) CountThreadsByVersion(ctx context.Context, artifactID string)
 		out[v] = n
 	}
 	return out, rows.Err()
+}
+
+// SetThreadProgress stores what the publisher is doing about a thread. It
+// does not touch status: resolving is a separate call.
+func (s *sqlStore) SetThreadProgress(ctx context.Context, id, progress string) error {
+	res, err := s.db.ExecContext(ctx, s.q(`UPDATE threads SET progress=? WHERE id=?`), progress, id)
+	return affected(res, err)
 }

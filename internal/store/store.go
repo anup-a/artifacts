@@ -113,6 +113,7 @@ type Thread struct {
 	AnchorJSON   string
 	Status       string // open | resolved
 	AnchorStatus string // unknown | attached | drifted | orphaned
+	Progress     string // "" | seen | working | declined
 	CreatedAt    time.Time
 	ResolvedAt   *time.Time
 }
@@ -186,6 +187,8 @@ type Store interface {
 	Comments(ctx context.Context, threadIDs []string) (map[string][]Comment, error)
 	AddComment(ctx context.Context, c Comment) error
 	ResolveThread(ctx context.Context, id string, at time.Time) error
+	// SetThreadProgress records what the publisher is doing about a thread.
+	SetThreadProgress(ctx context.Context, id, progress string) error
 	ResolveAllThreads(ctx context.Context, artifactID string, at time.Time) error
 	SetAnchorStatus(ctx context.Context, threadID, status string) error
 	CountOpenThreads(ctx context.Context, artifactID string) (int, error)
