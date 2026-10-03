@@ -104,3 +104,63 @@ func (s *server) ownerResolve(w http.ResponseWriter, r *http.Request) {
 	}
 	apierr.WriteJSON(w, 200, v)
 }
+
+// ownerProgress answers POST .../comments/{thread}/progress with
+// {"progress": "seen"|"working"|"declined", "note": "..."}. The note, when
+// given, is posted as an owner reply. Declining needs a note, since a reader
+// is owed a reason, and also resolves the thread.
+func (s *server) ownerProgress(w http.ResponseWriter, r *http.Request) {
+	t, e := s.ownerThread(r)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	var in struct {
+		Progress string `json:"progress"`
+		Note     string `json:"note"`
+	}
+	if e := decodeJSON(w, r, int64(s.Cfg.Limits.CommentBytes+512), &in); e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	switch in.Progress {
+	case "seen", "working", "declined":
+	default:
+		apierr.Write(w, r, apierr.Invalid("progress must be seen, working or declined"))
+		return
+	}
+	var note string
+	if in.Note != "" || in.Progress == "declined" {
+		if note, e = s.validBody(in.Note); e != nil {
+			if in.Progress == "declined" && in.Note == "" {
+				e = apierr.Invalid("declining needs a note saying why")
+			}
+			apierr.Write(w, r, e)
+			return
+		}
+	}
+	ctx := r.Context()
+	if err := s.Store.SetThreadProgress(ctx, t.ID, in.Progress); err != nil {
+		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	if note != "" {
+		c := store.Comment{ID: newCommentID(), ThreadID: t.ID, AuthorName: "Author", AuthorKind: "owner", Body: note, CreatedAt: s.Now()}
+		if err := s.Store.AddComment(ctx, c); err != nil {
+			apierr.Write(w, r, apierr.Internal(err))
+			return
+		}
+	}
+	if in.Progress == "declined" && t.Status != "resolved" {
+		if err := s.Store.ResolveThread(ctx, t.ID, s.Now()); err != nil {
+			apierr.Write(w, r, apierr.Internal(err))
+			return
+		}
+	}
+	v, e := s.threadView(r, t.ID)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	apierr.WriteJSON(w, 200, v)
+}

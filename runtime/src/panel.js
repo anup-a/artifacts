@@ -61,6 +61,8 @@ background:var(--card);transition:border-color .12s ease,box-shadow .12s ease}
 .badge{font-size:11px;font-weight:500;border-radius:999px;padding:1px 7px;background:var(--bg);
 border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1.5;cursor:help}
 .badge[data-s="drifted"]{color:var(--warn);border-color:var(--warn-line);background:var(--warn-soft)}
+.badge[data-p="seen"]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.badge[data-p="working"]{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
 .replies{margin:10px 0 0 11px;padding-left:12px;border-left:2px solid var(--line)}
 .r{display:flex;gap:8px;padding:10px 0 0}
 .r .body{flex:1;min-width:0}
@@ -82,6 +84,15 @@ font-size:12px;color:var(--muted);background:var(--bg)}
 const BADGE = {
   drifted: ["Moved", "The quoted text changed, so this comment now points at the closest match."],
   orphaned: ["Earlier version", "The quoted text is not on this version of the page."],
+};
+
+// PROGRESS is what the page's author (usually an agent) has said it is doing
+// about a thread, set with byagent mark. Declined threads are also resolved,
+// and the reason is the author's reply.
+const PROGRESS = {
+  seen: ["Seen", "The author has read this comment."],
+  working: ["Working on it", "The author is changing the page for this comment."],
+  declined: ["Declined", "The author decided not to change this. Their reason is in the replies."],
 };
 
 export function mountPanel(shadow, ctx) {
@@ -225,6 +236,10 @@ export function mountPanel(shadow, ctx) {
     const badge = BADGE[resolved.status];
     if (badge) {
       head.appendChild(el("span", { class: "badge", "data-s": resolved.status, title: badge[1], text: badge[0] }));
+    }
+    const progress = PROGRESS[t.progress];
+    if (progress) {
+      head.appendChild(el("span", { class: "badge", "data-p": t.progress, title: progress[1], text: progress[0] }));
     }
 
     const body = [head];

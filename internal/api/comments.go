@@ -31,6 +31,7 @@ type threadView struct {
 	Version      int             `json:"version"`
 	Status       string          `json:"status"`
 	AnchorStatus string          `json:"anchor_status"`
+	Progress     string          `json:"progress"`
 	Anchor       json.RawMessage `json:"anchor"`
 	CreatedAt    time.Time       `json:"created_at"`
 	ResolvedAt   *time.Time      `json:"resolved_at"`
@@ -40,7 +41,7 @@ type threadView struct {
 func toThreadViews(ts []store.Thread, cs map[string][]store.Comment) []threadView {
 	out := make([]threadView, 0, len(ts))
 	for _, t := range ts {
-		v := threadView{ID: t.ID, Version: t.Version, Status: t.Status, AnchorStatus: t.AnchorStatus, Anchor: json.RawMessage(t.AnchorJSON), CreatedAt: t.CreatedAt, ResolvedAt: t.ResolvedAt, Comments: []commentView{}}
+		v := threadView{ID: t.ID, Version: t.Version, Status: t.Status, AnchorStatus: t.AnchorStatus, Progress: t.Progress, Anchor: json.RawMessage(t.AnchorJSON), CreatedAt: t.CreatedAt, ResolvedAt: t.ResolvedAt, Comments: []commentView{}}
 		for _, c := range cs[t.ID] {
 			v.Comments = append(v.Comments, commentView{c.ID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt})
 		}

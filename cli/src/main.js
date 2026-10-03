@@ -4,7 +4,7 @@ import { createGuest } from "./guest.js";
 import { CliError, usage } from "./errors.js";
 import { publish } from "./commands/publish.js";
 import { get, list, share, versions, rollback, remove } from "./commands/artifacts.js";
-import { comments, reply, resolve } from "./commands/comments.js";
+import { comments, reply, resolve, mark } from "./commands/comments.js";
 import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
 import { whoami, portalLink } from "./commands/account.js";
@@ -28,6 +28,7 @@ const COMMANDS = {
   comments: { run: comments, needsConfig: true },
   reply: { run: reply, needsConfig: true },
   resolve: { run: resolve, needsConfig: true },
+  mark: { run: mark, needsConfig: true },
   hooks: { run: hooks, needsConfig: false },
   brief: { run: brief, needsConfig: true },
 };
@@ -54,6 +55,7 @@ Usage:
   byagent comments <id> --wait [--timeout <seconds>] [--interval <seconds>] [--since <rfc3339>]
   byagent reply <id> <thread> "<text>"
   byagent resolve <id> <thread>
+  byagent mark <id> <thread> seen|working|declined [--note "<text>"]
   byagent delete <id>
   byagent hooks install|uninstall claude|codex [--scope user|project]
   byagent brief [push [--private|--public] [--project <name>]]
@@ -86,6 +88,10 @@ one-click link; running it again rotates the code, which stops every link that
 carried the old one. share --off withdraws it. Anyone holding the code can open
 and comment on that artifact, and nothing else, without signing in. get shows
 the code; list never does.
+mark shows readers what is happening to their comment: seen, working, or
+declined. declined needs --note with the reason; it posts the note as a reply
+and resolves the thread. --note works with seen and working too. Thread JSON
+carries progress ("" until marked).
 delete is permanent: the page, its versions, comments and view counts are
 erased, and the id only ever answers 410 after.
 --private restricts viewing to the signed-in owning workspace; --public makes
