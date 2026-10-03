@@ -35,10 +35,10 @@ type manifest struct {
 	CoverStyle string     `json:"cover_style"`
 	// Agent and Model say what produced this version, for the history:
 	// free text such as "claude-code" and "claude-opus-5-5". Optional.
-	Agent string `json:"agent"`
-	Model string `json:"model"`
-	project    *string
-	tags       []string
+	Agent   string `json:"agent"`
+	Model   string `json:"model"`
+	project *string
+	tags    []string
 }
 
 var shaRe = regexp.MustCompile(`^[0-9a-f]{64}$`)
