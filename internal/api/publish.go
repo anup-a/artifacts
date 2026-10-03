@@ -176,7 +176,9 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 		files = append(files, store.File{Path: f.Path, SHA256: f.SHA256, Size: f.Size, ContentType: contentTypeFor(f.Path)})
 		total += f.Size
 	}
-	v := store.Version{ArtifactID: a.ID, Version: a.CurrentVersion + 1, CreatedAt: s.Now(), Bytes: total, FileCount: len(files)}
+	k, _ := KeyFrom(ctx)
+	v := store.Version{ArtifactID: a.ID, Version: a.CurrentVersion + 1, CreatedAt: s.Now(), Bytes: total, FileCount: len(files),
+		Agent: m.Agent, Model: m.Model, KeyName: k.Name}
 	// Restrict access before storing any new content. If publishing later fails,
 	// the artifact stays private rather than exposing the attempted update.
 	if m.Visibility != nil && *m.Visibility == "private" && a.Visibility != "private" {

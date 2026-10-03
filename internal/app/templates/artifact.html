@@ -151,12 +151,13 @@
     </div>
     {{if .Data.Versions}}
     <table class="table flush">
-      <thead><tr><th>Version</th><th>Published</th><th class="num">Size</th><th class="num">Files</th><th class="num">Comments</th><th class="actions"></th></tr></thead>
+      <thead><tr><th>Version</th><th>Published</th><th>By</th><th class="num">Size</th><th class="num">Files</th><th class="num">Comments</th><th class="actions"></th></tr></thead>
       <tbody>
       {{range .Data.Versions}}
       <tr{{if .Current}} class="is-current"{{end}}>
         <td><span class="badge mono">v{{.N}}</span>{{if .Current}} <span class="badge ok">Current</span>{{end}}</td>
         <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time></td>
+        <td class="muted"{{if .Key}} title="key: {{.Key}}"{{end}}>{{if .By}}{{.By}}{{else}}&ndash;{{end}}</td>
         <td class="num">{{bytes .Bytes}}</td>
         <td class="num">{{.FileCount}}</td>
         <td class="num">{{.Comments}}</td>

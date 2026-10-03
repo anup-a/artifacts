@@ -45,7 +45,7 @@ byagent publish ./notes.md --project "Hi Travel" --tag notes --json     # Markdo
 
 **Markdown:** a `.md` file, or a directory with `index.md` / `README.md` and no `index.html`, is rendered on publish: light + dark, heading anchors, sticky table of contents, GFM tables and task lists, highlighted code fences. The first H1 becomes the title unless `--title` is given. Relative images next to the file ship with it when you publish the directory.
 
-Always pass `--project` and 1–3 `--tag`s. Output includes `url` — that is the deliverable. Republish from the **same directory** to keep the URL (`.artifacts.json` binds it). New directory = new link.
+Always pass `--project` and 1–3 `--tag`s. Pass `--agent <you>` (for example `codex`, `cursor`) and `--model <model id>` when you know them, so the version history shows what produced each version; inside Claude Code the agent is filled in for you. Output includes `url` — that is the deliverable. Republish from the **same directory** to keep the URL (`.artifacts.json` binds it). New directory = new link.
 
 **Collections:** every artifact sharing a `--project` label forms a collection (read in publish order unless the owner reorders it). Before publishing a page that belongs with earlier ones, run `byagent collections --json` and reuse the **exact** existing project string; a near-miss like `Hi-Travel` vs `Hi Travel` starts a second collection. `byagent collection "<name>" --json` lists one collection's pages with their URLs.
 

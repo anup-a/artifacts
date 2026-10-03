@@ -33,6 +33,10 @@ type manifest struct {
 	Tags       optStrings `json:"tags"`
 	Cover      optString  `json:"cover"`
 	CoverStyle string     `json:"cover_style"`
+	// Agent and Model say what produced this version, for the history:
+	// free text such as "claude-code" and "claude-opus-5-5". Optional.
+	Agent string `json:"agent"`
+	Model string `json:"model"`
 	project    *string
 	tags       []string
 }
@@ -83,6 +87,16 @@ func parseManifest(raw []byte, lim config.Limits) (manifest, *apierr.Error) {
 	}
 	if !hasIndex {
 		return m, apierr.Invalid("index.html is required at the root")
+	}
+	for name, v := range map[string]string{"agent": m.Agent, "model": m.Model} {
+		if len(v) > 64 {
+			return m, apierr.Invalid(name + " must be at most 64 characters")
+		}
+		for i := 0; i < len(v); i++ {
+			if v[i] < 0x20 || v[i] > 0x7e {
+				return m, apierr.Invalid(name + " must be printable ASCII")
+			}
+		}
 	}
 	return validateGallery(m)
 }

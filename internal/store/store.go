@@ -97,6 +97,9 @@ type Version struct {
 	CreatedAt  time.Time
 	Bytes      int64
 	FileCount  int
+	// Agent and Model are what the publisher reported, empty when unknown.
+	// KeyName is the publishing key's name at the time.
+	Agent, Model, KeyName string
 }
 
 type File struct {

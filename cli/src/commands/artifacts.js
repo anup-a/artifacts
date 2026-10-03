@@ -80,7 +80,10 @@ export async function versions(cfg, { positional }) {
   const rows = res.versions || [];
   return {
     json: res,
-    human: rows.map((v) => `v${v.version}  ${v.files} files  ${v.bytes} bytes  ${v.comment_count} comments  ${v.created_at}`),
+    human: rows.map((v) => {
+      const by = [v.agent, v.model].filter(Boolean).join(" / ") || v.key || "";
+      return `v${v.version}  ${v.files} files  ${v.bytes} bytes  ${v.comment_count} comments  ${v.created_at}${by ? `  by ${by}` : ""}`;
+    }),
   };
 }
 

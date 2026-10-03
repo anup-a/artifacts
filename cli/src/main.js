@@ -42,6 +42,7 @@ Usage:
                   [--private|--public]
                   [--comments|--no-comments] [--project <name>] [--tag <t>]...
                   [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
+                  [--agent <name>] [--model <name>]
   byagent get <id>
   byagent share <id> [--off]
   byagent list [--search <text>] [--end-user <id>] [--project <name>]
@@ -88,6 +89,9 @@ one-click link; running it again rotates the code, which stops every link that
 carried the old one. share --off withdraws it. Anyone holding the code can open
 and comment on that artifact, and nothing else, without signing in. get shows
 the code; list never does.
+--agent and --model record what produced a version (free text, 64 chars),
+else BYAGENT_AGENT / BYAGENT_MODEL; inside Claude Code the agent defaults to
+claude-code. versions shows them with the publishing key's name.
 mark shows readers what is happening to their comment: seen, working, or
 declined. declined needs --note with the reason; it posts the note as a reply
 and resolves the thread. --note works with seen and working too. Thread JSON

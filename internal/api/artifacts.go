@@ -139,7 +139,8 @@ func (s *server) listVersions(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]map[string]any, 0, len(vs))
 	for _, v := range vs {
-		out = append(out, map[string]any{"version": v.Version, "created_at": v.CreatedAt, "bytes": v.Bytes, "files": v.FileCount, "comment_count": counts[v.Version]})
+		out = append(out, map[string]any{"version": v.Version, "created_at": v.CreatedAt, "bytes": v.Bytes, "files": v.FileCount, "comment_count": counts[v.Version],
+			"agent": v.Agent, "model": v.Model, "key": v.KeyName})
 	}
 	apierr.WriteJSON(w, 200, map[string]any{"versions": out})
 }

@@ -32,6 +32,22 @@ type versionView struct {
 	FileCount int
 	Current   bool
 	Comments  int
+	// By is what produced the version: agent and model when reported, else
+	// the publishing key's name. Key is that name, shown on hover.
+	By, Key string
+}
+
+func versionBy(v store.Version) string {
+	parts := []string{}
+	for _, p := range []string{v.Agent, v.Model} {
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	if len(parts) == 0 {
+		return v.KeyName
+	}
+	return strings.Join(parts, " · ")
 }
 
 // threadView is one comment thread with its comments and the anchor's quote.
@@ -140,7 +156,7 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	for i := len(vs) - 1; i >= 0; i-- { // newest first
 		vv := vs[i]
 		d.Versions = append(d.Versions, versionView{N: vv.Version, CreatedAt: vv.CreatedAt, Bytes: vv.Bytes, FileCount: vv.FileCount,
-			Current: vv.Version == a.CurrentVersion, Comments: counts[vv.Version]})
+			Current: vv.Version == a.CurrentVersion, Comments: counts[vv.Version], By: versionBy(vv), Key: vv.KeyName})
 	}
 	threads, err := h.Store.Threads(ctx, a.ID, "", time.Time{}, 0)
 	if err != nil {
