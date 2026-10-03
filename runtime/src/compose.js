@@ -25,6 +25,8 @@ border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--sh
 .pop .row{display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-top:10px}
 .pop .row .hint{flex:1;font-size:11px;color:var(--muted);display:flex;gap:4px;align-items:center}
 .pop .err{margin:0 0 6px}
+.pop .sug{margin-bottom:8px}
+.pop .row .link{margin-right:auto;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:2px}
 `;
 
 function uuid() {
@@ -147,12 +149,36 @@ export function mountCompose(shadow, ctx) {
       },
     });
     autogrow(body);
+    // A suggested edit: replacement text for the quoted words, prefilled so
+    // the reader only changes what is wrong. Text selections only. The box is
+    // made on first use, so a plain comment's popover is unchanged.
+    let sug = null;
+    const suggest = el("button", {
+      class: "link",
+      type: "button",
+      text: "Suggest an edit",
+      onclick: () => {
+        if (!sug) {
+          sug = el("textarea", { class: "field sug", rows: "2", "aria-label": "Suggested text" });
+          sug.value = anchor.quote || "";
+          body.before(sug);
+          autogrow(sug);
+          body.placeholder = "Why? (optional)";
+        } else {
+          sug.hidden = !sug.hidden;
+        }
+        suggest.textContent = sug.hidden ? "Suggest an edit" : "Just comment";
+        (sug.hidden ? body : sug).focus();
+      },
+    });
+    suggest.hidden = anchor.kind !== "text";
     const send = el("button", { class: "btn pri send", type: "button", text: "Comment" });
     const cancel = el("button", { class: "btn cancel", type: "button", text: "Cancel", onclick: hidePop });
 
     send.addEventListener("click", async () => {
       const author = name.value.trim() || "Anonymous";
-      const what = body.value.trim();
+      const edit = sug && !sug.hidden && sug.value !== pending.quote ? sug.value : "";
+      const what = body.value.trim() || (edit ? "Suggested edit" : "");
       if (!what) {
         err.textContent = "Write something first.";
         err.hidden = false;
@@ -162,7 +188,7 @@ export function mountCompose(shadow, ctx) {
       store.set("name", author);
       send.disabled = true;
       send.textContent = "Posting…";
-      const res = await client.createThread(author, what, pending, uuid());
+      const res = await client.createThread(author, what, pending, uuid(), edit || undefined);
       send.disabled = false;
       send.textContent = "Comment";
       if (!res.ok) {
@@ -186,7 +212,7 @@ export function mountCompose(shadow, ctx) {
     pop.appendChild(name);
     pop.appendChild(body);
     pop.appendChild(err);
-    pop.appendChild(el("div", { class: "row" }, [hint, cancel, send]));
+    pop.appendChild(el("div", { class: "row" }, [suggest, hint, cancel, send]));
     placePop(rect);
     body.focus();
   }

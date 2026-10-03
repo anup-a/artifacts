@@ -260,8 +260,8 @@ func (s *sqlStore) CreateThread(ctx context.Context, t Thread, first Comment) er
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO threads(id,artifact_id,version,anchor_json,status,anchor_status,created_at) VALUES (?,?,?,?,?,?,?)`),
-		t.ID, t.ArtifactID, t.Version, t.AnchorJSON, t.Status, t.AnchorStatus, t.CreatedAt); err != nil {
+	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO threads(id,artifact_id,version,anchor_json,status,anchor_status,created_at,suggestion) VALUES (?,?,?,?,?,?,?,?)`),
+		t.ID, t.ArtifactID, t.Version, t.AnchorJSON, t.Status, t.AnchorStatus, t.CreatedAt, t.Suggestion); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO comments(id,thread_id,author_name,author_kind,body,created_at) VALUES (?,?,?,?,?,?)`),
@@ -271,11 +271,11 @@ func (s *sqlStore) CreateThread(ctx context.Context, t Thread, first Comment) er
 	return tx.Commit()
 }
 
-const threadCols = `id,artifact_id,version,anchor_json,status,anchor_status,created_at,resolved_at,progress`
+const threadCols = `id,artifact_id,version,anchor_json,status,anchor_status,created_at,resolved_at,progress,suggestion`
 
 func scanThread(row interface{ Scan(...any) error }) (Thread, error) {
 	var t Thread
-	err := row.Scan(&t.ID, &t.ArtifactID, &t.Version, &t.AnchorJSON, &t.Status, &t.AnchorStatus, &t.CreatedAt, &t.ResolvedAt, &t.Progress)
+	err := row.Scan(&t.ID, &t.ArtifactID, &t.Version, &t.AnchorJSON, &t.Status, &t.AnchorStatus, &t.CreatedAt, &t.ResolvedAt, &t.Progress, &t.Suggestion)
 	return t, notFound(err)
 }
 

@@ -668,3 +668,26 @@ test("an artifact opened with a share code can still be commented on", async ({ 
   await shadow.locator(".launcher").click();
   await expect(shadow.locator(".thread")).toContainText("Opened with the code.");
 });
+
+test("a reader can suggest an edit, and the panel shows it as a change", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+
+  await selectText(page, "#p2");
+  await shadow.locator(".fab").click();
+  await shadow.locator(".pop input").fill("Ravi");
+  await shadow.locator(".pop .row .link").click();
+  const sug = shadow.locator(".pop textarea.sug");
+  await expect(sug).toHaveValue("Revenue grew by twelve percent this quarter.");
+  await sug.fill("Revenue grew by 12% this quarter.");
+  await shadow.locator(".pop .send").click();
+
+  await expect(shadow.locator(".thread .sug ins")).toHaveText("Revenue grew by 12% this quarter.");
+  await expect(shadow.locator(".thread .sug del")).toHaveText("Revenue grew by twelve percent this quarter.");
+  const res = await fetch(`${BASE}/c/${id}/comments`);
+  const { threads } = await res.json();
+  expect(threads[0].suggestion).toBe("Revenue grew by 12% this quarter.");
+  expect(threads[0].comments[0].body).toBe("Suggested edit");
+});

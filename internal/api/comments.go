@@ -27,21 +27,23 @@ type commentView struct {
 }
 
 type threadView struct {
-	ID           string          `json:"id"`
-	Version      int             `json:"version"`
-	Status       string          `json:"status"`
-	AnchorStatus string          `json:"anchor_status"`
-	Progress     string          `json:"progress"`
-	Anchor       json.RawMessage `json:"anchor"`
-	CreatedAt    time.Time       `json:"created_at"`
-	ResolvedAt   *time.Time      `json:"resolved_at"`
-	Comments     []commentView   `json:"comments"`
+	ID           string `json:"id"`
+	Version      int    `json:"version"`
+	Status       string `json:"status"`
+	AnchorStatus string `json:"anchor_status"`
+	Progress     string `json:"progress"`
+	// Suggestion is the reader's proposed replacement for anchor.quote.
+	Suggestion string          `json:"suggestion"`
+	Anchor     json.RawMessage `json:"anchor"`
+	CreatedAt  time.Time       `json:"created_at"`
+	ResolvedAt *time.Time      `json:"resolved_at"`
+	Comments   []commentView   `json:"comments"`
 }
 
 func toThreadViews(ts []store.Thread, cs map[string][]store.Comment) []threadView {
 	out := make([]threadView, 0, len(ts))
 	for _, t := range ts {
-		v := threadView{ID: t.ID, Version: t.Version, Status: t.Status, AnchorStatus: t.AnchorStatus, Progress: t.Progress, Anchor: json.RawMessage(t.AnchorJSON), CreatedAt: t.CreatedAt, ResolvedAt: t.ResolvedAt, Comments: []commentView{}}
+		v := threadView{ID: t.ID, Version: t.Version, Status: t.Status, AnchorStatus: t.AnchorStatus, Progress: t.Progress, Suggestion: t.Suggestion, Anchor: json.RawMessage(t.AnchorJSON), CreatedAt: t.CreatedAt, ResolvedAt: t.ResolvedAt, Comments: []commentView{}}
 		for _, c := range cs[t.ID] {
 			v.Comments = append(v.Comments, commentView{c.ID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt})
 		}
@@ -259,4 +261,31 @@ func (i *idempotency) size() int {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	return len(i.items)
+}
+
+// validSuggestion checks a reader's proposed replacement. It only makes sense
+// against quoted text, must change something, and is plain text like a body:
+// the author applies it to the page, so it never carries markup.
+func (s *server) validSuggestion(sug, anchorJSON string) (string, *apierr.Error) {
+	if sug == "" {
+		return "", nil
+	}
+	if hasControl(sug, true) {
+		return "", apierr.Invalid("suggestion must not contain control characters")
+	}
+	sug = tagRe.ReplaceAllString(sug, "")
+	if strings.TrimSpace(sug) == "" || len(sug) > s.Cfg.Limits.CommentBytes {
+		return "", apierr.Invalid("suggestion must be 1.." + strconv.Itoa(s.Cfg.Limits.CommentBytes) + " bytes")
+	}
+	var a struct {
+		Kind  string `json:"kind"`
+		Quote string `json:"quote"`
+	}
+	if json.Unmarshal([]byte(anchorJSON), &a) != nil || a.Kind != "text" {
+		return "", apierr.Invalid("a suggestion needs a text anchor: highlight the words to replace")
+	}
+	if sug == a.Quote {
+		return "", apierr.Invalid("the suggestion is the same as the quoted text")
+	}
+	return sug, nil
 }

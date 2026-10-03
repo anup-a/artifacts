@@ -4,6 +4,7 @@
 <article class="thread{{if eq $t.Status "resolved"}} is-resolved{{end}}" id="{{$t.ID}}">
   <header class="thread-head">
     {{if $t.Quote}}<blockquote class="thread-quote" title="Anchored text">{{$t.Quote}}</blockquote>{{else}}<span class="muted">No anchor</span>{{end}}
+    {{if $t.Suggestion}}<p class="thread-suggestion"><span class="muted">Suggested:</span> {{$t.Suggestion}}</p>{{end}}
     <span class="thread-tags">
       <span class="badge mono">v{{$t.Version}}</span>
       {{if eq $t.AnchorStatus "drifted"}}<span class="badge warn">drifted</span>{{else if eq $t.AnchorStatus "orphaned"}}<span class="badge warn">orphaned</span>{{end}}

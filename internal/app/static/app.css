@@ -1297,3 +1297,4 @@ a.deck:hover .deck-card-2 { transform: translate(-24px, -18px) rotate(-8.5deg) s
 }
 
 .claim-list { margin: 0 0 16px; padding-left: 18px; display: grid; gap: 6px; }
+.thread-suggestion { margin: 6px 0 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }

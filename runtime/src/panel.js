@@ -63,6 +63,9 @@ border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1
 .badge[data-s="drifted"]{color:var(--warn);border-color:var(--warn-line);background:var(--warn-soft)}
 .badge[data-p="seen"]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 .badge[data-p="working"]{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+.sug{margin-top:8px;font-size:13px;line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap}
+.sug del{color:var(--muted)}
+.sug ins{text-decoration:none;background:var(--ok-soft);color:var(--ok)}
 .replies{margin:10px 0 0 11px;padding-left:12px;border-left:2px solid var(--line)}
 .r{display:flex;gap:8px;padding:10px 0 0}
 .r .body{flex:1;min-width:0}
@@ -244,6 +247,9 @@ export function mountPanel(shadow, ctx) {
 
     const body = [head];
     if (quoted) body.push(snippet(quoted));
+    if (t.suggestion) {
+      body.push(el("p", { class: "sug" }, [el("del", { text: anchor.quote || "" }), document.createTextNode(" → "), el("ins", { text: t.suggestion })]));
+    }
     if (resolved.status === "orphaned" && !active) {
       body.push(el("p", { class: "gone", text: "The quoted text is not on this version." }));
     } else {
