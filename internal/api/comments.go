@@ -27,17 +27,17 @@ type commentView struct {
 }
 
 type threadView struct {
-	ID           string          `json:"id"`
-	Version      int             `json:"version"`
-	Status       string          `json:"status"`
-	AnchorStatus string          `json:"anchor_status"`
-	Progress     string          `json:"progress"`
+	ID           string `json:"id"`
+	Version      int    `json:"version"`
+	Status       string `json:"status"`
+	AnchorStatus string `json:"anchor_status"`
+	Progress     string `json:"progress"`
 	// Suggestion is the reader's proposed replacement for anchor.quote.
-	Suggestion string `json:"suggestion"`
-	Anchor       json.RawMessage `json:"anchor"`
-	CreatedAt    time.Time       `json:"created_at"`
-	ResolvedAt   *time.Time      `json:"resolved_at"`
-	Comments     []commentView   `json:"comments"`
+	Suggestion string          `json:"suggestion"`
+	Anchor     json.RawMessage `json:"anchor"`
+	CreatedAt  time.Time       `json:"created_at"`
+	ResolvedAt *time.Time      `json:"resolved_at"`
+	Comments   []commentView   `json:"comments"`
 }
 
 func toThreadViews(ts []store.Thread, cs map[string][]store.Comment) []threadView {

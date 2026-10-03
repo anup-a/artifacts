@@ -123,8 +123,8 @@ type Thread struct {
 	// Suggestion is replacement text a reader proposed for the quoted
 	// passage; empty for a plain comment.
 	Suggestion string
-	CreatedAt    time.Time
-	ResolvedAt   *time.Time
+	CreatedAt  time.Time
+	ResolvedAt *time.Time
 }
 
 type Comment struct {
