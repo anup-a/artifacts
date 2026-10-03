@@ -42,8 +42,8 @@ export function createClient({ artifactId, version, origin = "" }) {
     meta: () => request(`${base}/meta`, { method: "GET" }),
     listThreads: (status = "open") =>
       request(`${base}/comments?status=${encodeURIComponent(status)}`, { method: "GET" }),
-    createThread: (author_name, body, anchor, idempotencyKey) => {
-      const opts = json({ author_name, body, anchor, version });
+    createThread: (author_name, body, anchor, idempotencyKey, suggestion) => {
+      const opts = json({ author_name, body, anchor, version, suggestion });
       if (idempotencyKey) opts.headers["Idempotency-Key"] = idempotencyKey;
       return request(`${base}/comments`, opts);
     },

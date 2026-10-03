@@ -36,8 +36,9 @@ func (s *server) viewerCreateThread(w http.ResponseWriter, r *http.Request) {
 		Body       string          `json:"body"`
 		Anchor     json.RawMessage `json:"anchor"`
 		Version    int             `json:"version"`
+		Suggestion string          `json:"suggestion"`
 	}
-	if e := decodeJSON(w, r, int64(s.Cfg.Limits.AnchorBytes+s.Cfg.Limits.CommentBytes+1024), &in); e != nil {
+	if e := decodeJSON(w, r, int64(s.Cfg.Limits.AnchorBytes+2*s.Cfg.Limits.CommentBytes+1024), &in); e != nil {
 		apierr.Write(w, r, e)
 		return
 	}
@@ -80,7 +81,12 @@ func (s *server) viewerCreateThread(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	th := store.Thread{ID: newThreadID(), ArtifactID: a.ID, Version: in.Version, AnchorJSON: anchor, Status: "open", AnchorStatus: "unknown", CreatedAt: now}
+	suggestion, e := s.validSuggestion(in.Suggestion, anchor)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	th := store.Thread{ID: newThreadID(), ArtifactID: a.ID, Version: in.Version, AnchorJSON: anchor, Status: "open", AnchorStatus: "unknown", CreatedAt: now, Suggestion: suggestion}
 	c := store.Comment{ID: newCommentID(), ThreadID: th.ID, AuthorName: name, AuthorKind: "viewer", Body: body, CreatedAt: now}
 	if err := s.Store.CreateThread(r.Context(), th, c); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))

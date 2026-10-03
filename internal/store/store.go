@@ -120,6 +120,9 @@ type Thread struct {
 	Status       string // open | resolved
 	AnchorStatus string // unknown | attached | drifted | orphaned
 	Progress     string // "" | seen | working | declined
+	// Suggestion is replacement text a reader proposed for the quoted
+	// passage; empty for a plain comment.
+	Suggestion string
 	CreatedAt    time.Time
 	ResolvedAt   *time.Time
 }

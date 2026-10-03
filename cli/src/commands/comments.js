@@ -7,9 +7,10 @@ function quoteOf(anchor) {
 }
 
 function threadLines(t) {
-  const out = [`${t.id}  ${t.status}  anchor ${t.anchor_status}  v${t.version}`];
+  const out = [`${t.id}  ${t.status}${t.progress ? `  ${t.progress}` : ""}  anchor ${t.anchor_status}  v${t.version}`];
   const q = quoteOf(t.anchor);
   if (q) out.push(`  on: ${q}`);
+  if (t.suggestion) out.push(`  suggests: ${t.suggestion}`);
   for (const c of t.comments || []) out.push(`  ${c.author_name} (${c.author_kind}): ${c.body}`);
   return out;
 }
