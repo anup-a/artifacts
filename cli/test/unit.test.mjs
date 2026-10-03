@@ -635,3 +635,11 @@ test("comments --wait rejects --open, --all and a too-short interval", async () 
   await assert.rejects(comments(CFG, { positional: ["a"], flags: { wait: true, interval: "1" } }), /--interval must be/);
   await assert.rejects(comments(CFG, { positional: ["a"], flags: { wait: true, since: "yesterday" } }), /--since must be/);
 });
+
+test("provenanceOf: flags, then env, then Claude Code detection", async () => {
+  const { provenanceOf } = await import("../src/commands/publish.js");
+  assert.deepEqual(provenanceOf({}, {}), {});
+  assert.deepEqual(provenanceOf({}, { CLAUDECODE: "1" }), { agent: "claude-code" });
+  assert.deepEqual(provenanceOf({}, { CLAUDECODE: "1", BYAGENT_AGENT: "codex", BYAGENT_MODEL: "gpt" }), { agent: "codex", model: "gpt" });
+  assert.deepEqual(provenanceOf({ agent: "cursor", model: "m" }, { BYAGENT_AGENT: "codex" }), { agent: "cursor", model: "m" });
+});

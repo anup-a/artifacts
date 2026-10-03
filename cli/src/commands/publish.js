@@ -26,6 +26,18 @@ function manifestOf(files, title, comments, labels, visibility) {
   return m;
 }
 
+// provenanceOf says what produced this version, for the history: --agent and
+// --model win, then BYAGENT_AGENT / BYAGENT_MODEL. Claude Code is detected by
+// the CLAUDECODE=1 it sets for the commands it runs; nothing else is guessed.
+export function provenanceOf(flags, env = process.env) {
+  const agent = flags.agent || env.BYAGENT_AGENT || (env.CLAUDECODE === "1" ? "claude-code" : "");
+  const model = flags.model || env.BYAGENT_MODEL || "";
+  const out = {};
+  if (agent) out.agent = String(agent).slice(0, 64);
+  if (model) out.model = String(model).slice(0, 64);
+  return out;
+}
+
 function commentsFlag(flags) {
   if (flags.comments && flags["no-comments"]) throw usage("--comments and --no-comments are mutually exclusive");
   if (flags.comments) return true;
@@ -82,7 +94,7 @@ export function labelsOf(flags, link, collection) {
 }
 
 // source is not a flag: brief push sets it to keep the Markdown next to the page.
-export async function publish(cfg, { positional, flags, source }) {
+export async function publish(cfg, { positional, flags, source, env = process.env }) {
   const target = positional[0];
   if (!target) throw usage(USAGE);
   if (flags.private && flags.public) throw usage("--private and --public are mutually exclusive");
@@ -97,7 +109,7 @@ export async function publish(cfg, { positional, flags, source }) {
   const labels = labelsOf(flags, link.api === cfg.api ? link : {}, folder && folder.collection);
   const { cover, files } = resolveCover(flags.cover, dir, collected.files, flags.title);
   if (cover !== undefined) labels.cover = cover;
-  const manifest = manifestOf(files, collected.title, commentsFlag(flags), labels, visibility);
+  const manifest = { ...manifestOf(files, collected.title, commentsFlag(flags), labels, visibility), ...provenanceOf(flags, env) };
 
   // The link file only applies when it was written against this same API, so a
   // directory published to a staging server does not silently update production.
