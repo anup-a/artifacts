@@ -643,3 +643,15 @@ test("provenanceOf: flags, then env, then Claude Code detection", async () => {
   assert.deepEqual(provenanceOf({}, { CLAUDECODE: "1", BYAGENT_AGENT: "codex", BYAGENT_MODEL: "gpt" }), { agent: "codex", model: "gpt" });
   assert.deepEqual(provenanceOf({ agent: "cursor", model: "m" }, { BYAGENT_AGENT: "codex" }), { agent: "cursor", model: "m" });
 });
+
+test("parseWhen reads durations, RFC 3339 times and never", async () => {
+  const { parseWhen } = await import("../src/commands/artifacts.js");
+  const now = Date.parse("2026-10-03T00:00:00Z");
+  assert.equal(parseWhen("30m", now), "2026-10-03T00:30:00.000Z");
+  assert.equal(parseWhen("7d", now), "2026-10-10T00:00:00.000Z");
+  assert.equal(parseWhen("2w", now), "2026-10-17T00:00:00.000Z");
+  assert.equal(parseWhen("2026-12-01T10:00:00+05:30", now), "2026-12-01T04:30:00.000Z");
+  assert.equal(parseWhen("never", now), null);
+  assert.throws(() => parseWhen("tomorrow", now), /--expires takes/);
+  assert.throws(() => parseWhen("2026-12-01", now), /--expires takes/);
+});

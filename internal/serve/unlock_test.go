@@ -20,7 +20,7 @@ func codeFixture(t *testing.T) (*http.ServeMux, *Handler, string) {
 	if err := st.SetVisibility(ctx, id, "private"); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.SetShareCode(ctx, id, "481523"); err != nil {
+	if err := st.SetShareCode(ctx, id, "481523", nil); err != nil {
 		t.Fatal(err)
 	}
 	h := &Handler{Store: st, Blobs: fixtureBlobs, Runtime: []byte("runtime"),
@@ -182,7 +182,7 @@ func TestShareCodeIsScopedAndRevocable(t *testing.T) {
 	// the old link stops working, and the viewer is asked again rather than
 	// refused outright.
 	fresh := ids.NewShareCode()
-	if err := h.Store.SetShareCode(t.Context(), id, fresh); err != nil {
+	if err := h.Store.SetShareCode(t.Context(), id, fresh, nil); err != nil {
 		t.Fatal(err)
 	}
 	res := fetchCode(mux, "http://share.test/a/"+id+"/", cookie)
@@ -198,7 +198,7 @@ func TestShareCodeIsScopedAndRevocable(t *testing.T) {
 
 	// Withdrawing it entirely puts the artifact back to private-only, with no
 	// gate to announce that anything is there.
-	if err := h.Store.SetShareCode(t.Context(), id, ""); err != nil {
+	if err := h.Store.SetShareCode(t.Context(), id, "", nil); err != nil {
 		t.Fatal(err)
 	}
 	res = fetchCode(mux, "http://share.test/a/"+id+"/")

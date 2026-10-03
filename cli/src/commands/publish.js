@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { guestLines } from "../guest.js";
+import { parseWhen, setExpiry } from "./artifacts.js";
 import { copyFileSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { apiJson } from "../client.js";
@@ -99,6 +100,7 @@ export async function publish(cfg, { positional, flags, source, env = process.en
   if (!target) throw usage(USAGE);
   if (flags.private && flags.public) throw usage("--private and --public are mutually exclusive");
   const visibility = flags.private ? "private" : flags.public ? "public" : undefined;
+  const expires = flags.expires !== undefined ? parseWhen(flags.expires) : undefined;
 
   // A Markdown target is rendered on the way in and supplies the title when
   // --title is absent (its first H1, else the file name).
@@ -138,6 +140,12 @@ export async function publish(cfg, { positional, flags, source, env = process.en
     : await apiJson(cfg, "POST", "/api/artifacts", { body: form, headers });
   if (!res || !res.id) throw new CliError("publish returned no artifact id", { code: "INTERNAL" });
 
+  // --expires is checked before anything is sent, and applied right after.
+  if (flags.expires !== undefined) {
+    const after = await setExpiry(cfg, res.id, expires);
+    res.expires_at = after.expires_at;
+  }
+
   const project = res.project === undefined ? labels.project : res.project;
   const tags = Array.isArray(res.tags) ? res.tags : labels.tags || [];
   writeLink(dir, { id: res.id, api: cfg.api, project, tags });
@@ -151,13 +159,15 @@ export async function publish(cfg, { positional, flags, source, env = process.en
       visibility: res.visibility ?? "public",
       project: project ?? null, tags, cover_url: res.cover_url, cover_style: res.cover_style,
       files: files.length, bytes, uploaded: sent.size,
-      ...(res.guest ? { guest: true, expires_at: res.expires_at, claim_url: res.claim_url } : {}),
+      expires_at: res.expires_at ?? null,
+      ...(res.guest ? { guest: true, claim_url: res.claim_url } : {}),
     },
     human: [
       `${res.url}`,
       `version ${res.version}, ${files.length} files, ${bytes} bytes, ${sent.size} uploaded${commentsOn ? "" : ", comments off"}`,
       ...(labelLine ? [labelLine] : []),
       ...(res.visibility === "private" ? ["private — sign in to the owning workspace to view"] : []),
+      ...(res.expires_at && !res.guest ? [`stops working at ${res.expires_at}, then is erased`] : []),
       ...guestLines(res),
     ],
   };

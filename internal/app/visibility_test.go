@@ -163,7 +163,7 @@ func TestDetailOffersTheSendableLink(t *testing.T) {
 	want(t, res, 200, `value="http://api.test/app/view/`+a.ID+`/"`, ">Workspace link<")
 
 	// With a code, the link worth copying is the public one carrying it.
-	if err := e.st.SetShareCode(ctx, a.ID, "481523"); err != nil {
+	if err := e.st.SetShareCode(ctx, a.ID, "481523", nil); err != nil {
 		t.Fatal(err)
 	}
 	res = e.get(detail)

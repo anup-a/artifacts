@@ -41,6 +41,9 @@ type Artifact struct {
 	// only as its visibility allows. Never render it to a viewer: it is the
 	// credential itself, not a label.
 	ShareCode string
+	// ShareCodeExpiresAt ends the share code. Past it, the store reads
+	// ShareCode back as empty.
+	ShareCodeExpiresAt *time.Time
 	// CommentsEnabled is whether viewers get the comment runtime and the
 	// /c/* routes. New artifacts start enabled; CreateArtifact ignores this
 	// field and SetCommentsEnabled changes it.
@@ -154,7 +157,10 @@ type Store interface {
 	UpdateTitle(ctx context.Context, id, title string) error
 	SetCommentsEnabled(ctx context.Context, id string, on bool) error
 	SetVisibility(ctx context.Context, id, visibility string) error
-	SetShareCode(ctx context.Context, id, code string) error
+	// SetShareCode stores or clears a share code and its end (nil: none).
+	SetShareCode(ctx context.Context, id, code string, expires *time.Time) error
+	// SetExpiry sets or clears (nil) when an artifact stops being served.
+	SetExpiry(ctx context.Context, id string, at *time.Time) error
 	// SetMetadata replaces project, tags, cover path and cover style without
 	// touching updated_at: labels are not content.
 	SetMetadata(ctx context.Context, id string, project *string, tags []string, coverPath *string, coverStyle string) error
