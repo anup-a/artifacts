@@ -45,6 +45,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("GET /api/artifacts/{id}/files/{path...}", s.withAuth(s.artifactFile))
 	mux.HandleFunc("POST /api/artifacts/{id}/rollback/{version}", s.withAuth(s.rollback))
 	mux.HandleFunc("POST /api/artifacts/{id}/share-code", s.withAuth(s.setShareCode))
+	mux.HandleFunc("POST /api/artifacts/{id}/expiry", s.withAuth(s.setExpiry))
 	mux.HandleFunc("POST /c/{id}/comments", noStore(s.viewerCreateThread))
 	mux.HandleFunc("GET /c/{id}/comments", noStore(s.viewerList))
 	mux.HandleFunc("GET /c/{id}/meta", noStore(s.viewerMeta))

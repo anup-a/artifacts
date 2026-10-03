@@ -328,7 +328,7 @@ func (h *Handler) setVisibility(w http.ResponseWriter, r *http.Request, v *viewe
 	// so clear it rather than leave a live code on an artifact anyone can read
 	// — it would come back the moment the artifact went private again.
 	if visibility == "public" && a.ShareCode != "" {
-		if err := h.Store.SetShareCode(r.Context(), a.ID, ""); err != nil {
+		if err := h.Store.SetShareCode(r.Context(), a.ID, "", nil); err != nil {
 			h.fail(w, r, err)
 			return
 		}
@@ -359,7 +359,7 @@ func (h *Handler) setShareCode(w http.ResponseWriter, r *http.Request, v *viewer
 		h.renderError(w, r, 400, "Choose whether to share this artifact with a code.")
 		return
 	}
-	if err := h.Store.SetShareCode(r.Context(), a.ID, code); err != nil {
+	if err := h.Store.SetShareCode(r.Context(), a.ID, code, nil); err != nil {
 		h.fail(w, r, err)
 		return
 	}

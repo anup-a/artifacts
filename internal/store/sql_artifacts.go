@@ -28,17 +28,20 @@ func (s *sqlStore) CreateArtifact(ctx context.Context, a Artifact) error {
 	return err
 }
 
-const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility,a.share_code,a.expires_at`
+const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility,a.share_code,a.expires_at,a.share_code_expires_at`
 
 func scanArtifact(row interface{ Scan(...any) error }) (Artifact, error) {
 	var a Artifact
 	var tags sql.NullString
-	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments, &a.Visibility, &a.ShareCode, &a.ExpiresAt)
+	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments, &a.Visibility, &a.ShareCode, &a.ExpiresAt, &a.ShareCodeExpiresAt)
 	if err != nil {
 		return a, notFound(err)
 	}
 	// An expired guest page reads as deleted before the GC gets to it, so
 	// every path that already refuses deleted artifacts refuses it too.
+	if a.ShareCodeExpiresAt != nil && !time.Now().Before(*a.ShareCodeExpiresAt) {
+		a.ShareCode = ""
+	}
 	if a.ExpiresAt != nil && a.DeletedAt == nil && !time.Now().Before(*a.ExpiresAt) {
 		at := *a.ExpiresAt
 		a.DeletedAt = &at
@@ -76,8 +79,12 @@ func (s *sqlStore) SetVisibility(ctx context.Context, id, visibility string) err
 // SetShareCode stores or clears an artifact's share code. An empty code
 // revokes every link that carried the old one, and only for this artifact.
 // Like SetVisibility it leaves the content timestamp alone.
-func (s *sqlStore) SetShareCode(ctx context.Context, id, code string) error {
-	res, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET share_code=? WHERE id=?`), code, id)
+func (s *sqlStore) SetShareCode(ctx context.Context, id, code string, expires *time.Time) error {
+	if code == "" {
+		expires = nil
+	}
+	expires = utc(expires)
+	res, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET share_code=?, share_code_expires_at=? WHERE id=?`), code, expires, id)
 	if err != nil {
 		return err
 	}
@@ -222,4 +229,22 @@ func (s *sqlStore) Unerased(ctx context.Context) ([]string, error) {
 		out = append(out, id)
 	}
 	return out, rows.Err()
+}
+
+// SetExpiry sets when an artifact stops being served, or clears it. Like the
+// other access settings it leaves the content timestamp alone.
+func (s *sqlStore) SetExpiry(ctx context.Context, id string, at *time.Time) error {
+	at = utc(at)
+	res, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET expires_at=? WHERE id=? AND deleted_at IS NULL`), at, id)
+	return affected(res, err)
+}
+
+// utc stores times in UTC: SQLite compares timestamps as text, so a value
+// written with another offset would sort wrongly against now.
+func utc(t *time.Time) *time.Time {
+	if t == nil {
+		return nil
+	}
+	u := t.UTC()
+	return &u
 }

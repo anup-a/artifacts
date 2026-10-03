@@ -3,7 +3,7 @@ import { resolveConfig, trimSlash } from "./config.js";
 import { createGuest } from "./guest.js";
 import { CliError, usage } from "./errors.js";
 import { publish } from "./commands/publish.js";
-import { get, list, share, versions, rollback, remove } from "./commands/artifacts.js";
+import { get, list, share, versions, rollback, remove, expire } from "./commands/artifacts.js";
 import { comments, reply, resolve, mark } from "./commands/comments.js";
 import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
@@ -25,6 +25,7 @@ const COMMANDS = {
   versions: { run: versions, needsConfig: true },
   rollback: { run: rollback, needsConfig: true },
   delete: { run: remove, needsConfig: true },
+  expire: { run: expire, needsConfig: true },
   comments: { run: comments, needsConfig: true },
   reply: { run: reply, needsConfig: true },
   resolve: { run: resolve, needsConfig: true },
@@ -42,9 +43,10 @@ Usage:
                   [--private|--public]
                   [--comments|--no-comments] [--project <name>] [--tag <t>]...
                   [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
-                  [--agent <name>] [--model <name>]
+                  [--agent <name>] [--model <name>] [--expires <when>]
   byagent get <id>
-  byagent share <id> [--off]
+  byagent share <id> [--off] [--expires <when>]
+  byagent expire <id> <when|never>
   byagent list [--search <text>] [--end-user <id>] [--project <name>]
   byagent collections
   byagent collection <name>
@@ -92,6 +94,10 @@ the code; list never does.
 --agent and --model record what produced a version (free text, 64 chars),
 else BYAGENT_AGENT / BYAGENT_MODEL; inside Claude Code the agent defaults to
 claude-code. versions shows them with the publishing key's name.
+<when> is a duration from now (30m, 12h, 7d, 2w), an RFC 3339 time, or never.
+expire (or publish --expires) makes a page stop working at that moment; it
+then answers 410 and is erased like a delete. expire <id> never keeps it.
+share --expires ends the share code at that moment; the page stays private.
 mark shows readers what is happening to their comment: seen, working, or
 declined. declined needs --note with the reason; it posts the note as a reply
 and resolves the thread. --note works with seen and working too. Thread JSON

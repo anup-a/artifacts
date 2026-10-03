@@ -108,7 +108,7 @@ func TestShareCodeOnlyOnSingleArtifactRead(t *testing.T) {
 		t.Fatalf("create: %d %v", code, body)
 	}
 	id := body["id"].(string)
-	if err := d.Store.SetShareCode(context.Background(), id, "481523"); err != nil {
+	if err := d.Store.SetShareCode(context.Background(), id, "481523", nil); err != nil {
 		t.Fatal(err)
 	}
 	_, got := do(t, authReq(t, "GET", srv.URL+"/api/artifacts/"+id, tok))

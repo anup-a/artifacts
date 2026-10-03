@@ -594,3 +594,13 @@ test("mark shows readers what is happening to their comment", async () => {
   assert.equal(declined.status, "resolved");
   assert.equal(declined.comments.at(-1).body, "Keeping British spelling.");
 });
+
+test("expire and publish --expires end a page; never keeps it", () => {
+  const dir = siteDir("<p>short lived</p>");
+  const pub = json(["publish", dir, "--expires", "2h"]);
+  assert.ok(Date.parse(pub.expires_at) > Date.now() + 3600e3);
+  assert.equal(json(["expire", pub.id, "never"]).expires_at, null);
+  assert.ok(json(["expire", pub.id, "30m"]).expires_at);
+  const bad = run(["expire", pub.id, "tomorrow", "--json"]);
+  assert.equal(bad.code, 2);
+});

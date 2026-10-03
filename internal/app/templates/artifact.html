@@ -38,6 +38,7 @@
         {{if $a.Tags}}<span class="tile-tags">{{range $a.Tags}}<span class="tag">{{.}}</span>{{end}}</span>{{end}}
         {{if $a.EndUser}}<span class="meta-item">End user <a class="link" href="/app/artifacts?end_user={{str $a.EndUser}}">{{str $a.EndUser}}</a></span>{{end}}
         <span class="meta-item">Updated <time title="{{when $a.UpdatedAt}} UTC">{{ago $a.UpdatedAt $.Now}}</time></span>
+        {{if $a.ExpiresAt}}<span class="meta-item">Stops working <time title="{{when $a.ExpiresAt}} UTC">{{when $a.ExpiresAt}} UTC</time></span>{{end}}
         <span class="meta-item">Published <time title="{{when $a.CreatedAt}} UTC">{{ago $a.CreatedAt $.Now}}</time></span>
       </div>
     </div>
@@ -77,6 +78,7 @@
           <span class="share-code">{{$a.ShareCode}}</span>
           <button type="button" class="btn small" data-copy-text="{{$a.ShareCode}}">{{template "icon" "copy"}} Copy code</button>
         </div>
+        {{if $a.ShareCodeExpiresAt}}<p class="muted">The code stops working {{when $a.ShareCodeExpiresAt}} UTC.</p>{{end}}
         {{end}}
       </div>
       <form method="post" action="/app/artifacts/{{$a.ID}}/share-code" class="switch-form">

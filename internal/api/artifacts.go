@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/ids"
@@ -49,6 +50,7 @@ func (s *server) getArtifact(w http.ResponseWriter, r *http.Request) {
 	if a.ShareCode != "" {
 		v["share_code"] = a.ShareCode
 		v["share_url"] = serve.ShareURL(s.Cfg.ShareOrigin, a.ID, a.ShareCode)
+		v["share_code_expires_at"] = a.ShareCodeExpiresAt
 	}
 	apierr.WriteJSON(w, 200, v)
 }
@@ -240,6 +242,8 @@ func (s *server) setShareCode(w http.ResponseWriter, r *http.Request) {
 	}
 	var body struct {
 		Action string `json:"action"`
+		// ExpiresAt, when issuing, ends the new code at that moment.
+		ExpiresAt *time.Time `json:"expires_at"`
 	}
 	if r.ContentLength > 0 {
 		if e := decodeJSON(w, r, 1024, &body); e != nil {
@@ -260,14 +264,57 @@ func (s *server) setShareCode(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.Invalid("action must be issue, rotate or revoke"))
 		return
 	}
-	if err := s.Store.SetShareCode(r.Context(), a.ID, code); err != nil {
+	if body.ExpiresAt != nil && !body.ExpiresAt.After(s.Now()) {
+		apierr.Write(w, r, apierr.Invalid("expires_at must be in the future"))
+		return
+	}
+	if err := s.Store.SetShareCode(r.Context(), a.ID, code, body.ExpiresAt); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	out := map[string]any{"id": a.ID, "visibility": a.Visibility, "share_code": nil, "share_url": nil}
+	out := map[string]any{"id": a.ID, "visibility": a.Visibility, "share_code": nil, "share_url": nil, "share_code_expires_at": nil}
 	if code != "" {
 		out["share_code"] = code
 		out["share_url"] = serve.ShareURL(s.Cfg.ShareOrigin, a.ID, code)
+		out["share_code_expires_at"] = body.ExpiresAt
 	}
 	apierr.WriteJSON(w, 200, out)
+}
+
+// setExpiry answers POST /api/artifacts/{id}/expiry with {"expires_at": time}
+// to make an artifact stop being served then, or {"expires_at": null} to keep
+// it. Past the moment it answers 410 and the GC erases it, as a delete would.
+// A guest page's expiry is the guest key's and cannot be moved.
+func (s *server) setExpiry(w http.ResponseWriter, r *http.Request) {
+	a, e := s.ownedArtifact(r, r.PathValue("id"))
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	if _, ok := guestFrom(r.Context()); ok {
+		apierr.Write(w, r, apierr.Forbidden("guest pages expire with the guest key; claim them to keep them"))
+		return
+	}
+	var body struct {
+		ExpiresAt *time.Time `json:"expires_at"`
+	}
+	if e := decodeJSON(w, r, 1024, &body); e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	if body.ExpiresAt != nil && !body.ExpiresAt.After(s.Now()) {
+		apierr.Write(w, r, apierr.Invalid("expires_at must be in the future; use delete to remove it now"))
+		return
+	}
+	if err := s.Store.SetExpiry(r.Context(), a.ID, body.ExpiresAt); err != nil {
+		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	a.ExpiresAt = body.ExpiresAt
+	v, err := s.artifactView(r, a)
+	if err != nil {
+		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
+	apierr.WriteJSON(w, 200, v)
 }
