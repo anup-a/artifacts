@@ -18,7 +18,7 @@ import (
 //go:embed templates/*.html templates/partials/*.html
 var templateFS embed.FS
 
-var pageNames = []string{"landing", "login", "check_inbox", "artifacts", "artifact", "collections", "collection", "collection_public", "end_users", "keys", "usage", "settings", "portal", "error", "gate", "privacy", "terms", "security", "subprocessors", "acceptable_use", "pricing", "claim"}
+var pageNames = []string{"landing", "login", "check_inbox", "artifacts", "artifact", "collections", "collection", "collection_public", "end_users", "keys", "usage", "settings", "portal", "error", "gate", "privacy", "terms", "security", "subprocessors", "acceptable_use", "pricing", "showcase", "claim"}
 
 // pages holds one template set per page, each sharing layout.html and the
 // partials (icon sprite, shared rows).
@@ -42,6 +42,13 @@ var funcs = template.FuncMap{
 	"collectionURL": collectionURL,
 	// projectColor is the cover generator's palette, so dots match covers.
 	"projectColor": cover.ProjectColor,
+	// initial is the first letter of a name, for an avatar.
+	"initial": func(name string) string {
+		for _, r := range strings.TrimSpace(name) {
+			return strings.ToUpper(string(r))
+		}
+		return "?"
+	},
 	"plural": func(n int, one, many string) string {
 		if n == 1 {
 			return one

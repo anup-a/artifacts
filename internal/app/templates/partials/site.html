@@ -5,6 +5,11 @@
 {{define "site-bar"}}
 <header class="lp-bar">
   <a class="brand lp-brand" href="/">{{template "icon" "mark"}}<span>byagent</span></a>
+  <nav class="lp-tabs" aria-label="Main">
+    <a class="lp-tab" href="/showcase"{{if eq .Here "/showcase"}} aria-current="page"{{end}}>Showcase</a>
+    <a class="lp-tab" href="/guides">Guides</a>
+    <a class="lp-tab" href="/pricing"{{if eq .Here "/pricing"}} aria-current="page"{{end}}>Pricing</a>
+  </nav>
   <div class="lp-theme" role="group" aria-label="Theme" data-theme-picker>
     <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
     <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
@@ -23,6 +28,7 @@
   <nav class="lp-foot-cols" aria-label="Site">
     <div class="lp-foot-col">
       <h2>Product</h2>
+      <a href="/showcase">Showcase</a>
       <a href="/pricing">Pricing</a>
       <a href="{{.AgentsURL}}">For agents</a>
       <a href="/guides">Guides</a>
@@ -53,3 +59,19 @@
      the theme resolved before first paint, so a visitor who chose against
      their system setting sees no flash. Not deferred for that reason. */}}
 {{define "site-theme"}}<script src="{{.ThemeJS}}"></script>{{end}}
+
+{{/* The one action on the page, used in the landing hero, again at its close, and on the showcase.
+     The prompt only has to point at the skill: the skill already says
+     publish by default, the URL is the deliverable, and how to read the
+     shelf back, so restating any of it here would be duplication. The label
+     sits in its own span so the copied state does not wipe the icons.
+     The link is shown without its scheme to keep the line short; what is
+     copied is the full URL. */}}
+{{define "lp-prompt"}}
+<div class="lp-prompt">
+  <p class="lp-prompt-text">Set up byagent for this project: read <span class="lp-prompt-url">{{.ShareHost}}/skill.md</span> and follow it.</p>
+  <button type="button" class="btn primary lp-prompt-copy" data-copy-text="Set up byagent for this project: read {{.SkillURL}} and follow it." aria-label="Copy the prompt">
+    <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">Copy</span>
+  </button>
+</div>
+{{end}}

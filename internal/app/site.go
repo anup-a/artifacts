@@ -15,6 +15,7 @@ type siteData struct {
 	SkillURL    string // the agent skill this server serves
 	AgentsURL   string // the read-only entrypoint written for agents
 	ThemeJS     string // resolves the chosen theme before first paint
+	Here        string // the path of the page being shown, for the current tab
 }
 
 func (h *Handler) site() siteData {
@@ -66,8 +67,10 @@ func (h *Handler) doc(path string) http.HandlerFunc {
 	p := docPages[path]
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")
+		site := h.site()
+		site.Here = path
 		h.render(w, r, 200, p.name, p.title, nil, docData{
-			siteData:  h.site(),
+			siteData:  site,
 			Path:      path,
 			Effective: policyEffective,
 			Version:   policyVersion,
