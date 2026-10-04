@@ -30,8 +30,8 @@ func (h *Handler) site() siteData {
 // Policy versions. Bump the version and the date together whenever the text
 // of a policy changes in substance, and say what changed in the PR.
 const (
-	policyEffective = "2 October 2026"
-	policyVersion   = "v1.1"
+	policyEffective = "4 October 2026"
+	policyVersion   = "v1.2"
 )
 
 // docData is one policy or pricing page.

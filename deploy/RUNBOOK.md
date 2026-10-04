@@ -187,6 +187,12 @@ Set `ARTIFACTS_TOKEN` to a key created at
 `https://app.byagent.dev/app/keys`. `ADMIN_TOKEN` still works for the
 separate `admin` tenant, which has no web login.
 
+## Search and AI crawlers
+
+- After a deploy that adds or changes public pages (guides, agent pages), run `./scripts/indexnow.sh` (or pass just the changed paths). It submits them to IndexNow, which feeds Bing, and through Bing ChatGPT search and Copilot. 200 or 202 means accepted.
+- Google: the sitemap is at `/sitemap.xml`; submit it once in Search Console for the `byagent.dev` domain property.
+- Which pages AI crawlers read: `fly logs -a artifacts-share | grep '"msg":"crawler"'` (on the box: `cd /opt/artifacts && docker compose logs artifacts | grep '"msg":"crawler"'`). Each line has the bot, path and status. People's requests are not logged.
+
 ## Sign-in and dashboard configuration
 
 The web app is enabled when GitHub credentials or an explicit email provider

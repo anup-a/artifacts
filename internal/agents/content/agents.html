@@ -9,35 +9,7 @@
 <link rel="alternate" type="text/markdown" href="{{.Share}}/agents.md">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<style>
-:root { color-scheme: light dark; --fg: #171717; --dim: #666; --line: #e5e5e5; --bg: #fff; --code: #f5f5f5; --accent: #2563eb }
-@media (prefers-color-scheme: dark) { :root { --fg: #ededed; --dim: #a1a1a1; --line: #2e2e2e; --bg: #0a0a0a; --code: #1a1a1a; --accent: #60a5fa } }
-* { box-sizing: border-box }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif }
-main { max-width: 860px; margin: 0 auto; padding: 48px 20px 80px }
-h1 { font-size: 30px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -.02em }
-h2 { font-size: 18px; margin: 40px 0 12px; padding-top: 16px; border-top: 1px solid var(--line) }
-p, li { color: var(--fg) }
-.lead { font-size: 17px; color: var(--dim); margin: 0 0 20px }
-.meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 14px; margin: 0 }
-.meta dt { color: var(--dim) }
-.meta dd { margin: 0 }
-a { color: var(--accent); text-decoration: none }
-a:hover { text-decoration: underline }
-code, pre { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code); border-radius: 6px }
-code { padding: 1px 5px }
-pre { padding: 12px 14px; overflow-x: auto }
-pre code { padding: 0; background: none }
-.table { overflow-x: auto }
-table { border-collapse: collapse; width: 100%; font-size: 14px }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
-th { color: var(--dim); font-weight: 500 }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px }
-@media (max-width: 640px) { .cols { grid-template-columns: 1fr } }
-.cols h3 { font-size: 15px; margin: 0 0 6px }
-.cols ul { margin: 0; padding-left: 18px }
-footer { margin-top: 48px; font-size: 13px; color: var(--dim) }
-</style>
+{{template "page-style"}}
 </head>
 <body>
 <main>
@@ -113,7 +85,7 @@ npx byagent --help</code></pre>
   <li>{{.Limits.PublishPerMin}} publishes per minute; {{.Limits.ArtifactsPerTenant}} artifacts per workspace</li>
 </ul>
 
-<footer>Questions: <a href="mailto:hello@byagent.dev">hello@byagent.dev</a> · <a href="{{.Share}}/llms.txt">llms.txt</a> · <a href="{{.Share}}/sitemap.xml">sitemap.xml</a></footer>
+<footer>Questions: <a href="mailto:hello@byagent.dev">hello@byagent.dev</a> · <a href="{{.Share}}/guides">Guides</a> · <a href="{{.Share}}/llms.txt">llms.txt</a> · <a href="{{.Share}}/sitemap.xml">sitemap.xml</a></footer>
 </main>
 </body>
 </html>

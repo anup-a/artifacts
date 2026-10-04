@@ -77,7 +77,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
-	return requestID(readOnly(d.Cfg.ReadOnly, mux)), nil
+	return requestID(agents.LogCrawlers(readOnly(d.Cfg.ReadOnly, mux))), nil
 }
 
 // readOnly refuses every write while the server is being moved. Reads,

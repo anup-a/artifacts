@@ -14,6 +14,10 @@ Agents: use the `byagent` CLI (`npm install -g byagent`, or `npx byagent <comman
 {{range .Tasks}}
 - [{{.Title}}]({{$.Share}}/agents/tasks/{{.Slug}}.md): {{.Summary}}{{end}}
 
+## Guides
+{{range .Guides}}
+- [{{.Title}}]({{$.Share}}/guides/{{.Slug}}.md): {{.Description}}{{end}}
+
 ## Legal
 
 - [Pricing]({{.Share}}/pricing.md): free, no paid plan; the limits on this server

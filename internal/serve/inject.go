@@ -121,3 +121,16 @@ const guestBadge = `<a href="%s" target="_blank" rel="noopener" style="position:
 func InjectGuestBadge(doc []byte, siteURL string) []byte {
 	return insertBeforeBody(doc, []byte(fmt.Sprintf(guestBadge, html.EscapeString(siteURL+"/"))))
 }
+
+// attribution credits byagent on a public page, in the corner the guest
+// badge would take (the comment launcher has the other one). It is a plain
+// link in the served HTML, not something a script draws, so a crawler that
+// reads the page follows it to the site the page came from.
+const attribution = `<a href="%s" target="_blank" rel="noopener" style="position:fixed;left:12px;bottom:12px;z-index:2147483646;` +
+	`font:500 11px/1.2 system-ui,sans-serif;color:#fff;background:rgba(20,20,20,.72);padding:5px 9px;border-radius:999px;text-decoration:none">` +
+	`Published with byagent</a>`
+
+// InjectAttribution adds the byagent credit before </body>.
+func InjectAttribution(doc []byte, siteURL string) []byte {
+	return insertBeforeBody(doc, []byte(fmt.Sprintf(attribution, html.EscapeString(siteURL+"/"))))
+}

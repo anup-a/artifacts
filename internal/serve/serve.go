@@ -215,6 +215,14 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	if badge {
 		etag = etag[:len(etag)-1] + "-guest" + `"`
 	}
+	// A public root page that is not a guest page carries the byagent
+	// credit instead. Pages an integrator publishes for its own customers
+	// (an end user is set) and private pages, even opened with a share
+	// code, are left as their owner wrote them.
+	credit := meta && !badge && a.EndUserID == nil && a.Visibility != "private"
+	if credit {
+		etag = etag[:len(etag)-1] + "-by" + `"`
+	}
 	w.Header().Set("ETag", etag)
 	if !pinnedReq && p == "index.html" && h.OnView != nil {
 		h.OnView(id)
@@ -250,6 +258,9 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	}
 	if badge {
 		body = InjectGuestBadge(body, h.ShareOrigin)
+	}
+	if credit {
+		body = InjectAttribution(body, h.ShareOrigin)
 	}
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	w.Write(body)
