@@ -57,7 +57,11 @@ type Config struct {
 	// taken while it is on is the last word: a server move loses nothing.
 	// READ_ONLY=on.
 	ReadOnly bool
-	Limits   Limits
+	// ShowcaseSlug is the share slug of the collection /showcase draws its
+	// pages from. Empty leaves /showcase with nothing to show yet.
+	// SHOWCASE_COLLECTION=<slug>.
+	ShowcaseSlug string
+	Limits       Limits
 }
 
 // WebEnabled reports whether at least one sign-in provider is configured.
@@ -99,6 +103,7 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		TrustProxyHeaders: get("TRUST_PROXY_HEADERS", "false") == "true",
 		GuestPublish:      getenv("GUEST_PUBLISH") == "on",
 		ReadOnly:          getenv("READ_ONLY") == "on",
+		ShowcaseSlug:      getenv("SHOWCASE_COLLECTION"),
 	}
 	var err error
 	if c.Limits, err = limitsFromEnv(getenv); err != nil {
