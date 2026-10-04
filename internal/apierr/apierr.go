@@ -28,6 +28,7 @@ func Forbidden(msg string) *Error   { return &Error{"FORBIDDEN", 403, msg, 0, ni
 func Unavailable(msg string) *Error { return &Error{"UNAVAILABLE", 503, msg, 0, nil} }
 func NotFound(what string) *Error   { return &Error{"NOT_FOUND", 404, what + " not found", 0, nil} }
 func Gone() *Error                  { return &Error{"GONE", 410, "artifact deleted", 0, nil} }
+func Conflict(msg string) *Error    { return &Error{"CONFLICT", 409, msg, 0, nil} }
 func TooLarge(msg string) *Error    { return &Error{"PAYLOAD_TOO_LARGE", 413, msg, 0, nil} }
 func RateLimited(sec int) *Error    { return &Error{"RATE_LIMITED", 429, "rate limited", sec, nil} }
 func Quota(msg string) *Error       { return &Error{"QUOTA_EXCEEDED", 429, msg, 0, nil} }

@@ -14,6 +14,10 @@ var ErrNotFound = errors.New("not found")
 // and the version would point at bytes nothing keeps alive.
 var ErrBlobMissing = errors.New("blob missing")
 
+// ErrLiveVersion is returned by DeleteVersion for the version being served,
+// and by RestoreVersion for the version that already is.
+var ErrLiveVersion = errors.New("version is live")
+
 type Key struct {
 	ID         int64
 	TenantID   string
@@ -103,6 +107,9 @@ type Version struct {
 	// Agent and Model are what the publisher reported, empty when unknown.
 	// KeyName is the publishing key's name at the time.
 	Agent, Model, KeyName string
+	// RestoredAt is when a restore last made this version live again; nil
+	// when it never was.
+	RestoredAt *time.Time
 }
 
 type File struct {
@@ -189,6 +196,19 @@ type Store interface {
 	Versions(ctx context.Context, artifactID string) ([]Version, error)
 	Files(ctx context.Context, artifactID string, version int) ([]File, error)
 	PruneVersions(ctx context.Context, artifactID string, keep int) ([]int, error)
+	// NextVersion is the number the artifact's next publish takes: one past
+	// the highest it has ever used, which after a restore is above the live
+	// version, and which a deleted version never gives back.
+	NextVersion(ctx context.Context, artifactID string) (int, error)
+	// RestoreVersion makes an existing version live again by pointing
+	// current_version at it: no files are copied and nothing about access,
+	// sharing, expiry or comments changes. ErrNotFound when the version is
+	// gone, ErrLiveVersion when it is already live.
+	RestoreVersion(ctx context.Context, artifactID string, version int, at time.Time) error
+	// DeleteVersion removes one version that is not live: its files rows go
+	// and its blobs' refcounts drop, so GC reclaims bytes nothing else uses.
+	// Threads made on it stay, marked orphaned; it returns how many.
+	DeleteVersion(ctx context.Context, artifactID string, version int) (int, error)
 	UpsertBlob(ctx context.Context, sha string, size int64) error
 	HasBlobs(ctx context.Context, shas []string) (map[string]bool, error)
 	ZeroRefBlobs(ctx context.Context, olderThan time.Time) ([]string, error)

@@ -10,6 +10,7 @@ import { login } from "./commands/login.js";
 import { whoami, portalLink } from "./commands/account.js";
 import { hooks } from "./commands/hooks.js";
 import { brief } from "./commands/brief.js";
+import { version, diff } from "./commands/artifacts.js";
 
 // needsConfig is false for login, which builds its own config from its flags.
 const COMMANDS = {
@@ -24,6 +25,8 @@ const COMMANDS = {
   share: { run: share, needsConfig: true },
   versions: { run: versions, needsConfig: true },
   rollback: { run: rollback, needsConfig: true },
+  version: { run: version, needsConfig: true },
+  diff: { run: diff, needsConfig: true },
   delete: { run: remove, needsConfig: true },
   expire: { run: expire, needsConfig: true },
   comments: { run: comments, needsConfig: true },
@@ -54,6 +57,8 @@ Usage:
   byagent portal-link <end-user id>
   byagent versions <id>
   byagent rollback <id> <version>
+  byagent version rm <id> <version>
+  byagent diff <id> <from> [<to>]
   byagent comments <id> [--open|--all] [--since <rfc3339>]
   byagent comments <id> --wait [--timeout <seconds>] [--interval <seconds>] [--since <rfc3339>]
   byagent reply <id> <thread> "<text>"
@@ -94,6 +99,14 @@ the code; list never does.
 --agent and --model record what produced a version (free text, 64 chars),
 else BYAGENT_AGENT / BYAGENT_MODEL; inside Claude Code the agent defaults to
 claude-code. versions shows them with the publishing key's name.
+versions marks the live version and prints a preview link per version: it
+opens that version without making it live, for signed-in members of the
+workspace only. rollback makes an old version live again (v3 or 3): nothing
+is re-uploaded, and access, share code, expiry and comments stay as they are;
+the next publish still gets a new number. version rm deletes one old version
+for good (its link stops working, its files are erased once nothing else uses
+them); the live version cannot be deleted. diff lists files added, removed and
+changed between two versions; <to> defaults to the live one.
 <when> is a duration from now (30m, 12h, 7d, 2w), an RFC 3339 time, or never.
 expire (or publish --expires) makes a page stop working at that moment; it
 then answers 410 and is erased like a delete. expire <id> never keeps it.

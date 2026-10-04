@@ -77,25 +77,70 @@ export async function list(cfg, { flags }) {
   };
 }
 
+// versionArg reads a version number, written 3 or v3.
+function versionArg(value, name = "version") {
+  const m = /^v?(\d+)$/.exec(String(value || ""));
+  if (!m || Number(m[1]) < 1) throw usage(`${name} must be a version number like 3 or v3`);
+  return m[1];
+}
+
 export async function versions(cfg, { positional }) {
   need(positional, 1, "usage: byagent versions <id>");
   const res = await apiJson(cfg, "GET", `/api/artifacts/${encodeURIComponent(positional[0])}/versions`);
   const rows = res.versions || [];
   return {
     json: res,
-    human: rows.map((v) => {
+    human: rows.flatMap((v) => {
       const by = [v.agent, v.model].filter(Boolean).join(" / ") || v.key || "";
-      return `v${v.version}  ${v.files} files  ${v.bytes} bytes  ${v.comment_count} comments  ${v.created_at}${by ? `  by ${by}` : ""}`;
+      const live = v.current ? "  live" : "";
+      const restored = v.restored_at ? `  restored ${v.restored_at}` : "";
+      const line = `v${v.version}${live}  ${v.files} files  ${v.bytes} bytes  ${v.comment_count} comments  ${v.created_at}${by ? `  by ${by}` : ""}${restored}`;
+      // preview_url opens the version for the owner only (dashboard sign-in);
+      // older servers send neither field.
+      const link = v.preview_url || v.url;
+      return link ? [line, `    ${link}`] : [line];
     }),
   };
 }
 
+// rollback makes an old version live again. The server flips a pointer, so
+// nothing is uploaded and access, share code, expiry and comments stay as
+// they are.
 export async function rollback(cfg, { positional }) {
   need(positional, 2, "usage: byagent rollback <id> <version>");
-  const [id, version] = positional;
-  if (!/^\d+$/.test(version)) throw usage("version must be a positive integer");
+  const [id] = positional;
+  const version = versionArg(positional[1]);
   const res = await apiJson(cfg, "POST", `/api/artifacts/${encodeURIComponent(id)}/rollback/${version}`);
-  return { json: res, human: [`rolled back to v${version}, now published as v${res.version}`, res.url] };
+  const was = res.previous_version ? ` (was v${res.previous_version})` : "";
+  return { json: res, human: [`v${res.version} is live${was}`, res.url] };
+}
+
+// version rm deletes one old version for good. The live one cannot be
+// deleted; restore another first.
+export async function version(cfg, { positional }) {
+  const [sub, id, n] = positional;
+  if (sub !== "rm" || !id || !n) throw usage("usage: byagent version rm <id> <version>");
+  const res = await apiJson(cfg, "DELETE", `/api/artifacts/${encodeURIComponent(id)}/versions/${versionArg(n)}`);
+  const orphaned = res.orphaned_comments ? `; ${res.orphaned_comments} comments on it are kept, marked orphaned` : "";
+  return { json: res, human: [`deleted v${res.deleted_version} of ${res.id}${orphaned}`, `${res.versions_count} versions left, v${res.current_version} live`] };
+}
+
+// diff lists the files added, removed and changed between two versions; to
+// defaults to the live one.
+export async function diff(cfg, { positional }) {
+  need(positional, 2, "usage: byagent diff <id> <from> [<to>]");
+  const query = { from: versionArg(positional[1], "from") };
+  if (positional[2]) query.to = versionArg(positional[2], "to");
+  const res = await apiJson(cfg, "GET", `/api/artifacts/${encodeURIComponent(positional[0])}/diff`, { query });
+  const lines = [
+    ...res.added.map((f) => `+ ${f.path}  ${f.size} bytes`),
+    ...res.removed.map((f) => `- ${f.path}  ${f.size} bytes`),
+    ...res.changed.map((f) => `~ ${f.path}  ${f.from_size} -> ${f.to_size} bytes`),
+  ];
+  return {
+    json: res,
+    human: [`v${res.from} -> v${res.to}: ${res.added.length} added, ${res.removed.length} removed, ${res.changed.length} changed, ${res.unchanged} unchanged`, ...lines],
+  };
 }
 
 // The API answers 204, so --json still gets an object to parse.

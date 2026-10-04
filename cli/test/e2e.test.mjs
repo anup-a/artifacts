@@ -3,7 +3,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync, execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,7 +11,8 @@ import { fileURLToPath } from "node:url";
 const CLI_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 const REPO = dirname(CLI_DIR);
 const BIN = join(CLI_DIR, "bin", "byagent.js");
-const PORT = 8123;
+// E2E_PORT lets two checkouts run the suite side by side.
+const PORT = Number(process.env.E2E_PORT || 8123);
 const BASE = `http://127.0.0.1:${PORT}`;
 const TOKEN = "e2e-token";
 
@@ -202,16 +203,69 @@ test("the removed key creation endpoint returns 404", async () => {
   assert.equal(response.status, 404);
 });
 
-test("rollback republishes an older version as a new one", async () => {
+test("rollback makes an older version live again without adding one", async () => {
   const dir = siteDir("<h1>v1 body</h1>");
   const pub = json(["publish", dir]);
   writeFileSync(join(dir, "index.html"), "<!doctype html><html><body><h1>v2 body</h1></body></html>");
   json(["publish", dir]);
 
-  const back = json(["rollback", pub.id, "1"]);
-  assert.equal(back.version, 3);
+  const back = json(["rollback", pub.id, "v1"]);
+  assert.equal(back.version, 1);
+  assert.equal(back.previous_version, 2);
   const page = await (await fetch(`${BASE}/a/${pub.id}/`)).text();
   assert.match(page, /v1 body/);
+  const vs = json(["versions", pub.id]);
+  assert.equal(vs.current_version, 1);
+  assert.deepEqual(vs.versions.map((v) => [v.version, v.current]), [[1, true], [2, false]]);
+  assert.equal(vs.versions[1].url, `${BASE}/a/${pub.id}/v/2/`);
+  assert.equal(vs.versions[1].preview_url, `${BASE}/app/view/${pub.id}/v/2/`);
+
+  const again = run(["rollback", pub.id, "1", "--json"]);
+  assert.equal(again.code, 1);
+  assert.equal(JSON.parse(again.stderr).error.code, "CONFLICT");
+  assert.equal(run(["rollback", pub.id, "latest"]).code, 2);
+
+  // The next publish takes v3, not a second v2.
+  writeFileSync(join(dir, "index.html"), "<!doctype html><html><body><h1>v3 body</h1></body></html>");
+  assert.equal(json(["publish", dir]).version, 3);
+});
+
+test("version rm deletes an old version but never the live one", async () => {
+  const dir = siteDir("<h1>keep</h1>");
+  const pub = json(["publish", dir]);
+  writeFileSync(join(dir, "index.html"), "<!doctype html><html><body><h1>newer</h1></body></html>");
+  json(["publish", dir]);
+
+  const live = run(["version", "rm", pub.id, "2", "--json"]);
+  assert.equal(live.code, 1);
+  assert.equal(JSON.parse(live.stderr).error.code, "CONFLICT");
+
+  const gone = json(["version", "rm", pub.id, "1"]);
+  assert.equal(gone.deleted_version, 1);
+  assert.equal(gone.versions_count, 1);
+  assert.equal((await fetch(`${BASE}/a/${pub.id}/v/1/`)).status, 404);
+  assert.equal(run(["version", "rm", pub.id]).code, 2);
+  assert.equal(run(["version", "list", pub.id, "1"]).code, 2);
+});
+
+test("diff lists the files that changed between versions", () => {
+  const dir = siteDir("<h1>one</h1>");
+  writeFileSync(join(dir, "old.css"), "a{}");
+  const pub = json(["publish", dir]);
+  writeFileSync(join(dir, "index.html"), "<!doctype html><html><body><h1>two, longer</h1></body></html>");
+  rmSync(join(dir, "old.css"));
+  writeFileSync(join(dir, "new.css"), "b{}");
+  json(["publish", dir]);
+
+  const d = json(["diff", pub.id, "1"]);
+  assert.equal(d.to, 2);
+  assert.deepEqual(d.added.map((f) => f.path), ["new.css"]);
+  assert.deepEqual(d.removed.map((f) => f.path), ["old.css"]);
+  assert.deepEqual(d.changed.map((f) => f.path), ["index.html"]);
+  const human = run(["diff", pub.id, "v1", "v2"]);
+  assert.equal(human.code, 0);
+  assert.match(human.stdout, /\+ new\.css/);
+  assert.match(human.stdout, /- old\.css/);
 });
 
 test("comments, reply and resolve walk a viewer thread end to end", async () => {

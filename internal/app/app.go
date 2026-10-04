@@ -98,6 +98,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/artifacts/{id}", h.private(h.artifactDetail))
 	mux.HandleFunc("POST /app/artifacts/{id}/delete", h.private(h.deleteArtifact))
 	mux.HandleFunc("POST /app/artifacts/{id}/rollback/{version}", h.private(h.rollbackArtifact))
+	mux.HandleFunc("POST /app/artifacts/{id}/versions/{version}/delete", h.private(h.deleteVersion))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments-enabled", h.private(h.setCommentsEnabled))
 	mux.HandleFunc("POST /app/artifacts/{id}/visibility", h.private(h.setVisibility))
 	mux.HandleFunc("POST /app/artifacts/{id}/share-code", h.private(h.setShareCode))
