@@ -47,3 +47,24 @@ func TestShowcaseShowsCuratedPagesWithComments(t *testing.T) {
 		}
 	}
 }
+
+func TestShowcasePicksPagesByIDInOrder(t *testing.T) {
+	e := courseFixture(t)
+	if err := e.st.SetVisibility(context.Background(), "course000002", "private"); err != nil {
+		t.Fatal(err)
+	}
+	e.h.Cfg.ShowcasePages = []string{"solo00000001", "course000002", "nope00000000", "travel000001"}
+	e.thread("solo00000001", "th_noise", "tested")
+	e.thread("travel000001", "th_real", "Can the seat legend sit under the map?")
+
+	res := e.do(newClient(t), "GET", "/showcase", nil)
+	want(t, res, 200, "Landing pitch", "Seat map", "Can the seat legend sit under the map?")
+	if i, j := strings.Index(res.Body, "Landing pitch"), strings.Index(res.Body, "Seat map"); i > j {
+		t.Error("pages are not in the configured order")
+	}
+	for _, leak := range []string{"Lesson one", ">tested<"} {
+		if strings.Contains(res.Body, leak) {
+			t.Errorf("showcase shows %q", leak)
+		}
+	}
+}

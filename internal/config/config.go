@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 )
 
 type Limits struct {
@@ -61,7 +62,11 @@ type Config struct {
 	// pages from. Empty leaves /showcase with nothing to show yet.
 	// SHOWCASE_COLLECTION=<slug>.
 	ShowcaseSlug string
-	Limits       Limits
+	// ShowcasePages lists the ids of the pages /showcase shows, in order.
+	// Set, it wins over ShowcaseSlug, so pages can be picked from any
+	// project without relabelling them. SHOWCASE_PAGES=id,id,...
+	ShowcasePages []string
+	Limits        Limits
 }
 
 // WebEnabled reports whether at least one sign-in provider is configured.
@@ -104,6 +109,7 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		GuestPublish:      getenv("GUEST_PUBLISH") == "on",
 		ReadOnly:          getenv("READ_ONLY") == "on",
 		ShowcaseSlug:      getenv("SHOWCASE_COLLECTION"),
+		ShowcasePages:     splitList(getenv("SHOWCASE_PAGES")),
 	}
 	var err error
 	if c.Limits, err = limitsFromEnv(getenv); err != nil {
@@ -192,4 +198,15 @@ func limitsFromEnv(getenv func(string) string) (Limits, error) {
 		return l, err
 	}
 	return l, nil
+}
+
+// splitList reads a comma-separated setting, dropping blanks.
+func splitList(v string) []string {
+	var out []string
+	for _, s := range strings.Split(v, ",") {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
