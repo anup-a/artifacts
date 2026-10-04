@@ -3,3 +3,5 @@ node_modules/
 data/
 cover.out
 deploy/.env.free
+deploy/box/.env
+deploy/box/*.tgz

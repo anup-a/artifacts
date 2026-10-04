@@ -134,7 +134,8 @@ jobs:
   # image locally. A runner has none of that, so the build happens here.
   deploy:
     needs: [go, runtime, cli]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Retired once the repo variable DEPLOY_TARGET is set to box.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.DEPLOY_TARGET != 'box'
     runs-on: ubuntu-latest
     concurrency:
       # One deploy at a time, and a newer commit wins: this is a single
@@ -149,6 +150,36 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: flyctl deploy --config deploy/fly.free.toml --app artifacts-share --remote-only
       - name: the deployed page answers
+        run: |
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://byagent.dev/)
+            [ "$code" = "200" ] && echo "byagent.dev $code" && exit 0
+            sleep 5
+          done
+          echo "byagent.dev never returned 200"; exit 1
+
+  # The VPS behind a Cloudflare Tunnel (deploy/box). Same build as a laptop
+  # ship: the image goes over ssh, so the box needs no registry login.
+  deploy-box:
+    needs: [go, runtime, cli]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.DEPLOY_TARGET == 'box'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-byagent-box
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: ssh
+        env:
+          BOX_SSH_KEY: ${{ secrets.BOX_SSH_KEY }}
+          BOX_KNOWN_HOSTS: ${{ secrets.BOX_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$BOX_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: ship
+        run: ./deploy/box/ship.sh "root@${{ secrets.BOX_HOST }}"
+      - name: the public site answers
         run: |
           for _ in $(seq 1 30); do
             code=$(curl -s -o /dev/null -w '%{http_code}' https://byagent.dev/)

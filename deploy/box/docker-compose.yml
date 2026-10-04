@@ -1,0 +1,41 @@
+# byagent on one VPS (OVHcloud VPS-1), behind a Cloudflare Tunnel.
+#
+# cloudflared dials out to Cloudflare and carries byagent.dev and
+# app.byagent.dev to the server over the compose network, so the box opens no
+# web ports at all: its firewall allows ssh and nothing else, and nobody can
+# reach the app without passing Cloudflare (ufw admits ssh only). That is what makes
+# TRUST_PROXY_HEADERS=true safe here: CF-Connecting-IP is set by Cloudflare,
+# and the only other way in is 127.0.0.1 on the box itself.
+#
+# Lives at /opt/artifacts on the box next to .env (secrets, mode 600) and
+# data/ (sqlite + blobs, owned by uid 65532). ship.sh and CI copy this file.
+services:
+  artifacts:
+    # Loaded over ssh by ship.sh / CI (docker save | docker load); the box
+    # never needs registry credentials for the private repo.
+    image: ${ARTIFACTS_IMAGE:-artifacts:local}
+    env_file: .env
+    environment:
+      ADDR: ":8080"
+      DB: sqlite
+      STORAGE: local
+      DATA_DIR: /data
+      TRUST_PROXY_HEADERS: "true"
+    volumes: ["./data:/data"]
+    # Loopback only, for health checks from the box. Never 0.0.0.0.
+    ports: ["127.0.0.1:8080:8080"]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.3
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+    depends_on: [artifacts]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }

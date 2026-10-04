@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/config"
 	"github.com/anup-a/artifacts/internal/ratelimit"
+	"github.com/anup-a/artifacts/internal/snapshot"
 	"github.com/anup-a/artifacts/internal/store"
 	"github.com/anup-a/artifacts/internal/usage"
 	"github.com/anup-a/artifacts/runtime"
@@ -26,7 +28,31 @@ const (
 	portalLinksPerMin = 60
 )
 
+// dotenvKeys are the settings a server move must carry over. Anything that
+// only describes the old host (ADDR, DATA_DIR, Fly's own vars) is left out.
+var dotenvKeys = []string{
+	"ADMIN_TOKEN", "KEY_SIGNING_SECRET",
+	"GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET",
+	"EMAIL_PROVIDER", "RESEND_API_KEY", "EMAIL_FROM",
+	"GOOGLE_ANALYTICS_ID", "GA_MEASUREMENT_ID", "GUEST_PUBLISH",
+	"PUBLIC_SHARE_ORIGIN", "PUBLIC_API_ORIGIN",
+	"LIMIT_VERSION_BYTES", "LIMIT_FILES", "LIMIT_VERSIONS_KEPT", "LIMIT_PUBLISH_PER_MIN",
+	"LIMIT_ARTIFACTS_PER_TENANT", "LIMIT_ARTIFACTS_PER_KEY",
+	"LIMIT_COMMENT_BYTES", "LIMIT_COMMENTS_PER_MIN", "LIMIT_ANCHOR_BYTES",
+}
+
 func main() {
+	// `artifacts-server dotenv` prints the server's own settings as .env lines,
+	// for a server move. The image has no shell or printenv, and only someone
+	// who can already exec into the machine can run it.
+	if len(os.Args) == 2 && os.Args[1] == "dotenv" {
+		for _, k := range dotenvKeys {
+			if v := os.Getenv(k); v != "" {
+				fmt.Printf("%s=%s\n", k, v)
+			}
+		}
+		return
+	}
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(log)
 	cfg, err := config.FromEnv(os.Getenv)
@@ -36,6 +62,17 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	// `artifacts-server snapshot <file.tgz>` packs DATA_DIR for a server move
+	// and exits. The image has no shell, so this is how it is driven:
+	// fly ssh console -C "/artifacts-server snapshot /data/snapshot.tgz".
+	if len(os.Args) == 3 && os.Args[1] == "snapshot" {
+		if err := writeSnapshot(ctx, cfg, os.Args[2]); err != nil {
+			log.Error("snapshot", "err", err)
+			os.Exit(1)
+		}
+		log.Info("snapshot written", "path", os.Args[2])
+		return
+	}
 	st, err := store.Open(ctx, cfg)
 	if err != nil {
 		log.Error("store", "err", err)
@@ -95,4 +132,26 @@ func main() {
 		log.Error("close", "err", err)
 	}
 	log.Info("stopped")
+}
+
+// writeSnapshot writes the archive beside its destination and renames it into
+// place, so a half-written file is never mistaken for a finished one.
+func writeSnapshot(ctx context.Context, cfg config.Config, dst string) error {
+	if cfg.DB != "sqlite" || cfg.Storage != "local" {
+		return errors.New("snapshot covers DB=sqlite with STORAGE=local only")
+	}
+	tmp := dst + ".partial"
+	f, err := os.Create(tmp)
+	if err != nil {
+		return err
+	}
+	if err := snapshot.Write(ctx, cfg.DataDir, f); err != nil {
+		f.Close()
+		os.Remove(tmp)
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp, dst)
 }

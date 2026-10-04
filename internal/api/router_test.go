@@ -88,3 +88,32 @@ func TestUnknownRouteReturnsEnvelope(t *testing.T) {
 		t.Errorf("expected body to contain NOT_FOUND, got: %s", body)
 	}
 }
+
+func TestReadOnlyRefusesWritesAndServesReads(t *testing.T) {
+	srv, d, tok := newTestServer(t, false)
+	_, b := do(t, publishReq(t, "POST", srv.URL+"/api/artifacts", tok, "Kept", []pubFile{{"index.html", "<h1>kept</h1>"}}, nil))
+	id := b["id"].(string)
+
+	d.Cfg.ReadOnly = true
+	h, err := NewHandler(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ro := httptest.NewServer(h)
+	defer ro.Close()
+
+	res, err := http.DefaultClient.Do(publishReq(t, "POST", ro.URL+"/api/artifacts", tok, "New", []pubFile{{"index.html", "new"}}, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != 503 || res.Header.Get("Retry-After") != "300" {
+		t.Fatalf("write while read-only: %d %v", res.StatusCode, res.Header)
+	}
+	if code, body := do(t, authReq(t, "GET", ro.URL+"/api/artifacts/"+id, tok)); code != 200 || body["title"] != "Kept" {
+		t.Fatalf("read while read-only: %d %v", code, body)
+	}
+	if res, _ := http.Get(ro.URL + "/healthz"); res.StatusCode != 200 {
+		t.Fatalf("healthz while read-only: %d", res.StatusCode)
+	}
+}

@@ -15,6 +15,9 @@ func RunGC(ctx context.Context, d Deps, every time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+			if d.Cfg.ReadOnly {
+				continue
+			}
 			if err := gcOnce(ctx, d, d.Now().Add(-24*time.Hour)); err != nil {
 				slog.Error("gc", "err", err)
 			}
