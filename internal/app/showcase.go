@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/store"
@@ -13,6 +14,9 @@ import (
 const (
 	showcaseLimit   = 12
 	showcaseThreads = 2
+	// showcaseMinComment hides throwaway comments ("test", "1") that say
+	// nothing about the page to a visitor.
+	showcaseMinComment = 15
 )
 
 type showcaseThread struct {
@@ -47,7 +51,14 @@ func (h *Handler) showcase(w http.ResponseWriter, r *http.Request) {
 	site := h.site()
 	site.Here = "/showcase"
 	d := showcaseData{siteData: site, Path: "/showcase", ShareHost: originHost(h.Cfg.ShareOrigin)}
-	if slug := h.Cfg.ShowcaseSlug; slug != "" {
+	if ids := h.Cfg.ShowcasePages; len(ids) > 0 {
+		items, err := h.showcasePicked(r, ids)
+		if err != nil {
+			h.fail(w, r, err)
+			return
+		}
+		d.Items = items
+	} else if slug := h.Cfg.ShowcaseSlug; slug != "" {
 		items, err := h.showcaseItems(r, slug)
 		if err != nil {
 			h.fail(w, r, err)
@@ -57,6 +68,23 @@ func (h *Handler) showcase(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	h.render(w, r, 200, "showcase", "Showcase", nil, d)
+}
+
+// showcasePicked loads the pages SHOWCASE_PAGES names, in that order,
+// skipping any that are gone or no longer public.
+func (h *Handler) showcasePicked(r *http.Request, ids []string) ([]showcaseItem, error) {
+	var list []store.Artifact
+	for _, id := range ids {
+		a, err := h.Store.Artifact(r.Context(), id)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, a)
+	}
+	return h.showcaseFrom(r, list)
 }
 
 func (h *Handler) showcaseItems(r *http.Request, slug string) ([]showcaseItem, error) {
@@ -73,8 +101,15 @@ func (h *Handler) showcaseItems(r *http.Request, slug string) ([]showcaseItem, e
 	if err != nil {
 		return nil, err
 	}
-	var items []showcaseItem
-	for _, a := range store.CourseOrder(list, meta.Positions) {
+	return h.showcaseFrom(r, store.CourseOrder(list, meta.Positions))
+}
+
+func (h *Handler) showcaseFrom(r *http.Request, list []store.Artifact) ([]showcaseItem, error) {
+	var (
+		items []showcaseItem
+		err   error
+	)
+	for _, a := range list {
 		if a.Visibility != "public" {
 			continue
 		}
@@ -111,7 +146,7 @@ func (h *Handler) showcaseThreads(r *http.Request, artifactID string) ([]showcas
 	for i := len(threads) - 1; i >= 0; i-- {
 		t := threads[i]
 		cs := comments[t.ID]
-		if len(cs) == 0 {
+		if len(cs) == 0 || len([]rune(strings.TrimSpace(cs[0].Body))) < showcaseMinComment {
 			continue
 		}
 		st := showcaseThread{Quote: anchorQuote(t.AnchorJSON), First: cs[0], Replies: len(cs) - 1, Resolved: t.Status == "resolved"}

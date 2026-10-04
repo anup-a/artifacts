@@ -290,6 +290,7 @@ it and fails if the checked-in copy is stale.
 | `PUBLIC_API_ORIGIN` | `http://localhost:8080` | Origin for API links, `/app/*`, `/p/*`, and the GitHub callback. Keep separate from the share origin when enabling web sign-in. |
 | `TRUST_PROXY_HEADERS` | `false` | Bucket per-IP rate limits by `CF-Connecting-IP` / `X-Forwarded-For` instead of the peer address. Set `true` **only** when the server is reachable exclusively through a proxy that overwrites those headers (the managed box behind Cloudflare does). Leaving it on for a directly-reachable server lets anyone bypass IP rate limits by varying the header. |
 | `SHOWCASE_COLLECTION` | (empty) | Share slug of the collection `/showcase` lists (the part after `/s/` in its shared link). Only its public pages show, with their comments. Empty shows an empty showcase. |
+| `SHOWCASE_PAGES` | (empty) | Comma-separated page ids for `/showcase`, in order, from any project. Wins over `SHOWCASE_COLLECTION`. Pages that are gone or not public are skipped. |
 | `LIMIT_VERSION_BYTES` | `26214400` (25 MB) | Max bytes per published version. |
 | `LIMIT_FILES` | `500` | Max files per version. |
 | `LIMIT_VERSIONS_KEPT` | `20` | Older versions are GC'd beyond this. |
