@@ -143,7 +143,7 @@ func cells(line string) []string {
 // table renders a pipe table whose second row is the |---| separator.
 func table(rows [][]string) string {
 	var out strings.Builder
-	out.WriteString("<div class=\"table\"><table>\n")
+	out.WriteString("<div class=\"table lp-table\"><table>\n")
 	for i, row := range rows {
 		if i == 1 && strings.Trim(strings.Join(row, ""), "-: ") == "" {
 			continue

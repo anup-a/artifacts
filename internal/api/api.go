@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	"github.com/anup-a/artifacts/internal/agents"
 	"net/http"
 	"time"
 
@@ -35,6 +36,9 @@ type Deps struct {
 	// WebGate renders the page asking a viewer for an artifact's share code.
 	// Without it a code-shared artifact opens only by its one-click link.
 	WebGate func(http.ResponseWriter, *http.Request, serve.GateView)
+	// WebGuide renders a guide as a page of the site. Without it the guides
+	// are plain pages.
+	WebGuide func(http.ResponseWriter, *http.Request, agents.GuideDoc)
 }
 
 type server struct {

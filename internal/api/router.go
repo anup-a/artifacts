@@ -67,7 +67,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	}).Register(mux)
 	// The pages written for agents and crawlers: /agents, /llms.txt,
 	// /robots.txt, /sitemap.xml and the rest. Public, no key.
-	(&agents.Handler{Cfg: d.Cfg}).Register(mux)
+	(&agents.Handler{Cfg: d.Cfg, GuidePage: d.WebGuide}).Register(mux)
 	// The bare host root is not an API route. The browser app owns it: the
 	// landing page on the share origin, the dashboard on the API origin.
 	// Without the web app mounted it falls to the JSON 404 below.

@@ -38,14 +38,22 @@ func findGuide(slug string) (Guide, bool) {
 	return Guide{}, false
 }
 
-// guidePage is what guide.html sees.
+// GuideDoc is one guide, or the index, ready to render as a page: the
+// Markdown after its title and summary line as HTML, and the JSON-LD.
+type GuideDoc struct {
+	Guide  Guide // the zero Guide on the index
+	Index  bool
+	Guides []Guide // every guide, for the index
+	Path   string  // the canonical path, /guides or /guides/<slug>
+	MDPath string  // the Markdown twin
+	Body   htmltemplate.HTML
+	LD     htmltemplate.JS
+}
+
+// guidePage is what the fallback guide.html sees.
 type guidePage struct {
-	data
-	Body    htmltemplate.HTML // the guide's Markdown, rendered
-	LD      htmltemplate.JS   // its JSON-LD
-	MDPath  string            // the Markdown twin
-	Path    string            // the canonical path
-	IsIndex bool
+	GuideDoc
+	Share string
 }
 
 func (h *Handler) guidesIndex(w http.ResponseWriter, r *http.Request) {
@@ -99,15 +107,39 @@ func (h *Handler) guide(w http.ResponseWriter, r *http.Request, g Guide, index b
 		http.Error(w, "template error", 500)
 		return
 	}
-	p := guidePage{data: d, Body: htmltemplate.HTML(markdownToHTML(string(md))), LD: htmltemplate.JS(ld), MDPath: mdPath, Path: path, IsIndex: index}
+	doc := GuideDoc{Guide: g, Index: index, Guides: guides, Path: path, MDPath: mdPath,
+		Body: htmltemplate.HTML(markdownToHTML(afterHead(string(md)))), LD: htmltemplate.JS(ld)}
+	w.Header().Set("Link", `<`+mdPath+`>; rel="alternate"; type="text/markdown"`)
+	// On a deployment with the web app, the guide is a page of the site,
+	// with its bar, theme and footer. Without it, a plain page.
+	if h.GuidePage != nil {
+		h.GuidePage(w, r, doc)
+		return
+	}
 	var b bytes.Buffer
-	if err := h.html.ExecuteTemplate(&b, "guide.html", p); err != nil {
+	if err := h.html.ExecuteTemplate(&b, "guide.html", guidePage{GuideDoc: doc, Share: h.d.Share}); err != nil {
 		http.Error(w, "template error", 500)
 		return
 	}
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
-	w.Header().Set("Link", `<`+mdPath+`>; rel="alternate"; type="text/markdown"`)
 	write(w, "text/html", b.Bytes())
+}
+
+// afterHead drops a guide's "# Title" line and the "> summary" under it,
+// which the page shows in its own header.
+func afterHead(md string) string {
+	lines := strings.Split(md, "\n")
+	i := 0
+	for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
+		i++
+	}
+	if i < len(lines) && strings.HasPrefix(lines[i], "# ") {
+		i++
+	}
+	for i < len(lines) && (strings.TrimSpace(lines[i]) == "" || strings.HasPrefix(lines[i], ">")) {
+		i++
+	}
+	return strings.Join(lines[i:], "\n")
 }
 
 // guideLD is the schema.org description of a guide: the article and the

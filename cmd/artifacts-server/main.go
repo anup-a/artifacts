@@ -100,6 +100,7 @@ func main() {
 		Web:            webApp.Register,
 		WebDeny:        webApp.DenyArtifactAccess,
 		WebGate:        webApp.GateArtifactAccess,
+		WebGuide:       webApp.GuidePage,
 	}
 	h, err := api.NewHandler(deps)
 	if err != nil {
