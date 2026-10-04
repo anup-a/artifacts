@@ -7,7 +7,7 @@
   <a class="brand lp-brand" href="/">{{template "icon" "mark"}}<span>byagent</span></a>
   <nav class="lp-tabs" aria-label="Main">
     <a class="lp-tab" href="/showcase"{{if eq .Here "/showcase"}} aria-current="page"{{end}}>Showcase</a>
-    <a class="lp-tab" href="/guides">Guides</a>
+    <a class="lp-tab" href="/guides"{{if eq .Here "/guides"}} aria-current="page"{{end}}>Guides</a>
     <a class="lp-tab" href="/pricing"{{if eq .Here "/pricing"}} aria-current="page"{{end}}>Pricing</a>
   </nav>
   <div class="lp-theme" role="group" aria-label="Theme" data-theme-picker>

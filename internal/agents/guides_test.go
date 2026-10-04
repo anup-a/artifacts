@@ -27,7 +27,7 @@ func TestGuidePages(t *testing.T) {
 		for _, want := range []string{
 			`<link rel="canonical" href="https://share.test/guides/` + g.Slug + `">`,
 			`<link rel="alternate" type="text/markdown" href="https://share.test/guides/` + g.Slug + `.md">`,
-			`<h1 id=`,
+			"<h1>",
 			"<pre><code",
 		} {
 			if !strings.Contains(page.body, want) {

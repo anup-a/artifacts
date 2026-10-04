@@ -1,0 +1,57 @@
+{{define "title"}}{{if .Data.Index}}Guides: sharing what AI agents write · byagent{{else}}{{.Data.Guide.Title}} · byagent{{end}}{{end}}
+
+{{define "head"}}
+{{$d := .Data}}
+{{if $d.Index}}<meta name="description" content="How to share what Claude Code, Codex and Cursor write as links people can comment on, and how to get that feedback back to the agent.">
+<meta property="og:title" content="Guides · byagent">
+{{else}}<meta name="description" content="{{$d.Guide.Description}}">
+<meta property="og:title" content="{{$d.Guide.Title}}">
+<meta property="og:description" content="{{$d.Guide.Description}}">
+{{end}}<meta property="og:image" content="{{$d.ShareOrigin}}/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" type="text/markdown" href="{{$d.ShareOrigin}}{{$d.MDPath}}" title="This page as Markdown">
+{{/* A data block, not a script: the CSP does not apply and nothing runs. */}}
+<script type="application/ld+json">{{$d.LD}}</script>
+{{template "doc-head" $d}}
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing lp-docpage">
+{{template "site-bar" $d}}
+
+<article class="lp-doc lp-guide">
+  {{if $d.Index}}
+  <header class="lp-doc-head">
+    <p class="lp-doc-kicker">Guides</p>
+    <h1>Share what your agents write</h1>
+    <p class="lp-sub">How to turn what Claude Code, Codex and Cursor write into links people can comment on, and how to get that feedback back to the agent.</p>
+  </header>
+  <ul class="lp-guide-list">
+    {{range $d.Guides}}
+    <li><a href="/guides/{{.Slug}}"><span class="lp-guide-title">{{.Title}}</span><span class="lp-guide-desc">{{.Description}}</span></a></li>
+    {{end}}
+  </ul>
+  <p class="lp-doc-note muted">Already have the CLI? The task pages are shorter: <a class="link" href="{{$d.AgentsURL}}">byagent for agents</a>. Every guide is also Markdown: add <code>.md</code> to its URL.</p>
+  {{else}}
+  <header class="lp-doc-head">
+    <p class="lp-doc-kicker"><a href="/guides">Guides</a></p>
+    <h1>{{$d.Guide.Title}}</h1>
+    <p class="lp-sub">{{$d.Guide.Description}}</p>
+    <p class="lp-doc-meta">Updated {{$d.Guide.Updated}} <span aria-hidden="true">·</span> <a class="link" href="{{$d.MDPath}}">Markdown</a></p>
+  </header>
+  <div class="lp-guide-body">
+  {{$d.Body}}
+  </div>
+  <nav class="lp-guide-more" aria-label="More guides">
+    <h2>More guides</h2>
+    <ul class="lp-guide-list is-compact">
+      {{range $d.Guides}}{{if ne .Slug $d.Guide.Slug}}<li><a href="/guides/{{.Slug}}"><span class="lp-guide-title">{{.Title}}</span></a></li>{{end}}{{end}}
+    </ul>
+  </nav>
+  {{end}}
+</article>
+
+{{template "site-foot" $d}}
+</div>
+{{end}}

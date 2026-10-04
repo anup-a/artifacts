@@ -93,6 +93,9 @@ func entrypoints(api string) []Entrypoint {
 // Handler serves the agent pages for one deployment.
 type Handler struct {
 	Cfg config.Config
+	// GuidePage, when set, renders a guide as a page of the site. Without
+	// it the guides use the plain page in content/guide.html.
+	GuidePage func(http.ResponseWriter, *http.Request, GuideDoc)
 
 	d    data
 	md   *template.Template

@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 
+	"github.com/anup-a/artifacts/internal/agents"
 	"github.com/anup-a/artifacts/internal/config"
 )
 
@@ -77,4 +78,27 @@ func (h *Handler) doc(path string) http.HandlerFunc {
 			Limits:    h.Cfg.Limits,
 		})
 	}
+}
+
+// guideData is a guide page: the site's bar and footer around a guide the
+// agents package rendered from its Markdown.
+type guideData struct {
+	siteData
+	agents.GuideDoc
+}
+
+// GuidePage renders a guide, or the guides index, as a page of the site.
+// The agents package owns the guides and their Markdown; this only dresses
+// them like the pages around them.
+func (h *Handler) GuidePage(w http.ResponseWriter, r *http.Request, doc agents.GuideDoc) {
+	h.headers(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		title := doc.Guide.Title
+		if doc.Index {
+			title = "Guides"
+		}
+		site := h.site()
+		site.Here = "/guides" // the Guides tab is current on every guide
+		h.render(w, r, 200, "guide", title, nil, guideData{siteData: site, GuideDoc: doc})
+	})(w, r)
 }
