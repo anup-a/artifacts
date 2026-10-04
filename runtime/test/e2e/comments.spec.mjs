@@ -691,3 +691,94 @@ test("a reader can suggest an edit, and the panel shows it as a change", async (
   expect(threads[0].suggestion).toBe("Revenue grew by 12% this quarter.");
   expect(threads[0].comments[0].body).toBe("Suggested edit");
 });
+
+test("a drifted anchor across list items highlights text without breaking the list", async ({ page }) => {
+  const v1 = `<!doctype html><html><head><meta charset="utf-8"><title>Plan</title></head><body>
+<h2>Steps</h2>
+<ol id="steps"><li id="s1">Switch all traffic on day one.</li><li>Watch errors for two days.</li><li>Remove the old flow.</li></ol>
+</body></html>`;
+  const id = publish({ "index.html": v1 });
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await selectText(page, "#s1");
+  await shadow.locator(".fab").click();
+  await shadow.locator(".pop input").fill("Priya");
+  await shadow.locator(".pop textarea").fill("Pilot it first.");
+  await shadow.locator(".pop .send").click();
+  await expect(shadow.locator(".thread")).toHaveCount(1);
+
+  // v2 replaces the quoted step with two new ones, so the drifted span
+  // covers two <li>s.
+  publish(
+    { "index.html": v1.replace('<li id="s1">Switch all traffic on day one.</li>', "<li>Pilot with a tenth of traffic.</li><li>Move the rest after a week.</li>") },
+    id,
+  );
+  await page.goto(`${BASE}/a/${id}/`);
+  await shadow.locator(".launcher").click();
+  await expect(shadow.locator(".badge")).toHaveText("Moved");
+
+  const marks = page.locator('mark.artifacts-hl[data-status="drifted"]');
+  await expect(marks).toHaveCount(2);
+  await expect(marks.nth(0)).toHaveText("Pilot with a tenth of traffic.");
+  await expect(marks.nth(1)).toHaveText("Move the rest after a week.");
+  // The list keeps its own items: no empty <li>, no <mark> as a list child.
+  await expect(page.locator("#steps > li")).toHaveCount(4);
+  await expect(page.locator("#steps > mark")).toHaveCount(0);
+  const texts = await page.locator("#steps > li").allTextContents();
+  expect(texts.every((t) => t.trim().length > 0)).toBe(true);
+
+  // Closing the panel and switching filters repaints; the list must survive that too.
+  await shadow.locator(".chip[data-f='all']").click();
+  await expect(page.locator("#steps > li")).toHaveCount(4);
+  await expect(page.locator("#steps > mark")).toHaveCount(0);
+});
+
+test("a resolved thread drops its Seen/Working badge but keeps Declined", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  const owner = (path, body) =>
+    fetch(`${BASE}/api/artifacts/${id}/comments/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${TOKEN}` },
+      body: JSON.stringify(body || {}),
+    });
+  const done = await createThread(id, "Fixed it?", "brown fox", "The quick ", " jumps");
+  const declined = await createThread(id, "Change it?", "twelve percent", "Revenue grew by ", " this");
+  expect((await owner(`${done}/progress`, { progress: "working" })).status).toBe(200);
+  expect((await owner(`${done}/resolve`)).status).toBe(200);
+  expect((await owner(`${declined}/progress`, { progress: "declined", note: "Out of scope." })).status).toBe(200);
+
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await shadow.locator(".launcher").click();
+  await shadow.locator(".chip[data-f='resolved']").click();
+  await expect(shadow.locator(".thread")).toHaveCount(2);
+  await expect(shadow.locator(".thread", { hasText: "Fixed it?" }).locator(".badge[data-p]")).toHaveCount(0);
+  await expect(shadow.locator(".thread", { hasText: "Change it?" }).locator(".badge[data-p='declined']")).toHaveText("Declined");
+});
+
+test("compose footer stays on one line, with or without a suggested edit", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await selectText(page, "#p2");
+  await shadow.locator(".fab").click();
+  const row = shadow.locator(".pop .row");
+  const send = shadow.locator(".pop .send");
+  const oneLine = async () => {
+    const r = await row.boundingBox();
+    const s = await send.boundingBox();
+    // A wrapped row is at least two button heights tall.
+    expect(r.height).toBeLessThan(s.height * 1.5);
+    for (const sel of [".link", ".hint", ".cancel", ".send"]) {
+      const b = await shadow.locator(`.pop .row ${sel}`).boundingBox();
+      expect(b.height).toBeLessThan(s.height * 1.5);
+    }
+  };
+  await oneLine();
+  await expect(shadow.locator(".pop .row .hint")).toHaveAttribute("title", /to post/);
+  await shadow.locator(".pop .row .link").click();
+  await expect(shadow.locator(".pop .row .link")).toHaveText("Just comment");
+  await oneLine();
+});

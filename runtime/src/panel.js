@@ -240,7 +240,9 @@ export function mountPanel(shadow, ctx) {
     if (badge) {
       head.appendChild(el("span", { class: "badge", "data-s": resolved.status, title: badge[1], text: badge[0] }));
     }
-    const progress = PROGRESS[t.progress];
+    // "Seen" and "Working on it" describe an open thread. Once it is resolved
+    // they are stale; "Declined" stays because it explains the outcome.
+    const progress = t.status === "resolved" && t.progress !== "declined" ? null : PROGRESS[t.progress];
     if (progress) {
       head.appendChild(el("span", { class: "badge", "data-p": t.progress, title: progress[1], text: progress[0] }));
     }

@@ -23,7 +23,8 @@ border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--sh
 .pop .name{margin-bottom:8px}
 .pop textarea.field{min-height:64px;max-height:200px}
 .pop .row{display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-top:10px}
-.pop .row .hint{flex:1;font-size:11px;color:var(--muted);display:flex;gap:4px;align-items:center}
+.pop .row>*{white-space:nowrap;flex:none}
+.pop .row .hint{flex:1 1 auto;font-size:11px;color:var(--muted);display:flex;gap:4px;align-items:center}
 .pop .err{margin:0 0 6px}
 .pop .sug{margin-bottom:8px}
 .pop .row .link{margin-right:auto;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:2px}
@@ -202,9 +203,11 @@ export function mountCompose(shadow, ctx) {
       panel.open();
     });
 
-    const hint = el("span", { class: "hint" }, [
-      el("span", { class: "kbd", text: IS_MAC ? "⌘↵" : "Ctrl+↵" }),
-      el("span", { text: "to post" }),
+    // Just the key chip: "to post" next to it does not fit beside the
+    // suggest link and both buttons, so the words live in the tooltip.
+    const keys = IS_MAC ? "⌘↵" : "Ctrl+↵";
+    const hint = el("span", { class: "hint", title: `Press ${keys} to post`, "aria-label": `Press ${keys} to post` }, [
+      el("span", { class: "kbd", text: keys }),
     ]);
     pop.replaceChildren();
     if (quoted) pop.appendChild(snippet(quoted));

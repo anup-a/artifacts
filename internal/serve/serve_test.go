@@ -248,3 +248,22 @@ func TestServeSkill(t *testing.T) {
 		}
 	}
 }
+
+// The CLI's Markdown pages link highlight.js themes from cdnjs, and the skill
+// tells agents they may load CSS from the same CDNs as scripts.
+func TestCSPAllowsCDNStylesheets(t *testing.T) {
+	srv, _, id := fixture(t)
+	res, _ := get(t, srv.URL+"/a/"+id+"/", nil)
+	policy := res.Header.Get("Content-Security-Policy")
+	var style string
+	for _, d := range strings.Split(policy, ";") {
+		if d = strings.TrimSpace(d); strings.HasPrefix(d, "style-src ") {
+			style = d
+		}
+	}
+	for _, host := range []string{"https://fonts.googleapis.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"} {
+		if !strings.Contains(style, host) {
+			t.Errorf("style-src %q is missing %s", style, host)
+		}
+	}
+}
