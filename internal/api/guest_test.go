@@ -59,8 +59,8 @@ func TestGuestPublishLimitsAndMe(t *testing.T) {
 	if code != 201 || b["guest"] != true || b["expires_at"] != g["expires_at"] || b["claim_url"] != g["claim_url"] {
 		t.Fatalf("publish: %d %v", code, b)
 	}
-	if page := pageBody(t, srv.URL+"/a/"+b["id"].(string)+"/"); !strings.Contains(page, "Temporary guest page") {
-		t.Fatalf("no guest badge: %s", page)
+	if page := pageBody(t, srv.URL+"/a/"+b["id"].(string)+"/"); !strings.Contains(page, "Temporary guest page") || strings.Contains(page, "Published with byagent") {
+		t.Fatalf("want the guest badge and not the credit: %s", page)
 	}
 
 	code, me := do(t, authReq(t, "GET", srv.URL+"/api/me", tok))

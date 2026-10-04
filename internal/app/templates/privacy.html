@@ -145,7 +145,7 @@
     <h3>What published pages load</h3>
     <p>A published page is HTML its owner wrote. Its policy lets it load scripts from cdnjs.cloudflare.com and cdn.jsdelivr.net, fonts from Google Fonts, and images from any HTTPS address. When a page does that, your browser requests those files from those providers directly, and they see your IP address as with any website. We do not control what a page owner loads.</p>
     <h3>IP addresses and logs</h3>
-    <p>Our application logs record errors, not visitors, and do not contain IP addresses. Every request passes through Fly.io's proxy on the way to our server, and Fly.io processes connection data to deliver it.</p>
+    <p>Our application logs record errors, not visitors, and do not contain IP addresses. They also note each request from a known AI crawler or search bot, such as GPTBot, ClaudeBot or Googlebot: the bot's name and the page it fetched, so we can see which pages answer engines read. Every request passes through Fly.io's proxy on the way to our server, and Fly.io processes connection data to deliver it.</p>
   </section>
 
   <section id="cookies">

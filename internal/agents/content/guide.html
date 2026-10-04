@@ -1,0 +1,33 @@
+{{define "guide.html"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{if .IsIndex}}<title>Guides: sharing what AI agents write | byagent</title>
+<meta name="description" content="How to share what Claude Code, Codex and Cursor write as links people can comment on, and how to get that feedback back to the agent.">
+<meta property="og:title" content="byagent guides">
+{{else}}<title>{{.Guide.Title}} | byagent</title>
+<meta name="description" content="{{.Guide.Description}}">
+<meta property="og:title" content="{{.Guide.Title}}">
+<meta property="og:description" content="{{.Guide.Description}}">
+<meta property="og:type" content="article">
+{{end}}<meta property="og:url" content="{{.Share}}{{.Path}}">
+<meta property="og:image" content="{{.Share}}/og-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="{{.Share}}{{.Path}}">
+<link rel="alternate" type="text/markdown" href="{{.Share}}{{.MDPath}}">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script type="application/ld+json">{{.LD}}</script>
+{{template "page-style"}}
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="{{.Share}}/">byagent</a> / {{if .IsIndex}}guides{{else}}<a href="{{.Share}}/guides">guides</a>{{end}}</p>
+{{.Body}}
+{{if not .IsIndex}}<p class="updated">Updated {{.Guide.Updated}} · <a href="{{.Share}}{{.MDPath}}">This guide as Markdown</a></p>{{end}}
+<footer><a href="{{.Share}}/">byagent</a> · <a href="{{.Share}}/guides">Guides</a> · <a href="{{.Share}}/agents">For agents</a> · <a href="{{.Share}}/skill.md">Skill</a> · <a href="mailto:hello@byagent.dev">hello@byagent.dev</a></footer>
+</main>
+</body>
+</html>
+{{end}}

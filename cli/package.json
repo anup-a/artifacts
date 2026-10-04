@@ -1,7 +1,7 @@
 {
   "name": "byagent",
   "version": "0.6.0",
-  "description": "Publish a page to byagent.dev, share the URL, read the comments on it.",
+  "description": "Publish what Claude Code, Codex or Cursor writes as a shareable link. Readers comment on any line; your agent reads the comments back.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -16,11 +16,21 @@
     "node": ">=18"
   },
   "keywords": [
-    "artifacts",
+    "byagent",
+    "claude-code",
+    "codex",
+    "cursor",
+    "ai-agent",
+    "agent-skills",
+    "coding-agent",
     "publish",
+    "share",
+    "markdown",
+    "html",
+    "comments",
+    "feedback",
+    "artifacts",
     "static-site",
-    "agent",
-    "claude",
     "cli"
   ],
   "homepage": "https://byagent.dev",

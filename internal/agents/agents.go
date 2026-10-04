@@ -54,6 +54,8 @@ type data struct {
 	Limits      config.Limits
 	SignIn      bool
 	Task        Task // set on a task page
+	Guides      []Guide
+	Guide       Guide // set on a guide page
 }
 
 // URL resolves an entrypoint path against the share origin.
@@ -100,7 +102,7 @@ type Handler struct {
 func (h *Handler) Register(mux *http.ServeMux) {
 	share := strings.TrimRight(h.Cfg.ShareOrigin, "/")
 	api := strings.TrimRight(h.Cfg.APIOrigin, "/")
-	h.d = data{Share: share, API: api, Tasks: tasks, Entrypoints: entrypoints(api), Limits: h.Cfg.Limits, SignIn: h.Cfg.WebEnabled()}
+	h.d = data{Share: share, API: api, Tasks: tasks, Guides: guides, Entrypoints: entrypoints(api), Limits: h.Cfg.Limits, SignIn: h.Cfg.WebEnabled()}
 	h.md = template.Must(template.New("").ParseFS(contentFS, "content/*.md", "content/*.txt"))
 	h.html = htmltemplate.Must(htmltemplate.New("").ParseFS(contentFS, "content/*.html"))
 
@@ -118,7 +120,23 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /llms-full.txt", h.full)
 	mux.HandleFunc("GET /robots.txt", h.text("robots.txt", "text/plain"))
 	mux.HandleFunc("GET /sitemap.xml", h.text("sitemap.xml.txt", "application/xml"))
+	// Guides for people searching for the problem, as HTML and Markdown.
+	mux.HandleFunc("GET /guides", h.guidesIndex)
+	mux.HandleFunc("GET /guides/{$}", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/guides", http.StatusMovedPermanently)
+	})
+	mux.HandleFunc("GET /guides.md", h.text("guides.md", "text/markdown"))
+	mux.HandleFunc("GET /guides/{file}", h.guideBySlug)
+	mux.HandleFunc("GET /"+indexNowKey+".txt", func(w http.ResponseWriter, r *http.Request) {
+		write(w, "text/plain", []byte(indexNowKey))
+	})
 }
+
+// indexNowKey proves to IndexNow (Bing, Yandex, Seznam, Naver) that whoever
+// submits byagent.dev URLs controls the site: the key is served at
+// /<key>.txt, and scripts/indexnow.sh sends it with the URL list. It is
+// public by design, not a secret.
+const indexNowKey = "378018b2e38cfcb4209e8fb8eec6189e"
 
 func (h *Handler) exec(name string, d data) ([]byte, error) {
 	var b bytes.Buffer

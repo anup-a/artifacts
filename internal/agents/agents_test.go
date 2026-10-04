@@ -52,6 +52,10 @@ func publicPaths() []string {
 	for _, t := range tasks {
 		out = append(out, "/agents/tasks/"+t.Slug+".md")
 	}
+	out = append(out, "/guides", "/guides.md")
+	for _, g := range guides {
+		out = append(out, "/guides/"+g.Slug, "/guides/"+g.Slug+".md")
+	}
 	return out
 }
 

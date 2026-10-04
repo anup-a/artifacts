@@ -24,7 +24,9 @@
 <meta name="twitter:image" content="{{$d.CardURL}}">
 {{/* A data block, not a script: the CSP does not apply and nothing runs.
      WebSite.name is what Google shows as the site name above the result. */}}
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}"},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write as shareable, commentable links."}]}</script>
+{{/* sameAs ties this byagent to its npm package and skill repo, so an
+     answer engine does not confuse it with other things called byagent. */}}
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}","publisher":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write (Markdown or HTML) as shareable links. Readers comment on any line without an account, and the next agent run reads the comments back.","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"installUrl":"https://www.npmjs.com/package/byagent","softwareHelp":{"@type":"CreativeWork","url":"{{$d.AgentsURL}}"},"sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"publisher":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}}]}</script>
 {{template "site-theme" $d}}
 {{end}}
 
