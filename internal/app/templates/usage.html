@@ -1,4 +1,18 @@
 {{define "content"}}
+{{with .Data.Pages}}
+<section class="usage">
+  <div class="section-head">
+    <h2>Pages</h2>
+    <span class="muted">live now, across every key</span>
+  </div>
+  <div class="stat quota{{if .Full}} is-full{{else if .Near}} is-near{{end}}">
+    <span class="stat-label">{{template "icon" "artifacts"}}Live pages</span>
+    <span class="stat-value">{{num .Used}} <span class="quota-of">of {{num .Limit}}</span></span>
+    <progress value="{{.Used}}" max="{{.Limit}}" aria-label="{{.Used}} of {{.Limit}} pages used">{{.Used}} of {{.Limit}}</progress>
+    <span class="stat-sub">{{if .Full}}Limit reached. New pages are refused until you delete one; new versions of existing pages still publish.{{else}}{{num .Left}} left. Deleting a page frees its slot.{{end}}</span>
+  </div>
+</section>
+{{end}}
 {{range .Data.Months}}
 <section class="usage">
   <div class="section-head">

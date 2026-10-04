@@ -554,6 +554,20 @@ textarea { resize: vertical; line-height: 1.45; }
 .stat-label .ic { width: 14px; height: 14px; }
 .stat-value { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
 .stat-sub { font-size: 12px; color: var(--faint); }
+.quota { max-width: 420px; }
+.quota-of { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.quota progress { appearance: none; -webkit-appearance: none; width: 100%; height: 6px; margin: 4px 0 2px; border: 0; border-radius: 3px; background: var(--line); overflow: hidden; color: var(--accent); }
+.quota progress::-webkit-progress-bar { background: var(--line); border-radius: 3px; }
+.quota progress::-webkit-progress-value { background: currentColor; border-radius: 3px; }
+.quota progress::-moz-progress-bar { background: currentColor; border-radius: 3px; }
+.quota.is-near progress { color: var(--warn); }
+.quota.is-full progress { color: var(--danger); }
+.quota.is-full .stat-sub { color: var(--danger); }
+.quota-callout { border-left-color: var(--warn); margin-bottom: 20px; }
+.quota-callout .callout-head { margin-bottom: 0; }
+.quota-callout .callout-head .ic { color: var(--warn); }
+.quota-callout.is-full { border-left-color: var(--danger); }
+.quota-callout.is-full .callout-head .ic { color: var(--danger); }
 
 /* ---- Auth pages (login, check inbox, errors) --------------------- */
 .bare { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
