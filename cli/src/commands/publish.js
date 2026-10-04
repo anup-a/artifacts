@@ -4,6 +4,7 @@ import { parseWhen, setExpiry } from "./artifacts.js";
 import { copyFileSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { apiJson } from "../client.js";
+import { detectAgent } from "../agent.js";
 import { collectFiles, readLink, writeLink } from "../files.js";
 import { findProject } from "../project.js";
 import { CliError, usage } from "../errors.js";
@@ -28,10 +29,10 @@ function manifestOf(files, title, comments, labels, visibility) {
 }
 
 // provenanceOf says what produced this version, for the history: --agent and
-// --model win, then BYAGENT_AGENT / BYAGENT_MODEL. Claude Code is detected by
-// the CLAUDECODE=1 it sets for the commands it runs; nothing else is guessed.
+// --model win, then BYAGENT_AGENT / BYAGENT_MODEL, then the agent detected
+// from its environment (see detectAgent).
 export function provenanceOf(flags, env = process.env) {
-  const agent = flags.agent || env.BYAGENT_AGENT || (env.CLAUDECODE === "1" ? "claude-code" : "");
+  const agent = flags.agent || detectAgent(env);
   const model = flags.model || env.BYAGENT_MODEL || "";
   const out = {};
   if (agent) out.agent = String(agent).slice(0, 64);

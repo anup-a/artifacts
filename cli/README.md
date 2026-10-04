@@ -12,11 +12,27 @@ npm install -g byagent        # or: npx byagent <command>
 npx byagent publish ./page.html
 ```
 
-With nothing configured, `publish` gets a guest key and saves it to `~/.artifacts/config.json`. Guest pages are public, three at most, 5 MB each, and stop working 24 hours after the key was made. The output ends with a claim link: open it, sign in and confirm, and the pages move into your workspace for good. The guest key stops working then, so log in with a key from the dashboard. `byagent login --guest` gets a guest key up front; `BYAGENT_GUEST=0` turns the automatic one off.
+With nothing configured, `publish` gets a guest key and saves it to `~/.artifacts/config.json`. Guest pages are public, three at most, 5 MB each, and stop working 24 hours after the key was made. The output ends with a claim link: open it, sign in and confirm, and the pages move into your workspace for good. The guest key stops working then, and the dashboard offers a connect prompt for your agent. `byagent login --guest` gets a guest key up front; `BYAGENT_GUEST=0` turns the automatic one off.
 
 ## Sign in
 
-Create a key in the dashboard at `https://app.byagent.dev/app/keys`, then:
+Connect an agent without pasting a key into its chat. Either paste the prompt from the dashboard's Connect agent page (`https://app.byagent.dev/app/connect`), which runs:
+
+```
+npx -y byagent@latest login --code K7QD-M3XR
+```
+
+or start from the terminal and approve in the browser:
+
+```
+byagent login --browser              # prints a link and waits for you to approve it
+byagent login --browser --no-wait    # prints the link and exits; then:
+byagent login --wait                 # exit 3 while not approved yet
+```
+
+Either way the CLI gets a key of its own, named after the agent (`claude-code on laptop`, or `--name`), which you can revoke under API keys. Codes work once and expire in 10 minutes.
+
+For CI, create a key at `https://app.byagent.dev/app/keys` and pipe it in:
 
 ```
 echo "$KEY" | byagent login --api https://app.byagent.dev

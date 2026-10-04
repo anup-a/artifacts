@@ -42,6 +42,9 @@ const COMMANDS = {
 const help = (api) => `byagent - publish a page, share the URL, read the comments on it
 
 Usage:
+  byagent login --code <code> [--api <url>] [--name <key name>]
+  byagent login --browser [--no-wait] [--timeout <seconds>] [--api <url>] [--name <key name>]
+  byagent login --wait [--timeout <seconds>]
   byagent login --api <url> [--token <key>]
   byagent login --guest
   byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>]
@@ -76,12 +79,21 @@ a styled page on the way in; its first H1 becomes the title unless --title is
 given, and images or links relative to it keep working.
 Every command takes --json and then prints exactly one JSON object.
 Config comes from ARTIFACTS_TOKEN / ARTIFACTS_API, else ~/.artifacts/config.json.
-Create a key at ${api}/app/keys, then paste it with login or pipe it on stdin.
+Connecting an agent never needs a key in the chat. login --code takes the
+one-time code from a prompt made on the dashboard's Connect agent page
+(${api}/app/connect); login --browser prints a link where a signed-in person
+approves this agent. Either way the agent gets a key of its own, named after it
+("claude-code on laptop", or --name), which the dashboard can revoke. Codes work
+once and expire in 10 minutes. login --browser --no-wait prints the link and
+exits; login --wait picks the same request up again (exit 3 while not approved).
+For CI or a script, create a key at ${api}/app/keys and pipe it to login.
 With nothing configured, publish gets a guest key from https://app.byagent.dev
 (or ARTIFACTS_API) and saves it: no account needed. Guest pages are public,
 three at most, 5 MB each, and stop working 24 hours after the key was made.
 Publish prints a claim_url: open it, sign in and confirm to keep the pages;
-the guest key stops working then, so log in with a dashboard key. login --guest gets a guest key up front; BYAGENT_GUEST=0 disables it.
+the guest key stops working then, and the dashboard offers a connect prompt
+(or run login --browser). login --guest gets a guest key up front;
+BYAGENT_GUEST=0 disables it.
 POST /api/keys was removed. Keys belong to the workspace selected in the app.
 --end-user attributes or filters an opaque customer id. Publish and list JSON
 include end_user. portal-link is for integrator workspaces; links last 7 days.
@@ -100,8 +112,9 @@ carried the old one. share --off withdraws it. Anyone holding the code can open
 and comment on that artifact, and nothing else, without signing in. get shows
 the code; list never does.
 --agent and --model record what produced a version (free text, 64 chars),
-else BYAGENT_AGENT / BYAGENT_MODEL; inside Claude Code the agent defaults to
-claude-code. versions shows them with the publishing key's name.
+else BYAGENT_AGENT / BYAGENT_MODEL. Without them the agent is detected from
+its environment (Claude Code, Codex, or an AI_AGENT variable) and sent with
+every request; versions shows it with the publishing key's name.
 versions marks the live version and prints a preview link per version: it
 opens that version without making it live, for signed-in members of the
 workspace only. rollback makes an old version live again (v3 or 3): nothing

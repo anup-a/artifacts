@@ -1,4 +1,5 @@
 import { CliError } from "./errors.js";
+import { clientHeaders } from "./agent.js";
 
 function url(cfg, path, query) {
   const u = new URL(cfg.api + path);
@@ -13,7 +14,7 @@ async function send(cfg, method, path, { query, body, headers } = {}) {
   try {
     res = await fetch(url(cfg, path, query), {
       method,
-      headers: { Authorization: `Bearer ${cfg.token}`, ...headers },
+      headers: { ...clientHeaders(), Authorization: `Bearer ${cfg.token}`, ...headers },
       body,
     });
   } catch (err) {
@@ -54,7 +55,10 @@ export async function apiJson(cfg, method, path, opts = {}) {
   }
   if (!res.ok) {
     const e = parsed && parsed.error ? parsed.error : {};
-    throw new CliError(e.message || `request failed with ${res.status}`, {
+    // A key that stopped working (revoked, or a guest key whose pages were
+    // claimed) is fixed the same way every time: connect again.
+    const hint = res.status === 401 && cfg.token ? "; connect again with byagent login --browser" : "";
+    throw new CliError((e.message || `request failed with ${res.status}`) + hint, {
       code: e.code || "HTTP_ERROR",
       status: res.status,
       requestId,

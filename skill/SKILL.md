@@ -30,13 +30,14 @@ Default to Markdown. It is faster to write, comments attach to real text, and th
 
 The CLI is the npm package `byagent` (`npm install -g byagent`, or `npx byagent <command>`). Never `npx artifacts`, which is an unrelated package. Credentials: `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else `~/.artifacts/config.json`.
 
-```
-echo "$MY_KEY" | byagent login --api https://<api-host>
-```
+**Connecting:** never ask the user to paste a key into the chat. Either:
 
-Keys are created in the dashboard at `https://<api-host>/app/keys` after sign-in, never over the API. Never print the token. Every command takes `--json`; parse that object.
+- The user pastes a prompt from the dashboard's **Connect agent** page. It carries a one-time code; run the line it gives you, e.g. `npx -y byagent@latest login --code K7QD-M3XR --json`.
+- Or you start it: `byagent login --browser --no-wait --json` prints `verify_url` and `user_code`. Give the user the link and the code, ask them to approve it, then run `byagent login --wait --json` (exit 3 means not approved yet; ask again or retry).
 
-**No key yet:** `byagent publish` still works. With nothing configured it gets a guest key from byagent.dev and saves it. Guest pages are public, three at most, and stop working 24 hours after the key was made. The JSON carries `guest: true`, `expires_at` and `claim_url`: give the user the page URL and the `claim_url`, and say the page is temporary until they open the claim link and sign in. As a guest, never publish anything private, internal or personal, since a guest page cannot be private; ask the user for a key instead.
+Either way you get a key of your own, named after you (`claude-code on <host>`), saved to `~/.artifacts/config.json`. Codes work once and expire in 10 minutes. Never print the token. Every command takes `--json`; parse that object. For CI, a person creates a key at `https://<api-host>/app/keys` and pipes it to `byagent login --api https://<api-host>`.
+
+**No key yet:** `byagent publish` still works. With nothing configured it gets a guest key from byagent.dev and saves it. Guest pages are public, three at most, and stop working 24 hours after the key was made. The JSON carries `guest: true`, `expires_at` and `claim_url`: give the user the page URL and the `claim_url`, and say the page is temporary until they open the claim link and sign in. As a guest, never publish anything private, internal or personal, since a guest page cannot be private; connect first (above). Once the user claims guest pages the guest key stops working: run `byagent login --browser` to connect again.
 
 ```
 byagent publish ./plan-site --title "Q3 plan" --project "Hi Travel" --tag plan --tag q3 --json
@@ -45,7 +46,7 @@ byagent publish ./notes.md --project "Hi Travel" --tag notes --json     # Markdo
 
 **Markdown:** a `.md` file, or a directory with `index.md` / `README.md` and no `index.html`, is rendered on publish: light + dark, heading anchors, sticky table of contents, GFM tables and task lists, highlighted code fences. The first H1 becomes the title unless `--title` is given. Relative images next to the file ship with it when you publish the directory.
 
-Always pass `--project` and 1–3 `--tag`s. Pass `--agent <you>` (for example `codex`, `cursor`) and `--model <model id>` when you know them, so the version history shows what produced each version; inside Claude Code the agent is filled in for you. Output includes `url` — that is the deliverable. Republish from the **same directory** to keep the URL (`.artifacts.json` binds it). New directory = new link.
+Always pass `--project` and 1–3 `--tag`s. Pass `--agent <you>` (for example `codex`, `cursor`) and `--model <model id>` when you know them, so the version history shows what produced each version; Claude Code and Codex are detected for you. Output includes `url` — that is the deliverable. Republish from the **same directory** to keep the URL (`.artifacts.json` binds it). New directory = new link.
 
 **Collections:** every artifact sharing a `--project` label forms a collection (read in publish order unless the owner reorders it). Before publishing a page that belongs with earlier ones, run `byagent collections --json` and reuse the **exact** existing project string; a near-miss like `Hi-Travel` vs `Hi Travel` starts a second collection. `byagent collection "<name>" --json` lists one collection's pages with their URLs.
 

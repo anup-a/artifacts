@@ -108,6 +108,9 @@ func (s *server) readPublish(w http.ResponseWriter, r *http.Request) (manifest, 
 	if e != nil {
 		return m, nil, e
 	}
+	if m.Agent == "" {
+		m.Agent = clientName(r)
+	}
 	sizes := map[string]int64{}
 	for _, f := range m.Files {
 		sizes[f.SHA256] = f.Size

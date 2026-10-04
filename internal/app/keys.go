@@ -16,9 +16,7 @@ type keysData struct {
 	Rows   []store.Key
 	NewKey string
 	Error  string
-	// Claimed is set right after guest pages were kept, when the agent that
-	// made them needs a real key to carry on.
-	Claimed bool
+	API    string // this server's API origin, for the login line
 }
 
 func (h *Handler) keys(w http.ResponseWriter, r *http.Request, v *viewer) {
@@ -31,7 +29,7 @@ func (h *Handler) renderKeys(w http.ResponseWriter, r *http.Request, status int,
 		h.fail(w, r, err)
 		return
 	}
-	d := keysData{Rows: rows, NewKey: newKey, Error: msg, Claimed: r.Method == "GET" && r.URL.Query().Get("claimed") == "1"}
+	d := keysData{Rows: rows, NewKey: newKey, Error: msg, API: h.Cfg.APIOrigin}
 	h.render(w, r, status, "keys", "API keys", v, d)
 }
 

@@ -11,7 +11,7 @@
   {{else}}
   <p class="muted">No pages left to keep.</p>
   {{end}}
-  <p class="muted">Keeping moves these pages into <strong>{{.Viewer.Tenant.Name}}</strong>. Links, comments and versions stay as they are, and nothing expires. The guest key stops working, so give your agent a key from <a class="link" href="/app/keys">API keys</a>. Only keep pages you or your agent published.</p>
+  <p class="muted">Keeping moves these pages into <strong>{{.Viewer.Tenant.Name}}</strong>. Links, comments and versions stay as they are, and nothing expires. The guest key stops working; the next page helps you connect your agent again. Only keep pages you or your agent published.</p>
   <form method="post" action="/app/claim/{{path .Data.Code}}">
     <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
     <button type="submit" class="btn primary">Keep them in {{.Viewer.Tenant.Name}}</button>

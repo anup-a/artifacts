@@ -356,6 +356,14 @@ textarea { resize: vertical; line-height: 1.45; }
 .callout-head .ic { margin-top: 3px; color: var(--ok); }
 .copyrow { display: flex; gap: 8px; align-items: center; }
 .copyrow input { flex: 1; }
+/* Connect agent: the prompt to paste, and the facts a person checks before
+   approving a CLI. */
+.connect-prompt { width: 100%; resize: vertical; margin-bottom: 12px; font: 12.5px/1.55 var(--mono); color: var(--fg-2); background: var(--panel-2); }
+.connect-prompt + .field-row { align-items: center; max-width: none; }
+.connect-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 14px; font-size: 13.5px; }
+.connect-facts dt { color: var(--fg-2); }
+.connect-facts dd { margin: 0; }
+.connect-code { font-size: 15px; letter-spacing: .08em; }
 .alert {
   display: flex; align-items: flex-start; gap: 8px; color: var(--danger);
   background: var(--danger-soft); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);

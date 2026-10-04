@@ -135,11 +135,11 @@
   <div class="empty-steps">
     <div class="step">
       <span class="step-n">1</span>
-      <div><strong>From your terminal.</strong> Create a key on the <a class="link" href="/app/keys">API keys</a> page, then run <code>artifacts login</code> and <code>artifacts publish ./site</code>.</div>
+      <div><strong>From an agent.</strong> <a class="link" href="/app/connect">Connect agent</a> gives you a prompt to paste in, and the agent gets a key of its own. To try it first, hand the agent <a class="link" href="{{.Data.APIOrigin}}/skill.md">{{.Data.APIOrigin}}/skill.md</a>: guest pages need no account.</div>
     </div>
     <div class="step">
       <span class="step-n">2</span>
-      <div><strong>From an agent.</strong> Give it <a class="link" href="{{.Data.APIOrigin}}/skill.md">{{.Data.APIOrigin}}/skill.md</a> and it publishes for you.</div>
+      <div><strong>From your terminal.</strong> Run <code>npx byagent login --browser</code>, approve it here, then <code>npx byagent publish ./site</code>.</div>
     </div>
   </div>
   <p class="empty-hint">Add <code>--project &lt;name&gt;</code> and <code>--tag &lt;t&gt;</code> when publishing and the gallery groups and labels your pages.</p>
