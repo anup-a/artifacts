@@ -83,7 +83,7 @@ Claude-artifact bar: one self-contained `index.html`, CSS/JS inlined, real conte
 
 Avoid the generic look: cream + serif + terracotta, Inter-only, acid-green on black, identical rounded cards, emoji as section labels. `<title>` is 2–4 specific words.
 
-Scripts only from `cdnjs.cloudflare.com` / `cdn.jsdelivr.net`; stylesheets from `fonts.googleapis.com` (fonts from `fonts.gstatic.com`). Pin versions. Embed the data; the page cannot call an API later. Wide tables/diagrams in `overflow-x: auto`.
+Scripts only from `cdnjs.cloudflare.com` / `cdn.jsdelivr.net`; stylesheets from those two or `fonts.googleapis.com` (fonts from `fonts.gstatic.com`). Pin versions. Embed the data; the page cannot call an API later. Wide tables/diagrams in `overflow-x: auto`.
 
 ## Comments
 

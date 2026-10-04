@@ -62,7 +62,7 @@
     <ul>
       <li><b>Two origins.</b> Published pages are served at byagent.dev/a/&lt;id&gt;/. The dashboard and the API are at app.byagent.dev. Published pages never share an origin with dashboard sessions, and the session cookie is scoped to the dashboard path on app.byagent.dev, HttpOnly and Secure.</li>
       <li><b>Dashboard.</b> A strict Content Security Policy allows no inline script and no framing. Every form carries a CSRF token.</li>
-      <li><b>Published pages.</b> Each page is served with a Content Security Policy: scripts only from byagent.dev, cdnjs.cloudflare.com and cdn.jsdelivr.net; styles and fonts from byagent.dev and Google Fonts; network requests only back to byagent.dev; and framing only by byagent.dev and the dashboard. Images may load from any HTTPS address.</li>
+      <li><b>Published pages.</b> Each page is served with a Content Security Policy: scripts only from byagent.dev, cdnjs.cloudflare.com and cdn.jsdelivr.net; styles from byagent.dev, Google Fonts, cdnjs.cloudflare.com and cdn.jsdelivr.net; fonts from byagent.dev and Google Fonts; network requests only back to byagent.dev; and framing only by byagent.dev and the dashboard. Images may load from any HTTPS address.</li>
       <li><b>Private pages.</b> A private page opened by a workspace member is served from app.byagent.dev inside a CSP sandbox. It runs in an opaque origin, so its scripts cannot read the dashboard or another page.</li>
       <li><b>Public pages share one origin.</b> Every public page, and every private page opened with a share code, is served from byagent.dev. A script on one of those pages runs in the same origin as the others. See <a class="link" href="#not">What we do not claim</a>.</li>
     </ul>

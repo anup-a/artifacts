@@ -1,8 +1,8 @@
 // Paints anchor highlights onto the host page.
 //
-// Text anchors are wrapped in a <mark> via Range.surroundContents where the range
-// allows it; when it spans element boundaries we fall back to extract-and-insert,
-// which handles the multi-node case without corrupting the page.
+// A text anchor inside one text node is wrapped in a single <mark>. One that
+// spans elements gets a <mark> per text piece, so the page structure is never
+// changed: no element is moved or split.
 const CLASS = "artifacts-hl";
 const ATTR = "data-artifacts-thread";
 // Highlights stay in the DOM but are only drawn while this attribute is on
@@ -66,7 +66,7 @@ export function clearHighlights() {
   outlined.clear();
 }
 
-function markRange(range, threadId, status, onClick) {
+function makeMark(threadId, status, onClick) {
   const mark = document.createElement("mark");
   mark.className = CLASS;
   mark.setAttribute(ATTR, threadId);
@@ -77,18 +77,44 @@ function markRange(range, threadId, status, onClick) {
     ev.stopPropagation();
     onClick(threadId);
   });
-  try {
-    range.surroundContents(mark);
-    return true;
-  } catch {
+  return mark;
+}
+
+function markRange(range, threadId, status, onClick) {
+  // One text node: a single <mark> around exactly the quoted characters.
+  if (range.startContainer === range.endContainer && range.startContainer.nodeType === Node.TEXT_NODE) {
     try {
-      mark.appendChild(range.extractContents());
-      range.insertNode(mark);
+      range.surroundContents(makeMark(threadId, status, onClick));
       return true;
     } catch {
       return false;
     }
   }
+  // Across elements (two list items, a table row, text around a <code>): wrap
+  // each text piece in its own <mark>. Moving elements into one <mark> would
+  // split them and leave a <mark> where only <li>/<tr> may go.
+  const root =
+    range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+      ? range.commonAncestorContainer.parentNode
+      : range.commonAncestorContainer;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const pieces = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!range.intersectsNode(n)) continue;
+    const start = n === range.startContainer ? range.startOffset : 0;
+    const end = n === range.endContainer ? range.endOffset : n.data.length;
+    // Whitespace between block elements (e.g. inside <ol>) is not content.
+    if (start < end && n.data.slice(start, end).trim()) pieces.push({ n, start, end });
+  }
+  for (const { n, start, end } of pieces) {
+    let target = n;
+    if (start > 0) target = target.splitText(start);
+    if (end - start < target.data.length) target.splitText(end - start);
+    const mark = makeMark(threadId, status, onClick);
+    target.parentNode.insertBefore(mark, target);
+    mark.appendChild(target);
+  }
+  return pieces.length > 0;
 }
 
 function outlineElement(el, threadId, status, onClick) {
