@@ -1,9 +1,9 @@
-# byagent on one Hetzner box, behind a Cloudflare Tunnel.
+# byagent on one VPS (OVHcloud VPS-1), behind a Cloudflare Tunnel.
 #
 # cloudflared dials out to Cloudflare and carries byagent.dev and
 # app.byagent.dev to the server over the compose network, so the box opens no
 # web ports at all: its firewall allows ssh and nothing else, and nobody can
-# reach the app without passing Cloudflare. That is what makes
+# reach the app without passing Cloudflare (ufw admits ssh only). That is what makes
 # TRUST_PROXY_HEADERS=true safe here: CF-Connecting-IP is set by Cloudflare,
 # and the only other way in is 127.0.0.1 on the box itself.
 #

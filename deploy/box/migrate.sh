@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Copies byagent's data and settings from the Fly machine onto the box.
 #
-#   ./deploy/hetzner/migrate.sh root@<box ip>           # rehearsal
-#   ./deploy/hetzner/migrate.sh root@<box ip> --final   # the real move
+#   ./deploy/box/migrate.sh root@<box ip>           # rehearsal
+#   ./deploy/box/migrate.sh root@<box ip> --final   # the real move
 #
 # A rehearsal copies everything while Fly keeps serving, so the box can be
 # checked before any traffic moves. --final first turns on READ_ONLY on Fly
@@ -10,7 +10,7 @@
 # last word and nothing written to Fly is lost. Fly stays read-only after
 # that; the Cloudflare hostnames are switched to the tunnel next (RUNBOOK).
 #
-# Needs: fly auth login, ship.sh already run once (the image is on the box),
+# Needs: setup.sh and ship.sh already run (the image is on the box), fly auth login,
 # and the tunnel token in TUNNEL_TOKEN or the Keychain
 # (security add-generic-password -s cloudflared -a byagent -w).
 set -euo pipefail
@@ -64,7 +64,7 @@ ssh "$TARGET" 'set -e
 
 echo "==> done. The box serves the copied data on 127.0.0.1:8080."
 if [ "$FINAL" = "--final" ]; then
-  echo "Next: point byagent.dev and app.byagent.dev at the tunnel (RUNBOOK, Hetzner cutover)."
+  echo "Next: point byagent.dev and app.byagent.dev at the tunnel (RUNBOOK, Production on a VPS > Cutover)."
 else
   echo "Rehearsal only: Fly is still live and writable."
 fi

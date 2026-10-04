@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Builds the server image, loads it onto the box over ssh, and restarts the
-# stack. CI runs this on every push to main once DEPLOY_TARGET=hetzner; it
+# stack. CI runs this on every push to main once DEPLOY_TARGET=box; it
 # also works from a laptop:
 #
-#   ./deploy/hetzner/ship.sh root@<box ip>
+#   ./deploy/box/ship.sh root@<box ip>
 #
 # The image travels over ssh rather than through a registry, so the box needs
 # no credentials for the private repo. Each build is also tagged with its git
@@ -22,7 +22,7 @@ echo "==> loading it on $TARGET"
 docker save artifacts:local "artifacts:$SHA" | gzip | ssh "$TARGET" 'gunzip | docker load'
 
 echo "==> starting"
-scp deploy/hetzner/docker-compose.yml "$TARGET":/opt/artifacts/docker-compose.yml
+scp deploy/box/docker-compose.yml "$TARGET":/opt/artifacts/docker-compose.yml
 ssh "$TARGET" 'cd /opt/artifacts && test -f .env || { echo "no /opt/artifacts/.env yet: run migrate.sh first"; exit 1; }
   docker compose up -d --remove-orphans
   # Keep the five newest builds for rollback.
