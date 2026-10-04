@@ -235,3 +235,26 @@ func TestUsagePage(t *testing.T) {
 	e.signIn("a@x.io")
 	want(t, e.get("/app/usage"), 200, "This month", "September 2026", "Last month", "August 2026", "Publishes", "Storage", "Page views", "Open comments")
 }
+
+func TestPageQuota(t *testing.T) {
+	e := fixture(t)
+	e.signIn("a@x.io")
+	e.h.Cfg.Limits.ArtifactsPerTenant = 5
+	for _, id := range []string{"aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"} {
+		e.publish(id, "Page "+id[:1], "")
+	}
+	want(t, e.get("/app/usage"), 200, "Live pages", "3 <span class=\"quota-of\">of 5</span>", "2 left")
+	if res := e.get("/app/artifacts"); strings.Contains(res.Body, "quota-callout") {
+		t.Fatal("warned at 3 of 5 pages")
+	}
+
+	e.publish("dddddddddddd", "Page d", "")
+	want(t, e.get("/app/artifacts"), 200, "quota-callout", "4 of 5 pages used.")
+	if res := e.get("/app/artifacts?q=Page"); strings.Contains(res.Body, "quota-callout") {
+		t.Fatal("warned on a filtered list")
+	}
+
+	e.publish("eeeeeeeeeeee", "Page e", "")
+	want(t, e.get("/app/artifacts"), 200, "quota-callout is-full", "You have reached the limit of 5 pages.")
+	want(t, e.get("/app/usage"), 200, "quota is-full", "Limit reached.")
+}

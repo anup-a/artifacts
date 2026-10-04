@@ -36,6 +36,9 @@ type artifactsData struct {
 	// Shelf is the collections row, only on the unfiltered first page: a
 	// filtered list is already one slice of the workspace.
 	Shelf *shelfView
+	// Quota is set on the unfiltered first page once the workspace is near
+	// its page limit, so the warning shows before publishes start failing.
+	Quota *pageQuota
 }
 
 // PageURL is the list URL with the current filters and the given cursor, so
@@ -131,6 +134,14 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 				return
 			}
 			d.Shelf = h.shelf(all)
+			q, err := h.pageQuota(r.Context(), v.Tenant.ID)
+			if err != nil {
+				h.fail(w, r, err)
+				return
+			}
+			if q.Near() {
+				d.Quota = &q
+			}
 		}
 	}
 	for _, a := range older {

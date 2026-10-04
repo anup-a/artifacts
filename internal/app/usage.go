@@ -25,5 +25,13 @@ func (h *Handler) usage(w http.ResponseWriter, r *http.Request, v *viewer) {
 		}
 		months[i].MonthUsage = u
 	}
-	h.render(w, r, 200, "usage", "Usage", v, struct{ Months []monthView }{months})
+	pages, err := h.pageQuota(r.Context(), v.Tenant.ID)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	h.render(w, r, 200, "usage", "Usage", v, struct {
+		Pages  pageQuota
+		Months []monthView
+	}{pages, months})
 }

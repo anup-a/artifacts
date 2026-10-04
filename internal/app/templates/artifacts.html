@@ -13,6 +13,12 @@
 <p class="filter-bar">Showing artifacts of end user <code>{{.Data.EndUser}}</code> <a class="link" href="{{.Data.ChipURL .Data.Project}}">Clear filter</a></p>
 {{end}}
 
+{{with .Data.Quota}}
+<div class="callout quota-callout{{if .Full}} is-full{{end}}" role="status">
+  <div class="callout-head">{{template "icon" "artifacts"}}<span>{{if .Full}}<strong>You have reached the limit of {{num .Limit}} pages.</strong> New pages are refused until you delete one.{{else}}<strong>{{num .Used}} of {{num .Limit}} pages used.</strong> At {{num .Limit}}, new pages are refused until you delete one.{{end}} <a class="link" href="/app/usage">See usage</a></span></div>
+</div>
+{{end}}
+
 {{with .Data.Shelf}}
 <section class="collections-row" aria-label="Collections">
   <h2 class="day-label">Collections <a class="day-label-link" href="/app/collections" title="Every collection">View all {{.Total}}</a></h2>
