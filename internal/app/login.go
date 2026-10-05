@@ -108,12 +108,14 @@ func (h *Handler) emailStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := clientIP(r, h.Cfg.TrustProxyHeaders)
-	if ok, _ := h.EmailLimiter.Allow(email); !ok {
-		h.renderError(w, r, 429, "Too many sign-in links requested for that address. Try again in an hour.")
-		return
-	}
+	// The network's budget first: a client that has run out stops here and
+	// cannot fill the email limiter with addresses it makes up.
 	if ok, _ := h.IPLimiter.Allow(ip); !ok {
 		h.renderError(w, r, 429, "Too many sign-in links requested from this network. Try again in an hour.")
+		return
+	}
+	if ok, _ := h.EmailLimiter.Allow(email); !ok {
+		h.renderError(w, r, 429, "Too many sign-in links requested for that address. Try again in an hour.")
 		return
 	}
 	if err := h.Magic.Issue(r.Context(), email); err != nil {

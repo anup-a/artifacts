@@ -260,9 +260,10 @@ func TestSignInFlowSecurityHeadersAndStatics(t *testing.T) {
 }
 
 func TestBadEmailBadLinkAndRateLimits(t *testing.T) {
+	emails := ratelimit.NewWindow(1, time.Hour)
 	e := newEnv(t, baseConfig(t.TempDir()), func(h *Handler) {
-		h.EmailLimiter = ratelimit.NewWindow(1, time.Hour)
-		h.IPLimiter = ratelimit.NewWindow(2, time.Hour)
+		h.EmailLimiter = emails
+		h.IPLimiter = ratelimit.NewWindow(3, time.Hour)
 	})
 	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"not an address"}}), 400, "does not look like an email")
 	want(t, e.get("/app/login/email/verify?token=bogus"), 400, "invalid, used, or expired")
@@ -270,6 +271,11 @@ func TestBadEmailBadLinkAndRateLimits(t *testing.T) {
 	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"a@x.io"}}), 429, "for that address")
 	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"b@x.io"}}), 200)
 	want(t, e.do(e.cl, "POST", "/app/login/email", url.Values{"email": {"c@x.io"}}), 429, "from this network")
+	// A request the network limit refused never reached the email limiter,
+	// so it cannot be used to fill that limiter with made-up addresses.
+	if ok, _ := emails.Allow("c@x.io"); !ok {
+		t.Fatal("a request refused by the network limit spent an email budget")
+	}
 	// A used link is single use.
 	e2 := fixture(t)
 	e2.signIn("a@x.io")

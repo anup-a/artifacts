@@ -78,21 +78,60 @@ func TestKeyCountIsBounded(t *testing.T) {
 	l := NewWindow(5, time.Hour)
 	now := time.Unix(1000, 0)
 	l.SetNow(func() time.Time { return now })
-	for i := range MaxKeys {
-		l.Allow(fmt.Sprint(i))
+	for range 5 {
+		l.Allow("victim")
 	}
-	if ok, _ := l.Allow("fresh"); ok {
-		t.Fatal("a full limiter must refuse a key it does not track")
+	if ok, _ := l.Allow("victim"); ok {
+		t.Fatal("victim should be limited")
 	}
-	if ok, _ := l.Allow("7"); !ok {
-		t.Fatal("tracked keys keep their budget")
+	// A flood of fresh keys fills the limiter, then keeps coming.
+	for i := range MaxKeys + 10 {
+		now = now.Add(time.Microsecond)
+		if ok, _ := l.Allow(fmt.Sprint("fake", i)); !ok {
+			t.Fatalf("fresh key %d refused: a full limiter must never lock new keys out", i)
+		}
+	}
+	if len(l.items) > MaxKeys || l.order.Len() != len(l.items) {
+		t.Fatalf("%d keys tracked, %d listed", len(l.items), l.order.Len())
+	}
+	if ok, _ := l.Allow("someone-else"); !ok {
+		t.Fatal("a real user must get through after the flood")
+	}
+	// The key with the newest window survives and keeps its count.
+	last := fmt.Sprint("fake", MaxKeys+9)
+	for range 4 {
+		l.Allow(last)
+	}
+	if ok, _ := l.Allow(last); ok {
+		t.Fatal("a tracked key lost its count")
 	}
 	now = now.Add(2 * time.Hour)
-	if ok, _ := l.Allow("fresh"); !ok {
-		t.Fatal("expired windows free room")
+	l.Allow("after")
+	if len(l.items) != 1 {
+		t.Fatalf("expired windows kept: %d", len(l.items))
 	}
-	if len(l.items) > MaxKeys {
-		t.Fatalf("%d keys tracked", len(l.items))
+}
+
+func TestEvictsOldestWindow(t *testing.T) {
+	l := NewWindow(1, time.Hour)
+	l.maxKeys = 3
+	now := time.Unix(1000, 0)
+	l.SetNow(func() time.Time { return now })
+	for _, k := range []string{"a", "b", "c"} {
+		now = now.Add(time.Second)
+		l.Allow(k)
+	}
+	now = now.Add(time.Second)
+	if ok, _ := l.Allow("d"); !ok {
+		t.Fatal("a full limiter refused a new key")
+	}
+	if _, ok := l.items["a"]; ok {
+		t.Fatal("the oldest window should go first")
+	}
+	for _, k := range []string{"b", "c", "d"} {
+		if _, ok := l.items[k]; !ok {
+			t.Fatalf("%s evicted", k)
+		}
 	}
 }
 
