@@ -17,6 +17,7 @@ import (
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/artifacts/internal/variables"
 )
 
 // Handler serves everything under /app and /p.
@@ -37,6 +38,8 @@ type Handler struct {
 	AccessLimiter *ratelimit.Limiter
 
 	static *statics
+	// sealer encrypts account variables; nil while they are off.
+	sealer *variables.Sealer
 }
 
 // New wires the auth pieces from the config. Callers may still swap fields
@@ -62,6 +65,9 @@ func New(st store.Store, cfg config.Config, now func() time.Time) *Handler {
 // strict headers from spec section 11.
 func (h *Handler) Register(mux *http.ServeMux) {
 	h.static = newStatics()
+	if h.Cfg.VariablesEnabled() {
+		h.sealer, _ = variables.NewSealer(h.Cfg.VariablesKey)
+	}
 	if h.EmailLimiter == nil {
 		h.EmailLimiter = ratelimit.NewWindow(5, time.Hour)
 	}
@@ -139,6 +145,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/settings", h.private(h.settings))
 	mux.HandleFunc("POST /app/settings/tenant", h.private(h.renameTenant))
 	mux.HandleFunc("POST /app/settings/integrator", h.private(h.createIntegrator))
+	mux.HandleFunc("GET /app/settings/variables", h.private(h.variablesPage))
+	mux.HandleFunc("POST /app/settings/variables", h.private(h.setVariable))
+	mux.HandleFunc("POST /app/settings/variables/{name}/delete", h.private(h.deleteVariable))
 	mux.HandleFunc("POST /app/switch-tenant", h.private(h.switchTenant))
 	mux.HandleFunc("POST /app/logout", h.private(h.logout))
 	mux.HandleFunc("/app/", h.headers(func(w http.ResponseWriter, r *http.Request) {

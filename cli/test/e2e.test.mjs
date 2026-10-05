@@ -65,6 +65,8 @@ before(async () => {
       // rate limiter itself is covered by the Go tests.
       LIMIT_PUBLISH_PER_MIN: "1000",
       LIMIT_COMMENTS_PER_MIN: "1000",
+      // Turns account variables and proxy routes on (a fixed test key).
+      VARIABLES_KEY: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
     },
   });
   for (let i = 0; i < 100; i++) {
@@ -783,4 +785,44 @@ test("publish --password puts the page up private with a password", async () => 
   assert.ok(!gate.includes("locked from the start"));
   const short = run(["publish", siteDir(), "--password", "--json"], { input: "short" });
   assert.equal(short.code, 2);
+});
+
+test("vars: set from stdin, list without values, route a page, remove", async () => {
+  const secret = "sk-e2e-0123456789abcdef";
+  const set = run(["vars", "set", "OPENROUTER_API_KEY", "--upstream", "openrouter.ai", "--json"], { input: secret + "\n" });
+  assert.equal(set.code, 0, set.stderr);
+  const saved = JSON.parse(set.stdout);
+  assert.equal(saved.name, "OPENROUTER_API_KEY");
+  assert.deepEqual(saved.allowed_upstreams, ["openrouter.ai"]);
+  assert.ok(!set.stdout.includes(secret));
+
+  const listed = run(["vars", "--json"]);
+  assert.equal(listed.code, 0);
+  assert.ok(!listed.stdout.includes(secret), "list must never carry a value");
+  assert.deepEqual(JSON.parse(listed.stdout).variables.map((v) => v.name), ["OPENROUTER_API_KEY"]);
+  assert.match(run(["vars"]).stdout, /OPENROUTER_API_KEY {2}openrouter\.ai/);
+
+  // The value never comes from an argument, and hosts are required.
+  assert.equal(run(["vars", "set", "X", "--upstream", "a.example.com", "--value", "v", "--json"]).code, 2);
+  assert.equal(run(["vars", "set", "X", "--json"], { input: "v" }).code, 2);
+  const bad = run(["vars", "set", "X_KEY", "--upstream", "localhost", "--json"], { input: "value-1234" });
+  assert.equal(bad.code, 1);
+  assert.equal(JSON.parse(bad.stderr).error.code, "INVALID_ARGUMENT");
+
+  // A page with a route publishes, reports its routes, and never serves the manifest.
+  const dir = siteDir("<p>chat</p>");
+  mkdirSync(join(dir, ".byagent"));
+  writeFileSync(join(dir, ".byagent", "proxy.json"), JSON.stringify({
+    routes: { chat: { upstream: "https://openrouter.ai/api/v1/chat/completions", methods: ["POST"], headers: { Authorization: "Bearer {{OPENROUTER_API_KEY}}" } } },
+  }));
+  const pub = json(["publish", dir]);
+  assert.deepEqual(pub.proxy.routes, ["chat"]);
+  assert.deepEqual(pub.proxy.warnings, []);
+  assert.equal((await fetch(`${BASE}/a/${pub.id}/.byagent/proxy.json`)).status, 404);
+  assert.equal((await fetch(`${BASE}/a/${pub.id}/_proxy/chat`)).status, 405);
+
+  const removed = json(["vars", "rm", "OPENROUTER_API_KEY"]);
+  assert.equal(removed.deleted, true);
+  assert.equal(run(["vars", "rm", "OPENROUTER_API_KEY", "--json"]).code, 1);
+  assert.deepEqual(json(["vars"]).variables, []);
 });

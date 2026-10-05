@@ -215,7 +215,39 @@ returns 404; people create named keys at `PUBLIC_API_ORIGIN/app/keys`.
 | `LIMIT_ARTIFACTS_PER_TENANT` | Live artifact limit shared by all keys of a tenant. Default 200. |
 | `LIMIT_ARTIFACTS_PER_KEY` | Deprecated fallback only when the tenant limit is unset; emits a deprecation log line. |
 | `GOOGLE_ANALYTICS_ID` | GA4 Measurement ID for first-party app surfaces (`/`, `/app/*`, login, landing on `app.byagent.dev`). Empty disables GA and keeps CSP free of Google hosts. Alias: `GA_MEASUREMENT_ID`. Not applied to published `/a/…` pages or the share-origin gate. |
+| `VARIABLES_KEY` | Turns on account variables and proxy routes. Base64 of 32 random bytes; store as a secret. Unset (or `VARIABLES=off`) turns the feature off. See below. |
 
+
+### Account variables (VARIABLES_KEY)
+
+Variables are API keys a workspace stores so its pages' proxy routes can call
+other services. Values are sealed with AES-256-GCM under `VARIABLES_KEY`, so
+the database and snapshots never hold them in the clear. Generate the key once
+and keep a copy in the password manager; without it every stored value is
+unreadable and users must set them again:
+
+```
+openssl rand -base64 32
+```
+
+Put it in `/opt/artifacts/.env` on the box as `VARIABLES_KEY=<value>` and
+restart. The server refuses to start if the value is not 32 bytes of base64.
+`artifacts-server dotenv` carries it over in a server move.
+
+Rotation: set `VARIABLES_KEY=<new>,<old>` (the first key seals new values,
+every listed key still opens old ones), restart, have users re-save their
+variables (or leave both keys in place), then drop the old key. To switch the
+feature off in an incident without losing the key, set `VARIABLES=off` and
+restart: the variables API answers 503 and every proxy route 404.
+
+Proxy routes are metered per client address (`LIMIT_PROXY_PER_IP_PER_HOUR`,
+default 100, IPv6 by /64) and per page (`LIMIT_PROXY_PER_PAGE_PER_HOUR`,
+default 1000). At most 128 calls run at once (16 per workspace), each for at
+most 60 s. A visitor sees only "route unavailable" when a route is
+misconfigured; the reason is in the `proxy route unavailable` log line.
+Per-address limits rely on `TRUST_PROXY_HEADERS=true` behind Cloudflare, as
+on the box. Each call logs `proxy` with the page, route, upstream host, status
+and size; values never appear in logs.
 
 ### Google Analytics (GA4)
 

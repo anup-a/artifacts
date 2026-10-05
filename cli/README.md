@@ -81,6 +81,18 @@ byagent brief push                     # publish BRIEF.md into the folder's coll
 
 `BRIEF.md` sits next to `.byagent.json`. Where there is no `BRIEF.md` (a fresh clone, another machine), `byagent brief` reads the pushed copy back; `--project <name>` names the collection from anywhere, and the MCP tool `brief_get` does the same for agents without a shell. `brief push` files it into that collection with the tag `brief` and updates the same page every time, so each collection has one brief and one URL. A new brief starts private. An unchanged file is not sent again, and the publish hook never nudges about it. Push when the work changes state (started, blocked, handed off, done), not after every turn.
 
+## Variables for proxy routes
+
+A page can call an API (OpenRouter, Supabase, Stripe) without holding the key. Store the key as a variable, pinned to the hosts it may be sent to:
+
+```bash
+printf %s "$OPENROUTER_API_KEY" | byagent vars set OPENROUTER_API_KEY --upstream openrouter.ai
+byagent vars                 # names and hosts; values are never shown
+byagent vars rm OPENROUTER_API_KEY
+```
+
+The value is read from stdin (or a hidden prompt, or `--from-env VAR`), never from an argument. The page ships `.byagent/proxy.json` declaring routes such as `{"routes": {"chat": {"upstream": "https://openrouter.ai/api/v1/chat/completions", "methods": ["POST"], "headers": {"Authorization": "Bearer {{OPENROUTER_API_KEY}}"}}}}` and calls `fetch("_proxy/chat", …)`; the server adds the key and forwards the call.
+
 ## Everything else
 
 ```

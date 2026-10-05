@@ -5,7 +5,7 @@ import { usage } from "./errors.js";
 const BOOLEAN = new Set(["json", "open", "all", "help", "version", "comments", "no-comments", "private", "public", "off", "wait", "guest", "browser", "no-wait", "password", "restricted"]);
 
 // Flags that may be given more than once; they collect into an array.
-const REPEATABLE = new Set(["tag", "allow", "add", "invite"]);
+const REPEATABLE = new Set(["tag", "allow", "add", "invite", "upstream"]);
 
 export function parseArgs(argv) {
   const positional = [];

@@ -96,7 +96,7 @@ func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
 // the current version. A rollback to a version without it yields nil, so the
 // endpoint quietly falls back to a generated cover.
 func (h *Handler) publisherCover(r *http.Request, a store.Artifact) *store.File {
-	if a.CoverPath == nil || *a.CoverPath == "" {
+	if a.CoverPath == nil || *a.CoverPath == "" || hiddenFile(*a.CoverPath) {
 		return nil
 	}
 	files, err := h.Store.Files(r.Context(), a.ID, a.CurrentVersion)

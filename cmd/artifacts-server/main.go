@@ -40,6 +40,7 @@ var dotenvKeys = []string{
 	"LIMIT_ARTIFACTS_PER_TENANT", "LIMIT_ARTIFACTS_PER_KEY",
 	"LIMIT_COMMENT_BYTES", "LIMIT_COMMENTS_PER_MIN", "LIMIT_ANCHOR_BYTES",
 	"LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY", "LIMIT_ACCESS_MAIL_PER_DAY",
+	"VARIABLES_KEY", "VARIABLES", "LIMIT_PROXY_PER_IP_PER_HOUR", "LIMIT_PROXY_PER_PAGE_PER_HOUR",
 }
 
 func main() {
@@ -116,7 +117,11 @@ func main() {
 		close(flushed)
 	}()
 	log.Info("listening", "addr", cfg.Addr, "db", cfg.DB, "storage", cfg.Storage, "web", cfg.WebEnabled())
-	srv := &http.Server{Addr: cfg.Addr, Handler: h, ReadHeaderTimeout: 10 * time.Second}
+	// Headers must arrive within 10 s and an idle keep-alive connection is
+	// closed after 2 min. There is no whole-request ReadTimeout: a publish
+	// upload on a slow link can rightly take minutes. Handlers that must not
+	// wait on a slow body set their own deadline (proxy routes: 10 s).
+	srv := &http.Server{Addr: cfg.Addr, Handler: h, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)

@@ -149,6 +149,9 @@ byagent publish ./site --title "Hello" --json
 | `resolve <id> <thread>` | Marks a thread resolved |
 | `delete <id>` | Soft-deletes the artifact; the URL stops working |
 | `analytics [<id>] [--range 24h\|7d\|30d\|90d\|all]` | Views and unique visitors of one page, or of every page in the workspace without an id, over the range (default `30d`): a per-day series (per hour for `24h`), top referrers, countries, paths and devices, and the top pages for the workspace |
+| `vars` | Account variables: names and the hosts each may be sent to. Values are never returned |
+| `vars set NAME --upstream <host> [--upstream <host>]... [--from-env VAR]` | Stores an API key for proxy routes. The value is read from stdin (piped, or typed at a hidden prompt) or from the named environment variable, never from an argument. At least one host is required |
+| `vars rm NAME` | Deletes a variable; routes that use it stop working |
 | `hooks install\|uninstall claude\|codex [--scope user\|project]` | Adds (or removes) a PostToolUse hook in Claude Code or Codex that nudges the agent to publish, or republish, `.html` and `.md` pages it writes. It never publishes by itself; once per file, five per session at most; `BYAGENT_NUDGE=0` silences it |
 
 Config comes from `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else
@@ -294,6 +297,10 @@ take no auth; the artifact id is the capability.
 | `GET` | `/api/artifacts/:id/versions` | `{id, current_version, versions:[{version, created_at, bytes, files, comment_count, agent, model, key, current, restored_at, url, preview_url}]}`, oldest first. `url` is the pinned address (`/a/:id/v/:n/` for a public page, the signed-in viewer for a private one). `preview_url` is `<PUBLIC_API_ORIGIN>/app/view/:id/v/:n/`: it opens that version only for a signed-in member of the owning workspace, sandboxed and never counted as a view. It is `null` for guest keys and on servers without sign-in. |
 | `GET` | `/api/artifacts/:id/analytics?range=24h\|7d\|30d\|90d\|all` | `{id, url, range, bucket, from, to, first_view_day, totals:{all_time_views, range_views, range_visitors}, series:[{bucket, views, visitors}], top_referrers:[{referrer, views}], top_countries:[{country, views}], top_paths:[{path, views}], top_devices:[{device, views}]}`. `range` defaults to `30d`; anything else is 400. `bucket` is `hour` for `24h` (RFC 3339 hour starts) and `day` otherwise (UTC dates), zero-filled. `referrer` is a host, `(direct)` or `(other)`. Visitors are unique per page per day. Guest keys get 403. |
 | `GET` | `/api/analytics?range=...` | The same report across every live page of the workspace, with `top_pages:[{id, title, url, views, visitors}]` and `top_paths` items carrying `id`. Visitors add up per page. |
+| `GET` | `/api/variables` | `{variables:[{name, allowed_upstreams, created_at, updated_at}], limit}`. Values are write-only and never returned. |
+| `PUT` | `/api/variables/:name` | `{value, allowed_upstreams:[host]}` → `{name, allowed_upstreams, updated_at, created}`. Creates or replaces. Names are an uppercase letter then uppercase letters, digits and `_` (64 max); values up to 4 KB with no control characters; 1 to 10 hosts, each a host name (a URL is reduced to its host; IPs, ports and single-label names are refused). 50 per workspace (429 past it). Guest keys get 403; 503 while variables are off. |
+| `DELETE` | `/api/variables/:name` | `{name, deleted:true}`; 404 when absent. |
+| `GET`/`POST`/`PUT`/`PATCH`/`DELETE` | `/a/:id/_proxy/:route[/:sub]` | Runs a proxy route declared in the live version's `.byagent/proxy.json` (see [Proxy routes](#proxy-routes)). |
 | `POST` | `/api/artifacts/:id/share-code` | `{action}`: `issue` or `rotate` for a fresh six-digit code, `revoke` to withdraw it. Returns `{id, visibility, share_code, share_url}`, both null once revoked. Private artifacts only; anything else is 400. |
 | `POST` | `/api/artifacts/:id/versions/:version/restore` | Makes that version live again by pointing the page at it: no files are copied and no version is added. Visibility, share code, expiry, the comments switch, title and labels stay as they are. Returns `{id, url, version, current_version, previous_version, restored_at, visibility, comments_enabled}`. 409 `CONFLICT` if it is already live, 404 if it was deleted or pruned. The next publish takes the next unused number. `POST /api/artifacts/:id/rollback/:version` is the same call. |
 | `DELETE` | `/api/artifacts/:id/versions/:version` | Deletes one version that is not live. Its pinned URL stops answering at once; its files are erased by the hourly GC unless another version or page holds the same bytes. Threads made on it are kept and marked `orphaned`. Returns `{id, deleted_version, current_version, versions_count, orphaned_comments}`. 409 `CONFLICT` for the live version. Version numbers are never reused. |
@@ -319,13 +326,145 @@ take no auth; the artifact id is the capability.
 Errors: `{"error":{"code","message","request_id"}}`. Codes:
 `INVALID_ARGUMENT` 400, `UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404,
 `CONFLICT` 409, `GONE` 410, `PAYLOAD_TOO_LARGE` 413, `RATE_LIMITED` 429, `QUOTA_EXCEEDED` 429,
-`INTERNAL` 500. Every response carries `X-Request-Id`.
+`INTERNAL` 500, and on proxy routes `METHOD_NOT_ALLOWED` 405, `REQUEST_TIMEOUT` 408,
+`BAD_GATEWAY` 502, `UNAVAILABLE` 503 and `GATEWAY_TIMEOUT` 504. Every response carries `X-Request-Id`.
 
 Limits (managed free tier): 25 MB per version, 500 files, 10 publishes/min
 per key, 200 artifacts per tenant, 20 versions kept, 2 KB comment body,
 20 comments/min per IP on `/c/*`.
 Email sign-in is limited to 5 requests/hour per address and 20/hour per IP;
 key creation to 20/hour per tenant; portal links to 60/minute per tenant.
+
+## Proxy routes
+
+A page can call an API whose key it never sees. The workspace stores the key
+as a **variable** (`byagent vars set`, `PUT /api/variables/:name`, or
+Settings > Variables in the dashboard), pinned to the hosts it may be sent to.
+The page ships `.byagent/proxy.json`:
+
+```json
+{
+  "routes": {
+    "chat": {
+      "upstream": "https://openrouter.ai/api/v1/chat/completions",
+      "methods": ["POST"],
+      "headers": { "Authorization": "Bearer {{OPENROUTER_API_KEY}}" },
+      "query": { "key": "{{OTHER_KEY}}" },
+      "paths": ["/models", "/v1/*"]
+    }
+  }
+}
+```
+
+and calls `fetch("_proxy/chat", …)` from its own origin. The server reads the
+manifest from the page's live version, adds the variables and forwards the call,
+streaming the answer back.
+
+Manifest schema: a top-level `routes` object keyed by route name (1 to 64 of
+`a-z 0-9 - _`, at most 20). Each route has `upstream` (required; `https`, default
+port, a host name, no user info, fragment, dot segments or `{{…}}`), `methods`
+(required; GET, POST, PUT, PATCH, DELETE; `"method": "POST"` also works),
+`headers` and `query` (optional maps whose values may hold `{{NAME}}`; at most
+4 distinct variables per route), `paths` (optional sub-paths callers may append:
+exact, or a prefix ending in `/*`, with letters, digits and `-._~` only;
+without it the route is the upstream URL alone), and `body` (optional rules for
+a JSON object body: `"pin": {"model": "x"}` sets fields whatever the caller
+sent, `"max": {"max_tokens": 1024}` caps numbers and fills them in when
+missing, and `"allow_only": ["messages", "stream"]` turns on strict mode,
+refusing (400) a body with any top-level field that is not pinned, capped or
+listed; such bodies are limited to 1 MB and apply to every method, so a
+route with rules needs a JSON object body except on a DELETE sent without
+one). Without `allow_only`, `pin` and `max` constrain only the fields they
+name: a visitor can add others the upstream bills for, such as `n`,
+`max_completion_tokens` or `tools`. A top-level
+`limit_per_hour` sets the owner's own cap on calls to the page's routes (the
+server's per-page limit still applies). Unknown fields are errors. The file is
+at most 64 KB. Publishing an invalid manifest fails with 400 naming the
+problem; a valid one adds `proxy: {routes, warnings}` to the publish response,
+warning about variables that are missing or not pinned to a route's host. A
+publish for an end user (`X-Artifact-End-User`) that ships a manifest is
+refused with 403 unless its manifest JSON sets `"proxy_routes_for_end_user":
+true`. `_proxy/` is a reserved path in uploads, and `.byagent/` files are never
+served and cannot be the cover.
+
+Routes run only for a live version whose manifest passed these checks when it
+was published. A version published before routes existed, by a guest key that
+was later claimed, or for an end user without the opt-in never runs them, and
+restoring such a version does not switch them on.
+
+Security rules, all enforced on the server:
+
+- Values are sealed with AES-256-GCM under `VARIABLES_KEY`, bound to their
+  workspace and name, and never returned by the API, the CLI or the dashboard.
+  Error messages and logs name variables, never values.
+- A variable is sent only to a route whose upstream host is one of its
+  `allowed_upstreams` or a subdomain of one (whole labels: `openai.com` admits
+  `api.openai.com`, never `evilopenai.com`). Public suffixes and hosts shared
+  by strangers (`supabase.co`, `workers.dev`, `amazonaws.com`, `co.uk`) cannot
+  be listed; name the service's own host (`xyz.supabase.co`). Otherwise
+  nothing is sent.
+- Upstreams are `https` on port 443 only. The server resolves the host itself,
+  refuses it if any address is private, loopback, link-local (including the
+  169.254.169.254 metadata service), CGNAT, multicast, reserved, or an IPv6 form
+  of those (mapped, IPv4-compatible, SIIT, NAT64, 6to4, Teredo, SRv6, unique
+  local, documentation), dials the vetted
+  address, and checks the socket address again as it connects. Redirects are
+  never followed (502). Routes may not point at this server's own hosts, and a
+  call carrying `X-Byagent-Proxy` (one the proxy sent) is refused.
+- Only `Content-Type`, `Accept` and `Accept-Language` pass upstream from the
+  browser; only `Content-Type`, `Content-Language`, `ETag`, `Last-Modified`,
+  `Retry-After` and rate-limit headers come back. Cookies, `Set-Cookie`,
+  hop-by-hop, CORS and forwarding headers never cross. Answers carry
+  `Cache-Control: no-store` and a sandboxing CSP, and an upstream that echoes a
+  secret has it replaced with `[redacted]`.
+- Request bodies up to 4 MB, read whole within 10 s (408 otherwise) before
+  the call takes a slot, so a client sending slowly holds no slot; at most
+  128 MB of bodies are held at once. Answers up to 10 MB; 60 s per call, and
+  the upstream must start answering within 20 s. At most 128 calls run at
+  once across the server, 16 per workspace and 32 per upstream site (its
+  registrable domain, so subdomains share one cap); past that a call gets 503
+  with `Retry-After`. Calls are metered per client
+  address (`LIMIT_PROXY_PER_IP_PER_HOUR`, default 100; IPv6 clients by their
+  /64) and per page (`LIMIT_PROXY_PER_PAGE_PER_HOUR`, default 1000, or the
+  manifest's lower `limit_per_hour`). Only calls that reach a real route and
+  method, resolve their variables, pass the body rules and get a slot spend
+  the page's budget; a 503 for a busy server costs nothing.
+- Browsers may call a route only from its own origin: a cross-site
+  `Sec-Fetch-Site` or a foreign `Origin` gets 403.
+- Methods are limited to what the route declares (405 otherwise), and sub-paths
+  to its `paths`; a sub-path segment holds letters, digits and `-._~` only (no
+  percent escapes, `;` or non-ASCII).
+- A visitor whose call fails on configuration (a missing, unreadable or
+  unpinned variable, a blocked upstream address) sees only `route
+  unavailable`; which variable or host was at fault goes to the server log.
+- A private page's routes answer only browsers that have opened the page the
+  way its access mode asks: its share code, its password, or a verified
+  address still on its allowlist (the same grant cookie as the page;
+  changing the password or the list cuts routes off with the page;
+  `/app/view` pages cannot call them). Guest workspaces cannot store variables or publish routes. Deleted
+  pages answer 410.
+- Without `VARIABLES_KEY`, or with `VARIABLES=off`, the variables API answers
+  503 and routes answer 404.
+
+Anyone who can open a page can call its routes. The server keeps the key
+secret, not the endpoint, so set a spending limit on keys used this way.
+
+Limits of these protections, worth knowing before storing a key:
+
+- The same-origin check keeps other sites from calling a page's routes, but
+  until per-page origins are on (`CONTENT_DOMAIN`, each page on its own
+  host) every page shares the share origin, so a script on one page can call
+  another page's routes as if it were that page. The per-page budget and
+  limits still apply; isolation between pages comes only with per-page
+  origins.
+- Redaction replaces only exact copies of a secret in an answer. An upstream
+  that returns it encoded (base64, URL- or JSON-escaped, split, hashed) gets
+  it through. The real protection is pinning each variable to the hosts it
+  belongs to, so it is never sent anywhere that would echo it.
+- Store keys that can only do what the page needs: a scoped, spend-limited
+  key for one API. Never store provisioning, management or admin keys (ones
+  that create other keys, change billing or manage an account): a visitor
+  can use whatever the route lets through.
 
 ## Comments runtime
 
@@ -392,6 +531,10 @@ it and fails if the checked-in copy is stale.
 | `LIMIT_ANCHOR_BYTES` | `4096` | Max serialized anchor size. |
 | `LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY` | `200` | Sign-in codes a restricted page's gate mails per workspace per day. Past it, requests get the usual answer and no mail. |
 | `LIMIT_ACCESS_MAIL_PER_DAY` | `2000` | The same cap for the whole server. |
+| `VARIABLES_KEY` | (empty) | Turns on account variables and proxy routes. Base64 of 32 random bytes (`openssl rand -base64 32`); comma-separate keys to rotate (the first seals, all open). Unset, the feature is off. Losing it loses every stored value. |
+| `VARIABLES` | (empty) | `off` turns variables and proxy routes off while keeping `VARIABLES_KEY` set. |
+| `LIMIT_PROXY_PER_IP_PER_HOUR` | `100` | Proxy route calls per client address per hour, across pages. |
+| `LIMIT_PROXY_PER_PAGE_PER_HOUR` | `1000` | Proxy route calls per page per hour, across addresses. |
 
 ## Deploying
 

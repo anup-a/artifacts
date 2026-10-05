@@ -41,6 +41,8 @@ type Handler struct {
 	// UnlockSecret keys the unlock cookie. Empty still works — the cookie is
 	// then only as unguessable as the code — so set it to KeySigningSecret.
 	UnlockSecret string
+	// Routes runs pages' proxy routes; nil leaves them off.
+	Routes *Routes
 	// Now is the clock the unlock guard meters attempts against.
 	Now func() time.Time
 	// Mail sends a restricted page's visitors their sign-in code. Nil leaves
@@ -97,6 +99,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /a/{id}/"+coverPath, h.publicArtifact(h.cover))
 	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.publicArtifact(h.pinned))
 	mux.HandleFunc("GET /a/{id}/{path...}", h.publicArtifact(h.current))
+	h.registerRoutes(mux)
 	if h.Sessions != nil {
 		mux.HandleFunc("GET /app/view/{id}/"+coverPath, h.privateArtifact(h.cover))
 		mux.HandleFunc("GET /app/view/{id}/v/{version}/{path...}", h.privateArtifact(h.pinned))
@@ -207,6 +210,10 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	}
 	if p == "" || strings.HasSuffix(p, "/") {
 		p += "index.html"
+	}
+	if hiddenFile(p) {
+		apierr.Write(w, r, apierr.NotFound("file"))
+		return
 	}
 	files, err := h.Store.Files(r.Context(), id, version)
 	if err != nil {

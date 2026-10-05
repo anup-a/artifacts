@@ -7,11 +7,17 @@ import (
 	"strings"
 
 	"github.com/anup-a/artifacts/internal/auth"
+	"github.com/anup-a/artifacts/internal/ratelimit"
 )
 
 // clientIP mirrors the API's rule: proxy headers count only when the server
 // is told it sits behind a proxy that overwrites them.
 func clientIP(r *http.Request, trustProxy bool) string {
+	return ratelimit.ClientKey(clientAddr(r, trustProxy))
+}
+
+// clientAddr is the caller's address, before bucketing.
+func clientAddr(r *http.Request, trustProxy bool) string {
 	if trustProxy {
 		if v := r.Header.Get("CF-Connecting-IP"); v != "" {
 			return strings.TrimSpace(v)
@@ -102,12 +108,14 @@ func (h *Handler) emailStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := clientIP(r, h.Cfg.TrustProxyHeaders)
-	if ok, _ := h.EmailLimiter.Allow(email); !ok {
-		h.renderError(w, r, 429, "Too many sign-in links requested for that address. Try again in an hour.")
-		return
-	}
+	// The network's budget first: a client that has run out stops here and
+	// cannot fill the email limiter with addresses it makes up.
 	if ok, _ := h.IPLimiter.Allow(ip); !ok {
 		h.renderError(w, r, 429, "Too many sign-in links requested from this network. Try again in an hour.")
+		return
+	}
+	if ok, _ := h.EmailLimiter.Allow(email); !ok {
+		h.renderError(w, r, 429, "Too many sign-in links requested for that address. Try again in an hour.")
 		return
 	}
 	if err := h.Magic.Issue(r.Context(), email); err != nil {

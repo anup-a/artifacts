@@ -10,9 +10,11 @@ import (
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/proxy"
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/artifacts/internal/variables"
 )
 
 type Deps struct {
@@ -54,12 +56,18 @@ type Deps struct {
 	// AccessLimiter meters PATCH /api/artifacts/{id}/access per key.
 	// NewHandler defaults it to 30 a minute.
 	AccessLimiter *ratelimit.Limiter
+	// Proxy forwards pages' proxy route calls. NewHandler builds the
+	// production one when variables are on; tests swap in one that may
+	// reach a local upstream.
+	Proxy *proxy.Proxy
 }
 
 type server struct {
 	Deps
 	adminKey *store.Key // set in self-host mode
 	idem     idempotency
+	// sealer seals and opens account variables; nil while they are off.
+	sealer *variables.Sealer
 }
 
 type keyCtx struct{}

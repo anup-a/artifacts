@@ -40,6 +40,10 @@ func NewHandler(d Deps) (http.Handler, error) {
 		}
 		s.adminKey = &k
 	}
+	routes, err := s.variablesSetup()
+	if err != nil {
+		return nil, err
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /api/me", s.withAuth(s.me))
@@ -70,6 +74,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("GET /api/artifacts/{id}/access", s.withAuth(s.getAccess))
 	mux.HandleFunc("PATCH /api/artifacts/{id}/access", s.withAuth(s.patchAccess))
 	mux.HandleFunc("POST /api/artifacts/{id}/access/invites", s.withAuth(s.sendInvites))
+	mux.HandleFunc("GET /api/variables", s.withAuth(s.listVariables))
+	mux.HandleFunc("PUT /api/variables/{name}", s.withAuth(s.putVariable))
+	mux.HandleFunc("DELETE /api/variables/{name}", s.withAuth(s.deleteVariable))
 	mux.HandleFunc("POST /c/{id}/comments", noStore(s.viewerCreateThread))
 	mux.HandleFunc("GET /c/{id}/comments", noStore(s.viewerList))
 	mux.HandleFunc("GET /c/{id}/meta", noStore(s.viewerMeta))
@@ -90,6 +97,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 		UnlockSecret: d.Cfg.KeySecret, Now: d.Now, OnView: d.OnView,
 		Mail: d.Mail, TrustProxy: d.Cfg.TrustProxyHeaders,
 		MailPerWorkspaceDay: d.Cfg.Limits.AccessMailPerWorkspaceDay, MailPerDay: d.Cfg.Limits.AccessMailPerDay,
+		Routes: routes,
 	}).Register(mux)
 	// The pages written for agents and crawlers: /agents, /llms.txt,
 	// /robots.txt, /sitemap.xml and the rest. Public, no key.
