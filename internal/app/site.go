@@ -19,11 +19,14 @@ type siteData struct {
 	ThemeJS     string // resolves the chosen theme before first paint
 	Here        string // the path of the page being shown, for the current tab
 	// PageForm is how a published page's address looks here, for prose:
-	// https://<name>.byagent.page/ with page hosts, else .../a/<id>/.
-	// ContentDomain is set (byagent.page) only when every page has a host
+	// https://<name>.byagent.dev/ with page hosts, else .../a/<id>/.
+	// ContentDomain is set (byagent.dev or byagent.page) only when every page has a host
 	// of its own, which the security and privacy pages describe.
+	// ContentShared marks page hosts under byagent.dev itself
+	// ({slug}.byagent.dev) rather than on a domain of their own.
 	PageForm      string
 	ContentDomain string
+	ContentShared bool
 }
 
 func (h *Handler) site() siteData {
@@ -35,6 +38,7 @@ func (h *Handler) site() siteData {
 		ThemeJS:       h.static.themeJSURL,
 		PageForm:      h.pages().Form(),
 		ContentDomain: pageurl.Hostname(h.Cfg.ContentDomain),
+		ContentShared: h.Cfg.ContentShared,
 	}
 }
 

@@ -39,8 +39,18 @@ func TestContentDomain(t *testing.T) {
 	if err != nil || local.ContentScheme != "http" {
 		t.Fatalf("local: %v %q", err, local.ContentScheme)
 	}
+	// The share host itself: pages at {slug}.byagent.dev.
+	for _, raw := range []string{"byagent.dev", "https://byagent.dev", "BYAGENT.DEV."} {
+		c, err := FromEnv(env(with(map[string]string{"CONTENT_DOMAIN": raw})))
+		if err != nil || c.ContentDomain != "byagent.dev" || c.ContentScheme != "https" || !c.ContentShared {
+			t.Fatalf("%q: %v %q %v", raw, err, c.ContentDomain, c.ContentShared)
+		}
+	}
+	if c, _ := FromEnv(env(with(map[string]string{"CONTENT_DOMAIN": "byagent.page"}))); c.ContentShared {
+		t.Fatal("a separate content domain is not shared")
+	}
 	for _, bad := range []string{
-		"byagent.dev",           // the share host itself
+		"app.byagent.dev",       // the API host: pages beside its cookies
 		"dev",                   // byagent.dev and app.byagent.dev sit under it
 		"pages.byagent.dev",     // under the share host: could set its cookies
 		"pages.app.byagent.dev", // under the API host

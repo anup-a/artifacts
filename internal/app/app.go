@@ -104,7 +104,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/login/email/verify", h.public(h.emailVerify))
 
 	mux.HandleFunc("GET /app/{$}", h.private(func(w http.ResponseWriter, r *http.Request, _ *viewer) {
-		if resumeClaim(w, r) || resumeConnect(w, r) {
+		if h.resumeClaim(w, r) || h.resumeConnect(w, r) {
 			return
 		}
 		http.Redirect(w, r, "/app/artifacts", http.StatusFound)
@@ -175,7 +175,7 @@ const csp = "default-src 'self'; style-src 'self'; script-src 'self'; frame-ance
 // empty the header matches today's policy exactly.
 //
 // With page hosts on (CONTENT_DOMAIN) the previews and covers come from
-// there instead, so every page host is allowed too (https://*.byagent.page).
+// there instead, so every page host is allowed too (https://*.byagent.dev).
 func (h *Handler) csp() string {
 	pages := h.Cfg.ShareOrigin
 	if src := h.pages().Source(); src != "" {

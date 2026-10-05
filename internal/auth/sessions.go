@@ -17,8 +17,12 @@ import (
 )
 
 const (
-	// CookieName carries the raw session token. It is scoped to /app on the
-	// API origin, so artifact pages on the share origin never see it.
+	// CookieName carries the raw session token over plain http (local
+	// work), scoped to /app. Over https the cookie is HostCookie(CookieName):
+	// __Host-artifacts_session, Secure, Path=/ and host-only, so no other
+	// host, page hosts under the same domain included, can set or overwrite
+	// it. Before that it was artifacts_session at /app over https too; that
+	// name is still read for sessions it already holds (see Load).
 	CookieName = "artifacts_session"
 	cookiePath = "/app"
 	// SessionTTL is how long a session lives without activity.
@@ -39,6 +43,26 @@ type Sessions struct {
 
 // SecureOrigin reports whether cookies for origin may carry Secure.
 func SecureOrigin(origin string) bool { return !strings.HasPrefix(origin, "http://") }
+
+// HostCookie names and scopes one of the app's own cookies. Over https it
+// is __Host-{name} at Path=/: the browser then refuses any version of it
+// that is not Secure, host-only and at /, so a page on a sibling host
+// ({slug}.byagent.dev) can neither plant one with Domain=byagent.dev nor
+// shadow it with a narrower path. Over http (local work) the prefix is not
+// allowed, and the plain name at /app is used.
+func HostCookie(name string, secure bool) (cookieName, path string) {
+	if secure {
+		return "__Host-" + name, "/"
+	}
+	return name, cookiePath
+}
+
+// legacyBefore bounds the old https session cookie, artifacts_session at
+// /app, which a page host under the same registrable domain could plant
+// (it has no __Host- prefix). Only sessions created before this process
+// started can still be under that name, because this process writes only
+// the new one; a session created since is never accepted under it.
+var legacyBefore = time.Now()
 
 // SignIn links the verified identity to a user and starts a session.
 func (s *Sessions) SignIn(ctx context.Context, w http.ResponseWriter, provider, subject, email, name string) (store.User, store.Tenant, error) {
@@ -66,8 +90,18 @@ func (s *Sessions) Create(ctx context.Context, w http.ResponseWriter, userID, te
 
 // Load resolves the request's session. A session seen more than an hour ago
 // is extended by SessionTTL from now and its cookie re-issued.
+//
+// For one release it also accepts the session cookie's old https name
+// (artifacts_session at /app) for sessions that already existed, and moves
+// them to the new name, so nobody is signed out by the rename.
 func (s *Sessions) Load(ctx context.Context, w http.ResponseWriter, r *http.Request) (store.Session, error) {
-	ck, err := r.Cookie(CookieName)
+	name, _ := HostCookie(CookieName, s.Secure)
+	ck, err := r.Cookie(name)
+	legacy := false
+	if (err != nil || ck.Value == "") && s.Secure {
+		ck, err = r.Cookie(CookieName)
+		legacy = true
+	}
 	if err != nil || ck.Value == "" {
 		return store.Session{}, ErrNoSession
 	}
@@ -84,6 +118,15 @@ func (s *Sessions) Load(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		s.ClearCookie(w)
 		return store.Session{}, ErrNoSession
 	}
+	if legacy {
+		if !sess.CreatedAt.Before(legacyBefore) {
+			// Written under the old name after the rename: not ours.
+			s.clearLegacy(w)
+			return store.Session{}, ErrNoSession
+		}
+		s.clearLegacy(w)
+		s.setCookie(w, ck.Value, sess.ExpiresAt)
+	}
 	if now.Sub(sess.LastSeenAt) < refreshEvery {
 		return sess, nil
 	}
@@ -99,7 +142,11 @@ func (s *Sessions) Load(ctx context.Context, w http.ResponseWriter, r *http.Requ
 // Destroy deletes the request's session, if any, and clears the cookie.
 func (s *Sessions) Destroy(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	s.ClearCookie(w)
-	ck, err := r.Cookie(CookieName)
+	name, _ := HostCookie(CookieName, s.Secure)
+	ck, err := r.Cookie(name)
+	if (err != nil || ck.Value == "") && s.Secure {
+		ck, err = r.Cookie(CookieName)
+	}
 	if err != nil || ck.Value == "" {
 		return nil
 	}
@@ -107,14 +154,25 @@ func (s *Sessions) Destroy(ctx context.Context, w http.ResponseWriter, r *http.R
 }
 
 func (s *Sessions) setCookie(w http.ResponseWriter, raw string, expires time.Time) {
-	http.SetCookie(w, &http.Cookie{Name: CookieName, Value: raw, Path: cookiePath, Expires: expires,
+	name, path := HostCookie(CookieName, s.Secure)
+	http.SetCookie(w, &http.Cookie{Name: name, Value: raw, Path: path, Expires: expires,
 		HttpOnly: true, Secure: s.Secure, SameSite: http.SameSiteLaxMode})
 }
 
-// ClearCookie tells the browser to drop the session cookie.
+// ClearCookie tells the browser to drop the session cookie, under its old
+// https name too.
 func (s *Sessions) ClearCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{Name: CookieName, Value: "", Path: cookiePath, MaxAge: -1,
+	name, path := HostCookie(CookieName, s.Secure)
+	http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: path, MaxAge: -1,
 		HttpOnly: true, Secure: s.Secure, SameSite: http.SameSiteLaxMode})
+	if s.Secure {
+		s.clearLegacy(w)
+	}
+}
+
+func (s *Sessions) clearLegacy(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{Name: CookieName, Value: "", Path: cookiePath, MaxAge: -1,
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 }
 
 // CSRFToken derives the form token for a session: the first 32 hex chars of

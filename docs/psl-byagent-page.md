@@ -1,5 +1,10 @@
 # Public Suffix List request for byagent.page (draft, not submitted)
 
+> **Optional, later.** byagent serves page hosts at `<slug>.byagent.dev`
+> (`CONTENT_DOMAIN=byagent.dev`); `byagent.page` is not registered. This
+> draft only applies if pages ever move to a domain of their own. byagent.dev
+> itself must not be listed: the site, API and dashboard live on it.
+
 Status: draft. Nothing here has been sent. Submitting is Anup's call, after
 `byagent.page` is registered with at least two years left on it and serving
 pages (deploy/RUNBOOK.md, "Page hosts").

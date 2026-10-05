@@ -50,7 +50,21 @@ const slugAlphabet = "abcdefghijklmnopqrstuvwxyz234567"
 // more than the id's 71, so a page host is no easier to guess than its id.
 const SlugLen = 16
 
-// NewSlug returns a page's host label, the {slug} in {slug}.byagent.page. It
+// ValidSlug reports whether s has the shape NewSlug gives: SlugLen
+// characters of slugAlphabet. Whether it names a page is the store's call.
+func ValidSlug(s string) bool {
+	if len(s) != SlugLen {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; !(c >= 'a' && c <= 'z' || c >= '2' && c <= '7') {
+			return false
+		}
+	}
+	return true
+}
+
+// NewSlug returns a page's host label, the {slug} in {slug}.byagent.dev. It
 // is drawn independently of the id, so neither says anything about the other.
 // 32 divides 256, so masking a byte is uniform and needs no rejection.
 func NewSlug() string {

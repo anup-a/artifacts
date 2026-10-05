@@ -39,7 +39,7 @@ func sessionsFor(t *testing.T) (*Sessions, *clock, store.Store) {
 func cookieFrom(t *testing.T, rec *httptest.ResponseRecorder) *http.Cookie {
 	t.Helper()
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == CookieName {
+		if c.Name == "__Host-"+CookieName {
 			return c
 		}
 	}
@@ -66,7 +66,7 @@ func TestSignInCreatesSessionAndCookie(t *testing.T) {
 		t.Fatalf("%+v %+v", u, tenant)
 	}
 	ck := cookieFrom(t, rec)
-	if !ck.HttpOnly || !ck.Secure || ck.Path != "/app" || ck.SameSite != http.SameSiteLaxMode || !ck.Expires.Equal(c.t.Add(SessionTTL)) {
+	if !ck.HttpOnly || !ck.Secure || ck.Path != "/" || ck.Domain != "" || ck.SameSite != http.SameSiteLaxMode || !ck.Expires.Equal(c.t.Add(SessionTTL)) {
 		t.Fatalf("cookie %+v", ck)
 	}
 	// The raw cookie value is never stored: only its hash is.
@@ -84,7 +84,7 @@ func TestLoadRejectsMissingBogusAndExpired(t *testing.T) {
 	if _, err := s.Load(context.Background(), httptest.NewRecorder(), requestWith(nil)); err != ErrNoSession {
 		t.Fatal(err)
 	}
-	bogus := &http.Cookie{Name: CookieName, Value: "nope"}
+	bogus := &http.Cookie{Name: "__Host-" + CookieName, Value: "nope"}
 	if _, err := s.Load(context.Background(), httptest.NewRecorder(), requestWith(bogus)); err != ErrNoSession {
 		t.Fatal(err)
 	}
@@ -170,8 +170,8 @@ func TestInsecureCookieForPlainHTTP(t *testing.T) {
 	if _, _, err := s.SignIn(context.Background(), rec, "email", "a@x.io", "a@x.io", ""); err != nil {
 		t.Fatal(err)
 	}
-	if ck := cookieFrom(t, rec); ck.Secure {
-		t.Fatal("Secure set on plain http origin")
+	if got := rec.Result().Cookies(); len(got) != 1 || got[0].Name != CookieName || got[0].Secure {
+		t.Fatalf("plain http cookie: %v", got)
 	}
 	if SecureOrigin("http://localhost:8080") || !SecureOrigin("https://api.example.com") {
 		t.Fatal("SecureOrigin")
@@ -185,5 +185,55 @@ func TestCSRF(t *testing.T) {
 	}
 	if !CheckCSRF("abc", tok) || CheckCSRF("abc", tok[:31]+"0") || CheckCSRF("abd", tok) || CheckCSRF("abc", "") {
 		t.Fatal("csrf compare")
+	}
+}
+
+// Over https the session cookie is __Host-artifacts_session at /. The old
+// name (artifacts_session at /app) is still read for sessions that already
+// existed, and moved to the new one; a session created since is never
+// accepted under the old name, so a page host that plants one gets nowhere.
+func TestSessionCookieRename(t *testing.T) {
+	s, c, _ := sessionsFor(t)
+	rec := httptest.NewRecorder()
+	if _, _, err := s.SignIn(context.Background(), rec, "email", "a@x.io", "a@x.io", ""); err != nil {
+		t.Fatal(err)
+	}
+	ck := cookieFrom(t, rec)
+	old := &http.Cookie{Name: CookieName, Value: ck.Value}
+	rec = httptest.NewRecorder()
+	if _, err := s.Load(context.Background(), rec, requestWith(old)); err != nil {
+		t.Fatalf("existing session under the old name: %v", err)
+	}
+	var moved, cleared bool
+	for _, k := range rec.Result().Cookies() {
+		moved = moved || (k.Name == "__Host-"+CookieName && k.Value == ck.Value && k.Path == "/" && k.Secure)
+		cleared = cleared || (k.Name == CookieName && k.MaxAge == -1 && k.Path == "/app")
+	}
+	if !moved || !cleared {
+		t.Fatalf("old cookie not moved: %v", rec.Result().Cookies())
+	}
+
+	// A session created after the rename is not accepted under the old name.
+	c.t = time.Now().Add(time.Hour)
+	rec = httptest.NewRecorder()
+	if _, _, err := s.SignIn(context.Background(), rec, "email", "b@x.io", "b@x.io", ""); err != nil {
+		t.Fatal(err)
+	}
+	fresh := cookieFrom(t, rec)
+	if _, err := s.Load(context.Background(), httptest.NewRecorder(), requestWith(&http.Cookie{Name: CookieName, Value: fresh.Value})); err != ErrNoSession {
+		t.Fatalf("new session accepted under the old name: %v", err)
+	}
+	if _, err := s.Load(context.Background(), httptest.NewRecorder(), requestWith(fresh)); err != nil {
+		t.Fatal(err)
+	}
+
+	// Over http (local work) the plain name at /app is used.
+	plain := &Sessions{Store: s.Store, Now: c.now}
+	rec = httptest.NewRecorder()
+	if _, _, err := plain.SignIn(context.Background(), rec, "email", "c@x.io", "c@x.io", ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := rec.Result().Cookies(); len(got) != 1 || got[0].Name != CookieName || got[0].Path != "/app" || got[0].Secure {
+		t.Fatalf("http cookie: %v", got)
 	}
 }

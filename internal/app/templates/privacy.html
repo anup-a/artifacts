@@ -154,7 +154,7 @@
       <table>
         <thead><tr><th>Name</th><th>Where</th><th>What it does</th><th>Lasts</th></tr></thead>
         <tbody>
-          <tr><td><code>artifacts_session</code></td><td>app.byagent.dev, dashboard only</td><td>Keeps you signed in. HttpOnly, never sent to published pages.</td><td>30 days without use</td></tr>
+          <tr><td><code>__Host-artifacts_session</code></td><td>app.byagent.dev only</td><td>Keeps you signed in. HttpOnly and host-only, never sent to published pages.</td><td>30 days without use</td></tr>
           {{if $d.ContentDomain}}<tr><td><code>__Host-artifact_unlock</code></td><td>That one page's own host on {{$d.ContentDomain}}</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>{{else}}<tr><td><code>artifact_unlock_&lt;page&gt;</code></td><td>byagent.dev, one page only</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>{{end}}
           <tr><td><code>_ga</code>, <code>_ga_&lt;id&gt;</code></td><td>The pages listed under “Where Google Analytics runs”</td><td>Set by Google Analytics to tell visits apart.</td><td>Set by Google, up to 2 years</td></tr>
         </tbody>

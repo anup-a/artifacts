@@ -42,8 +42,7 @@ func (h *Handler) connectPage(w http.ResponseWriter, r *http.Request) {
 	v, err := h.load(r.Context(), w, r)
 	if errors.Is(err, auth.ErrNoSession) {
 		if connect.Normalize(code) != "" {
-			http.SetCookie(w, &http.Cookie{Name: connectCookie, Value: connect.Normalize(code), Path: "/app", MaxAge: int(connect.TTL / time.Second),
-				HttpOnly: true, Secure: auth.SecureOrigin(h.Cfg.APIOrigin), SameSite: http.SameSiteLaxMode})
+			h.setAppCookie(w, connectCookie, connect.Normalize(code), int(connect.TTL/time.Second))
 		}
 		http.Redirect(w, r, "/app/login", http.StatusFound)
 		return
@@ -158,12 +157,12 @@ func displayCode(raw string) string {
 
 // resumeConnect sends someone who just signed in back to the approval link
 // they opened signed out. It reports whether it redirected.
-func resumeConnect(w http.ResponseWriter, r *http.Request) bool {
-	c, err := r.Cookie(connectCookie)
-	if err != nil || connect.Normalize(c.Value) == "" {
+func (h *Handler) resumeConnect(w http.ResponseWriter, r *http.Request) bool {
+	v := h.appCookie(r, connectCookie)
+	if connect.Normalize(v) == "" {
 		return false
 	}
-	http.SetCookie(w, &http.Cookie{Name: connectCookie, Value: "", Path: "/app", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
-	http.Redirect(w, r, "/app/connect?code="+url.QueryEscape(displayCode(c.Value)), http.StatusFound)
+	h.setAppCookie(w, connectCookie, "", -1)
+	http.Redirect(w, r, "/app/connect?code="+url.QueryEscape(displayCode(v)), http.StatusFound)
 	return true
 }

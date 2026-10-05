@@ -87,9 +87,15 @@ func (s *server) hosts(next http.Handler, sh *serve.Handler) http.Handler {
 		}
 		switch t.kind {
 		case hostOwn:
+			if pageWrite(r, s.pages()) {
+				w.Header().Set("Cache-Control", "no-store")
+				apierr.Write(w, r, apierr.Forbidden("pages may not make requests to byagent"))
+				return
+			}
 			next.ServeHTTP(w, r)
 		case hostContentApex:
-			// byagent.page itself is no page; send people to the site, path
+			// A separate content domain (byagent.page) is no page itself; send
+			// people to the site, path
 			// kept so byagent.page/a/{id}/ still finds its page.
 			w.Header().Set("Cache-Control", "public, max-age=3600")
 			http.Redirect(w, r, s.Cfg.ShareOrigin+r.URL.RequestURI(), http.StatusPermanentRedirect)
@@ -119,4 +125,18 @@ func thisPage(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
+}
+
+// pageWrite reports a state-changing request to byagent's own hosts that a
+// page host sent. With pages on {slug}.byagent.dev every page is same-site
+// with byagent.dev and app.byagent.dev, so SameSite=Lax cookies ride along
+// on its form posts; the dashboard's CSRF token stops those, and this stops
+// every other write (sign-in mail, the API, legacy comment routes) before
+// it starts. Nothing byagent serves on a page host posts to its own hosts.
+func pageWrite(r *http.Request, b pageurl.Builder) bool {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return false
+	}
+	return b.IsPageOrigin(r.Header.Get("Origin"))
 }

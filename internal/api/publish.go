@@ -33,7 +33,7 @@ func (s *server) ownedArtifact(r *http.Request, id string) (store.Artifact, *api
 	a, err := s.Store.Artifact(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) && len(id) == ids.SlugLen {
 		// A page host's label works where an id does, so an agent holding
-		// only https://{slug}.byagent.page/ can still read its comments.
+		// only https://{slug}.byagent.dev/ can still read its comments.
 		a, err = s.Store.ArtifactBySlug(r.Context(), id)
 	}
 	if errors.Is(err, store.ErrNotFound) {

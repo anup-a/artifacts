@@ -86,4 +86,21 @@ STATUS=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: $PAGEHOST" -H "Origin:
   -d '{"author_name":"Smoke","body":"own","anchor":{"kind":"text","quote":"hello"},"version":3}' "localhost:$PORT/c/$ID/comments")
 [ "$STATUS" = 201 ] || { echo "FAIL: the page's own comment answered $STATUS, want 201"; exit 1; }
 echo "page host $PAGEHOST"
+# Page hosts under the share host itself ({slug}.localhost, as production's
+# {slug}.byagent.dev): the share host keeps its routes and no redirect loops,
+# a slug host serves the page, and a page cannot post to the API.
+kill $PID; wait $PID 2>/dev/null || true
+CONTENT_DOMAIN="http://localhost:$PORT" "$DATA_DIR/server" & PID=$!
+for _ in $(seq 1 50); do curl -sf localhost:$PORT/healthz >/dev/null && break; sleep 0.2; done
+URL=$(curl -sf -H "$H" "localhost:$PORT/api/artifacts/$ID" | sed -E 's/.*"url":"([^"]+)".*/\1/')
+case "$URL" in
+  http://*.localhost:$PORT/) ;;
+  *) echo "FAIL: shared url is not a page host: $URL"; exit 1 ;;
+esac
+PAGEHOST=${URL#http://}; PAGEHOST=${PAGEHOST%%/*}
+curl -sf -H "Host: $PAGEHOST" "localhost:$PORT/" | grep -q 'hello again' || { echo "FAIL: shared page host does not serve the page"; exit 1; }
+curl -sf -H "Host: app.localhost:$PORT" "localhost:$PORT/healthz" >/dev/null || { echo "FAIL: a non-slug name lost its routes"; exit 1; }
+STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "$H" -H "Origin: ${URL%/}" "localhost:$PORT/api/artifacts/$ID/share-code")
+[ "$STATUS" = 403 ] || { echo "FAIL: a page host wrote to the API: $STATUS"; exit 1; }
+echo "shared page host $PAGEHOST"
 echo "SMOKE OK"

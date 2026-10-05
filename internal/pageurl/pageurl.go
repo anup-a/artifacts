@@ -3,7 +3,7 @@
 //
 // It is the one place that knows where pages live: under the share origin
 // (https://byagent.dev/a/{id}/) when CONTENT_DOMAIN is unset, or on a host of
-// their own (https://{slug}.byagent.page/) when it is. API responses, the CLI
+// their own (https://{slug}.byagent.dev/) when it is. API responses, the CLI
 // and MCP output (which echo the API), the dashboard, Open Graph tags,
 // gallery, showcase and collection pages and the agent docs all take their
 // page links from here, so they agree.
@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/ids"
 )
 
 // Builder makes page addresses for one deployment.
@@ -24,11 +25,14 @@ type Builder struct {
 	// Scheme and Domain are the content domain (config.ContentScheme and
 	// ContentDomain). Domain empty puts pages under ShareOrigin/a/{id}/.
 	Scheme, Domain string
+	// Shared is config.ContentShared: Domain is the share host itself, so
+	// only exact slug hosts are pages and every other name is Elsewhere.
+	Shared bool
 }
 
 // New reads the builder's settings from the server config.
 func New(c config.Config) Builder {
-	return Builder{ShareOrigin: strings.TrimRight(c.ShareOrigin, "/"), Scheme: c.ContentScheme, Domain: c.ContentDomain}
+	return Builder{ShareOrigin: strings.TrimRight(c.ShareOrigin, "/"), Scheme: c.ContentScheme, Domain: c.ContentDomain, Shared: c.ContentShared}
 }
 
 // PerPage reports whether every page has an origin of its own.
@@ -73,7 +77,7 @@ func (b Builder) Share(id, slug, code string) string {
 }
 
 // Form is how a page address looks, for prose and examples:
-// "https://<name>.byagent.page/" or "https://byagent.dev/a/<id>/".
+// "https://<name>.byagent.dev/" or "https://byagent.dev/a/<id>/".
 func (b Builder) Form() string {
 	if b.PerPage() {
 		return b.Scheme + "://<name>." + b.Domain + "/"
@@ -82,7 +86,7 @@ func (b Builder) Form() string {
 }
 
 // Source is the CSP source that matches every page host
-// (https://*.byagent.page), or "" when pages share the share origin.
+// (https://*.byagent.dev), or "" when pages share the share origin.
 func (b Builder) Source() string {
 	if !b.PerPage() {
 		return ""
@@ -94,37 +98,60 @@ func (b Builder) Source() string {
 type Kind int
 
 const (
-	// Elsewhere is any host outside the content domain: byagent's own
-	// origins, a custom domain, or a bare address from a health check.
+	// Elsewhere is any host that is not a page host: byagent's own
+	// origins, a custom domain, or a bare address from a health check. With
+	// a shared content domain (byagent.dev) that includes the apex, www,
+	// app, and every name under it that is not exactly a slug.
 	Elsewhere Kind = iota
-	// Apex is the content domain itself (or its www), which only redirects.
+	// Apex is a separate content domain itself (or its www), which only
+	// redirects.
 	Apex
 	// Page is {slug}.{domain}: one page's own host.
 	Page
-	// Stray is any other name under the content domain, such as a label
-	// that is not a slug or a deeper subdomain. It serves nothing.
+	// Stray is any other name under a separate content domain, such as a
+	// label that is not a slug or a deeper subdomain. It serves nothing.
 	Stray
 )
 
 // Classify reads a Host header (any case, with or without a port or a
 // trailing dot). For a page host it returns the slug.
+//
+// A page host is exactly one label of slug shape (ids.ValidSlug) directly
+// under the content domain. When the content domain is the share host
+// itself, nothing else under it is touched: byagent.dev, app.byagent.dev,
+// domains.byagent.dev and any other name stay Elsewhere, so they keep their
+// own routes (and the apex is never redirected to itself).
 func (b Builder) Classify(host string) (Kind, string) {
 	if !b.PerPage() {
 		return Elsewhere, ""
 	}
 	host = Hostname(host)
 	domain := Hostname(b.Domain)
+	if label, ok := strings.CutSuffix(host, "."+domain); ok && ids.ValidSlug(label) {
+		return Page, label
+	}
 	switch {
+	case b.Shared:
+		return Elsewhere, ""
 	case host == domain || host == "www."+domain:
 		return Apex, ""
 	case !strings.HasSuffix(host, "."+domain):
 		return Elsewhere, ""
 	}
-	label := strings.TrimSuffix(host, "."+domain)
-	if !validSlug(label) {
-		return Stray, ""
+	return Stray, ""
+}
+
+// IsPageOrigin reports whether an Origin header value names a page host.
+func (b Builder) IsPageOrigin(origin string) bool {
+	if origin == "" || origin == "null" {
+		return false
 	}
-	return Page, label
+	_, rest, ok := strings.Cut(origin, "://")
+	if !ok {
+		return false
+	}
+	k, _ := b.Classify(rest)
+	return k == Page
 }
 
 // Hostname is a Host header or host[:port] as a bare, lower-case name.
@@ -133,18 +160,4 @@ func Hostname(host string) string {
 		host = h
 	}
 	return strings.TrimSuffix(strings.ToLower(host), ".")
-}
-
-// validSlug accepts one DNS label of the characters a slug is made of. The
-// store decides whether it names a page; this only keeps junk off it.
-func validSlug(s string) bool {
-	if s == "" || len(s) > 63 {
-		return false
-	}
-	for _, c := range s {
-		if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9') {
-			return false
-		}
-	}
-	return true
 }

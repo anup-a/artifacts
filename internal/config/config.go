@@ -86,17 +86,23 @@ type Config struct {
 	VariablesOff bool
 	// ContentDomain gives every published page a browser origin of its own,
 	// https://{slug}.{ContentDomain}/, the way GitHub Pages and here.now do,
-	// so one page's script cannot read or act on another page, or set
-	// cookies for byagent's own hosts. It must be a registrable domain apart
-	// from the share and API origins (byagent.page next to byagent.dev).
-	// Empty keeps every page under PUBLIC_SHARE_ORIGIN/a/{id}/ as before.
-	// CONTENT_DOMAIN=byagent.page, or a whole origin such as
+	// so one page's script cannot read or act on another page. It is either
+	// the share origin's own host (byagent.dev: pages at {slug}.byagent.dev,
+	// ContentShared) or a registrable domain apart from the share and API
+	// origins (byagent.page). Empty keeps every page under
+	// PUBLIC_SHARE_ORIGIN/a/{id}/ as before.
+	// CONTENT_DOMAIN=byagent.dev, or a whole origin such as
 	// http://page.localhost:8080 to set the scheme and port for local work.
 	// Host[:port], lower case, no scheme.
 	ContentDomain string
 	// ContentScheme is http or https for page hosts: the scheme
 	// CONTENT_DOMAIN named, else the share origin's.
 	ContentScheme string
+	// ContentShared is set when ContentDomain is the share origin's own
+	// host: page hosts are {slug}.byagent.dev beside byagent.dev and
+	// app.byagent.dev. Only a name that is exactly one slug label is a page
+	// host then; the apex and every other name keep their normal routes.
+	ContentShared bool
 	Limits        Limits
 }
 
@@ -148,7 +154,7 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		VariablesOff:      getenv("VARIABLES") == "off",
 	}
 	var err error
-	if c.ContentScheme, c.ContentDomain, err = contentDomain(getenv("CONTENT_DOMAIN"), c.ShareOrigin, c.APIOrigin); err != nil {
+	if c.ContentScheme, c.ContentDomain, c.ContentShared, err = contentDomain(getenv("CONTENT_DOMAIN"), c.ShareOrigin, c.APIOrigin); err != nil {
 		return c, err
 	}
 	if c.Limits, err = limitsFromEnv(getenv); err != nil {
@@ -263,17 +269,23 @@ func splitList(v string) []string {
 	return out
 }
 
-// contentDomain reads CONTENT_DOMAIN: a bare domain (byagent.page), which
-// takes the share origin's scheme, or an origin (http://page.localhost:8080).
+// contentDomain reads CONTENT_DOMAIN: a bare domain (byagent.dev,
+// byagent.page), which takes the share origin's scheme, or an origin
+// (http://page.localhost:8080).
 //
-// Page hosts must not overlap byagent's own hosts in either direction. A
-// share or API host under the content domain would be served as a page;
-// a content domain under them would let a page set cookies the dashboard
-// reads, which is the thing the separate domain exists to prevent.
-func contentDomain(raw, shareOrigin, apiOrigin string) (scheme, domain string, err error) {
+// Two layouts are accepted. The content domain may be the share origin's own
+// host (shared): page hosts are then {slug}.byagent.dev, and only a name that
+// is exactly one slug label is ever served as a page, so byagent.dev,
+// app.byagent.dev and any other name keep their routes; byagent's own
+// cookies are host-only (__Host-) so no page host can plant or read them.
+// Or it is a domain apart from byagent's own hosts, overlapping them in
+// neither direction: a share or API host under it would be served as a
+// page, and a content domain under them would let a page set cookies the
+// dashboard reads.
+func contentDomain(raw, shareOrigin, apiOrigin string) (scheme, domain string, shared bool, err error) {
 	raw = strings.TrimSpace(strings.ToLower(raw))
 	if raw == "" {
-		return "", "", nil
+		return "", "", false, nil
 	}
 	scheme = "https"
 	if strings.HasPrefix(shareOrigin, "http://") {
@@ -284,13 +296,20 @@ func contentDomain(raw, shareOrigin, apiOrigin string) (scheme, domain string, e
 	}
 	u, err := url.Parse(strings.TrimSuffix(raw, "/"))
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.Path != "" || u.RawQuery != "" || u.User != nil {
-		return "", "", fmt.Errorf("CONTENT_DOMAIN must be a domain such as byagent.page, got %q", raw)
+		return "", "", false, fmt.Errorf("CONTENT_DOMAIN must be a domain such as byagent.dev, got %q", raw)
 	}
 	host := strings.TrimSuffix(u.Hostname(), ".")
 	for _, c := range host {
 		if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-' || c == '.') {
-			return "", "", fmt.Errorf("CONTENT_DOMAIN must be a DNS name, got %q", host)
+			return "", "", false, fmt.Errorf("CONTENT_DOMAIN must be a DNS name, got %q", host)
 		}
+	}
+	domain = host
+	if p := u.Port(); p != "" {
+		domain += ":" + p
+	}
+	if so, err := url.Parse(shareOrigin); err == nil && strings.EqualFold(strings.TrimSuffix(so.Hostname(), "."), host) {
+		return u.Scheme, domain, true, nil
 	}
 	for _, origin := range []string{shareOrigin, apiOrigin} {
 		o, err := url.Parse(origin)
@@ -303,17 +322,22 @@ func contentDomain(raw, shareOrigin, apiOrigin string) (scheme, domain string, e
 		// resolve every *.localhost name to the machine itself.
 		under := strings.HasSuffix(host, "."+own) && own != "localhost"
 		if own == host || strings.HasSuffix(own, "."+host) || under {
-			return "", "", fmt.Errorf("CONTENT_DOMAIN %q overlaps %s; pages need a domain of their own", host, origin)
+			return "", "", false, fmt.Errorf("CONTENT_DOMAIN %q overlaps %s; use the share host itself (%s) or a domain of its own", host, origin, so(shareOrigin))
 		}
 		if lastLabels(own, 2) == lastLabels(host, 2) {
 			slog.Warn("CONTENT_DOMAIN shares a parent domain with byagent's own hosts, so pages can set cookies for them", "content_domain", host, "origin", origin)
 		}
 	}
-	domain = host
-	if p := u.Port(); p != "" {
-		domain += ":" + p
+	return u.Scheme, domain, false, nil
+}
+
+// so is an origin's host name, for messages.
+func so(origin string) string {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return origin
 	}
-	return u.Scheme, domain, nil
+	return u.Hostname()
 }
 
 // lastLabels is the last n labels of a host name: a rough registrable domain

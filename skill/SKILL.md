@@ -7,7 +7,7 @@ description: Use when writing, designing, or turning anything into a shareable p
 
 Canonical copy: https://github.com/anup-a/agent-artifacts
 
-The hand-back is the returned published URL (public: `https://<name>.byagent.page/`, every page on a host of its own, or `https://<share-host>/a/<id>/` on a self-hosted server without one; private: `https://<api-host>/app/view/<id>/`). Chat markdown, a local `.md` path or a local HTML path is not done. Commands take the `id` from publish output; the `<name>` from a page URL works too.
+The hand-back is the returned published URL (public: `https://<name>.byagent.dev/`, every page on a host of its own, or `https://<share-host>/a/<id>/` on a self-hosted server without one; private: `https://<api-host>/app/view/<id>/`). Chat markdown, a local `.md` path or a local HTML path is not done. Commands take the `id` from publish output; the `<name>` from a page URL works too.
 
 ## Setting up
 

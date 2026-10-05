@@ -1,6 +1,7 @@
 package pageurl
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/anup-a/artifacts/internal/config"
@@ -94,5 +95,47 @@ func TestClassify(t *testing.T) {
 	}
 	if k, _ := local.Classify("localhost:8080"); k != Elsewhere {
 		t.Fatalf("the share host is not a page host: %v", k)
+	}
+}
+
+// With the share host as the content domain, pages are {slug}.byagent.dev
+// and nothing else under byagent.dev changes.
+func TestClassifyShared(t *testing.T) {
+	b := New(config.Config{ShareOrigin: "https://byagent.dev", ContentScheme: "https", ContentDomain: "byagent.dev", ContentShared: true})
+	if got := b.Page("abc", slug); got != "https://"+slug+".byagent.dev/" {
+		t.Fatalf("page: %s", got)
+	}
+	if got := b.Source(); got != "https://*.byagent.dev" {
+		t.Fatalf("source: %s", got)
+	}
+	for _, tc := range []struct {
+		host string
+		kind Kind
+	}{
+		{slug + ".byagent.dev", Page},
+		{strings.ToUpper(slug) + ".BYAGENT.DEV.", Page},
+		{"byagent.dev", Elsewhere},
+		{"www.byagent.dev", Elsewhere},
+		{"app.byagent.dev", Elsewhere},
+		{"domains.byagent.dev", Elsewhere},
+		{"q7mz4kd2xw5ntb3.byagent.dev", Elsewhere},   // 15 characters
+		{"q7mz4kd2xw5ntb3e1.byagent.dev", Elsewhere}, // 17
+		{"q7mz4kd2xw5ntb3a.byagent.dev", Page},
+		{"q7mz4kd2xw5ntb31.byagent.dev", Elsewhere}, // 1 is not base32
+		{"x." + slug + ".byagent.dev", Elsewhere},
+		{slug + ".app.byagent.dev", Elsewhere},
+		{"127.0.0.1:8080", Elsewhere},
+	} {
+		if k, _ := b.Classify(tc.host); k != tc.kind {
+			t.Errorf("%s: got %v, want %v", tc.host, k, tc.kind)
+		}
+	}
+	for origin, want := range map[string]bool{
+		"https://" + slug + ".byagent.dev": true, "https://app.byagent.dev": false, "https://byagent.dev": false,
+		"null": false, "": false, "https://" + slug + ".evil.example": false,
+	} {
+		if got := b.IsPageOrigin(origin); got != want {
+			t.Errorf("IsPageOrigin(%q) = %v", origin, got)
+		}
 	}
 }
