@@ -1,0 +1,29 @@
+{{/* The loop byagent is for, drawn small for the empty Artifacts page: an
+     agent publishes from its terminal, the page gets a link, and a reader
+     leaves a comment on one line. Colours come from CSS classes (the CSP
+     forbids inline styles), so it follows light and dark. */}}
+{{define "first-run-art"}}
+<svg class="first-run-art" viewBox="0 0 346 156" width="346" height="156" role="img" aria-label="An agent publishes a page from its terminal, and a reader comments on one line">
+  <rect class="fr-term" x="2" y="44" width="146" height="70" rx="10"/>
+  <circle class="fr-dot" cx="16" cy="57" r="2.5"/><circle class="fr-dot" cx="25" cy="57" r="2.5"/><circle class="fr-dot" cx="34" cy="57" r="2.5"/>
+  <text class="fr-cmd" x="14" y="80">$ byagent publish</text>
+  <text class="fr-out" x="14" y="98">&#10003; byagent.dev/a/k7qd</text>
+  <path class="fr-arrow" d="M154 79 H180" />
+  <path class="fr-arrow-head" d="M175 74 L181 79 L175 84" />
+  <rect class="fr-page" x="188" y="10" width="138" height="136" rx="10"/>
+  <rect class="fr-bar" x="188" y="10" width="138" height="22" rx="10"/>
+  <rect class="fr-bar-fix" x="188" y="24" width="138" height="8"/>
+  <rect class="fr-url" x="200" y="17" width="72" height="8" rx="4"/>
+  <rect class="fr-line fr-h" x="202" y="44" width="82" height="9" rx="3"/>
+  <rect class="fr-line" x="202" y="62" width="112" height="6" rx="3"/>
+  <rect class="fr-hl" x="198" y="74" width="104" height="14" rx="4"/>
+  <rect class="fr-line fr-on" x="202" y="78" width="96" height="6" rx="3"/>
+  <rect class="fr-line" x="202" y="96" width="104" height="6" rx="3"/>
+  <rect class="fr-line" x="202" y="108" width="72" height="6" rx="3"/>
+  <rect class="fr-line" x="202" y="120" width="92" height="6" rx="3"/>
+  <path class="fr-bubble" d="M272 52 h62 a8 8 0 0 1 8 8 v18 a8 8 0 0 1 -8 8 h-42 l-8 7 v-7 h-12 a8 8 0 0 1 -8 -8 v-18 a8 8 0 0 1 8 -8 z"/>
+  <circle class="fr-avatar" cx="277" cy="69" r="6"/>
+  <rect class="fr-bubble-line" x="288" y="63" width="44" height="4" rx="2"/>
+  <rect class="fr-bubble-line" x="288" y="71" width="30" height="4" rx="2"/>
+</svg>
+{{end}}

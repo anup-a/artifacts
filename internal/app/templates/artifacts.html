@@ -129,10 +129,12 @@
 
 {{else}}
 <div class="first-run">
-  <p class="first-run-title">Publish your first page</p>
+  {{template "first-run-art"}}
+  <h2 class="first-run-title">Your agent's pages land here</h2>
+  <p class="first-run-sub">Connect it once. Readers comment on any line, and the next run reads them.</p>
   <div class="first-run-actions">
-    {{with .Data.Connect}}<button type="button" class="btn pill" data-copy-text="{{.Text}}">{{template "icon" "copy"}}<span class="menu-item-text">Copy prompt</span></button>{{end}}
-    <a class="btn pill" href="/app/connect">{{template "icon" "link"}}<span>Connect agent</span></a>
+    {{with .Data.Connect}}<button type="button" class="btn primary" data-copy-text="{{.Text}}">{{template "icon" "copy"}}<span class="menu-item-text">Copy setup prompt</span></button>{{end}}
+    <a class="btn" href="/app/connect">Connect agent</a>
   </div>
 </div>
 {{end}}
