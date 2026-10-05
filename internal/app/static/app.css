@@ -570,6 +570,13 @@ textarea { resize: vertical; line-height: 1.45; }
 .quota-callout.is-full .callout-head .ic { color: var(--danger); }
 
 /* ---- Auth pages (login, check inbox, errors) --------------------- */
+/* Hidden until a keyboard user tabs to it, then shown over the page. */
+.skip-link {
+  position: absolute; left: 12px; top: -48px; z-index: 100;
+  padding: 8px 14px; border-radius: 8px; background: var(--fg); color: var(--bg);
+  font-size: 14px; font-weight: 500;
+}
+.skip-link:focus { top: 12px; }
 .bare { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
 .bare:has(.auth-split) { display: block; padding: 0; }
 .auth-split {
@@ -1082,6 +1089,7 @@ textarea { resize: vertical; line-height: 1.45; }
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 16px 2px; font-size: 15.5px; font-weight: 500; color: var(--fg);
 }
+.lp-faq summary h3 { margin: 0; font: inherit; color: inherit; letter-spacing: inherit; }
 .lp-faq summary::after { content: "+"; flex: none; font-size: 18px; font-weight: 400; color: var(--muted); }
 .lp-faq details[open] summary::after { content: "−"; }
 .lp-faq details p { margin: 0 0 18px; padding: 0 2px; font-size: 14.5px; line-height: 1.65; color: var(--fg-2); max-width: 68ch; }

@@ -1,9 +1,16 @@
 package app
 
 import (
+	"encoding/json"
+	"fmt"
+	"html"
+	"html/template"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
+
+	"github.com/anup-a/artifacts/internal/config"
 )
 
 // landingData is the handful of facts the page cannot hardcode: where this
@@ -24,6 +31,71 @@ type landingData struct {
 	ThreadDarkURL string
 	SignIn        bool // a sign-in provider is configured
 	Guest         bool // publishing without an account is on
+	Limits        config.Limits
+	FAQ           []faq
+	FAQJSON       template.JS // the same questions as a FAQPage data block
+}
+
+// faq is one question at the foot of the landing page. The page shows the
+// list and the FAQPage data block repeats it, so they cannot drift apart.
+// Answers are kept in step with the policy pages they link to.
+type faq struct {
+	Q string
+	A template.HTML
+}
+
+func landingFAQ(l config.Limits) []faq {
+	return []faq{
+		{"Does byagent train AI on my pages?", `No. We do not use your pages or the comments on them to train AI models, and we do not sell them. See <a class="link" href="/privacy">Privacy</a>.`},
+		{"Where is my data stored?", `On one server at Fly.io in its Singapore region. The database and the published files sit on a volume that is encrypted at rest, and every connection uses TLS. See <a class="link" href="/security">Security</a>.`},
+		{"Who can see a page?", `A public page: anyone with its link. A private page: signed-in members of your workspace, and anyone you give its six-digit share code to. You can rotate or withdraw the code at any time.`},
+		{"What happens when I delete a page?", `It is gone for good, with no email needed. The page goes offline at once, and its title, labels, versions, comments and view counts are erased straight away. Its files leave storage within a day, and backups age out after 5 days.`},
+		{"Is it free?", template.HTML(fmt.Sprintf(`Yes. There is no paid plan and no card. A workspace holds up to %d pages of up to %d MB each. The rest of the limits are on the <a class="link" href="/pricing">pricing page</a>.`, l.ArtifactsPerTenant, l.VersionBytes/(1<<20)))},
+		{"Which agents work?", `Any agent that can run a shell command: Claude Code, Codex, Cursor and others. It uses the byagent CLI from npm.`},
+	}
+}
+
+var htmlTag = regexp.MustCompile(`<[^>]+>`)
+
+// faqJSON is the FAQPage data block for the questions, answers as plain text.
+func faqJSON(qs []faq) template.JS {
+	type answer struct {
+		Type string `json:"@type"`
+		Text string `json:"text"`
+	}
+	type question struct {
+		Type   string `json:"@type"`
+		Name   string `json:"name"`
+		Answer answer `json:"acceptedAnswer"`
+	}
+	var main []question
+	for _, q := range qs {
+		main = append(main, question{"Question", q.Q, answer{"Answer", html.UnescapeString(htmlTag.ReplaceAllString(string(q.A), ""))}})
+	}
+	b, err := json.Marshal(struct {
+		Context string     `json:"@context"`
+		Type    string     `json:"@type"`
+		Main    []question `json:"mainEntity"`
+	}{"https://schema.org", "FAQPage", main})
+	if err != nil {
+		return ""
+	}
+	return template.JS(b)
+}
+
+// wantsMarkdown reports whether the client asked for Markdown over HTML, as
+// an agent fetching the root with Accept: text/markdown does.
+func wantsMarkdown(r *http.Request) bool {
+	for _, part := range strings.Split(r.Header.Get("Accept"), ",") {
+		mt, _, _ := strings.Cut(strings.TrimSpace(part), ";")
+		switch strings.ToLower(strings.TrimSpace(mt)) {
+		case "text/markdown":
+			return true
+		case "text/html", "*/*":
+			return false
+		}
+	}
+	return false
 }
 
 // exampleID is a made-up artifact id, the same shape the server issues.
@@ -51,7 +123,14 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 	}
 	// The page is the same for everyone, so it may sit in a shared cache;
 	// this overrides the no-store the app headers set for signed-in pages.
+	// It varies by Accept: an agent asking for Markdown gets the agents page.
 	w.Header().Set("Cache-Control", "public, max-age=300")
+	w.Header().Set("Vary", "Accept")
+	if wantsMarkdown(r) {
+		http.Redirect(w, r, "/agents.md", http.StatusSeeOther)
+		return
+	}
+	qs := landingFAQ(h.Cfg.Limits)
 	h.render(w, r, 200, "landing", "byagent", nil, landingData{
 		siteData:      h.site(),
 		APIOrigin:     h.Cfg.APIOrigin,
@@ -68,5 +147,8 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 		ThreadDarkURL: h.static.threadDarkURL,
 		SignIn:        h.Cfg.WebEnabled(),
 		Guest:         h.Cfg.GuestPublish,
+		Limits:        h.Cfg.Limits,
+		FAQ:           qs,
+		FAQJSON:       faqJSON(qs),
 	})
 }

@@ -4,7 +4,7 @@
 {{$d := .Data}}
 {{/* Short on purpose: Google shows about 155 characters and rewrites a
      description it finds too long or too vague with text from the page. */}}
-<meta name="description" content="byagent is a CLI that turns what Claude Code, Codex or Cursor writes into a shareable link. Readers comment on any line; the next agent run reads it back.">
+<meta name="description" content="byagent is a CLI that publishes what Claude Code, Codex or Cursor writes as a shareable link. Readers comment on any line; the next run reads them.">
 <link rel="canonical" href="{{$d.CanonicalURL}}">
 <link rel="alternate" type="text/markdown" href="{{$d.AgentsURL}}.md" title="byagent for agents">
 <meta property="og:site_name" content="byagent">
@@ -25,8 +25,11 @@
 {{/* A data block, not a script: the CSP does not apply and nothing runs.
      WebSite.name is what Google shows as the site name above the result. */}}
 {{/* sameAs ties this byagent to its npm package and skill repo, so an
-     answer engine does not confuse it with other things called byagent. */}}
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}","publisher":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write (Markdown or HTML) as shareable links. Readers comment on any line without an account, and the next agent run reads the comments back.","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"installUrl":"https://www.npmjs.com/package/byagent","softwareHelp":{"@type":"CreativeWork","url":"{{$d.AgentsURL}}"},"sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"publisher":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}}]}</script>
+     answer engine does not confuse it with other things called byagent,
+     and disambiguatingDescription says plainly what kind of product it is.
+     The Organization node is the entity the other two point at. */}}
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{$d.CanonicalURL}}#org","name":"byagent","url":"{{$d.CanonicalURL}}","logo":"{{$d.ShareOrigin}}/favicon-192.png","email":"hello@byagent.dev","sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"parentOrganization":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}},{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}","publisher":{"@id":"{{$d.CanonicalURL}}#org"}},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write (Markdown or HTML) as shareable links. Readers comment on any line without an account, and the next agent run reads the comments back.","disambiguatingDescription":"A developer tool for publishing and reviewing the output of AI coding agents. It is not an AI search optimization or agent discovery service.","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"installUrl":"https://www.npmjs.com/package/byagent","softwareHelp":{"@type":"CreativeWork","url":"{{$d.AgentsURL}}"},"sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"publisher":{"@id":"{{$d.CanonicalURL}}#org"}}]}</script>
+<script type="application/ld+json">{{$d.FAQJSON}}</script>
 {{template "site-theme" $d}}
 {{end}}
 
@@ -63,13 +66,14 @@
 <figure class="lp-shot">
   {{/* Two stills per figure rather than one <picture>: a <picture> answers only
        to the system setting, and this page has a control of its own. CSS shows
-       the one that matches, and the other is lazy so it is never fetched. */}}
+       the one that matches, and the dark pair is lazy so it is never fetched
+       in the light theme. */}}
   <div class="lp-shot-stage">
     <img class="lp-shot-main is-light" src="{{$d.ShotURL}}" width="1120" height="455"
          alt="The byagent dashboard: a workspace of published pages filtered by project, grouped by the day they went out">
     <img class="lp-shot-main is-dark" src="{{$d.ShotDarkURL}}" width="1120" height="455" loading="lazy"
          alt="The byagent dashboard: a workspace of published pages filtered by project, grouped by the day they went out">
-    <img class="lp-shot-inset is-light" src="{{$d.ThreadURL}}" width="549" height="200" loading="lazy"
+    <img class="lp-shot-inset is-light" src="{{$d.ThreadURL}}" width="549" height="200"
          alt="A comment thread on one page: a reader quotes a line, asks to time-box the first step, and the owner answers underneath">
     <img class="lp-shot-inset is-dark" src="{{$d.ThreadDarkURL}}" width="549" height="200" loading="lazy"
          alt="A comment thread on one page: a reader quotes a line, asks to time-box the first step, and the owner answers underneath">
@@ -320,7 +324,7 @@
     <li class="lp-card">
       <span class="lp-trait-ic">{{template "icon" "rollback"}}</span>
       <h3>Versions kept, with rollback</h3>
-      <p>Republish and the link stays put. Recent versions are kept, and any of them can be rolled back to.</p>
+      <p>Republish and the link stays put. The last {{$d.Limits.VersionsKept}} versions are kept, and any of them can be rolled back to.</p>
     </li>
   </ul>
 </section>
@@ -337,36 +341,19 @@
 </section>
 
 {{/* Plain answers to the questions a careful reader asks before pasting a
-     line into their agent. Every answer is kept in step with the policy
-     pages it links to. */}}
+     line into their agent. The list lives in landing.go, which also writes
+     it into the FAQPage data block in the head. Each question is a heading
+     so it can be quoted as the answer to that question. */}}
 <section class="lp-section">
   <p class="lp-eyebrow">Questions</p>
   <h2 class="lp-h2">Before you paste the line.</h2>
   <div class="lp-faq">
+    {{range $d.FAQ}}
     <details>
-      <summary>Does byagent train AI on my pages?</summary>
-      <p>No. We do not use your pages or the comments on them to train AI models, and we do not sell them. See <a class="link" href="/privacy">Privacy</a>.</p>
+      <summary><h3>{{.Q}}</h3></summary>
+      <p>{{.A}}</p>
     </details>
-    <details>
-      <summary>Where is my data stored?</summary>
-      <p>On one server at Fly.io in its Singapore region. The database and the published files sit on a volume that is encrypted at rest, and every connection uses TLS. See <a class="link" href="/security">Security</a>.</p>
-    </details>
-    <details>
-      <summary>Who can see a page?</summary>
-      <p>A public page: anyone with its link. A private page: signed-in members of your workspace, and anyone you give its six-digit share code to. You can rotate or withdraw the code at any time.</p>
-    </details>
-    <details>
-      <summary>What happens when I delete a page?</summary>
-      <p>It is gone for good, with no email needed. The page goes offline at once, and its title, labels, versions, comments and view counts are erased straight away. Its files leave storage within a day, and backups age out after 5 days.</p>
-    </details>
-    <details>
-      <summary>Is it free?</summary>
-      <p>Yes. There is no paid plan and no card. The limits are on the <a class="link" href="/pricing">pricing page</a>.</p>
-    </details>
-    <details>
-      <summary>Which agents work?</summary>
-      <p>Any agent that can run a shell command: Claude Code, Codex, Cursor and others. It uses the byagent CLI from npm.</p>
-    </details>
+    {{end}}
   </div>
 </section>
 
