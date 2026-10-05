@@ -131,18 +131,12 @@
 <div class="empty">
   <span class="empty-icon">{{template "icon" "artifacts"}}</span>
   <h2>Nothing published yet</h2>
-  <p>Two ways to get your first artifact here.</p>
-  <div class="empty-steps">
-    <div class="step">
-      <span class="step-n">1</span>
-      <div><strong>From an agent.</strong> <a class="link" href="/app/connect">Connect agent</a> gives you a prompt to paste in, and the agent gets a key of its own. To try it first, hand the agent <a class="link" href="{{.Data.APIOrigin}}/skill.md">{{.Data.APIOrigin}}/skill.md</a>: guest pages need no account.</div>
-    </div>
-    <div class="step">
-      <span class="step-n">2</span>
-      <div><strong>From your terminal.</strong> Run <code>npx byagent login --browser</code>, approve it here, then <code>npx byagent publish ./site</code>.</div>
-    </div>
-  </div>
-  <p class="empty-hint">Add <code>--project &lt;name&gt;</code> and <code>--tag &lt;t&gt;</code> when publishing and the gallery groups and labels your pages.</p>
+  <p>Connect your agent and its pages land here.</p>
+  <form method="post" action="/app/connect" class="empty-action">
+    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+    <button type="submit" class="btn primary">{{template "icon" "link"}} Connect agent</button>
+  </form>
+  <p class="empty-hint">or run <code>npx byagent login --browser</code></p>
 </div>
 {{end}}
 {{end}}

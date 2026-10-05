@@ -237,7 +237,7 @@ func TestSignInFlowSecurityHeadersAndStatics(t *testing.T) {
 	wantRedirect(t, e.get("/app/login"), "/app/artifacts")
 	wantRedirect(t, e.get("/app/"), "/app/artifacts")
 	res = e.get("/app/artifacts")
-	want(t, res, 200, "Nothing published yet", "someone@example.com", "/skill.md", `<a href="/app/keys"`)
+	want(t, res, 200, "Nothing published yet", "someone@example.com", `action="/app/connect"`, "login --browser", `<a href="/app/keys"`)
 	if strings.Contains(res.Body, "End users") {
 		t.Fatal("personal tenant shows End users")
 	}
