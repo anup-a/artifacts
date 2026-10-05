@@ -104,7 +104,7 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
 
   await page.goto(magicLink());
   await expect(page).toHaveURL(/\/app\/artifacts$/);
-  await expect(page.getByText("Nothing published yet")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Connect your agent" })).toBeVisible();
   await expect(page.locator(".sidebar-foot")).toContainText(EMAIL);
 
   // A key created in the dashboard publishes through the CLI. A page published
