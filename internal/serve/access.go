@@ -49,16 +49,23 @@ const (
 	// with five guesses is a one in two hundred thousand chance per mail, and
 	// mails are metered below.
 	accessCodeAttempts = 5
-	// Password guesses are metered per page and address, and per page overall
-	// so that many addresses still share one budget.
+	// Password guesses are metered per page and client address first, then
+	// per page overall as a backstop. One address runs out of its own budget
+	// long before it could use up the page's, so it cannot lock everyone out
+	// on its own; it takes three addresses guessing flat out.
 	passwordPerClient = 10
-	passwordPerPage   = 100
+	passwordPerPage   = 30
 	passwordWindow    = 15 * time.Minute
-	// Codes mailed: per page and address, per client, per page.
+	// Codes mailed: per page and address, per client, per page. The per-page
+	// meter only counts mail that is actually sent.
 	mailPerAddress = 3
 	mailPerClient  = 10
 	mailPerPage    = 50
 	mailWindow     = time.Hour
+	// Defaults for the daily caps on gate mail, per workspace and for the
+	// whole server, when the handler is not given its own.
+	mailPerWorkspaceDay = 200
+	mailPerServerDay    = 2000
 	// Code guesses per page and client, on top of the per-code limit.
 	codePerClient = 20
 )
@@ -77,9 +84,16 @@ type accessGuards struct {
 	passwordClient, passwordPage *ratelimit.Limiter
 	mailAddress, mailClient      *ratelimit.Limiter
 	mailPage, codeClient         *ratelimit.Limiter
+	mailWorkspace, mailServer    *ratelimit.Limiter
 }
 
-func newAccessGuards(now func() time.Time) *accessGuards {
+func newAccessGuards(now func() time.Time, perWorkspaceDay, perServerDay int) *accessGuards {
+	if perWorkspaceDay <= 0 {
+		perWorkspaceDay = mailPerWorkspaceDay
+	}
+	if perServerDay <= 0 {
+		perServerDay = mailPerServerDay
+	}
 	g := &accessGuards{
 		passwordClient: ratelimit.NewWindow(passwordPerClient, passwordWindow),
 		passwordPage:   ratelimit.NewWindow(passwordPerPage, passwordWindow),
@@ -87,9 +101,11 @@ func newAccessGuards(now func() time.Time) *accessGuards {
 		mailClient:     ratelimit.NewWindow(mailPerClient, mailWindow),
 		mailPage:       ratelimit.NewWindow(mailPerPage, mailWindow),
 		codeClient:     ratelimit.NewWindow(codePerClient, passwordWindow),
+		mailWorkspace:  ratelimit.NewWindow(perWorkspaceDay, 24*time.Hour),
+		mailServer:     ratelimit.NewWindow(perServerDay, 24*time.Hour),
 	}
 	if now != nil {
-		for _, l := range []*ratelimit.Limiter{g.passwordClient, g.passwordPage, g.mailAddress, g.mailClient, g.mailPage, g.codeClient} {
+		for _, l := range []*ratelimit.Limiter{g.passwordClient, g.passwordPage, g.mailAddress, g.mailClient, g.mailPage, g.codeClient, g.mailWorkspace, g.mailServer} {
 			l.SetNow(now)
 		}
 	}
@@ -109,8 +125,27 @@ const (
 )
 
 // hashSlots bounds how many argon2 hashes run at once, so a burst of guesses
-// against many pages cannot turn into a burst of memory.
+// against many pages cannot turn into a burst of memory. A caller waits at
+// most hashWait for one, and not past its request, then gets ErrBusy.
 var hashSlots = make(chan struct{}, 4)
+
+const hashWait = 2 * time.Second
+
+// ErrBusy means every password slot stayed taken: answer 503, try later.
+var ErrBusy = errors.New("too many password checks at once; try again in a moment")
+
+func takeHashSlot(ctx context.Context) error {
+	t := time.NewTimer(hashWait)
+	defer t.Stop()
+	select {
+	case hashSlots <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ErrBusy
+	case <-t.C:
+		return ErrBusy
+	}
+}
 
 // ValidPassword checks an owner's new password.
 func ValidPassword(pw string) error {
@@ -129,14 +164,17 @@ func ValidPassword(pw string) error {
 	return nil
 }
 
-// HashPassword returns the argon2id hash of pw in the PHC string format.
-func HashPassword(pw string) (string, error) {
+// HashPassword returns the argon2id hash of pw in the PHC string format, or
+// ErrBusy when no slot frees up in time.
+func HashPassword(ctx context.Context, pw string) (string, error) {
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
 	}
 	cost := PasswordCost
-	hashSlots <- struct{}{}
+	if err := takeHashSlot(ctx); err != nil {
+		return "", err
+	}
 	key := argon2.IDKey([]byte(pw), salt, cost.Time, cost.MemoryKiB, argonThreads, argonKeyLen)
 	<-hashSlots
 	b64 := base64.RawStdEncoding
@@ -145,26 +183,29 @@ func HashPassword(pw string) (string, error) {
 
 // passwordMatches checks pw against a stored hash in constant time. Anything
 // it cannot parse, or with parameters past what HashPassword writes, fails.
-func passwordMatches(stored, pw string) bool {
+// The error is ErrBusy when no slot frees up in time.
+func passwordMatches(ctx context.Context, stored, pw string) (bool, error) {
 	parts := strings.Split(stored, "$")
 	if len(parts) != 6 || parts[1] != "argon2id" || parts[2] != "v="+strconv.Itoa(argon2.Version) {
-		return false
+		return false, nil
 	}
 	var m, t uint32
 	var p uint8
 	if _, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &m, &t, &p); err != nil || m == 0 || m > 64*1024 || t == 0 || t > 10 || p == 0 || p > 4 {
-		return false
+		return false, nil
 	}
 	b64 := base64.RawStdEncoding
 	salt, err1 := b64.DecodeString(parts[4])
 	want, err2 := b64.DecodeString(parts[5])
 	if err1 != nil || err2 != nil || len(want) == 0 || len(want) > 64 {
-		return false
+		return false, nil
 	}
-	hashSlots <- struct{}{}
+	if err := takeHashSlot(ctx); err != nil {
+		return false, err
+	}
 	got := argon2.IDKey([]byte(pw), salt, t, m, p, uint32(len(want)))
 	<-hashSlots
-	return subtle.ConstantTimeCompare(got, want) == 1
+	return subtle.ConstantTimeCompare(got, want) == 1, nil
 }
 
 // ---- Allowlists ----
@@ -416,14 +457,30 @@ func crossSite(r *http.Request) bool {
 // tryPassword checks a password posted to the gate.
 func (h *Handler) tryPassword(w http.ResponseWriter, r *http.Request, a store.Artifact, given string) {
 	g := GateView{ArtifactID: a.ID, Kind: "password"}
-	ok1, _ := h.access.passwordClient.Allow(a.ID + "|" + h.clientIP(r))
-	ok2, _ := h.access.passwordPage.Allow(a.ID)
-	if !ok1 || !ok2 {
+	// The client's own budget first: a client that has run out stops here
+	// and never touches the page-wide budget everyone else shares.
+	if ok, _ := h.access.passwordClient.Allow(a.ID + "|" + h.clientIP(r)); !ok {
 		g.Locked = true
 		h.renderGate(w, r, g)
 		return
 	}
-	if given == "" || len(given) > 4*PasswordMaxLen || h.UnlockSecret == "" || !passwordMatches(a.AccessPassword, given) {
+	if ok, _ := h.access.passwordPage.Allow(a.ID); !ok {
+		g.Locked = true
+		h.renderGate(w, r, g)
+		return
+	}
+	if given == "" || len(given) > 4*PasswordMaxLen || h.UnlockSecret == "" {
+		g.Wrong = true
+		h.renderGate(w, r, g)
+		return
+	}
+	match, err := passwordMatches(r.Context(), a.AccessPassword, given)
+	if err != nil {
+		g.Busy = true
+		h.renderGate(w, r, g)
+		return
+	}
+	if !match {
 		g.Wrong = true
 		h.renderGate(w, r, g)
 		return
@@ -479,24 +536,59 @@ func (h *Handler) requestAccessCode(w http.ResponseWriter, r *http.Request) {
 		h.renderGate(w, r, g)
 		return
 	}
-	ok1, _ := h.access.mailClient.Allow(h.clientIP(r))
-	ok2, _ := h.access.mailAddress.Allow(a.ID + "|" + email)
-	ok3, _ := h.access.mailPage.Allow(a.ID)
-	if !ok1 || !ok2 || !ok3 {
+	// The client's budget first, then the address's. Both are charged the
+	// same whether or not the address is listed, so being refused here says
+	// nothing about the list.
+	if ok, _ := h.access.mailClient.Allow(h.clientIP(r)); !ok {
 		g.Locked = true
 		h.renderGate(w, r, g)
 		return
 	}
-	g.Email, g.Sent = email, true
-	if AllowedEmail(a.AccessAllow, email) {
-		if err := h.mailAccessCode(r.Context(), a, email); err != nil {
+	if ok, _ := h.access.mailAddress.Allow(a.ID + "|" + email); !ok {
+		g.Locked = true
+		h.renderGate(w, r, g)
+		return
+	}
+	// Everything that depends on the list, the page's and workspace's mail
+	// budgets included, happens after the answer and off the request: the
+	// answer and its timing are the same for every address.
+	h.later(func() {
+		if err := h.mailAccessCode(context.Background(), a, email); err != nil {
 			slog.Error("access code", "artifact", a.ID, "err", err)
 		}
-	}
+	})
+	g.Email, g.Sent = email, true
 	h.renderGate(w, r, g)
 }
 
+// later runs fn after the request, or in it under tests.
+func (h *Handler) later(fn func()) {
+	if h.mailSync {
+		fn()
+		return
+	}
+	go fn()
+}
+
+// mailAccessCode mails a code to a listed address, if the page, workspace and
+// server budgets still allow it. An unlisted or over-budget address is
+// dropped silently: the visitor was already told the same thing either way.
 func (h *Handler) mailAccessCode(ctx context.Context, a store.Artifact, email string) error {
+	if !AllowedEmail(a.AccessAllow, email) {
+		return nil
+	}
+	if ok, _ := h.access.mailPage.Allow(a.ID); !ok {
+		slog.Warn("access mail: page budget spent", "artifact", a.ID)
+		return nil
+	}
+	if ok, _ := h.access.mailWorkspace.Allow(a.TenantID); !ok {
+		slog.Warn("access mail: workspace daily cap reached", "artifact", a.ID, "tenant", a.TenantID)
+		return nil
+	}
+	if ok, _ := h.access.mailServer.Allow("all"); !ok {
+		slog.Warn("access mail: server daily cap reached", "artifact", a.ID)
+		return nil
+	}
 	token, code := ids.NewToken(), ids.NewShareCode()
 	now := h.now()
 	c := store.AccessCode{TokenSHA256: ids.HashKey(token), ArtifactID: a.ID, Email: email,
@@ -512,26 +604,9 @@ func (h *Handler) mailAccessCode(ctx context.Context, a store.Artifact, email st
 	text := "Your code to open a page shared with you on byagent:\n\n    " + code + "\n\n" +
 		"Enter it on the page, or open this link in the browser you want to read it in:\n\n" + link + "\n\n" +
 		"The code and the link work once and stop working in 15 minutes. If you did not ask for this, ignore this email.\n"
-	h.sendMail(email, "Your byagent code: "+code, text)
-	return nil
-}
-
-// sendMail hands a message to the mailer off the request, so how long the
-// provider takes does not tell a visitor whether their address was mailed.
-func (h *Handler) sendMail(to, subject, text string) {
-	if h.mailSync {
-		if err := h.Mail.SendMail(context.Background(), to, subject, text); err != nil {
-			slog.Error("send mail", "err", err)
-		}
-		return
-	}
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		if err := h.Mail.SendMail(ctx, to, subject, text); err != nil {
-			slog.Error("send mail", "err", err)
-		}
-	}()
+	sendCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	return h.Mail.SendMail(sendCtx, email, "Your byagent code: "+code, text)
 }
 
 // submitAccessCode checks a mailed code typed into the gate.

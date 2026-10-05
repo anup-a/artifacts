@@ -815,6 +815,8 @@ test("login --browser polls until approved; --no-wait and --wait split it in two
   assert.equal(polls, 3);
   assert.deepEqual(JSON.parse(readFileSync(configPath(home), "utf8")), { token: "ak_new", api: "https://api.example" });
   await assert.rejects(browserLogin("https://api.example", { wait: true, home, note: () => {} }), /nothing to wait for/);
+});
+
 test("access sorts --allow into addresses and domains and replaces the list", async (t) => {
   const { splitEntries } = await import("../src/commands/access.js");
   assert.deepEqual(splitEntries(["sam@acme.com", "@acme.com", "other.org", "a@x.io,b@x.io"]),

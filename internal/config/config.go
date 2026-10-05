@@ -18,6 +18,10 @@ type Limits struct {
 	CommentBytes       int
 	CommentsPerMin     int
 	AnchorBytes        int
+	// AccessMailPerWorkspaceDay and AccessMailPerDay cap the sign-in codes a
+	// restricted page's gate mails: per workspace, and for the whole server.
+	AccessMailPerWorkspaceDay int
+	AccessMailPerDay          int
 }
 
 type Config struct {
@@ -159,7 +163,8 @@ func FromEnv(getenv func(string) string) (Config, error) {
 
 func limitsFromEnv(getenv func(string) string) (Limits, error) {
 	l := Limits{VersionBytes: 26214400, Files: 500, VersionsKept: 20, PublishPerMin: 10,
-		ArtifactsPerTenant: 200, CommentBytes: 2048, CommentsPerMin: 20, AnchorBytes: 4096}
+		ArtifactsPerTenant: 200, CommentBytes: 2048, CommentsPerMin: 20, AnchorBytes: 4096,
+		AccessMailPerWorkspaceDay: 200, AccessMailPerDay: 2000}
 	set := func(k string, dst *int) error {
 		v := getenv(k)
 		if v == "" {
@@ -183,7 +188,8 @@ func limitsFromEnv(getenv func(string) string) (Limits, error) {
 		"LIMIT_FILES": &l.Files, "LIMIT_VERSIONS_KEPT": &l.VersionsKept,
 		"LIMIT_PUBLISH_PER_MIN": &l.PublishPerMin,
 		"LIMIT_COMMENT_BYTES":   &l.CommentBytes, "LIMIT_COMMENTS_PER_MIN": &l.CommentsPerMin,
-		"LIMIT_ANCHOR_BYTES": &l.AnchorBytes,
+		"LIMIT_ANCHOR_BYTES":                  &l.AnchorBytes,
+		"LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY": &l.AccessMailPerWorkspaceDay, "LIMIT_ACCESS_MAIL_PER_DAY": &l.AccessMailPerDay,
 	} {
 		if err := set(k, dst); err != nil {
 			return l, err

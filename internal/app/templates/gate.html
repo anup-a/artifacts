@@ -18,6 +18,7 @@
           <button type="submit" class="btn primary">Open</button>
         </form>
         {{if $d.Wrong}}<p class="gate-error" role="alert">That password did not match. Try again.</p>{{end}}
+        {{if $d.Busy}}<p class="gate-error" role="alert">Too many people are opening pages right now. Try again in a moment.</p>{{end}}
         <p class="muted">The password opens this page only. You will not need it again on this device for a while.</p>
       {{end}}
     {{else if eq $d.Kind "email"}}

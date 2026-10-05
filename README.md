@@ -208,19 +208,28 @@ readers who get in can comment and suggest edits like code holders.
 
 - `byagent access <id> --password` (password on stdin) makes the page private
   and asks visitors for the password once per browser. Only an argon2id hash is
-  stored. Guesses are metered per page and client address (10 per 15 minutes)
-  and per page overall (100 per 15 minutes). The unlock is an HttpOnly cookie
+  stored. Guesses are metered per page and client address first (10 per 15
+  minutes), then per page overall as a backstop no single address can reach
+  (30 per 15 minutes); a client past its own budget never spends the page's.
+  When every password check slot is busy for two seconds the gate answers 503
+  and asks the visitor to try again. Changing access is metered too (30 a
+  minute per key or dashboard user). The unlock is an HttpOnly cookie
   scoped to that page's `/a/<id>/` and `/c/<id>/` paths, signed over the page,
   the password hash and an access version, so changing the password or the
   mode signs every visitor out.
 - `byagent access <id> --restricted --allow sam@acme.com --allow @acme.com`
   admits only those addresses, or any address at exactly that domain. A
   visitor enters their email; if it is on the list the server mails a six-digit
-  code and a one-time link (15 minutes, five guesses per code; mail is metered
-  per address, client and page). The gate answers the same whether or not the
-  address is listed, so it cannot be used to read the list. Taking someone off
-  the list takes them off the page at once. Comments from a restricted page
-  are signed with the reader's verified address. Restricted pages need
+  code and a one-time link (15 minutes, five guesses per code). Mail is
+  metered per client and address on every request, and per page (50 an hour),
+  per workspace and for the whole server (`LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY`,
+  `LIMIT_ACCESS_MAIL_PER_DAY`) only when a code is actually sent. The gate
+  gives the same answer, in the same time, whether or not the address is
+  listed or a budget is spent: the list is checked and the code stored and
+  mailed after the answer has gone. Taking someone off the list takes them off
+  the page at once. Comments made through the gate are signed with the
+  address the reader proved and carry a "verified" mark set by the server; a
+  name typed anywhere else never gets it. Restricted pages need
   `EMAIL_PROVIDER` and `KEY_SIGNING_SECRET`.
 - `--invite <email>` mails people on the list by name a link to the page
   (50 per request, 100 a day per workspace). Domain entries are never mailed.
@@ -229,6 +238,13 @@ readers who get in can comment and suggest edits like code holders.
 
 One door at a time: a password or a list withdraws a share code, and a share
 code cannot be issued while either is set. Guest pages get none of this.
+
+**Limits of the gate.** Every published page is served from the same origin.
+A script on another published page, opened in the same browser as an
+unlocked visitor, can act as that visitor: read a password, restricted or
+share-code page they have opened, and comment on it as them. The gate keeps
+out people who have not got in; it does not isolate one page from another in
+the same browser. A separate origin per page is planned.
 
 Private responses use `Cache-Control: private, no-store`. Public artifact content
 requires cache revalidation so changing visibility blocks subsequent requests.
@@ -374,6 +390,8 @@ it and fails if the checked-in copy is stale.
 | `LIMIT_COMMENT_BYTES` | `2048` | Max comment body size. |
 | `LIMIT_COMMENTS_PER_MIN` | `20` | Comments per IP per minute on `/c/*`. |
 | `LIMIT_ANCHOR_BYTES` | `4096` | Max serialized anchor size. |
+| `LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY` | `200` | Sign-in codes a restricted page's gate mails per workspace per day. Past it, requests get the usual answer and no mail. |
+| `LIMIT_ACCESS_MAIL_PER_DAY` | `2000` | The same cap for the whole server. |
 
 ## Deploying
 

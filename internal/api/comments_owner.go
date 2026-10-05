@@ -82,7 +82,7 @@ func (s *server) ownerReply(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	apierr.WriteJSON(w, 201, commentView{c.ID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt})
+	apierr.WriteJSON(w, 201, commentView{c.ID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt, c.Verified})
 }
 
 func (s *server) ownerResolve(w http.ResponseWriter, r *http.Request) {

@@ -21,13 +21,14 @@ func (s *server) viewerLimit(w http.ResponseWriter, r *http.Request) bool {
 }
 
 // viewerName is the author a viewer comment is signed with. On a restricted
-// page that is the address the visitor proved, whatever name they typed: the
-// owner let in people, not pseudonyms, and the address cannot be forged.
-func (s *server) viewerName(r *http.Request, a store.Artifact, typed string) (string, *apierr.Error) {
+// page that is the address the visitor proved, whatever name they typed, and
+// the comment is marked verified so a typed name can never pass for one.
+func (s *server) viewerName(r *http.Request, a store.Artifact, typed string) (string, bool, *apierr.Error) {
 	if email := serve.VisitorEmail(r, a, s.Cfg.KeySecret); email != "" {
-		return email, nil
+		return email, true, nil
 	}
-	return s.validName(typed)
+	name, e := s.validName(typed)
+	return name, false, e
 }
 
 func (s *server) viewerCreateThread(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +54,7 @@ func (s *server) viewerCreateThread(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	name, e := s.viewerName(r, a, in.AuthorName)
+	name, verified, e := s.viewerName(r, a, in.AuthorName)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -98,7 +99,7 @@ func (s *server) viewerCreateThread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	th := store.Thread{ID: newThreadID(), ArtifactID: a.ID, Version: in.Version, AnchorJSON: anchor, Status: "open", AnchorStatus: "unknown", CreatedAt: now, Suggestion: suggestion}
-	c := store.Comment{ID: newCommentID(), ThreadID: th.ID, AuthorName: name, AuthorKind: "viewer", Body: body, CreatedAt: now}
+	c := store.Comment{ID: newCommentID(), ThreadID: th.ID, AuthorName: name, AuthorKind: "viewer", Body: body, CreatedAt: now, Verified: verified}
 	if err := s.Store.CreateThread(r.Context(), th, c); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
@@ -144,7 +145,7 @@ func (s *server) viewerReply(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	name, e := s.viewerName(r, a, in.AuthorName)
+	name, verified, e := s.viewerName(r, a, in.AuthorName)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -154,12 +155,12 @@ func (s *server) viewerReply(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	c := store.Comment{ID: newCommentID(), ThreadID: t.ID, AuthorName: name, AuthorKind: "viewer", Body: body, CreatedAt: s.Now()}
+	c := store.Comment{ID: newCommentID(), ThreadID: t.ID, AuthorName: name, AuthorKind: "viewer", Body: body, CreatedAt: s.Now(), Verified: verified}
 	if err := s.Store.AddComment(r.Context(), c); err != nil {
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
-	apierr.WriteJSON(w, 201, commentView{c.ID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt})
+	apierr.WriteJSON(w, 201, commentView{c.ID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt, c.Verified})
 }
 
 func (s *server) viewerSeen(w http.ResponseWriter, r *http.Request) {

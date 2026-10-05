@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -268,13 +269,20 @@ func TestRestrictedVisitorsCommentAsTheirAddress(t *testing.T) {
 	if code != 201 {
 		t.Fatalf("comment: %d %v", code, th)
 	}
-	if name := th["comments"].([]any)[0].(map[string]any)["author_name"]; name != "lee@corp.example" {
-		t.Fatalf("author %v", name)
+	if cm := th["comments"].([]any)[0].(map[string]any); cm["author_name"] != "lee@corp.example" || cm["author_verified"] != true {
+		t.Fatalf("author %v", cm)
 	}
 	req = jsonReq(t, "POST", base+"/c/"+id+"/comments/"+th["id"].(string)+"/reply", `{"author_name":"Someone else","body":"agreed"}`, nil)
 	req.AddCookie(c)
-	if code, cm := do(t, req); code != 201 || cm["author_name"] != "lee@corp.example" {
+	if code, cm := do(t, req); code != 201 || cm["author_name"] != "lee@corp.example" || cm["author_verified"] != true {
 		t.Fatalf("reply: %d %v", code, cm)
+	}
+	// The mark is stored, so the owner and later readers see it too.
+	_, list := do(t, authReq(t, "GET", base+"/api/artifacts/"+id+"/comments?status=all", tok))
+	for _, cm := range list["threads"].([]any)[0].(map[string]any)["comments"].([]any) {
+		if cm.(map[string]any)["author_verified"] != true {
+			t.Fatalf("owner view lost the mark: %v", cm)
+		}
 	}
 	// Off the list, off the comments.
 	if code, _ := patchAccess(t, base, tok, id, `{"mode":"restricted","allowed_emails":["sam@acme.com"]}`); code != 200 {
@@ -363,5 +371,32 @@ func TestGuestsGetNoAccessControl(t *testing.T) {
 	}
 	if code, _ := do(t, jsonReq(t, "POST", srv.URL+"/api/artifacts/"+id+"/access/invites", `{"emails":["a@b.co"]}`, map[string]string{"Authorization": "Bearer " + tok})); code != 403 {
 		t.Fatalf("guest invites: %d", code)
+	}
+}
+
+// A typed name is only ever a typed name, whatever it says.
+func TestTypedNamesAreNeverVerified(t *testing.T) {
+	srv, _, tok := newTestServer(t, false)
+	id := publishOne(t, srv.URL, tok, "<p>hello world</p>")
+	code, th := do(t, jsonReq(t, "POST", srv.URL+"/c/"+id+"/comments", `{"author_name":"sam@acme.com (verified)","body":"x","anchor":`+anchor+`,"version":1,"author_verified":true}`, nil))
+	if code != 201 || th["comments"].([]any)[0].(map[string]any)["author_verified"] != false {
+		t.Fatalf("typed name came out verified: %d %v", code, th)
+	}
+}
+
+func TestAccessChangesAreMeteredPerKey(t *testing.T) {
+	srv, _, tok := newTestServerWith(t, false, func(d *Deps) { d.AccessLimiter = ratelimit.New(2) })
+	id := publishOne(t, srv.URL, tok, "<p>x</p>")
+	for i := range 2 {
+		if code, b := patchAccess(t, srv.URL, tok, id, `{"mode":"password","password":"longenough`+strconv.Itoa(i)+`"}`); code != 200 {
+			t.Fatalf("patch %d: %d %v", i, code, b)
+		}
+	}
+	if code, _ := patchAccess(t, srv.URL, tok, id, `{"mode":"password","password":"longenough9"}`); code != 429 {
+		t.Fatalf("third patch: %d", code)
+	}
+	// Reading is not metered.
+	if code, _ := do(t, authReq(t, "GET", srv.URL+"/api/artifacts/"+id+"/access", tok)); code != 200 {
+		t.Fatalf("read: %d", code)
 	}
 }

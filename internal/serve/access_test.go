@@ -39,14 +39,14 @@ func (m *fakeMail) all() []mailed {
 
 // accessFixture serves the fixture artifact through a gate that names what it
 // was asked for, so tests can tell the gates apart.
-func accessFixture(t *testing.T) (*http.ServeMux, *Handler, *fakeMail, string) {
+func accessFixture(t *testing.T, tweaks ...func(*Handler)) (*http.ServeMux, *Handler, *fakeMail, string) {
 	t.Helper()
 	_, st, id := fixture(t)
 	mail := &fakeMail{}
 	h := &Handler{Store: st, Blobs: fixtureBlobs, Runtime: []byte("runtime"),
 		ShareOrigin: "http://share.test", APIOrigin: "http://app.test", UnlockSecret: "unlock-test-secret",
 		Mail: mail, mailSync: true,
-		OnView: func(id string) { viewsSeen = append(viewsSeen, id) },
+		OnView: func(r *http.Request, id, path string) { viewsSeen = append(viewsSeen, id) },
 		Gate: func(w http.ResponseWriter, r *http.Request, g GateView) {
 			w.Header().Set("Content-Type", "text/plain")
 			status := 200
@@ -57,8 +57,11 @@ func accessFixture(t *testing.T) (*http.ServeMux, *Handler, *fakeMail, string) {
 				status = 403
 			}
 			w.WriteHeader(status)
-			_, _ = w.Write([]byte("gate:" + g.Kind + " email:" + g.Email + " sent:" + boolStr(g.Sent) + " token:" + g.Token + " nomail:" + boolStr(g.NoMail)))
+			_, _ = w.Write([]byte("gate:" + g.Kind + " email:" + g.Email + " sent:" + boolStr(g.Sent) + " token:" + g.Token + " nomail:" + boolStr(g.NoMail) + " busy:" + boolStr(g.Busy)))
 		}}
+	for _, tw := range tweaks {
+		tw(h)
+	}
 	mux := http.NewServeMux()
 	h.Register(mux)
 	viewsSeen = nil
@@ -74,7 +77,7 @@ func boolStr(b bool) string {
 
 func setPassword(t *testing.T, st store.Store, id, pw string) {
 	t.Helper()
-	hash, err := HashPassword(pw)
+	hash, err := HashPassword(context.Background(), pw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,11 +110,20 @@ func accessCookieOf(t *testing.T, res *httptest.ResponseRecorder, id string) *ht
 	return nil
 }
 
+func matches(t *testing.T, stored, pw string) bool {
+	t.Helper()
+	ok, err := passwordMatches(context.Background(), stored, pw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ok
+}
+
 func TestPasswordHashing(t *testing.T) {
 	// The production cost, once; the rest of the suite hashes cheaply.
 	cheap := PasswordCost
 	PasswordCost = productionCost
-	h, err := HashPassword("correct horse")
+	h, err := HashPassword(context.Background(), "correct horse")
 	PasswordCost = cheap
 	if err != nil {
 		t.Fatal(err)
@@ -119,12 +131,12 @@ func TestPasswordHashing(t *testing.T) {
 	if !strings.HasPrefix(h, "$argon2id$v=19$m=19456,t=2,p=1$") || strings.Contains(h, "correct horse") {
 		t.Fatalf("hash %q", h)
 	}
-	h, _ = HashPassword("correct horse")
-	h2, _ := HashPassword("correct horse")
+	h, _ = HashPassword(context.Background(), "correct horse")
+	h2, _ := HashPassword(context.Background(), "correct horse")
 	if h == h2 {
 		t.Fatal("two hashes of one password match: no salt")
 	}
-	if !passwordMatches(h, "correct horse") || passwordMatches(h, "correct horsE") || passwordMatches(h, "") {
+	if !matches(t, h, "correct horse") || matches(t, h, "correct horsE") || matches(t, h, "") {
 		t.Fatal("match")
 	}
 	// A tampered row with absurd parameters is refused, not run.
@@ -133,7 +145,7 @@ func TestPasswordHashing(t *testing.T) {
 		t.Fatalf("cheap hash %q", h)
 	}
 	for _, bad := range []string{"", "plain", strings.Replace(h, m, "m=4194304", 1), strings.Replace(h, tc, "t=999", 1), strings.Replace(h, "v=19", "v=16", 1), "$bcrypt$x$y$z$w"} {
-		if passwordMatches(bad, "correct horse") {
+		if matches(t, bad, "correct horse") {
 			t.Fatalf("accepted %q", bad)
 		}
 	}
@@ -262,40 +274,72 @@ func TestPasswordGrantCannotBeForgedOrMoved(t *testing.T) {
 	}
 }
 
+func passwordFrom(mux *http.ServeMux, id, pw, ip string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "http://share.test/a/"+id+"/_unlock", strings.NewReader(url.Values{"password": {pw}}.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.RemoteAddr = ip + ":1234"
+	return do(mux, r)
+}
+
 func TestPasswordGuessingIsMeteredPerClientAndPage(t *testing.T) {
 	mux, h, _, id := accessFixture(t)
 	setPassword(t, h.Store, id, "open sesame")
-	for i := range passwordPerClient {
-		if res := postPassword(mux, id, "wrong guess"); res.Code != 403 {
+	// One client guesses far past its own budget...
+	for i := range 5 * passwordPerClient {
+		want := 403
+		if i >= passwordPerClient {
+			want = 429
+		}
+		if res := passwordFrom(mux, id, "wrong guess", "198.51.100.1"); res.Code != want {
 			t.Fatalf("guess %d: %d", i, res.Code)
 		}
 	}
-	// Locked out from this client, even with the right password.
-	if res := postPassword(mux, id, "open sesame"); res.Code != 429 {
+	// ...and is locked out even with the right password,
+	if res := passwordFrom(mux, id, "open sesame", "198.51.100.1"); res.Code != 429 || !strings.Contains(res.Body.String(), "gate:password") {
 		t.Fatalf("not locked: %d", res.Code)
 	}
-	// Another client is metered separately...
-	req := url.Values{"password": {"open sesame"}}
-	r := httptest.NewRequest("POST", "http://share.test/a/"+id+"/_unlock", strings.NewReader(req.Encode()))
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r.RemoteAddr = "203.0.113.9:1234"
-	if res := do(mux, r); res.Code != 303 {
-		t.Fatalf("other client: %d", res.Code)
+	// but its refused guesses never touched the page's budget: everyone
+	// else still gets in.
+	if res := passwordFrom(mux, id, "open sesame", "203.0.113.9"); res.Code != 303 {
+		t.Fatalf("one client locked everyone out: %d", res.Code)
 	}
-	// ...but every client shares one budget per page. (A small budget here
-	// stands in for passwordPerPage; each guess costs an argon2 hash.)
-	h.access.passwordPage = ratelimit.NewWindow(3, passwordWindow)
-	for i := 0; i < 3; i++ {
-		r := httptest.NewRequest("POST", "http://share.test/a/"+id+"/_unlock", strings.NewReader(url.Values{"password": {"nope nope"}}.Encode()))
-		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		r.RemoteAddr = "198.51.100." + string(rune('0'+i%10)) + string(rune('0'+i/10%10)) + ":1"
-		do(mux, r)
+	// The page-wide cap is a backstop that takes several clients to reach.
+	if passwordPerPage <= passwordPerClient {
+		t.Fatalf("page cap %d is reachable by one client", passwordPerPage)
 	}
-	r = httptest.NewRequest("POST", "http://share.test/a/"+id+"/_unlock", strings.NewReader(req.Encode()))
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r.RemoteAddr = "192.0.2.77:1"
-	if res := do(mux, r); res.Code != 429 {
-		t.Fatalf("page budget not shared: %d", res.Code)
+	used := passwordPerClient + 1
+	for i := 0; used < passwordPerPage; i++ {
+		for j := 0; j < passwordPerClient && used < passwordPerPage; j++ {
+			passwordFrom(mux, id, "nope nope", "192.0.2."+strconv.Itoa(10+i))
+			used++
+		}
+	}
+	if res := passwordFrom(mux, id, "open sesame", "192.0.2.200"); res.Code != 429 || !strings.Contains(res.Body.String(), "gate:password") {
+		t.Fatalf("page backstop: %d %s", res.Code, res.Body.String())
+	}
+}
+
+// With every argon2 slot taken, a check waits a short while and then answers
+// busy rather than queueing without bound.
+func TestPasswordCheckAnswersBusyWhenSlotsAreFull(t *testing.T) {
+	mux, h, _, id := accessFixture(t)
+	setPassword(t, h.Store, id, "open sesame")
+	for range cap(hashSlots) {
+		hashSlots <- struct{}{}
+	}
+	res := passwordFrom(mux, id, "open sesame", "198.51.100.7")
+	_, hashErr := HashPassword(context.Background(), "whatever1")
+	for range cap(hashSlots) {
+		<-hashSlots
+	}
+	if !strings.Contains(res.Body.String(), "busy:yes") || len(res.Result().Cookies()) != 0 {
+		t.Fatalf("busy: %d %s", res.Code, res.Body.String())
+	}
+	if hashErr != ErrBusy {
+		t.Fatalf("HashPassword with no slot: %v", hashErr)
+	}
+	if res := passwordFrom(mux, id, "open sesame", "198.51.100.7"); res.Code != 303 {
+		t.Fatalf("after the slots free up: %d", res.Code)
 	}
 }
 
@@ -554,5 +598,138 @@ func TestNormalizeAllow(t *testing.T) {
 	}
 	if !AllowedEmail(got, "x@acme.com") || AllowedEmail(got, "x@notacme.com") || AllowedEmail(got, "acme.com") {
 		t.Fatal("AllowedEmail")
+	}
+}
+
+func requestCodeFrom(mux *http.ServeMux, id, email, ip string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("POST", "http://share.test/a/"+id+"/_access/email", strings.NewReader(url.Values{"email": {email}}.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.RemoteAddr = ip + ":1234"
+	return do(mux, r)
+}
+
+// gateAnswer is what a visitor can see of an answer: status, cookies and the
+// gate's state, with the address they typed taken out.
+func gateAnswer(res *httptest.ResponseRecorder, email string) string {
+	return strconv.Itoa(res.Code) + " " + strconv.Itoa(len(res.Result().Cookies())) + " " + strings.Replace(res.Body.String(), email, "<email>", 1)
+}
+
+func TestGateMailMetersChargeOnlyWhatTheyShould(t *testing.T) {
+	mux, h, mail, id := accessFixture(t)
+	restrict(t, h.Store, id, "sam@acme.com", "lee@acme.com")
+	h.access.mailPage = ratelimit.NewWindow(2, mailWindow)
+
+	// Unlisted addresses, from many clients, never spend the page's budget.
+	for i := range 20 {
+		requestCodeFrom(mux, id, "x"+strconv.Itoa(i)+"@evil.example", "198.51.100."+strconv.Itoa(i))
+	}
+	requestCodeFrom(mux, id, "sam@acme.com", "203.0.113.1")
+	if len(mail.all()) != 1 {
+		t.Fatalf("unlisted requests spent the page budget: %d mails", len(mail.all()))
+	}
+
+	// A client past its own budget is refused before anything else is
+	// charged: its refused requests do not spend the address's budget.
+	ip := "203.0.113.50"
+	for i := range mailPerClient {
+		requestCodeFrom(mux, id, "y"+strconv.Itoa(i)+"@evil.example", ip)
+	}
+	for range 5 {
+		if res := requestCodeFrom(mux, id, "lee@acme.com", ip); res.Code != 429 {
+			t.Fatalf("client budget: %d", res.Code)
+		}
+	}
+	listed := requestCodeFrom(mux, id, "lee@acme.com", "203.0.113.51")
+	if len(mail.all()) != 2 {
+		t.Fatalf("refused requests spent lee's budget: %d mails", len(mail.all()))
+	}
+
+	// The page's budget is now spent. A listed address gets exactly the
+	// answer an unlisted one does, and no mail.
+	spent := requestCodeFrom(mux, id, "sam@acme.com", "203.0.113.52")
+	unlisted := requestCodeFrom(mux, id, "nobody@evil.example", "203.0.113.53")
+	if len(mail.all()) != 2 {
+		t.Fatal("mailed past the page budget")
+	}
+	if a, b, c := gateAnswer(listed, "lee@acme.com"), gateAnswer(spent, "sam@acme.com"), gateAnswer(unlisted, "nobody@evil.example"); a != b || b != c {
+		t.Fatalf("answers differ:\n%s\n%s\n%s", a, b, c)
+	}
+}
+
+func TestGateMailDailyCaps(t *testing.T) {
+	mux, h, mail, id := accessFixture(t, func(h *Handler) { h.MailPerWorkspaceDay, h.MailPerDay = 2, 3 })
+	restrict(t, h.Store, id, "@acme.com")
+	for i := range 4 {
+		requestCodeFrom(mux, id, "u"+strconv.Itoa(i)+"@acme.com", "198.51.100."+strconv.Itoa(i))
+	}
+	if n := len(mail.all()); n != 2 {
+		t.Fatalf("workspace cap: %d mails", n)
+	}
+	// Another workspace still has its own budget, up to the server's.
+	a, _ := h.Store.Artifact(t.Context(), id)
+	k, err := h.Store.CreateKey(t.Context(), "other-key", "o@x.io")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := a
+	other.ID, other.KeyID, other.TenantID = "accessother3", k.ID, ""
+	if err := h.Store.CreateArtifact(t.Context(), other); err != nil {
+		t.Fatal(err)
+	}
+	restrict(t, h.Store, other.ID, "@acme.com")
+	if o, _ := h.Store.Artifact(t.Context(), other.ID); o.TenantID == a.TenantID {
+		t.Fatal("same workspace")
+	}
+	for i := range 3 {
+		requestCodeFrom(mux, other.ID, "v"+strconv.Itoa(i)+"@acme.com", "192.0.2."+strconv.Itoa(i))
+	}
+	if n := len(mail.all()); n != 3 {
+		t.Fatalf("server cap: %d mails", n)
+	}
+}
+
+// slowStore holds CreateAccessCode until released, to show the request does
+// not wait for it.
+type slowStore struct {
+	store.Store
+	release chan struct{}
+}
+
+func (s slowStore) CreateAccessCode(ctx context.Context, c store.AccessCode) error {
+	<-s.release
+	return s.Store.CreateAccessCode(ctx, c)
+}
+
+// The answer comes back before the list is even consulted: storing the code
+// and mailing it happen after, so a listed and an unlisted address take the
+// same time.
+func TestGateAnswersBeforeTouchingStoreOrMail(t *testing.T) {
+	release := make(chan struct{})
+	mux, h, mail, id := accessFixture(t, func(h *Handler) {
+		h.mailSync = false
+		h.Store = slowStore{Store: h.Store, release: release}
+	})
+	restrict(t, h.Store, id, "sam@acme.com")
+	done := make(chan *httptest.ResponseRecorder, 1)
+	go func() { done <- requestCodeFrom(mux, id, "sam@acme.com", "198.51.100.1") }()
+	select {
+	case res := <-done:
+		if !strings.Contains(res.Body.String(), "sent:yes") {
+			t.Fatalf("answer: %s", res.Body.String())
+		}
+	case <-time.After(5 * time.Second):
+		close(release)
+		t.Fatal("the request waited for the store")
+	}
+	if len(mail.all()) != 0 {
+		t.Fatal("mailed before the code was stored")
+	}
+	close(release)
+	deadline := time.Now().Add(5 * time.Second)
+	for len(mail.all()) == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if len(mail.all()) != 1 {
+		t.Fatal("the code was never mailed")
 	}
 }

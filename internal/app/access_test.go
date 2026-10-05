@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/serve"
+	"github.com/anup-a/artifacts/internal/store"
 )
 
 // TestMain hashes page passwords cheaply: argon2 at full cost takes seconds
@@ -30,6 +32,7 @@ func TestGatePageKinds(t *testing.T) {
 		{serve.GateView{ArtifactID: "gate00000001"}, 200, []string{"Enter the code", `action="/a/gate00000001/_unlock"`}},
 		{serve.GateView{ArtifactID: "gate00000001", Kind: "password"}, 200, []string{"Enter the password", `type="password"`, `action="/a/gate00000001/_unlock"`}},
 		{serve.GateView{ArtifactID: "gate00000001", Kind: "password", Wrong: true}, 403, []string{"did not match"}},
+		{serve.GateView{ArtifactID: "gate00000001", Kind: "password", Busy: true}, 503, []string{"Try again in a moment"}},
 		{serve.GateView{ArtifactID: "gate00000001", Kind: "email"}, 200, []string{"Enter your email address", `action="/a/gate00000001/_access/email"`}},
 		{serve.GateView{ArtifactID: "gate00000001", Kind: "email", Sent: true, Email: `x"><script>@a.co`}, 200, []string{`action="/a/gate00000001/_access/code"`, "&lt;script&gt;", "Send a new code"}},
 		{serve.GateView{ArtifactID: "gate00000001", Kind: "email", Token: "tok123", Email: "sam@acme.com"}, 200, []string{"Continue as", `name="t" value="tok123"`, `action="/a/gate00000001/_access/link"`}},
@@ -108,4 +111,32 @@ func TestDashboardAccessCard(t *testing.T) {
 	e.cl = newClient(t)
 	e.signIn("other@x.io")
 	want(t, e.post(action, "/app/settings", url.Values{"mode": {"anyone_with_link"}}), 404)
+}
+
+func TestDashboardAccessSavesAreMetered(t *testing.T) {
+	e := newEnv(t, baseConfig(t.TempDir()), func(h *Handler) { h.AccessLimiter = ratelimit.New(2) })
+	e.signIn("owner@x.io")
+	a := e.publish("accessdash02", "Board deck", "")
+	e.version(a.ID, 1, 100)
+	detail := "/app/artifacts/" + a.ID
+	for range 2 {
+		wantRedirect(t, e.post(detail+"/access", detail, url.Values{"mode": {"password"}, "password": {"longenough"}}), detail+"#access")
+	}
+	want(t, e.post(detail+"/access", detail, url.Values{"mode": {"password"}, "password": {"longenough"}}), 429, "Too many changes")
+}
+
+func TestDashboardMarksVerifiedComments(t *testing.T) {
+	e := fixture(t)
+	e.signIn("owner@x.io")
+	a := e.publish("accessdash03", "Board deck", "")
+	e.version(a.ID, 1, 100)
+	e.thread(a.ID, "th_verified", "Typed name, not verified")
+	if err := e.st.AddComment(context.Background(), store.Comment{ID: "cm_v", ThreadID: "th_verified", AuthorName: "lee@corp.example", AuthorKind: "viewer", Body: "From the gate", CreatedAt: e.clock.t, Verified: true}); err != nil {
+		t.Fatal(err)
+	}
+	res := e.get("/app/artifacts/" + a.ID)
+	want(t, res, 200, "lee@corp.example", "verified email")
+	if strings.Count(res.Body, ">verified email<") != 1 {
+		t.Fatal("the typed name was marked verified too")
+	}
 }

@@ -150,8 +150,11 @@ type Comment struct {
 	ThreadID   string
 	AuthorName string
 	AuthorKind string // viewer | owner
-	Body       string
-	CreatedAt  time.Time
+	// Verified marks a viewer comment made through a restricted page's
+	// email gate: AuthorName is then the address the reader proved.
+	Verified  bool
+	Body      string
+	CreatedAt time.Time
 }
 
 // ErrPending is returned by RedeemConnect for a CLI-started connect code

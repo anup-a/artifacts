@@ -158,3 +158,17 @@ func TestGoogleAnalyticsID(t *testing.T) {
 		t.Fatalf("GOOGLE_ANALYTICS_ID should win over alias: got %q", prefer.GoogleAnalyticsID)
 	}
 }
+
+func TestAccessMailCaps(t *testing.T) {
+	c, err := FromEnv(env(map[string]string{"ADMIN_TOKEN": "x"}))
+	if err != nil || c.Limits.AccessMailPerWorkspaceDay != 200 || c.Limits.AccessMailPerDay != 2000 {
+		t.Fatalf("defaults: %v %+v", err, c.Limits)
+	}
+	c, err = FromEnv(env(map[string]string{"ADMIN_TOKEN": "x", "LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY": "5", "LIMIT_ACCESS_MAIL_PER_DAY": "50"}))
+	if err != nil || c.Limits.AccessMailPerWorkspaceDay != 5 || c.Limits.AccessMailPerDay != 50 {
+		t.Fatalf("override: %v %+v", err, c.Limits)
+	}
+	if _, err := FromEnv(env(map[string]string{"ADMIN_TOKEN": "x", "LIMIT_ACCESS_MAIL_PER_DAY": "0"})); err == nil {
+		t.Fatal("zero accepted")
+	}
+}

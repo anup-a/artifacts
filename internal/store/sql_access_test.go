@@ -145,3 +145,21 @@ func TestAccessCodes(t *testing.T) {
 		t.Fatalf("code survived erase: %v", err)
 	}
 }
+
+func TestCommentVerifiedMarkRoundTrips(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	accessArtifact(t, s, "acc000000003")
+	now := time.Now().UTC()
+	th := Thread{ID: "th_v", ArtifactID: "acc000000003", Version: 1, AnchorJSON: `{"kind":"text","quote":"x"}`, Status: "open", AnchorStatus: "unknown", CreatedAt: now}
+	if err := s.CreateThread(ctx, th, Comment{ID: "cm_1", ThreadID: "th_v", AuthorName: "sam@acme.com", AuthorKind: "viewer", Body: "a", CreatedAt: now, Verified: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.AddComment(ctx, Comment{ID: "cm_2", ThreadID: "th_v", AuthorName: "Pat", AuthorKind: "viewer", Body: "b", CreatedAt: now.Add(time.Second)}); err != nil {
+		t.Fatal(err)
+	}
+	cs, err := s.Comments(ctx, []string{"th_v"})
+	if err != nil || len(cs["th_v"]) != 2 || !cs["th_v"][0].Verified || cs["th_v"][1].Verified {
+		t.Fatalf("%v %+v", err, cs)
+	}
+}

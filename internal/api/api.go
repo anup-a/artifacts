@@ -51,6 +51,9 @@ type Deps struct {
 	// InviteLimiter meters access invites per workspace. NewHandler defaults
 	// it to 100 a day.
 	InviteLimiter *ratelimit.Limiter
+	// AccessLimiter meters PATCH /api/artifacts/{id}/access per key.
+	// NewHandler defaults it to 30 a minute.
+	AccessLimiter *ratelimit.Limiter
 }
 
 type server struct {

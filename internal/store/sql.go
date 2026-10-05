@@ -377,8 +377,8 @@ func (s *sqlStore) CreateThread(ctx context.Context, t Thread, first Comment) er
 		t.ID, t.ArtifactID, t.Version, t.AnchorJSON, t.Status, t.AnchorStatus, t.CreatedAt, t.Suggestion); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO comments(id,thread_id,author_name,author_kind,body,created_at) VALUES (?,?,?,?,?,?)`),
-		first.ID, first.ThreadID, first.AuthorName, first.AuthorKind, first.Body, first.CreatedAt); err != nil {
+	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO comments(id,thread_id,author_name,author_kind,body,created_at,author_verified) VALUES (?,?,?,?,?,?,?)`),
+		first.ID, first.ThreadID, first.AuthorName, first.AuthorKind, first.Body, first.CreatedAt, first.Verified); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -434,14 +434,14 @@ func (s *sqlStore) Comments(ctx context.Context, threadIDs []string) (map[string
 	for i, v := range threadIDs {
 		args[i] = v
 	}
-	rows, err := s.db.QueryContext(ctx, s.q(`SELECT id,thread_id,author_name,author_kind,body,created_at FROM comments WHERE thread_id IN (`+ph+`) ORDER BY created_at`), args...)
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT id,thread_id,author_name,author_kind,body,created_at,author_verified FROM comments WHERE thread_id IN (`+ph+`) ORDER BY created_at`), args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var c Comment
-		if err := rows.Scan(&c.ID, &c.ThreadID, &c.AuthorName, &c.AuthorKind, &c.Body, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ThreadID, &c.AuthorName, &c.AuthorKind, &c.Body, &c.CreatedAt, &c.Verified); err != nil {
 			return nil, err
 		}
 		out[c.ThreadID] = append(out[c.ThreadID], c)
@@ -450,8 +450,8 @@ func (s *sqlStore) Comments(ctx context.Context, threadIDs []string) (map[string
 }
 
 func (s *sqlStore) AddComment(ctx context.Context, c Comment) error {
-	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO comments(id,thread_id,author_name,author_kind,body,created_at) VALUES (?,?,?,?,?,?)`),
-		c.ID, c.ThreadID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt)
+	_, err := s.db.ExecContext(ctx, s.q(`INSERT INTO comments(id,thread_id,author_name,author_kind,body,created_at,author_verified) VALUES (?,?,?,?,?,?,?)`),
+		c.ID, c.ThreadID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt, c.Verified)
 	return err
 }
 

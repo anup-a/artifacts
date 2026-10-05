@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -59,6 +60,11 @@ func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 	fail := func(msg string) {
 		h.renderArtifactWith(w, r, 400, v, a.ID, artifactOpts{AccessError: msg})
 	}
+	// Saving may hash a password, which is deliberately expensive.
+	if ok, _ := h.AccessLimiter.Allow(v.Session.UserID); !ok {
+		h.renderArtifactWith(w, r, 429, v, a.ID, artifactOpts{AccessError: "Too many changes in a short time. Wait a minute, then try again."})
+		return
+	}
 	ctx := r.Context()
 	switch r.PostForm.Get("mode") {
 	case "anyone_with_link":
@@ -87,7 +93,11 @@ func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 			fail("The " + err.Error() + ".")
 			return
 		}
-		hash, err := serve.HashPassword(pw)
+		hash, err := serve.HashPassword(ctx, pw)
+		if errors.Is(err, serve.ErrBusy) {
+			h.renderArtifactWith(w, r, 503, v, a.ID, artifactOpts{AccessError: "Too many passwords are being set right now. Try again in a moment."})
+			return
+		}
 		if err != nil {
 			h.fail(w, r, err)
 			return

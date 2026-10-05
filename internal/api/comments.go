@@ -24,6 +24,9 @@ type commentView struct {
 	AuthorKind string    `json:"author_kind"`
 	Body       string    `json:"body"`
 	CreatedAt  time.Time `json:"created_at"`
+	// Verified is set by the server for a comment made through a restricted
+	// page's email gate; the runtime marks it. A typed name never sets it.
+	Verified bool `json:"author_verified"`
 }
 
 type threadView struct {
@@ -45,7 +48,7 @@ func toThreadViews(ts []store.Thread, cs map[string][]store.Comment) []threadVie
 	for _, t := range ts {
 		v := threadView{ID: t.ID, Version: t.Version, Status: t.Status, AnchorStatus: t.AnchorStatus, Progress: t.Progress, Suggestion: t.Suggestion, Anchor: json.RawMessage(t.AnchorJSON), CreatedAt: t.CreatedAt, ResolvedAt: t.ResolvedAt, Comments: []commentView{}}
 		for _, c := range cs[t.ID] {
-			v.Comments = append(v.Comments, commentView{c.ID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt})
+			v.Comments = append(v.Comments, commentView{c.ID, c.AuthorName, c.AuthorKind, c.Body, c.CreatedAt, c.Verified})
 		}
 		out = append(out, v)
 	}

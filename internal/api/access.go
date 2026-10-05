@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -63,6 +65,12 @@ func (s *server) patchAccess(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.Forbidden("guest pages are public; claim them to add a password or an allowlist"))
 		return
 	}
+	// Each change may hash a password, which is deliberately expensive.
+	k, _ := KeyFrom(r.Context())
+	if ok, retry := s.AccessLimiter.Allow(fmt.Sprint("key:", k.ID)); !ok {
+		apierr.Write(w, r, apierr.RateLimited(retry))
+		return
+	}
 	var body struct {
 		Mode           string   `json:"mode"`
 		Password       *string  `json:"password"`
@@ -111,7 +119,12 @@ func (s *server) patchAccess(w http.ResponseWriter, r *http.Request) {
 			apierr.Write(w, r, apierr.Invalid(err.Error()))
 			return
 		}
-		hash, err := serve.HashPassword(*body.Password)
+		hash, err := serve.HashPassword(r.Context(), *body.Password)
+		if errors.Is(err, serve.ErrBusy) {
+			w.Header().Set("Retry-After", "5")
+			apierr.Write(w, r, apierr.Unavailable(err.Error()))
+			return
+		}
 		if err != nil {
 			apierr.Write(w, r, apierr.Internal(err))
 			return

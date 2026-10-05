@@ -706,6 +706,8 @@ test("analytics reports a page and the workspace", async () => {
   const raw = await fetch(`${BASE}/api/analytics?range=1y`, { headers: { Authorization: `Bearer ${TOKEN}` } });
   assert.equal(raw.status, 400);
   assert.equal(run(["analytics", "nope00000000", "--json"]).code, 1);
+});
+
 test("access: password, restricted, invites, off and public", async () => {
   const pub = json(["publish", siteDir("<h1>for some eyes</h1>")]);
   const id = pub.id;

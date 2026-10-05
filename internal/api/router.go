@@ -23,6 +23,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 	if d.ConnectLimiter == nil {
 		d.ConnectLimiter = ratelimit.New(60)
 	}
+	if d.AccessLimiter == nil {
+		d.AccessLimiter = ratelimit.New(30)
+	}
 	if d.InviteLimiter == nil {
 		d.InviteLimiter = ratelimit.NewWindow(100, 24*time.Hour)
 	}
@@ -86,6 +89,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 		ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin,
 		UnlockSecret: d.Cfg.KeySecret, Now: d.Now, OnView: d.OnView,
 		Mail: d.Mail, TrustProxy: d.Cfg.TrustProxyHeaders,
+		MailPerWorkspaceDay: d.Cfg.Limits.AccessMailPerWorkspaceDay, MailPerDay: d.Cfg.Limits.AccessMailPerDay,
 	}).Register(mux)
 	// The pages written for agents and crawlers: /agents, /llms.txt,
 	// /robots.txt, /sitemap.xml and the rest. Public, no key.

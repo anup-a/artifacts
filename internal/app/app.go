@@ -30,6 +30,8 @@ type Handler struct {
 	// Limiters default in Register when nil: sign-in mail 5/h per address and
 	// 20/h per IP, key creation 20/h per tenant, portal links 60/min per tenant.
 	EmailLimiter, IPLimiter, KeyLimiter, PortalLimiter *ratelimit.Limiter
+	// AccessLimiter meters the Access card's saves per user: 30 a minute.
+	AccessLimiter *ratelimit.Limiter
 
 	static *statics
 }
@@ -68,6 +70,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	}
 	if h.PortalLimiter == nil {
 		h.PortalLimiter = ratelimit.New(60)
+	}
+	if h.AccessLimiter == nil {
+		h.AccessLimiter = ratelimit.New(30)
 	}
 	mux.HandleFunc("GET /app/static/{name}", h.static.serve)
 	mux.HandleFunc("GET /{$}", h.headers(h.landing))
@@ -225,6 +230,9 @@ func (h *Handler) GateArtifactAccess(w http.ResponseWriter, r *http.Request, g s
 	status := http.StatusOK
 	if g.Locked {
 		status = http.StatusTooManyRequests
+	} else if g.Busy {
+		status = http.StatusServiceUnavailable
+		hd.Set("Retry-After", "5")
 	} else if g.Wrong || g.Expired {
 		status = http.StatusForbidden
 	}

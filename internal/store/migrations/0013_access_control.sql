@@ -11,6 +11,14 @@
 -- access_codes are the one-time codes and links mailed to a restricted page's
 -- visitors. Only hashes are stored; a row is good for one page, one address
 -- and one access_version.
+--
+-- comments.author_verified marks a comment made through a restricted page's
+-- email gate, whose author name is then the address the reader proved. It is
+-- set by the server, never by what a reader typed.
+-- dialect:sqlite
+ALTER TABLE comments ADD COLUMN author_verified INTEGER NOT NULL DEFAULT 0;
+-- dialect:postgres
+ALTER TABLE comments ADD COLUMN author_verified BOOLEAN NOT NULL DEFAULT FALSE;
 -- dialect:all
 ALTER TABLE artifacts ADD COLUMN access_mode TEXT NOT NULL DEFAULT '';
 ALTER TABLE artifacts ADD COLUMN access_password TEXT NOT NULL DEFAULT '';

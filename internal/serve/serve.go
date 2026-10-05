@@ -48,12 +48,15 @@ type Handler struct {
 	Mail auth.Mailer
 	// TrustProxy reads the client address from CF-Connecting-IP or
 	// X-Forwarded-For for the gate's per-client meters.
-	TrustProxy  bool
-	mailSync    bool // tests: send in the request instead of after it
-	access      *accessGuards
-	unlock      *unlockGuard
-	runtimeETag string
-	runtimeRev  string // short content hash, cache-busts the injected script URL
+	TrustProxy bool
+	// MailPerWorkspaceDay and MailPerDay cap the codes the gate mails per
+	// workspace and for the whole server in a day. Zero takes the defaults.
+	MailPerWorkspaceDay, MailPerDay int
+	mailSync                        bool // tests: send in the request instead of after it
+	access                          *accessGuards
+	unlock                          *unlockGuard
+	runtimeETag                     string
+	runtimeRev                      string // short content hash, cache-busts the injected script URL
 }
 
 // GateView is what the code page needs to render itself.
@@ -73,6 +76,8 @@ type GateView struct {
 	Sent            bool
 	Token           string
 	Expired, NoMail bool
+	// Busy is a password check that found no free slot: try again shortly.
+	Busy bool
 }
 
 func (h *Handler) Register(mux *http.ServeMux) {
@@ -81,7 +86,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	h.runtimeETag = `"` + hexSum + `"`
 	h.runtimeRev = hexSum[:12]
 	h.unlock = newUnlockGuard(h.Now)
-	h.access = newAccessGuards(h.Now)
+	h.access = newAccessGuards(h.Now, h.MailPerWorkspaceDay, h.MailPerDay)
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
 	mux.HandleFunc("GET /skill.md", h.skill)
 	mux.HandleFunc("POST /a/{id}/"+unlockPath, h.publicArtifact(h.submitCode))
