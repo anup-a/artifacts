@@ -50,7 +50,7 @@ func TestClaimThroughSignIn(t *testing.T) {
 	if res.StatusCode != 303 || res.Header.Get("Location") != "/app/connect?claimed=1" {
 		t.Fatalf("claim: %d %s", res.StatusCode, res.Body)
 	}
-	want(t, e.get("/app/connect?claimed=1"), 200, "Your guest pages are in", "Create connect prompt")
+	want(t, e.get("/app/connect?claimed=1"), 200, "Your guest pages are in", "login --code ")
 	_, tenant := e.me()
 	a, err := e.st.Artifact(context.Background(), "guestpage001")
 	if err != nil || a.TenantID != tenant.ID || a.ExpiresAt != nil {

@@ -358,8 +358,16 @@ textarea { resize: vertical; line-height: 1.45; }
 .copyrow input { flex: 1; }
 /* Connect agent: the prompt to paste, and the facts a person checks before
    approving a CLI. */
-.connect-prompt { width: 100%; resize: vertical; margin-bottom: 12px; font: 12.5px/1.55 var(--mono); color: var(--fg-2); background: var(--panel-2); }
-.connect-prompt + .field-row { align-items: center; max-width: none; }
+.connect-card { max-width: 640px; margin: 24px auto 0; padding: 24px; }
+.connect-card h2 { font-size: 16px; margin-bottom: 4px; }
+.connect-card > .muted { font-size: 13.5px; line-height: 1.5; margin-bottom: 16px; }
+.prompt-box { position: relative; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 44px 14px 16px; }
+.prompt-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; line-height: 1.6; color: var(--fg); }
+.prompt-copy { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+.prompt-copy:hover { background: var(--active); color: var(--fg); }
+.prompt-copy .ic-done, .prompt-copy.is-copied .ic-copy { display: none; }
+.prompt-copy.is-copied .ic-done { display: inline-flex; color: var(--ok); }
+.connect-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
 .connect-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 14px; font-size: 13.5px; }
 .connect-facts dt { color: var(--fg-2); }
 .connect-facts dd { margin: 0; }
@@ -384,7 +392,6 @@ textarea { resize: vertical; line-height: 1.45; }
 .empty-icon .ic { width: 18px; height: 18px; }
 .empty h2 { font-size: 15px; margin-bottom: 4px; }
 .empty > p { color: var(--muted); max-width: 440px; }
-.empty-action { margin-top: 18px; }
 
 /* ---- Gallery: project chips, day sections, bento tiles ----------- */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -453,7 +460,7 @@ textarea { resize: vertical; line-height: 1.45; }
 .c-project { white-space: nowrap; max-width: 180px; }
 .c-project .tile-project { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .bare-foot { border: 0; padding: 12px 0 0; }
-.empty-hint { margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+.empty-hint { margin-top: 18px; font-size: 12.5px; color: var(--muted); }
 
 /* ---- Artifact detail --------------------------------------------- */
 .detail > * + * { margin-top: 20px; }

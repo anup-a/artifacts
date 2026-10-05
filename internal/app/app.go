@@ -30,6 +30,9 @@ type Handler struct {
 	// Limiters default in Register when nil: sign-in mail 5/h per address and
 	// 20/h per IP, key creation 20/h per tenant, portal links 60/min per tenant.
 	EmailLimiter, IPLimiter, KeyLimiter, PortalLimiter *ratelimit.Limiter
+	// ConnectLimiter caps connect prompts minted per workspace: 120 an hour,
+	// since the empty Artifacts page and Connect agent mint one per view.
+	ConnectLimiter *ratelimit.Limiter
 	// AccessLimiter meters the Access card's saves per user: 30 a minute.
 	AccessLimiter *ratelimit.Limiter
 
@@ -70,6 +73,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	}
 	if h.PortalLimiter == nil {
 		h.PortalLimiter = ratelimit.New(60)
+	}
+	if h.ConnectLimiter == nil {
+		h.ConnectLimiter = ratelimit.NewWindow(120, time.Hour)
 	}
 	if h.AccessLimiter == nil {
 		h.AccessLimiter = ratelimit.New(30)

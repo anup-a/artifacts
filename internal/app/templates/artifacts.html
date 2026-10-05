@@ -128,15 +128,6 @@
 </div>
 
 {{else}}
-<div class="empty">
-  <span class="empty-icon">{{template "icon" "artifacts"}}</span>
-  <h2>Nothing published yet</h2>
-  <p>Connect your agent and its pages land here.</p>
-  <form method="post" action="/app/connect" class="empty-action">
-    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-    <button type="submit" class="btn primary">{{template "icon" "link"}} Connect agent</button>
-  </form>
-  <p class="empty-hint">or run <code>npx byagent login --browser</code></p>
-</div>
+{{template "connect-card" .Data.Connect}}
 {{end}}
 {{end}}
