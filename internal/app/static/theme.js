@@ -1,6 +1,7 @@
-// The landing page carries its own light/dark switch: a visitor meets it
-// before they have an account to hold a preference in. The choice is one of
-// "auto", "light" or "dark" and lives in localStorage.
+// The light/dark switch on the landing page and in the dashboard sidebar.
+// A visitor meets it before they have an account to hold a preference in, so
+// the choice lives in localStorage: one of "auto", "light" or "dark", shared
+// by both.
 //
 // This file is loaded without defer so the resolved theme is on <html> before
 // the first paint. Without that, a visitor who chose against their system

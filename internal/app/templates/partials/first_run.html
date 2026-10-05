@@ -1,29 +1,38 @@
-{{/* The loop byagent is for, drawn small for the empty Artifacts page: an
-     agent publishes from its terminal, the page gets a link, and a reader
-     leaves a comment on one line. Colours come from CSS classes (the CSP
-     forbids inline styles), so it follows light and dark. */}}
+{{/* The landing page's loop, drawn small for the empty Artifacts page: agents
+     publish a page, a reader comments on one line, and the comment goes back
+     into the next run. Same vocabulary as .lp-chart: hairline nodes, pill
+     tags, grey flow lines, and the accent only on the way back. Colours come
+     from classes (the CSP forbids inline styles), so it follows the theme. */}}
 {{define "first-run-art"}}
-<svg class="first-run-art" viewBox="0 0 346 156" width="346" height="156" role="img" aria-label="An agent publishes a page from its terminal, and a reader comments on one line">
-  <rect class="fr-term" x="2" y="44" width="146" height="70" rx="10"/>
-  <circle class="fr-dot" cx="16" cy="57" r="2.5"/><circle class="fr-dot" cx="25" cy="57" r="2.5"/><circle class="fr-dot" cx="34" cy="57" r="2.5"/>
-  <text class="fr-cmd" x="14" y="80">$ byagent publish</text>
-  <text class="fr-out" x="14" y="98">&#10003; byagent.dev/a/k7qd</text>
-  <path class="fr-arrow" d="M154 79 H180" />
-  <path class="fr-arrow-head" d="M175 74 L181 79 L175 84" />
-  <rect class="fr-page" x="188" y="10" width="138" height="136" rx="10"/>
-  <rect class="fr-bar" x="188" y="10" width="138" height="22" rx="10"/>
-  <rect class="fr-bar-fix" x="188" y="24" width="138" height="8"/>
-  <rect class="fr-url" x="200" y="17" width="72" height="8" rx="4"/>
-  <rect class="fr-line fr-h" x="202" y="44" width="82" height="9" rx="3"/>
-  <rect class="fr-line" x="202" y="62" width="112" height="6" rx="3"/>
-  <rect class="fr-hl" x="198" y="74" width="104" height="14" rx="4"/>
-  <rect class="fr-line fr-on" x="202" y="78" width="96" height="6" rx="3"/>
-  <rect class="fr-line" x="202" y="96" width="104" height="6" rx="3"/>
-  <rect class="fr-line" x="202" y="108" width="72" height="6" rx="3"/>
-  <rect class="fr-line" x="202" y="120" width="92" height="6" rx="3"/>
-  <path class="fr-bubble" d="M272 52 h62 a8 8 0 0 1 8 8 v18 a8 8 0 0 1 -8 8 h-42 l-8 7 v-7 h-12 a8 8 0 0 1 -8 -8 v-18 a8 8 0 0 1 8 -8 z"/>
-  <circle class="fr-avatar" cx="277" cy="69" r="6"/>
-  <rect class="fr-bubble-line" x="288" y="63" width="44" height="4" rx="2"/>
-  <rect class="fr-bubble-line" x="288" y="71" width="30" height="4" rx="2"/>
+<svg class="first-run-art" viewBox="0 0 400 184" width="400" height="184" role="img" aria-label="Claude Code or Codex publishes a page, a reader comments on one line, and the comment goes back into the next run">
+  <defs>
+    <marker id="fr-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fr-arrow-head" d="M1 1.5 L8.5 5 L1 8.5"/></marker>
+    <marker id="fr-arrow-back" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fr-arrow-head is-back" d="M1 1.5 L8.5 5 L1 8.5"/></marker>
+  </defs>
+
+  <g class="fr-flow" fill="none">
+    <path d="M134 43 C170 43 170 74 198 74"/>
+    <path d="M134 91 C170 91 170 74 198 74"/>
+    <path d="M198 74 H214" marker-end="url(#fr-arrow)"/>
+  </g>
+  <path class="fr-back" fill="none" d="M290 134 C290 166 270 168 236 168 L96 168 C74 168 67 160 67 118" marker-end="url(#fr-arrow-back)"/>
+
+  <g class="fr-agent"><rect x="2" y="26" width="132" height="34" rx="17"/><circle cx="22" cy="43" r="4" class="is-claude"/><text x="34" y="43">Claude Code</text></g>
+  <g class="fr-agent"><rect x="2" y="74" width="132" height="34" rx="17"/><circle cx="22" cy="91" r="4" class="is-codex"/><text x="34" y="91">Codex</text></g>
+
+  <g class="fr-page">
+    <rect x="218" y="14" width="146" height="120" rx="14"/>
+    <rect class="fr-title" x="234" y="32" width="70" height="7" rx="3.5"/>
+    <rect class="fr-text" x="234" y="50" width="112" height="5" rx="2.5"/>
+    <rect class="fr-hl" x="229" y="61" width="104" height="15" rx="5"/>
+    <rect class="fr-text is-hl" x="234" y="66" width="94" height="5" rx="2.5"/>
+    <rect class="fr-text" x="234" y="84" width="104" height="5" rx="2.5"/>
+    <rect class="fr-text" x="234" y="98" width="80" height="5" rx="2.5"/>
+    <rect class="fr-text" x="234" y="112" width="96" height="5" rx="2.5"/>
+  </g>
+  <g class="fr-pin"><circle cx="350" cy="68" r="12"/><svg x="343" y="61" width="14" height="14"><use href="#i-comment"/></svg></g>
+
+  <g class="fr-tag"><rect x="141" y="64" width="54" height="20" rx="10"/><text x="168" y="74">publish</text></g>
+  <g class="fr-tag is-back"><rect x="92" y="158" width="184" height="20" rx="10"/><text x="184" y="168">comments, into the next run</text></g>
 </svg>
 {{end}}

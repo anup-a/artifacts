@@ -75,8 +75,10 @@ type page struct {
 	Viewer *viewer
 	CSS    string
 	JS     string
-	Now    time.Time // reference point for relative times
-	Data   any
+	// ThemeJS applies the saved light/dark choice before first paint.
+	ThemeJS string
+	Now     time.Time // reference point for relative times
+	Data    any
 	// AnalyticsID is the GA4 Measurement ID for first-party app surfaces.
 	// Empty skips the gtag snippet. GateArtifactAccess and /a/ denials leave
 	// this unset so customer-facing share UI never loads analytics.
@@ -122,7 +124,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, nam
 // renderRoot executes one named template of the page's set: "layout.html"
 // for a full page, "panel" for the shell-less fragment the side peek loads.
 func (h *Handler) renderRoot(w http.ResponseWriter, r *http.Request, status int, name, root, title string, v *viewer, data any) {
-	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: data, AnalyticsID: h.analyticsIDFor(r.URL.Path), GAJS: h.static.gaJSURL}
+	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, ThemeJS: h.static.themeJSURL, Now: h.Now(), Data: data, AnalyticsID: h.analyticsIDFor(r.URL.Path), GAJS: h.static.gaJSURL}
 	var buf bytes.Buffer
 	if err := pages[name].ExecuteTemplate(&buf, root, p); err != nil {
 		h.fail(w, r, fmt.Errorf("render %s: %w", name, err))

@@ -37,8 +37,10 @@
   --sidebar-w: 236px;
   --topbar-h: 56px;
 }
+/* Dark follows the system unless the theme switcher (theme.js, which sets
+   data-theme on <html>) says otherwise. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0a0a0a;
     --cover-bg: #181818; /* the dark cover's own ground, so no flash behind it */
     --panel: #111111;
@@ -63,6 +65,32 @@
     --shadow-menu: 0 2px 6px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.6);
   }
 }
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --cover-bg: #181818; /* the dark cover's own ground, so no flash behind it */
+  --panel: #111111;
+  --panel-2: #161616;
+  --fg: #ededed;
+  --fg-2: #b4b4b4;
+  --muted: #8f8f8f;
+  --faint: #6b6b6b;
+  --line: #262626;
+  --line-strong: #333333;
+  --accent: #52a8ff;
+  --accent-soft: #0f2340;
+  --danger: #ff6369;
+  --danger-soft: #3a1416;
+  --ok: #4ade80;
+  --ok-soft: #0f2a1a;
+  --warn: #f5b13d;
+  --warn-soft: #33260a;
+  --hover: #1a1a1a;
+  --active: #222222;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.4);
+  --shadow-menu: 0 2px 6px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.6);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 /* ---- Base -------------------------------------------------------- */
 * { box-sizing: border-box; }
@@ -138,8 +166,16 @@ form { margin: 0; }
 .nav a.active { background: var(--active); color: var(--fg); }
 .nav a.active .ic { color: var(--fg); }
 
+/* The theme switcher sits above the account row: the same three-state
+   control as the landing page (.lp-theme), so a choice made there carries
+   over. */
+.sidebar-theme {
+  margin-top: auto; display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 4px; font-size: 12.5px; color: var(--muted);
+}
+.sidebar-theme .lp-theme { margin-left: 0; }
 .sidebar-foot {
-  margin-top: auto; display: flex; align-items: center; gap: 8px;
+  margin-top: 0; display: flex; align-items: center; gap: 8px;
   padding: 8px 4px 0; border-top: 1px solid var(--line);
 }
 .avatar {
@@ -371,26 +407,31 @@ textarea { resize: vertical; line-height: 1.45; }
 /* First run: the empty Artifacts page draws the loop byagent is for, then
    offers the setup prompt. */
 .first-run { min-height: 62vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.first-run-art { width: 100%; max-width: 346px; height: auto; margin-bottom: 28px; }
+.first-run-art { width: 100%; max-width: 400px; height: auto; margin-bottom: 24px; overflow: visible; }
 .first-run-title { margin: 0 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
 .first-run-sub { margin: 0 0 20px; max-width: 380px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 .first-run-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.fr-term { fill: #171717; stroke: var(--line-strong); }
-.fr-dot { fill: #ededed; opacity: .35; }
-.fr-cmd { fill: #ededed; font: 500 11px var(--mono); }
-.fr-out { fill: #52a8ff; font: 500 10px var(--mono); }
-.fr-arrow { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-dasharray: 3 4; }
-.fr-arrow-head { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.fr-page { fill: var(--panel); stroke: var(--line-strong); }
-.fr-bar, .fr-bar-fix { fill: var(--panel-2); }
-.fr-url { fill: var(--line-strong); }
-.fr-line { fill: var(--line-strong); }
-.fr-h { fill: var(--faint); }
+.fr-agent rect, .fr-page > rect:first-child { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1; }
+.fr-agent text { font: 12.5px var(--font); fill: var(--fg); dominant-baseline: central; }
+.fr-agent .is-claude { fill: #d97757; }
+.fr-agent .is-codex { fill: var(--fg); }
+.fr-title { fill: var(--faint); }
+.fr-text { fill: var(--line-strong); }
 .fr-hl { fill: var(--accent-soft); }
-.fr-on { fill: var(--accent); opacity: .55; }
-.fr-bubble { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
-.fr-avatar { fill: var(--accent); }
-.fr-bubble-line { fill: var(--line-strong); }
+.fr-text.is-hl { fill: var(--accent); opacity: .5; }
+.fr-pin circle { fill: var(--accent); }
+.fr-pin svg { color: #fff; }
+.fr-flow { stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+.fr-back { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 6; stroke-linecap: round; opacity: .85; }
+.fr-arrow-head { fill: none; stroke: var(--line-strong); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.fr-arrow-head.is-back { stroke: var(--accent); }
+.fr-tag rect { fill: var(--bg); stroke: var(--line-strong); stroke-width: 1; }
+.fr-tag text { font: 11px var(--font); fill: var(--muted); letter-spacing: .02em; text-anchor: middle; dominant-baseline: central; }
+.fr-tag.is-back rect { stroke: var(--accent); stroke-opacity: .4; }
+.fr-tag.is-back text { fill: var(--accent); }
+@keyframes fr-flow { to { stroke-dashoffset: -22; } }
+.fr-back { animation: fr-flow 1.6s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .fr-back { animation: none; } }
 .connect-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 14px; font-size: 13.5px; }
 .connect-facts dt { color: var(--fg-2); }
 .connect-facts dd { margin: 0; }
@@ -571,9 +612,11 @@ textarea { resize: vertical; line-height: 1.45; }
 .peek .cover-option { grid-template-columns: 16px 130px minmax(0, 1fr); }
 .peek form.is-busy { opacity: .6; pointer-events: none; }
 @media (prefers-color-scheme: dark) {
-  .peek-backdrop { background: rgba(0,0,0,.5); }
-  .peek { box-shadow: -8px 0 40px rgba(0,0,0,.5); }
+  :where(:root:not([data-theme="light"])) .peek-backdrop { background: rgba(0,0,0,.5); }
+  :where(:root:not([data-theme="light"])) .peek { box-shadow: -8px 0 40px rgba(0,0,0,.5); }
 }
+:where(:root[data-theme="dark"]) .peek-backdrop { background: rgba(0,0,0,.5); }
+:where(:root[data-theme="dark"]) .peek { box-shadow: -8px 0 40px rgba(0,0,0,.5); }
 @media (prefers-reduced-motion: reduce) {
   .peek, .peek-backdrop { transition: none; }
 }
@@ -1269,13 +1312,17 @@ textarea { resize: vertical; line-height: 1.45; }
   .lp-hero { padding: 48px 0 28px; }
   .lp-bar { gap: 10px; }
   .lp-section { padding-top: 32px; margin-top: 32px; }
-  .shell { grid-template-columns: 1fr; }
+  /* minmax(0, 1fr): a bare 1fr grows to the nav row's full width, and the
+     nav's own sideways scroll never kicks in. */
+  .shell { grid-template-columns: minmax(0, 1fr); }
   .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; border-right: 0; border-bottom: 1px solid var(--line); }
   .brand { margin: 0; }
   .ws, .switcher { width: auto; }
-  .nav { flex-direction: row; margin: 0; order: 3; width: 100%; overflow-x: auto; }
+  .nav { flex-direction: row; margin: 0; order: 3; width: 100%; min-width: 0; overflow-x: auto; }
   .nav a span { white-space: nowrap; }
   .sidebar-foot { margin: 0 0 0 auto; border: 0; padding: 0; }
+  .sidebar-theme { margin: 0 0 0 auto; padding: 0; }
+  .sidebar-theme-label { display: none; }
   .user-email { display: none; }
   .topbar, .content { padding-left: 16px; padding-right: 16px; }
   .stats { grid-template-columns: 1fr 1fr; }
