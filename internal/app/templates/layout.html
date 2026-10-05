@@ -16,6 +16,7 @@
 <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 {{block "head" .}}{{end}}
+{{if .ThemeJS}}<script src="{{.ThemeJS}}"></script>{{end}}
 <link rel="stylesheet" href="{{.CSS}}">
 <script src="{{.JS}}" defer></script>
 </head>
@@ -69,6 +70,14 @@
       <a href="/app/settings"{{if eq .Section "settings"}} class="active" aria-current="page"{{end}}>{{template "icon" "settings"}}<span>Settings</span></a>
     </nav>
 
+    <div class="sidebar-theme">
+      <span class="sidebar-theme-label">Theme</span>
+      <div class="lp-theme" role="group" aria-label="Theme" data-theme-picker>
+        <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
+        <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
+        <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
+      </div>
+    </div>
     <div class="sidebar-foot">
       <span class="avatar">{{printf "%.1s" .Viewer.User.Email}}</span>
       <span class="user-email" title="{{.Viewer.User.Email}}">{{.Viewer.User.Email}}</span>
