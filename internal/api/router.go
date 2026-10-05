@@ -23,6 +23,15 @@ func NewHandler(d Deps) (http.Handler, error) {
 	if d.ConnectLimiter == nil {
 		d.ConnectLimiter = ratelimit.New(60)
 	}
+	if d.AccessLimiter == nil {
+		d.AccessLimiter = ratelimit.New(30)
+	}
+	if d.InviteLimiter == nil {
+		d.InviteLimiter = ratelimit.NewWindow(100, 24*time.Hour)
+	}
+	if d.Mail == nil {
+		d.Mail = auth.MailerFor(d.Cfg.EmailProvider, d.Cfg.ResendAPIKey, d.Cfg.EmailFrom)
+	}
 	s := &server{Deps: d}
 	if d.Cfg.AdminToken != "" {
 		k, err := ensureAdminKey(d)
@@ -58,6 +67,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("POST /api/artifacts/{id}/expiry", s.withAuth(s.setExpiry))
 	mux.HandleFunc("GET /api/artifacts/{id}/analytics", s.withAuth(s.artifactAnalytics))
 	mux.HandleFunc("GET /api/analytics", s.withAuth(s.accountAnalytics))
+	mux.HandleFunc("GET /api/artifacts/{id}/access", s.withAuth(s.getAccess))
+	mux.HandleFunc("PATCH /api/artifacts/{id}/access", s.withAuth(s.patchAccess))
+	mux.HandleFunc("POST /api/artifacts/{id}/access/invites", s.withAuth(s.sendInvites))
 	mux.HandleFunc("POST /c/{id}/comments", noStore(s.viewerCreateThread))
 	mux.HandleFunc("GET /c/{id}/comments", noStore(s.viewerList))
 	mux.HandleFunc("GET /c/{id}/meta", noStore(s.viewerMeta))
@@ -76,6 +88,8 @@ func NewHandler(d Deps) (http.Handler, error) {
 		Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime,
 		ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin,
 		UnlockSecret: d.Cfg.KeySecret, Now: d.Now, OnView: d.OnView,
+		Mail: d.Mail, TrustProxy: d.Cfg.TrustProxyHeaders,
+		MailPerWorkspaceDay: d.Cfg.Limits.AccessMailPerWorkspaceDay, MailPerDay: d.Cfg.Limits.AccessMailPerDay,
 	}).Register(mux)
 	// The pages written for agents and crawlers: /agents, /llms.txt,
 	// /robots.txt, /sitemap.xml and the rest. Public, no key.

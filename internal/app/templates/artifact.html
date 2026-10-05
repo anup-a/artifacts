@@ -126,6 +126,40 @@
     {{end}}
   </section>
   {{end}}
+  <section class="card" id="access">
+    <div class="card-head">
+      <h2>Access</h2>
+      <span class="muted">Who can open this page besides your workspace</span>
+    </div>
+    {{$acc := .Data.Access}}
+    <div class="setting-row">
+      <div class="setting-text">
+        <strong>{{if eq $acc.Mode "password"}}Password{{else if $acc.Workspace}}Only your workspace{{else if eq $acc.Mode "restricted"}}Only people you choose{{else}}Anyone with the link{{end}}</strong>
+        <p class="muted">{{if eq $acc.Mode "password"}}Visitors enter the password once on this device. Changing it signs everyone out.{{else if $acc.Workspace}}Nobody outside the workspace can open it.{{else if eq $acc.Mode "restricted"}}Visitors enter their email and get a one-time code. {{$acc.Emails}} {{plural $acc.Emails "address" "addresses"}}, {{$acc.Domain}} {{plural $acc.Domain "domain" "domains"}}. No account needed.{{else if $a.ShareCode}}Anyone holding the share code can open it.{{else}}Anyone who has the address can open it.{{end}}</p>
+      </div>
+    </div>
+    <form method="post" action="/app/artifacts/{{$a.ID}}/access" class="access-form">
+      <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+      <fieldset class="access-modes">
+        <legend class="field-label">Who can open it</legend>
+        <label class="access-mode"><input type="radio" name="mode" value="anyone_with_link"{{if and (eq $acc.Mode "anyone_with_link") (not $a.ShareCode)}} checked{{end}}><span>Anyone with the link (makes the page public)</span></label>
+        <label class="access-mode"><input type="radio" name="mode" value="password"{{if eq $acc.Mode "password"}} checked{{end}}><span>Anyone with the password</span></label>
+        <label class="access-mode"><input type="radio" name="mode" value="restricted"{{if eq $acc.Mode "restricted"}} checked{{end}}{{if not $acc.Mail}} title="This server cannot send email, so only an empty list (your workspace) works"{{end}}><span>Only people you choose</span></label>
+      </fieldset>
+      <label class="field">
+        <span class="field-label">Password{{if $acc.PasswordSet}} (leave empty to keep the current one){{end}}</span>
+        <input type="password" name="password" autocomplete="new-password" maxlength="512" placeholder="{{if $acc.PasswordSet}}Unchanged{{else}}8 characters or more{{end}}">
+      </label>
+      <label class="field">
+        <span class="field-label">People, one a line: sam@acme.com, or @acme.com for everyone there. Empty means only your workspace.</span>
+        <textarea name="allow" spellcheck="false" autocomplete="off">{{$acc.Allow}}</textarea>
+      </label>
+      {{if .Data.AccessError}}<p class="alert">{{template "icon" "alert"}}{{.Data.AccessError}}</p>{{end}}
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save access</button>
+      </div>
+    </form>
+  </section>
 
   <section class="card preview-card">
     <div class="card-head">
@@ -233,9 +267,9 @@
     <div class="setting-row" id="comments-setting">
       <div class="setting-text">
         <strong>Viewer comments</strong>
-        <p class="muted">{{if eq $a.Visibility "private"}}Viewer comments are unavailable while this artifact is private. Existing threads remain readable and you can reply here.{{else}}Show the comment panel on the published page and accept new threads from anyone with the link.{{end}}</p>
+        <p class="muted">{{if and (eq $a.Visibility "private") (not $a.AccessMode)}}Viewer comments are unavailable while this artifact is private. Existing threads remain readable and you can reply here.{{else}}Show the comment panel on the published page and accept new threads from {{if $a.AccessMode}}everyone who can open it{{else}}anyone with the link{{end}}.{{end}}</p>
       </div>
-      {{if ne $a.Visibility "private"}}<form method="post" action="/app/artifacts/{{$a.ID}}/comments-enabled" class="switch-form">
+      {{if or (ne $a.Visibility "private") $a.AccessMode}}<form method="post" action="/app/artifacts/{{$a.ID}}/comments-enabled" class="switch-form">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
         <input type="hidden" name="enabled" value="{{if $a.CommentsEnabled}}0{{else}}1{{end}}">
         <span class="switch-state">{{if $a.CommentsEnabled}}On{{else}}Off{{end}}</span>

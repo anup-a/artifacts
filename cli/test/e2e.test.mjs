@@ -707,3 +707,80 @@ test("analytics reports a page and the workspace", async () => {
   assert.equal(raw.status, 400);
   assert.equal(run(["analytics", "nope00000000", "--json"]).code, 1);
 });
+
+test("access: password, restricted, invites, off and public", async () => {
+  const pub = json(["publish", siteDir("<h1>for some eyes</h1>")]);
+  const id = pub.id;
+  assert.equal(json(["access", id]).mode, "anyone_with_link");
+
+  // A password on argv is refused before anything is sent.
+  const argv = run(["access", id, "--password", "hunter2hunter2", "--json"]);
+  assert.equal(argv.code, 2);
+  assert.match(JSON.parse(argv.stderr).error.message, /never taken from the command line/);
+  const empty = run(["access", id, "--password", "--json"], { input: "" });
+  assert.equal(empty.code, 2);
+  assert.equal(json(["access", id]).mode, "anyone_with_link");
+
+  const pw = json(["access", id, "--password"], { input: "hunter2hunter2\n" });
+  assert.equal(pw.mode, "password");
+  assert.equal(pw.visibility, "private");
+  assert.equal(pw.password_set, true);
+  assert.equal(pw.share_url, `${BASE}/a/${id}/`);
+  assert.ok(!JSON.stringify(pw).includes("hunter2"));
+  assert.match(run(["access", id]).stdout, /anyone with the password/);
+
+  // A visitor meets the gate, then gets in with the password.
+  const gate = await fetch(`${BASE}/a/${id}/`);
+  assert.equal(gate.status, 200);
+  const gateHTML = await gate.text();
+  assert.match(gateHTML, /Enter the password/);
+  assert.ok(!gateHTML.includes("for some eyes"));
+  const unlock = await fetch(`${BASE}/a/${id}/_unlock`, {
+    method: "POST", redirect: "manual",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "password=hunter2hunter2",
+  });
+  assert.equal(unlock.status, 303);
+  const cookie = unlock.headers.getSetCookie().find((c) => c.startsWith(`artifact_access_${id}=`)).split(";")[0];
+  const page = await (await fetch(`${BASE}/a/${id}/`, { headers: { Cookie: cookie } })).text();
+  assert.match(page, /for some eyes/);
+
+  // Only people on a list, who prove their address by email.
+  const r = json(["access", id, "--restricted", "--allow", "Sam@Acme.com", "--allow", "@acme.com"]);
+  assert.equal(r.mode, "restricted");
+  assert.deepEqual(r.allowed_emails, ["sam@acme.com"]);
+  assert.deepEqual(r.allowed_domains, ["acme.com"]);
+  const old = await fetch(`${BASE}/a/${id}/`, { headers: { Cookie: cookie } });
+  assert.match(await old.text(), /Enter your email address/);
+  const added = json(["access", id, "--add", "lee@other.org"]);
+  assert.deepEqual(added.allowed_emails, ["lee@other.org", "sam@acme.com"]);
+  assert.deepEqual(added.allowed_domains, ["acme.com"]);
+  const inv = json(["access", id, "--invite", "sam@acme.com", "--invite", "someone@acme.com"]);
+  assert.deepEqual(inv.notifications.sent, ["sam@acme.com"]);
+  assert.equal(inv.notifications.skipped[0].reason, "not_allowed");
+
+  const off = json(["access", id, "--off"]);
+  assert.equal(off.mode, "restricted");
+  assert.deepEqual(off.allowed_emails, []);
+  assert.equal(off.share_url, null);
+
+  const open = json(["access", id, "--public"]);
+  assert.equal(open.mode, "anyone_with_link");
+  assert.equal(open.visibility, "public");
+  assert.match(await (await fetch(`${BASE}/a/${id}/`)).text(), /for some eyes/);
+
+  const both = run(["access", id, "--public", "--off", "--json"]);
+  assert.equal(both.code, 2);
+});
+
+test("publish --password puts the page up private with a password", async () => {
+  const pub = json(["publish", siteDir("<h1>locked from the start</h1>"), "--password"], { input: "correct horse battery" });
+  assert.equal(pub.access, "password");
+  assert.equal(pub.visibility, "private");
+  assert.equal(pub.share_url, `${BASE}/a/${pub.id}/`);
+  const gate = await (await fetch(`${BASE}/a/${pub.id}/`)).text();
+  assert.match(gate, /Enter the password/);
+  assert.ok(!gate.includes("locked from the start"));
+  const short = run(["publish", siteDir(), "--password", "--json"], { input: "short" });
+  assert.equal(short.code, 2);
+});

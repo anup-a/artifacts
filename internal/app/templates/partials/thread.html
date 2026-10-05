@@ -20,6 +20,7 @@
         <div class="comment-meta">
           <span class="comment-author">{{.AuthorName}}</span>
           {{if eq .AuthorKind "owner"}}<span class="badge ok">owner</span>{{end}}
+          {{if .Verified}}<span class="badge" title="Signed in through the page's email check">verified email</span>{{end}}
           <time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $p.Now}}</time>
         </div>
         <p class="comment-text">{{.Body}}</p>

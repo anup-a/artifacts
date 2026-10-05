@@ -124,11 +124,13 @@ func (h *Handler) refuse(w http.ResponseWriter, r *http.Request) {
 // plain 404, because a viewer never arrives at one of those first and a gate
 // page delivered where a stylesheet was expected is only confusing.
 func (h *Handler) refuseOrGate(w http.ResponseWriter, r *http.Request, a store.Artifact, page bool) {
-	if page && !isPrivateViewer(r) && a.ShareCode != "" && h.Gate != nil {
+	if page && !isPrivateViewer(r) && hasDoor(a) && h.Gate != nil {
 		// A cookie that no longer matches means the code was rotated; drop it
 		// so the viewer is asked again rather than silently refused forever.
+		// The same goes for a changed password or a visitor taken off the list.
 		clearUnlockCookie(w, a.ID)
-		h.renderGate(w, r, GateView{ArtifactID: a.ID})
+		clearAccessCookie(w, a.ID)
+		h.renderGate(w, r, GateView{ArtifactID: a.ID, Kind: gateKind(a)})
 		return
 	}
 	h.refuse(w, r)

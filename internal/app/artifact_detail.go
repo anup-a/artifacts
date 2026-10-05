@@ -95,6 +95,10 @@ type artifactData struct {
 	// this page in the dashboard does not count as a view of it.
 	PreviewURL string
 	Views      viewsPanel
+	// Access is the Access card: the mode, and the allowlist one entry a
+	// line. AccessError is a failed save of that card.
+	Access      accessForm
+	AccessError string
 }
 
 // artifactOpts is what a re-render after a form post carries besides the
@@ -104,6 +108,7 @@ type artifactOpts struct {
 	ErrThread, Error string
 	MetaError        string
 	Meta             *metaForm
+	AccessError      string
 }
 
 func (h *Handler) artifactDetail(w http.ResponseWriter, r *http.Request, v *viewer) {
@@ -161,6 +166,13 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	if a.ShareCode != "" {
 		d.ShareLink = serve.ShareURL(h.Cfg.ShareOrigin, a.ID, a.ShareCode)
 		d.SendURL, d.SendLabel = d.ShareLink, "Share link, code included"
+	}
+	d.Access, d.AccessError = h.accessFormOf(a), o.AccessError
+	switch a.AccessMode {
+	case serve.AccessPassword:
+		d.SendURL, d.SendLabel = h.Cfg.ShareOrigin+"/a/"+a.ID+"/", "Share link, password needed"
+	case serve.AccessRestricted:
+		d.SendURL, d.SendLabel = h.Cfg.ShareOrigin+"/a/"+a.ID+"/", "Share link, for the people you chose"
 	}
 	if o.Meta != nil {
 		d.Meta = *o.Meta
@@ -380,6 +392,10 @@ func (h *Handler) setShareCode(w http.ResponseWriter, r *http.Request, v *viewer
 	case "issue", "rotate":
 		if a.Visibility != "private" {
 			h.renderError(w, r, 400, "Only a private artifact can be shared with a code.")
+			return
+		}
+		if a.AccessMode != "" {
+			h.renderArtifactWith(w, r, 400, v, a.ID, artifactOpts{AccessError: "This page already has a password or a list of people. Change its access first."})
 			return
 		}
 		code = ids.NewShareCode()

@@ -229,6 +229,40 @@ test("owner replies carry an Author badge in the thread", async ({ page }) => {
   await expect(shadow.locator(".replies .r")).toContainText("Answer");
 });
 
+// The verified mark comes only from the server's author_verified flag (set for
+// readers who passed a restricted page's email gate), never from a typed name.
+test("verified readers carry a mark a typed name cannot fake", async ({ page }) => {
+  const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+  const id = publish({ "index.html": html });
+  const res = await fetch(`${BASE}/c/${id}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ author_name: "sam@acme.com ✓ verified", body: "Pretending", anchor: { kind: "text", quote: "brown fox", prefix: "The quick ", suffix: " jumps" }, version: 1 }),
+  });
+  expect(res.status).toBe(201);
+  const thread = (await res.json()).id;
+  const reply = await fetch(`${BASE}/c/${id}/comments/${thread}/reply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ author_name: "Lee", body: "Real reader" }),
+  });
+  expect(reply.status).toBe(201);
+  // Stand in for the restricted gate: mark the reply as the server would.
+  await page.route(`**/c/${id}/comments*`, async (route) => {
+    const r = await route.fetch();
+    const body = await r.json();
+    for (const t of body.threads) for (const c of t.comments) if (c.author_name === "Lee") c.author_verified = true;
+    await route.fulfill({ response: r, json: body });
+  });
+
+  await page.goto(`${BASE}/a/${id}/`);
+  const shadow = page.locator("#artifacts-rt");
+  await shadow.locator(".launcher").click();
+  await shadow.locator(".thread").click();
+  await expect(shadow.locator(".replies .r .owner")).toHaveText("✓ verified");
+  await expect(shadow.locator(".thread .head .owner")).toHaveCount(0);
+});
+
 /** Create a thread through the viewer API and return its id. */
 async function createThread(id, body, quote, prefix, suffix) {
   const res = await fetch(`${BASE}/c/${id}/comments`, {

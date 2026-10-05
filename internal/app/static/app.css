@@ -677,6 +677,15 @@ textarea { resize: vertical; line-height: 1.45; }
 }
 .gate-code.is-wrong { border-color: var(--danger); }
 .gate-error { margin-top: 10px; font-size: 13px; color: var(--danger); }
+/* Passwords and addresses are read, not dictated: ordinary text. */
+.gate-code.gate-text { font-family: inherit; font-size: 15px; letter-spacing: normal; text-align: left; }
+.gate-resend { margin-top: 12px; }
+/* ---- Page access ------------------------------------------------- */
+.access-form { display: grid; gap: 12px; margin-top: 4px; }
+.access-modes { display: grid; gap: 8px; border: 0; padding: 0; margin: 0; }
+.access-mode { display: flex; align-items: baseline; gap: 8px; }
+.access-form textarea { width: 100%; min-height: 84px; font-family: var(--mono); font-size: 13px; }
+.access-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
 /* The code is a credential: it is shown large enough to read off a screen
    and dictate, and it never appears anywhere a viewer can reach. */
 .share-code {

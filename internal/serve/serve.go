@@ -42,18 +42,42 @@ type Handler struct {
 	// then only as unguessable as the code — so set it to KeySigningSecret.
 	UnlockSecret string
 	// Now is the clock the unlock guard meters attempts against.
-	Now         func() time.Time
-	unlock      *unlockGuard
-	runtimeETag string
-	runtimeRev  string // short content hash, cache-busts the injected script URL
+	Now func() time.Time
+	// Mail sends a restricted page's visitors their sign-in code. Nil leaves
+	// restricted pages to their owner: the gate says it cannot send mail.
+	Mail auth.Mailer
+	// TrustProxy reads the client address from CF-Connecting-IP or
+	// X-Forwarded-For for the gate's per-client meters.
+	TrustProxy bool
+	// MailPerWorkspaceDay and MailPerDay cap the codes the gate mails per
+	// workspace and for the whole server in a day. Zero takes the defaults.
+	MailPerWorkspaceDay, MailPerDay int
+	mailSync                        bool // tests: send in the request instead of after it
+	access                          *accessGuards
+	unlock                          *unlockGuard
+	runtimeETag                     string
+	runtimeRev                      string // short content hash, cache-busts the injected script URL
 }
 
 // GateView is what the code page needs to render itself.
 type GateView struct {
 	ArtifactID string
+	// Kind is what the gate asks for: "code" (also when empty) for a share
+	// code, "password", or "email" for a restricted page, which takes an
+	// address and then the code mailed to it.
+	Kind string
 	// Wrong marks a submitted code that did not match, Locked a viewer who has
 	// run out of attempts on this artifact for now.
 	Wrong, Locked bool
+	// Email kind only. Sent shows the code step for Email; Token is a mailed
+	// link waiting for its button; Expired a link that no longer works;
+	// NoMail a server that cannot send the code at all.
+	Email           string
+	Sent            bool
+	Token           string
+	Expired, NoMail bool
+	// Busy is a password check that found no free slot: try again shortly.
+	Busy bool
 }
 
 func (h *Handler) Register(mux *http.ServeMux) {
@@ -62,9 +86,14 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	h.runtimeETag = `"` + hexSum + `"`
 	h.runtimeRev = hexSum[:12]
 	h.unlock = newUnlockGuard(h.Now)
+	h.access = newAccessGuards(h.Now, h.MailPerWorkspaceDay, h.MailPerDay)
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
 	mux.HandleFunc("GET /skill.md", h.skill)
 	mux.HandleFunc("POST /a/{id}/"+unlockPath, h.publicArtifact(h.submitCode))
+	mux.HandleFunc("POST /a/{id}/_access/email", h.publicArtifact(h.requestAccessCode))
+	mux.HandleFunc("POST /a/{id}/_access/code", h.publicArtifact(h.submitAccessCode))
+	mux.HandleFunc("GET /a/{id}/"+accessLinkPath, h.publicArtifact(h.openAccessLink))
+	mux.HandleFunc("POST /a/{id}/"+accessLinkPath, h.publicArtifact(h.confirmAccessLink))
 	mux.HandleFunc("GET /a/{id}/"+coverPath, h.publicArtifact(h.cover))
 	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.publicArtifact(h.pinned))
 	mux.HandleFunc("GET /a/{id}/{path...}", h.publicArtifact(h.current))

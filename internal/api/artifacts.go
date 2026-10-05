@@ -237,6 +237,10 @@ func (s *server) setShareCode(w http.ResponseWriter, r *http.Request) {
 			apierr.Write(w, r, apierr.Invalid("only a private artifact can be shared with a code"))
 			return
 		}
+		if a.AccessMode != "" {
+			apierr.Write(w, r, apierr.Invalid("this page has "+serve.ModeOf(a)+" access; a share code would be a second way in. Change its access first"))
+			return
+		}
 		code = ids.NewShareCode()
 	case "revoke":
 	default:

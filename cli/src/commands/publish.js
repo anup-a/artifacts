@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { guestLines } from "../guest.js";
 import { parseWhen, setExpiry } from "./artifacts.js";
+import { patchAccess, readPassword } from "./access.js";
 import { copyFileSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { apiJson } from "../client.js";
@@ -9,7 +10,7 @@ import { collectFiles, readLink, writeLink } from "../files.js";
 import { findProject } from "../project.js";
 import { CliError, usage } from "../errors.js";
 
-const USAGE = "usage: byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>] [--private|--public] [--comments|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]";
+const USAGE = "usage: byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>] [--private|--public] [--password] [--comments|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]";
 
 // Image types the server will stream as a cover.
 const COVER_EXTS = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp"]);
@@ -100,7 +101,15 @@ export async function publish(cfg, { positional, flags, source, env = process.en
   const target = positional[0];
   if (!target) throw usage(USAGE);
   if (flags.private && flags.public) throw usage("--private and --public are mutually exclusive");
-  const visibility = flags.private ? "private" : flags.public ? "public" : undefined;
+  if (flags.password && flags.public) throw usage("--password and --public are mutually exclusive");
+  if (flags.password && positional.length > 1) {
+    throw usage("unexpected argument " + JSON.stringify(positional[1]) + "; a password is never taken from the command line, pipe it to --password on stdin");
+  }
+  // The password is read before anything is sent, and the page goes up
+  // private, so there is no moment where it is public without one.
+  const password = flags.password ? await readPassword() : undefined;
+  if (password !== undefined && [...password].length < 8) throw usage("the password must be at least 8 characters");
+  const visibility = flags.private || password !== undefined ? "private" : flags.public ? "public" : undefined;
   const expires = flags.expires !== undefined ? parseWhen(flags.expires) : undefined;
 
   // A Markdown target is rendered on the way in and supplies the title when
@@ -147,6 +156,12 @@ export async function publish(cfg, { positional, flags, source, env = process.en
     res.expires_at = after.expires_at;
   }
 
+  let access;
+  if (password !== undefined) {
+    access = await patchAccess(cfg, res.id, { mode: "password", password });
+    res.visibility = access.visibility;
+  }
+
   const project = res.project === undefined ? labels.project : res.project;
   const tags = Array.isArray(res.tags) ? res.tags : labels.tags || [];
   writeLink(dir, { id: res.id, api: cfg.api, project, tags });
@@ -161,13 +176,14 @@ export async function publish(cfg, { positional, flags, source, env = process.en
       project: project ?? null, tags, cover_url: res.cover_url, cover_style: res.cover_style,
       files: files.length, bytes, uploaded: sent.size,
       expires_at: res.expires_at ?? null,
+      ...(access ? { access: access.mode, share_url: access.share_url } : {}),
       ...(res.guest ? { guest: true, claim_url: res.claim_url } : {}),
     },
     human: [
       `${res.url}`,
       `version ${res.version}, ${files.length} files, ${bytes} bytes, ${sent.size} uploaded${commentsOn ? "" : ", comments off"}`,
       ...(labelLine ? [labelLine] : []),
-      ...(res.visibility === "private" ? ["private — sign in to the owning workspace to view"] : []),
+      ...(access ? [`password set; share ${access.share_url}`] : res.visibility === "private" ? ["private — sign in to the owning workspace to view"] : []),
       ...(res.expires_at && !res.guest ? [`stops working at ${res.expires_at}, then is erased`] : []),
       ...guestLines(res),
     ],

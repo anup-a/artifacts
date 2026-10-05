@@ -2,10 +2,10 @@ import { usage } from "./errors.js";
 
 // Flags that never take a value. Anything else written as --name expects one,
 // either as --name=value or as the next argument.
-const BOOLEAN = new Set(["json", "open", "all", "help", "version", "comments", "no-comments", "private", "public", "off", "wait", "guest", "browser", "no-wait"]);
+const BOOLEAN = new Set(["json", "open", "all", "help", "version", "comments", "no-comments", "private", "public", "off", "wait", "guest", "browser", "no-wait", "password", "restricted"]);
 
 // Flags that may be given more than once; they collect into an array.
-const REPEATABLE = new Set(["tag"]);
+const REPEATABLE = new Set(["tag", "allow", "add", "invite"]);
 
 export function parseArgs(argv) {
   const positional = [];

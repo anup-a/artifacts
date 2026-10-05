@@ -30,6 +30,8 @@ type Handler struct {
 	// Limiters default in Register when nil: sign-in mail 5/h per address and
 	// 20/h per IP, key creation 20/h per tenant, portal links 60/min per tenant.
 	EmailLimiter, IPLimiter, KeyLimiter, PortalLimiter *ratelimit.Limiter
+	// AccessLimiter meters the Access card's saves per user: 30 a minute.
+	AccessLimiter *ratelimit.Limiter
 
 	static *statics
 }
@@ -69,6 +71,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	if h.PortalLimiter == nil {
 		h.PortalLimiter = ratelimit.New(60)
 	}
+	if h.AccessLimiter == nil {
+		h.AccessLimiter = ratelimit.New(30)
+	}
 	mux.HandleFunc("GET /app/static/{name}", h.static.serve)
 	mux.HandleFunc("GET /{$}", h.headers(h.landing))
 	mux.HandleFunc("GET /showcase", h.headers(h.showcase))
@@ -102,6 +107,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/artifacts/{id}/comments-enabled", h.private(h.setCommentsEnabled))
 	mux.HandleFunc("POST /app/artifacts/{id}/visibility", h.private(h.setVisibility))
 	mux.HandleFunc("POST /app/artifacts/{id}/share-code", h.private(h.setShareCode))
+	mux.HandleFunc("POST /app/artifacts/{id}/access", h.private(h.setAccess))
 	mux.HandleFunc("POST /app/artifacts/{id}/meta", h.private(h.setMetadata))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/resolve", h.private(h.resolveThread))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/reply", h.private(h.replyThread))
@@ -224,10 +230,20 @@ func (h *Handler) GateArtifactAccess(w http.ResponseWriter, r *http.Request, g s
 	status := http.StatusOK
 	if g.Locked {
 		status = http.StatusTooManyRequests
-	} else if g.Wrong {
+	} else if g.Busy {
+		status = http.StatusServiceUnavailable
+		hd.Set("Retry-After", "5")
+	} else if g.Wrong || g.Expired {
 		status = http.StatusForbidden
 	}
-	p := page{Title: "Enter the code", Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: g}
+	title := "Enter the code"
+	switch g.Kind {
+	case "password":
+		title = "Enter the password"
+	case "email":
+		title = "Shared with specific people"
+	}
+	p := page{Title: title, Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: g}
 	var buf bytes.Buffer
 	if err := pages["gate"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
 		http.Error(w, "This artifact needs a code.", status)

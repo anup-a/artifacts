@@ -816,3 +816,42 @@ test("login --browser polls until approved; --no-wait and --wait split it in two
   assert.deepEqual(JSON.parse(readFileSync(configPath(home), "utf8")), { token: "ak_new", api: "https://api.example" });
   await assert.rejects(browserLogin("https://api.example", { wait: true, home, note: () => {} }), /nothing to wait for/);
 });
+
+test("access sorts --allow into addresses and domains and replaces the list", async (t) => {
+  const { splitEntries } = await import("../src/commands/access.js");
+  assert.deepEqual(splitEntries(["sam@acme.com", "@acme.com", "other.org", "a@x.io,b@x.io"]),
+    { emails: ["sam@acme.com", "a@x.io", "b@x.io"], domains: ["acme.com", "other.org"] });
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls.push({ url, ...options });
+    return Response.json({ id: "artifact1234", mode: "restricted", visibility: "private", allowed_emails: ["sam@acme.com"], allowed_domains: ["acme.com"], url: "u", share_url: "https://share.example/a/artifact1234/" });
+  });
+  const res = await command(["access", "artifact1234", "--allow", "sam@acme.com", "--allow", "@acme.com", "--json"]);
+  assert.equal(res.code, 0);
+  assert.equal(calls[0].method, "PATCH");
+  assert.equal(calls[0].url.pathname, "/api/artifacts/artifact1234/access");
+  assert.deepEqual(JSON.parse(calls[0].body), { mode: "restricted", allowed_emails: ["sam@acme.com"], allowed_domains: ["acme.com"] });
+  assert.equal(JSON.parse(res.output[0]).mode, "restricted");
+});
+
+test("access --add merges with the current list", async (t) => {
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls.push({ url, ...options });
+    return Response.json({ id: "artifact1234", mode: "restricted", allowed_emails: ["sam@acme.com"], allowed_domains: [], url: "u", share_url: "s" });
+  });
+  const res = await command(["access", "artifact1234", "--add", "lee@x.org"]);
+  assert.equal(res.code, 0);
+  assert.equal(calls[0].method, "GET");
+  assert.deepEqual(JSON.parse(calls[1].body).allowed_emails, ["sam@acme.com", "lee@x.org"]);
+});
+
+test("access never takes a password from argv and takes one mode at a time", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => assert.fail("nothing may be sent"));
+  const argv = await command(["access", "artifact1234", "--password", "hunter2hunter2"]);
+  assert.equal(argv.code, 2);
+  assert.match(argv.errors[0], /never taken from the command line/);
+  assert.equal((await command(["access", "artifact1234", "--password=hunter2hunter2"])).code, 2);
+  assert.equal((await command(["access", "artifact1234", "--public", "--off"])).code, 2);
+  assert.equal((await command(["publish", "./x", "--password", "--public"])).code, 2);
+});

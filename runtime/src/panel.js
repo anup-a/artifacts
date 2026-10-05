@@ -223,6 +223,9 @@ export function mountPanel(shadow, ctx) {
     const author = c.author_name || "Anonymous";
     const parts = [el("span", { class: "name", text: author })];
     if (c.author_kind === "owner") parts.push(el("span", { class: "owner", text: "Author" }));
+    // Set by the server for a reader who proved this address at the page's
+    // email gate; a typed name never carries it.
+    else if (c.author_verified) parts.push(el("span", { class: "owner", title: "Verified email", text: "✓ verified" }));
     parts.push(el("span", { class: "time", text: relativeTime(c.created_at) }));
     return el("span", { class: "meta" }, parts);
   }

@@ -135,6 +135,7 @@ byagent publish ./site --title "Hello" --json
 | `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--private\|--public] [--comments\|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
 | `get <id>` | URL, title, current version, open comment count, project and tags; the share code and its link when one is set |
 | `share <id> [--off]` | Issues a six-digit share code for a private artifact and prints it with a one-click link. Running it again rotates the code, stopping every link that carried the old one; `--off` withdraws it |
+| `access <id> [--public\|--password\|--restricted --allow <email\|@domain>...\|--add <entry>...\|--off] [--invite <email>...]` | Shows or sets who can open the page (see Page access below). `--password` reads the password from stdin or a hidden prompt, never argv. `publish --password` publishes privately and then sets one |
 | `list [--search <text>] [--end-user <id>] [--project <name>]` | Workspace artifacts, optionally narrowed by a case-insensitive title match, one customer or one project; prints project and tags |
 | `whoami` | Current tenant ID, kind and name, plus the key ID and name |
 | `portal-link <end-user id>` | Seven-day read-only customer portal URL, integrator workspaces only |
@@ -199,6 +200,52 @@ unlocked browser that carried the old one, for that artifact alone. Making an
 artifact public clears its code. A code cannot reach anything else in the
 workspace, and it never grants the dashboard.
 
+### Page access
+
+Besides public, private and the share code, a page can take a **password** or
+be **restricted** to a list of people. Readers never need an account, and
+readers who get in can comment and suggest edits like code holders.
+
+- `byagent access <id> --password` (password on stdin) makes the page private
+  and asks visitors for the password once per browser. Only an argon2id hash is
+  stored. Guesses are metered per page and client address first (10 per 15
+  minutes), then per page overall as a backstop no single address can reach
+  (30 per 15 minutes); a client past its own budget never spends the page's.
+  When every password check slot is busy for two seconds the gate answers 503
+  and asks the visitor to try again. Changing access is metered too (30 a
+  minute per key or dashboard user). The unlock is an HttpOnly cookie
+  scoped to that page's `/a/<id>/` and `/c/<id>/` paths, signed over the page,
+  the password hash and an access version, so changing the password or the
+  mode signs every visitor out.
+- `byagent access <id> --restricted --allow sam@acme.com --allow @acme.com`
+  admits only those addresses, or any address at exactly that domain. A
+  visitor enters their email; if it is on the list the server mails a six-digit
+  code and a one-time link (15 minutes, five guesses per code). Mail is
+  metered per client and address on every request, and per page (50 an hour),
+  per workspace and for the whole server (`LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY`,
+  `LIMIT_ACCESS_MAIL_PER_DAY`) only when a code is actually sent. The gate
+  gives the same answer, in the same time, whether or not the address is
+  listed or a budget is spent: the list is checked and the code stored and
+  mailed after the answer has gone. Taking someone off the list takes them off
+  the page at once. Comments made through the gate are signed with the
+  address the reader proved and carry a "verified" mark set by the server; a
+  name typed anywhere else never gets it. Restricted pages need
+  `EMAIL_PROVIDER` and `KEY_SIGNING_SECRET`.
+- `--invite <email>` mails people on the list by name a link to the page
+  (50 per request, 100 a day per workspace). Domain entries are never mailed.
+- `--off` is workspace-only (restricted with an empty list); `--public` opens
+  the page to anyone with the link and drops any password or list.
+
+One door at a time: a password or a list withdraws a share code, and a share
+code cannot be issued while either is set. Guest pages get none of this.
+
+**Limits of the gate.** Every published page is served from the same origin.
+A script on another published page, opened in the same browser as an
+unlocked visitor, can act as that visitor: read a password, restricted or
+share-code page they have opened, and comment on it as them. The gate keeps
+out people who have not got in; it does not isolate one page from another in
+the same browser. A separate origin per page is planned.
+
 Private responses use `Cache-Control: private, no-store`. Public artifact content
 requires cache revalidation so changing visibility blocks subsequent requests.
 Making an artifact private cannot revoke copies already downloaded or cached
@@ -251,6 +298,9 @@ take no auth; the artifact id is the capability.
 | `POST` | `/api/artifacts/:id/versions/:version/restore` | Makes that version live again by pointing the page at it: no files are copied and no version is added. Visibility, share code, expiry, the comments switch, title and labels stay as they are. Returns `{id, url, version, current_version, previous_version, restored_at, visibility, comments_enabled}`. 409 `CONFLICT` if it is already live, 404 if it was deleted or pruned. The next publish takes the next unused number. `POST /api/artifacts/:id/rollback/:version` is the same call. |
 | `DELETE` | `/api/artifacts/:id/versions/:version` | Deletes one version that is not live. Its pinned URL stops answering at once; its files are erased by the hourly GC unless another version or page holds the same bytes. Threads made on it are kept and marked `orphaned`. Returns `{id, deleted_version, current_version, versions_count, orphaned_comments}`. 409 `CONFLICT` for the live version. Version numbers are never reused. |
 | `GET` | `/api/artifacts/:id/diff?from=a&to=b` | What changed between two versions, by content hash: `{id, from, to, added:[{path,size}], removed:[{path,size}], changed:[{path,from_size,to_size}], unchanged}`. `to` defaults to the live version. Not a text diff. |
+| `GET` | `/api/artifacts/:id/access` | `{id, mode, visibility, password_set, allowed_emails, allowed_domains, access_version, url, share_url}`. `mode` is `anyone_with_link` (public, or private with a share code, which then also returns `share_code`), `password`, or `restricted` (an empty list means workspace-only). The password is never returned. |
+| `PATCH` | `/api/artifacts/:id/access` | `{mode, password?, allowed_emails?, allowed_domains?}`. `anyone_with_link` makes the page public. `password` needs `password` (8 to 128 characters) unless one is set already. `restricted` replaces both lists whole (read, merge, write to add one); domains are given as `acme.com`. Guest keys get 403; restricted with entries needs mail on the server (503 otherwise). Returns the GET shape. |
+| `POST` | `/api/artifacts/:id/access/invites` | `{emails:[...]}` (1 to 50). Mails each address that is on the allowlist by name a link to the page. Returns `{notifications:{sent:[email], failed:[{email,error}], skipped:[{email,reason}]}}`; `reason` is `not_allowed` or `invalid`. |
 | `GET` | `/api/artifacts/:id/comments?status=open\|resolved\|all&since=<rfc3339>` | Threads with anchors, `anchor_status`, version. |
 | `POST` | `/api/artifacts/:id/comments/:thread/reply` | `{body}` → owner reply, displayed as "Author". |
 | `POST` | `/api/artifacts/:id/comments/:thread/resolve` | Marks resolved. |
@@ -260,6 +310,9 @@ take no auth; the artifact id is the capability.
 | `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does. |
 | `GET` | `/c/:id/meta` | Viewer. `{current_version, versions:[n]}` so the runtime can render a version switcher. |
 | `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`, which is served with `og:title`, `og:image` (the cover URL) and `twitter:card` meta tags injected. |
+| `POST` | `/a/:id/_unlock` | Gate form: `code` for a share code, or `password` on a password page. 303 to the page with the unlock cookie, or the gate again. |
+| `POST` | `/a/:id/_access/email`, `/a/:id/_access/code` | Restricted gate: ask for a code by `email`, then send `email` and `code`. |
+| `GET`/`POST` | `/a/:id/_access/link?t=` | The mailed link. GET shows a button (so mail scanners do not spend it); the POST spends it and sets the cookie. |
 | `GET` | `/a/:id/_cover.svg` | The cover: the publisher's `cover` file from the current version when present, else a generated 1200 x 630 SVG card (title, project, share host and publish date over a subtle `cover_style` pattern). `Cache-Control: public, max-age=3600` with an ETag; 404 / 410 like pages. |
 | `GET` | `/healthz` | |
 
@@ -337,6 +390,8 @@ it and fails if the checked-in copy is stale.
 | `LIMIT_COMMENT_BYTES` | `2048` | Max comment body size. |
 | `LIMIT_COMMENTS_PER_MIN` | `20` | Comments per IP per minute on `/c/*`. |
 | `LIMIT_ANCHOR_BYTES` | `4096` | Max serialized anchor size. |
+| `LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY` | `200` | Sign-in codes a restricted page's gate mails per workspace per day. Past it, requests get the usual answer and no mail. |
+| `LIMIT_ACCESS_MAIL_PER_DAY` | `2000` | The same cap for the whole server. |
 
 ## Deploying
 

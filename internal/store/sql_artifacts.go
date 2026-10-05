@@ -28,14 +28,19 @@ func (s *sqlStore) CreateArtifact(ctx context.Context, a Artifact) error {
 	return err
 }
 
-const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility,a.share_code,a.expires_at,a.share_code_expires_at`
+const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility,a.share_code,a.expires_at,a.share_code_expires_at,a.access_mode,a.access_password,a.access_allow,a.access_version`
 
 func scanArtifact(row interface{ Scan(...any) error }) (Artifact, error) {
 	var a Artifact
 	var tags sql.NullString
-	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments, &a.Visibility, &a.ShareCode, &a.ExpiresAt, &a.ShareCodeExpiresAt)
+	var allow string
+	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments, &a.Visibility, &a.ShareCode, &a.ExpiresAt, &a.ShareCodeExpiresAt,
+		&a.AccessMode, &a.AccessPassword, &allow, &a.AccessVersion)
 	if err != nil {
 		return a, notFound(err)
+	}
+	if a.AccessAllow, err = decodeAllow(allow); err != nil {
+		return a, err
 	}
 	// An expired guest page reads as deleted before the GC gets to it, so
 	// every path that already refuses deleted artifacts refuses it too.
@@ -62,7 +67,14 @@ func (s *sqlStore) SetVisibility(ctx context.Context, id, visibility string) err
 	if err := validateVisibility(visibility); err != nil {
 		return err
 	}
-	res, err := s.db.ExecContext(ctx, s.q(`UPDATE artifacts SET visibility=? WHERE id=?`), visibility, id)
+	q := `UPDATE artifacts SET visibility=? WHERE id=?`
+	if visibility == "public" {
+		// A public page has no door, so going public takes the password and
+		// allowlist with it rather than leaving them to come back on the next
+		// switch to private.
+		q = `UPDATE artifacts SET visibility=?, access_version=access_version+(CASE WHEN access_mode<>'' THEN 1 ELSE 0 END), access_mode='', access_password='', access_allow='' WHERE id=?`
+	}
+	res, err := s.db.ExecContext(ctx, s.q(q), visibility, id)
 	if err != nil {
 		return err
 	}
@@ -200,6 +212,8 @@ func (s *sqlStore) Erase(ctx context.Context, id string) error {
 		`DELETE FROM artifact_view_hours WHERE artifact_id=?`,
 		`DELETE FROM artifact_view_facets WHERE artifact_id=?`,
 		`UPDATE artifacts SET title='', project=NULL, tags=NULL, cover_path=NULL, cover_style='', share_code='' WHERE id=? AND deleted_at IS NOT NULL`,
+		`UPDATE artifacts SET access_password='', access_allow='' WHERE id=? AND deleted_at IS NOT NULL`,
+		`DELETE FROM access_codes WHERE artifact_id=?`,
 	} {
 		if _, err := tx.ExecContext(ctx, s.q(q), id); err != nil {
 			return err

@@ -60,6 +60,15 @@ pages run in a sandbox without viewer commenting; owner comment management still
 works through the dashboard and CLI. Switching to public also exposes retained
 versions. Switching to private cannot revoke already downloaded copies.
 
+**Who can open a page.** `byagent access <id> --json` shows it: `mode` is `anyone_with_link`, `password` or `restricted`, and `share_url` is the link to hand out. Readers never need an account, and readers who get in can comment.
+
+- "Put a password on this page": `printf '%s' "$PASSWORD" | byagent access <id> --password --json`, or `byagent publish ./site --password` the first time. The password is read from stdin, never from argv; do not put it in a command line, a file or the page. Give the user `share_url` and tell them to send the password separately. Setting a new password signs every visitor out.
+- "Only let @acme.com see it" / "only Sam and Lee": `byagent access <id> --restricted --allow @acme.com --allow lee@other.org --json`. A visitor enters their email on the page and gets a one-time code; the address must be on the list (a domain entry admits exactly that domain, not its subdomains). `--allow` replaces the whole list; `--add <entry>` adds one. Comments made through that check are signed with the reader's email and marked verified.
+- `byagent access <id> --invite sam@acme.com --json` emails people who are on the list by name a link to the page. It sends real email: only do it when the user asks.
+- `--off` makes it workspace-only again; `--public` makes it open to anyone with the link and removes any password or list.
+
+These need a signed-in account's key, not a guest key. They keep out people who have not got in, but every page shares one origin: a script on another byagent page opened in the same browser can act as a visitor who got in. Do not promise more isolation than that; a separate origin per page is planned.
+
 ## Publish nudges
 
 Hooks are opt-in: only run `byagent hooks install claude` (or `codex`) when the user asks for it. Once installed, a line starting `byagent:` can appear after you write a `.html` or `.md` file. It is a reminder, not a command: publish the page, or republish the directory it names, once the page is finished, following the rules above. Ignore it for files that belong to a codebase.
