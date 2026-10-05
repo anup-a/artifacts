@@ -10,12 +10,14 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/proxy"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -535,5 +537,98 @@ func TestCoverCannotBeAHiddenFile(t *testing.T) {
 		[]pubFile{{"index.html", "x"}, {".byagent/cover.svg", "<svg/>"}}))
 	if code != 400 {
 		t.Fatalf("hidden cover: %d %v", code, b)
+	}
+}
+
+// Routes of a password page answer only browsers holding the page's grant,
+// and changing the password cuts them off with the page.
+func TestProxyPasswordPageNeedsItsGrant(t *testing.T) {
+	srv, _, tok, hits := newVarsServer(t, nil)
+	base := srv.URL
+	setVar(t, base, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)
+	_, b := publishRoutes(t, base, tok, chatManifest)
+	id := b["id"].(string)
+	route := base + "/a/" + id + "/_proxy/chat"
+	if code, a := patchAccess(t, base, tok, id, `{"mode":"password","password":"hunter2hunter2"}`); code != 200 {
+		t.Fatalf("%d %v", code, a)
+	}
+	if code, _ := callRoute(t, nil, "POST", route, nil); code != 404 || hits.n.Load() != 0 {
+		t.Fatalf("no grant: %d", code)
+	}
+	unlock := formPost(t, base+"/a/"+id+"/_unlock", url.Values{"password": {"hunter2hunter2"}})
+	c := grantCookie(t, unlock, id)
+	withGrant := func() int {
+		req, _ := http.NewRequest("POST", route, strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.AddCookie(c)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		return res.StatusCode
+	}
+	if code := withGrant(); code != 200 {
+		t.Fatalf("with the grant: %d", code)
+	}
+	forged := *c
+	forged.Value = c.Value[:len(c.Value)-4] + "0000"
+	req, _ := http.NewRequest("POST", route, nil)
+	req.AddCookie(&forged)
+	if res, _ := http.DefaultClient.Do(req); res.StatusCode != 404 {
+		t.Fatalf("forged grant: %d", res.StatusCode)
+	}
+	if code, _ := patchAccess(t, base, tok, id, `{"mode":"password","password":"another-password-1"}`); code != 200 {
+		t.Fatal(code)
+	}
+	if code := withGrant(); code != 404 {
+		t.Fatalf("grant outlived the password: %d", code)
+	}
+}
+
+// Routes of a restricted page answer only a verified address still on the
+// allowlist.
+func TestProxyRestrictedPageNeedsAnAllowedAddress(t *testing.T) {
+	mail := &captureMail{}
+	srv, _, tok, hits := newVarsServer(t, func(d *Deps) {
+		d.Mail = mail
+		d.WebGate = func(w http.ResponseWriter, r *http.Request, g serve.GateView) { w.WriteHeader(200) }
+	})
+	base := srv.URL
+	setVar(t, base, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)
+	_, b := publishRoutes(t, base, tok, chatManifest)
+	id := b["id"].(string)
+	route := base + "/a/" + id + "/_proxy/chat"
+	if code, a := patchAccess(t, base, tok, id, `{"mode":"restricted","allowed_domains":["corp.example"]}`); code != 200 {
+		t.Fatalf("%d %v", code, a)
+	}
+	if code, _ := callRoute(t, nil, "POST", route, nil); code != 404 || hits.n.Load() != 0 {
+		t.Fatalf("no grant: %d", code)
+	}
+	formPost(t, base+"/a/"+id+"/_access/email", url.Values{"email": {"lee@corp.example"}})
+	_, text := mail.waitMail(t, 1)
+	m := mailCodeRe.FindStringSubmatch(text)
+	if m == nil {
+		t.Fatalf("mail: %q", text)
+	}
+	c := grantCookie(t, formPost(t, base+"/a/"+id+"/_access/code", url.Values{"email": {"lee@corp.example"}, "code": {m[1]}}), id)
+	withGrant := func() int {
+		req, _ := http.NewRequest("POST", route, strings.NewReader(`{}`))
+		req.AddCookie(c)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		return res.StatusCode
+	}
+	if code := withGrant(); code != 200 {
+		t.Fatalf("allowed address: %d", code)
+	}
+	if code, _ := patchAccess(t, base, tok, id, `{"mode":"restricted","allowed_emails":["sam@acme.com"]}`); code != 200 {
+		t.Fatal(code)
+	}
+	if code := withGrant(); code != 404 {
+		t.Fatalf("taken off the list, still calling routes: %d", code)
 	}
 }

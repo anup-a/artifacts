@@ -93,6 +93,13 @@ func (h *Handler) ServeProxy(w http.ResponseWriter, r *http.Request, id, rest st
 		apierr.Write(w, r, apierr.NotFound("proxy route"))
 		return
 	}
+	// A password or restricted page needs its own grant (the access
+	// cookie, still matching the current password and allowlist) whatever
+	// its visibility says, exactly as the page and its comments do.
+	if (a.AccessMode == AccessPassword || a.AccessMode == AccessRestricted) && !h.unlocked(r, a) {
+		apierr.Write(w, r, apierr.NotFound("proxy route"))
+		return
+	}
 	if a.DeletedAt != nil {
 		apierr.Write(w, r, apierr.Gone())
 		return

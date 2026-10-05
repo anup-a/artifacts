@@ -130,7 +130,7 @@ and call it from `index.html` with a relative path: `fetch("_proxy/chat", {metho
 - Call it from a page at the root of the directory; a page in a subfolder uses `../_proxy/<route>`. The `_proxy/` path is reserved and `.byagent/` files are never served.
 - Publish checks the manifest and fails with the reason if it is invalid. Its JSON carries `proxy: {routes, warnings}`; a warning means a variable is missing or not allowed for that host. Fix it before handing over the URL.
 - Pin the variable to the service's own host (`openrouter.ai`, `xyz.supabase.co`); shared suffixes like `supabase.co` or `workers.dev` are refused.
-- Anyone who can open the page can call its routes, so they cost the key's owner money: say so, pin the model and cap tokens as above, and suggest a spending limit on the upstream key. Routes are metered per visitor and per page. Private pages answer only browsers unlocked with the share code. Guest pages cannot use routes.
+- Anyone who can open the page can call its routes, so they cost the key's owner money: say so, pin the model and cap tokens as above, and suggest a spending limit on the upstream key. Routes are metered per visitor and per page. Private, password and restricted pages answer only browsers that got into the page (share code, password or allowed email). Guest pages cannot use routes.
 
 
 ```

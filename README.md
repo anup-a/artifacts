@@ -427,9 +427,11 @@ Security rules, all enforced on the server:
 - A visitor whose call fails on configuration (a missing, unreadable or
   unpinned variable, a blocked upstream address) sees only `route
   unavailable`; which variable or host was at fault goes to the server log.
-- A private page's routes answer only browsers that have unlocked the page with
-  its share code (the same gate as the page; `/app/view` pages cannot call
-  them). Guest workspaces cannot store variables or publish routes. Deleted
+- A private page's routes answer only browsers that have opened the page the
+  way its access mode asks: its share code, its password, or a verified
+  address still on its allowlist (the same grant cookie as the page;
+  changing the password or the list cuts routes off with the page;
+  `/app/view` pages cannot call them). Guest workspaces cannot store variables or publish routes. Deleted
   pages answer 410.
 - Without `VARIABLES_KEY`, or with `VARIABLES=off`, the variables API answers
   503 and routes answer 404.
