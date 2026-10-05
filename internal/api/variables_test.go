@@ -436,6 +436,40 @@ func TestProxyPageBudgetOnlyForRealRoutes(t *testing.T) {
 	}
 }
 
+// Calls that fail before going upstream (a variable that does not resolve,
+// a body the route's rules refuse) must not spend the page's budget either.
+func TestProxyPageBudgetOnlyForCallsThatGoUpstream(t *testing.T) {
+	srv, _, tok, hits := newVarsServer(t, func(d *Deps) {
+		d.Cfg.Limits.ProxyPerIPHour = 1000
+		d.Cfg.Limits.ProxyPerPageHour = 2
+	})
+	setVar(t, srv.URL, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)
+	_, b := publishRoutes(t, srv.URL, tok, `{"routes":{
+	  "chat":{"upstream":"https://example.com/chat","methods":["POST"],"headers":{"Authorization":"Bearer {{OPENROUTER_API_KEY}}"}},
+	  "unset":{"upstream":"https://example.com/x","methods":["POST"],"headers":{"Authorization":"Bearer {{NOT_SET}}"}},
+	  "strict":{"upstream":"https://example.com/s","methods":["POST"],"body":{"pin":{"model":"m"},"allow_only":[]}}}}`)
+	page := srv.URL + "/a/" + b["id"].(string) + "/_proxy/"
+	for i := 0; i < 10; i++ {
+		if code, _ := callRoute(t, nil, "POST", page+"unset", nil); code != 502 {
+			t.Fatalf("unresolved variable: %d", code)
+		}
+		if code, _ := callRoute(t, nil, "POST", page+"strict", nil); code != 400 {
+			t.Fatalf("refused body: %d", code)
+		}
+	}
+	if hits.n.Load() != 0 {
+		t.Fatal("a failed call reached the upstream")
+	}
+	for i := 0; i < 2; i++ {
+		if code, body := callRoute(t, nil, "POST", page+"chat", nil); code != 200 {
+			t.Fatalf("call %d after failures: %d %s", i, code, body)
+		}
+	}
+	if code, _ := callRoute(t, nil, "POST", page+"chat", nil); code != 429 {
+		t.Fatalf("budget: %d", code)
+	}
+}
+
 func TestProxyOwnerPageLimit(t *testing.T) {
 	srv, _, tok, _ := newVarsServer(t, nil)
 	setVar(t, srv.URL, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)

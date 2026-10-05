@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/anup-a/artifacts/internal/apierr"
 )
 
 const secret = "sk-live-0123456789abcdef"
@@ -372,14 +374,14 @@ func TestRedactorNeverFlushesACutSecret(t *testing.T) {
 	}
 }
 
-func TestForwardStreamsRequestBodies(t *testing.T) {
+func TestForwardChunkedRequestBodies(t *testing.T) {
 	var got atomic.Int64
 	p, _ := upstream(t, func(w http.ResponseWriter, r *http.Request) {
 		n, _ := io.Copy(io.Discard, r.Body)
 		got.Store(n)
 	})
 	rt := route(t, `{"upstream":"https://example.com/up","methods":["POST"]}`)
-	// Unknown length: streamed through the cap, refused once past it.
+	// Unknown length: read through the cap, refused once past it.
 	req := httptest.NewRequest("POST", "/x", io.MultiReader(bytes.NewReader(make([]byte, MaxRequestBytes)), strings.NewReader("over")))
 	req.ContentLength = -1
 	if rec := call(p, rt, req, ""); rec.Code == 200 {
@@ -458,5 +460,179 @@ func TestForwardAppliesBodyRules(t *testing.T) {
 	big := `{"x":"` + strings.Repeat("a", MaxRuleBodyBytes) + `"}`
 	if rec := call(p, rt, httptest.NewRequest("POST", "/x", strings.NewReader(big)), ""); rec.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("oversized rule body: %d", rec.Code)
+	}
+}
+
+// slowProxy is upstream with its own options: a TLS server answering as
+// example.com and its subdomains, and a proxy built with o.
+func slowProxy(t *testing.T, o Options, h http.HandlerFunc) *Proxy {
+	t.Helper()
+	srv := httptest.NewTLSServer(h)
+	t.Cleanup(srv.Close)
+	pool := x509.NewCertPool()
+	pool.AddCert(srv.Certificate())
+	_, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	o.Resolve, o.AllowAddr, o.DialPort, o.RootCAs = fixedResolve("127.0.0.1"), func(netip.Addr) bool { return true }, port, pool
+	if o.Timeout == 0 {
+		o.Timeout = 5 * time.Second
+	}
+	return New(o)
+}
+
+func TestForwardReadsBodyBeforeTakingASlot(t *testing.T) {
+	p := slowProxy(t, Options{InFlight: 1, BodyTimeout: 300 * time.Millisecond}, func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(io.Discard, r.Body)
+	})
+	rt := route(t, `{"upstream":"https://example.com/up","methods":["POST"]}`)
+	front := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p.Forward(w, r, Call{Route: rt, Tenant: r.URL.Query().Get("t"), Label: "t"})
+	}))
+	defer front.Close()
+	// A client that promises 100 bytes and sends 5, then stalls.
+	conn, err := net.Dial("tcp", front.Listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	start := time.Now()
+	fmt.Fprintf(conn, "POST /?t=slow HTTP/1.1\r\nHost: x\r\nContent-Length: 100\r\n\r\nhello")
+	time.Sleep(50 * time.Millisecond)
+	// The only slot is free while the slow body trickles in.
+	res, err := http.Post(front.URL+"/?t=fast", "text/plain", strings.NewReader("hi"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != 200 {
+		t.Fatalf("a call while another body was being read: %d", res.StatusCode)
+	}
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	line, _ := io.ReadAll(io.LimitReader(conn, 12))
+	if !strings.HasPrefix(string(line), "HTTP/1.1 408") {
+		t.Fatalf("stalled body answered %q", line)
+	}
+	if d := time.Since(start); d > 3*time.Second {
+		t.Fatalf("stalled body held for %v", d)
+	}
+}
+
+func TestForwardCapsPerUpstreamSite(t *testing.T) {
+	release := make(chan struct{})
+	started := make(chan struct{}, 4)
+	p := slowProxy(t, Options{InFlight: 10, InFlightPerTenant: 10, InFlightPerHost: 2}, func(w http.ResponseWriter, r *http.Request) {
+		started <- struct{}{}
+		<-release
+	})
+	defer close(release)
+	callTo := func(host, tenant string) chan int {
+		rt := route(t, `{"upstream":"https://`+host+`/slow","methods":["GET"]}`)
+		ch := make(chan int, 1)
+		go func() {
+			rec := httptest.NewRecorder()
+			p.Forward(rec, httptest.NewRequest("GET", "/x", nil), Call{Route: rt, Tenant: tenant, Label: "t"})
+			ch <- rec.Code
+		}()
+		return ch
+	}
+	callTo("a.example.com", "t1")
+	callTo("b.example.com", "t2")
+	<-started
+	<-started
+	// Another subdomain of the same site, from another workspace, is held
+	// by the site's cap.
+	if code := <-callTo("c.example.com", "t3"); code != http.StatusServiceUnavailable {
+		t.Fatalf("third call to one site: %d", code)
+	}
+	if siteOf("API.OpenAI.com.") != "openai.com" || siteOf("x.github.io") != "x.github.io" {
+		t.Fatalf("siteOf: %q %q", siteOf("API.OpenAI.com."), siteOf("x.github.io"))
+	}
+}
+
+func TestForwardAdmitsOnlyCallsThatHoldASlot(t *testing.T) {
+	release := make(chan struct{})
+	started := make(chan struct{}, 2)
+	var hits atomic.Int32
+	p := slowProxy(t, Options{InFlight: 1}, func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if r.URL.Path == "/slow" {
+			started <- struct{}{}
+			<-release
+		}
+	})
+	var admitted atomic.Int32
+	admit := func() *apierr.Error { admitted.Add(1); return nil }
+	slow := route(t, `{"upstream":"https://example.com/slow","methods":["GET"]}`)
+	rules := route(t, `{"upstream":"https://example.com/fast","methods":["POST"],"body":{"pin":{"model":"m"}}}`)
+	done := make(chan int, 1)
+	go func() {
+		rec := httptest.NewRecorder()
+		p.Forward(rec, httptest.NewRequest("GET", "/x", nil), Call{Route: slow, Admit: admit})
+		done <- rec.Code
+	}()
+	<-started
+	rec := httptest.NewRecorder()
+	p.Forward(rec, httptest.NewRequest("POST", "/x", strings.NewReader(`{}`)), Call{Route: rules, Admit: admit})
+	if rec.Code != http.StatusServiceUnavailable || admitted.Load() != 1 {
+		t.Fatalf("busy call: %d, admitted %d", rec.Code, admitted.Load())
+	}
+	close(release)
+	<-done
+	rec = httptest.NewRecorder()
+	p.Forward(rec, httptest.NewRequest("POST", "/x", strings.NewReader(`not json`)), Call{Route: rules, Admit: admit})
+	if rec.Code != 400 || admitted.Load() != 1 {
+		t.Fatalf("bad body: %d, admitted %d", rec.Code, admitted.Load())
+	}
+	refuse := func() *apierr.Error { return apierr.RateLimited(60) }
+	before := hits.Load()
+	rec = httptest.NewRecorder()
+	p.Forward(rec, httptest.NewRequest("POST", "/x", strings.NewReader(`{}`)), Call{Route: rules, Admit: refuse})
+	if rec.Code != 429 || hits.Load() != before {
+		t.Fatalf("refused admit: %d, upstream hit %v", rec.Code, hits.Load() != before)
+	}
+	rec = httptest.NewRecorder()
+	p.Forward(rec, httptest.NewRequest("POST", "/x", strings.NewReader(`{}`)), Call{Route: rules, Admit: admit})
+	if rec.Code != 200 || admitted.Load() != 2 {
+		t.Fatalf("good call: %d, admitted %d", rec.Code, admitted.Load())
+	}
+}
+
+func TestForwardAppliesBodyRulesToEveryMethod(t *testing.T) {
+	var got []byte
+	var gotLen int64
+	p, _ := upstream(t, func(w http.ResponseWriter, r *http.Request) { got, _ = io.ReadAll(r.Body); gotLen = r.ContentLength })
+	rt := route(t, `{"upstream":"https://example.com/x","methods":["POST","DELETE"],"body":{"pin":{"model":"cheap"}}}`)
+	if rec := call(p, rt, httptest.NewRequest("DELETE", "/x", strings.NewReader(`{"model":"pricey","id":1}`)), ""); rec.Code != 200 {
+		t.Fatal(rec.Code)
+	}
+	if !strings.Contains(string(got), `"model":"cheap"`) {
+		t.Fatalf("DELETE body skipped the rules: %s", got)
+	}
+	req := httptest.NewRequest("DELETE", "/x", strings.NewReader(`not json`))
+	if rec := call(p, rt, req, ""); rec.Code != 400 {
+		t.Fatalf("DELETE with a bad body: %d", rec.Code)
+	}
+	got = []byte("unset")
+	if rec := call(p, rt, httptest.NewRequest("DELETE", "/x", nil), ""); rec.Code != 200 || len(got) != 0 || gotLen != 0 {
+		t.Fatalf("DELETE without a body: %d %q", rec.Code, got)
+	}
+	// A POST to a route with rules must carry a body for them to apply to.
+	if rec := call(p, rt, httptest.NewRequest("POST", "/x", nil), ""); rec.Code != 400 {
+		t.Fatalf("POST without a body: %d", rec.Code)
+	}
+}
+
+func TestBufferedBodyBudget(t *testing.T) {
+	p := New(Options{})
+	r1, ok := p.reserve(MaxBufferedBytes - 10)
+	if !ok {
+		t.Fatal("first reservation")
+	}
+	if _, ok := p.reserve(11); ok {
+		t.Fatal("over the budget")
+	}
+	r1()
+	r1()
+	if _, ok := p.reserve(MaxBufferedBytes); !ok || p.buffered != MaxBufferedBytes {
+		t.Fatalf("release did not return the bytes once: %d", p.buffered)
 	}
 }

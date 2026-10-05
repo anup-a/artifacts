@@ -326,8 +326,8 @@ take no auth; the artifact id is the capability.
 Errors: `{"error":{"code","message","request_id"}}`. Codes:
 `INVALID_ARGUMENT` 400, `UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404,
 `CONFLICT` 409, `GONE` 410, `PAYLOAD_TOO_LARGE` 413, `RATE_LIMITED` 429, `QUOTA_EXCEEDED` 429,
-`INTERNAL` 500, and on proxy routes `METHOD_NOT_ALLOWED` 405, `BAD_GATEWAY` 502 and
-`GATEWAY_TIMEOUT` 504. Every response carries `X-Request-Id`.
+`INTERNAL` 500, and on proxy routes `METHOD_NOT_ALLOWED` 405, `REQUEST_TIMEOUT` 408,
+`BAD_GATEWAY` 502, `UNAVAILABLE` 503 and `GATEWAY_TIMEOUT` 504. Every response carries `X-Request-Id`.
 
 Limits (managed free tier): 25 MB per version, 500 files, 10 publishes/min
 per key, 200 artifacts per tenant, 20 versions kept, 2 KB comment body,
@@ -370,7 +370,13 @@ exact, or a prefix ending in `/*`, with letters, digits and `-._~` only;
 without it the route is the upstream URL alone), and `body` (optional rules for
 a JSON object body: `"pin": {"model": "x"}` sets fields whatever the caller
 sent, `"max": {"max_tokens": 1024}` caps numbers and fills them in when
-missing; such bodies are read whole, up to 1 MB). A top-level
+missing, and `"allow_only": ["messages", "stream"]` turns on strict mode,
+refusing (400) a body with any top-level field that is not pinned, capped or
+listed; such bodies are limited to 1 MB and apply to every method, so a
+route with rules needs a JSON object body except on a DELETE sent without
+one). Without `allow_only`, `pin` and `max` constrain only the fields they
+name: a visitor can add others the upstream bills for, such as `n`,
+`max_completion_tokens` or `tools`. A top-level
 `limit_per_hour` sets the owner's own cap on calls to the page's routes (the
 server's per-page limit still applies). Unknown fields are errors. The file is
 at most 64 KB. Publishing an invalid manifest fails with 400 naming the
@@ -411,14 +417,18 @@ Security rules, all enforced on the server:
   hop-by-hop, CORS and forwarding headers never cross. Answers carry
   `Cache-Control: no-store` and a sandboxing CSP, and an upstream that echoes a
   secret has it replaced with `[redacted]`.
-- Request bodies up to 4 MB, streamed through rather than buffered; answers up
-  to 10 MB; 60 s per call, and the upstream must start answering within 20 s.
-  At most 128 calls run at once across the server and 16 per workspace; past
-  that a call gets 503 with `Retry-After`. Calls are metered per client
+- Request bodies up to 4 MB, read whole within 10 s (408 otherwise) before
+  the call takes a slot, so a client sending slowly holds no slot; at most
+  128 MB of bodies are held at once. Answers up to 10 MB; 60 s per call, and
+  the upstream must start answering within 20 s. At most 128 calls run at
+  once across the server, 16 per workspace and 32 per upstream site (its
+  registrable domain, so subdomains share one cap); past that a call gets 503
+  with `Retry-After`. Calls are metered per client
   address (`LIMIT_PROXY_PER_IP_PER_HOUR`, default 100; IPv6 clients by their
   /64) and per page (`LIMIT_PROXY_PER_PAGE_PER_HOUR`, default 1000, or the
   manifest's lower `limit_per_hour`). Only calls that reach a real route and
-  method spend the page's budget.
+  method, resolve their variables, pass the body rules and get a slot spend
+  the page's budget; a 503 for a busy server costs nothing.
 - Browsers may call a route only from its own origin: a cross-site
   `Sec-Fetch-Site` or a foreign `Origin` gets 403.
 - Methods are limited to what the route declares (405 otherwise), and sub-paths
@@ -438,6 +448,23 @@ Security rules, all enforced on the server:
 
 Anyone who can open a page can call its routes. The server keeps the key
 secret, not the endpoint, so set a spending limit on keys used this way.
+
+Limits of these protections, worth knowing before storing a key:
+
+- The same-origin check keeps other sites from calling a page's routes, but
+  until per-page origins are on (`CONTENT_DOMAIN`, each page on its own
+  host) every page shares the share origin, so a script on one page can call
+  another page's routes as if it were that page. The per-page budget and
+  limits still apply; isolation between pages comes only with per-page
+  origins.
+- Redaction replaces only exact copies of a secret in an answer. An upstream
+  that returns it encoded (base64, URL- or JSON-escaped, split, hashed) gets
+  it through. The real protection is pinning each variable to the hosts it
+  belongs to, so it is never sent anywhere that would echo it.
+- Store keys that can only do what the page needs: a scoped, spend-limited
+  key for one API. Never store provisioning, management or admin keys (ones
+  that create other keys, change billing or manage an account): a visitor
+  can use whatever the route lets through.
 
 ## Comments runtime
 

@@ -117,7 +117,11 @@ func main() {
 		close(flushed)
 	}()
 	log.Info("listening", "addr", cfg.Addr, "db", cfg.DB, "storage", cfg.Storage, "web", cfg.WebEnabled())
-	srv := &http.Server{Addr: cfg.Addr, Handler: h, ReadHeaderTimeout: 10 * time.Second}
+	// Headers must arrive within 10 s and an idle keep-alive connection is
+	// closed after 2 min. There is no whole-request ReadTimeout: a publish
+	// upload on a slow link can rightly take minutes. Handlers that must not
+	// wait on a slow body set their own deadline (proxy routes: 10 s).
+	srv := &http.Server{Addr: cfg.Addr, Handler: h, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)

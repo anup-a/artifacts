@@ -37,6 +37,9 @@ func Internal(err error) *Error     { return &Error{"INTERNAL", 500, "internal e
 // BadGateway and GatewayTimeout report a proxy route's upstream failing.
 func BadGateway(msg string) *Error     { return &Error{"BAD_GATEWAY", 502, msg, 0, nil} }
 func GatewayTimeout(msg string) *Error { return &Error{"GATEWAY_TIMEOUT", 504, msg, 0, nil} }
+
+// RequestTimeout reports a client that did not send its request body in time.
+func RequestTimeout(msg string) *Error { return &Error{"REQUEST_TIMEOUT", 408, msg, 0, nil} }
 func MethodNotAllowed(msg string) *Error {
 	return &Error{"METHOD_NOT_ALLOWED", 405, msg, 0, nil}
 }

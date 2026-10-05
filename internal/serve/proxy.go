@@ -137,13 +137,6 @@ func (h *Handler) ServeProxy(w http.ResponseWriter, r *http.Request, id, rest st
 		apierr.Write(w, r, apierr.MethodNotAllowed("route "+name+" accepts "+strings.Join(route.Methods, ", ")))
 		return
 	}
-	// Only a call that reaches a real route spends the page's budget, so
-	// probing missing routes cannot use it up. The owner's own cap in the
-	// manifest applies when it is lower than the server's.
-	if ok, retry := rt.PerPage.AllowMax("page:"+a.ID, m.LimitPerHour); !ok {
-		apierr.Write(w, r, apierr.RateLimited(retry))
-		return
-	}
 	label := a.ID + "/" + name
 	have := map[string]proxy.Secret{}
 	if names := route.Vars(); len(names) > 0 {
@@ -160,7 +153,18 @@ func (h *Handler) ServeProxy(w http.ResponseWriter, r *http.Request, id, rest st
 		apierr.Write(w, r, apierr.BadGateway("route unavailable"))
 		return
 	}
-	rt.Proxy.Forward(w, r, proxy.Call{Route: route, Sub: sub, Secrets: vals, Label: label, Tenant: a.TenantID})
+	// Only a call that reaches a real route, resolves its variables, sends
+	// a body the route accepts and gets a slot spends the page's budget, so
+	// probing missing routes or calling while the server is busy cannot use
+	// it up. The owner's own cap in the manifest applies when it is lower
+	// than the server's.
+	admit := func() *apierr.Error {
+		if ok, retry := rt.PerPage.AllowMax("page:"+a.ID, m.LimitPerHour); !ok {
+			return apierr.RateLimited(retry)
+		}
+		return nil
+	}
+	rt.Proxy.Forward(w, r, proxy.Call{Route: route, Sub: sub, Secrets: vals, Label: label, Tenant: a.TenantID, Admit: admit})
 }
 
 // sameOrigin refuses calls a browser makes from another site. Without it any

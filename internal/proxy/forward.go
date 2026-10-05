@@ -12,11 +12,13 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
+	"golang.org/x/net/publicsuffix"
 )
 
 // Limits on one proxied call.
@@ -32,10 +34,20 @@ const (
 	Timeout        = 60 * time.Second
 	headerTimeout  = 20 * time.Second
 	maxHeaderBytes = 64 << 10
-	// MaxInFlight and MaxInFlightPerTenant cap concurrent calls, server-wide
-	// and per workspace, so slow upstreams cannot pin every connection.
+	// BodyTimeout bounds reading the visitor's request body. The body is
+	// read before the call takes a slot, so a client that trickles it in
+	// holds nothing but its own connection, and only for this long.
+	BodyTimeout = 10 * time.Second
+	// MaxBufferedBytes bounds the request bodies held in memory at once,
+	// counted at their declared length or, when unknown, at the cap. Past it
+	// a call gets 503.
+	MaxBufferedBytes = 128 << 20
+	// MaxInFlight, MaxInFlightPerTenant and MaxInFlightPerHost cap
+	// concurrent calls server-wide, per workspace and per upstream site (its
+	// registrable domain), so slow upstreams cannot pin every connection.
 	MaxInFlight          = 128
 	MaxInFlightPerTenant = 16
+	MaxInFlightPerHost   = 32
 )
 
 // LoopHeader marks requests this server sends upstream. One arriving here is
@@ -52,33 +64,42 @@ type Options struct {
 	RootCAs   *x509.CertPool
 	// Timeout replaces the whole-call Timeout, so tests need not wait it out.
 	Timeout time.Duration
-	// InFlight and InFlightPerTenant replace the concurrency caps.
-	InFlight, InFlightPerTenant int
+	// BodyTimeout replaces the request body deadline.
+	BodyTimeout time.Duration
+	// InFlight, InFlightPerTenant and InFlightPerHost replace the
+	// concurrency caps.
+	InFlight, InFlightPerTenant, InFlightPerHost int
 }
 
 // Proxy forwards route calls. It is safe for concurrent use.
 type Proxy struct {
-	client  *http.Client
-	timeout time.Duration
+	client      *http.Client
+	timeout     time.Duration
+	bodyTimeout time.Duration
 
 	mu        sync.Mutex
 	inFlight  int
 	perTenant map[string]int
+	perHost   map[string]int
 	maxAll    int
 	maxTenant int
+	maxHost   int
+	buffered  int64
 }
 
-// acquire takes a slot for one call, or reports that the server or the
-// workspace is at its cap. It never waits: a caller over the cap is told to
-// come back, not queued.
-func (p *Proxy) acquire(tenant string) (release func(), ok bool) {
+// acquire takes a slot for one call, or reports that the server, the
+// workspace or the upstream site is at its cap. It never waits: a caller
+// over the cap is told to come back, not queued.
+func (p *Proxy) acquire(tenant, host string) (release func(), ok bool) {
+	site := siteOf(host)
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.inFlight >= p.maxAll || p.perTenant[tenant] >= p.maxTenant {
+	if p.inFlight >= p.maxAll || p.perTenant[tenant] >= p.maxTenant || p.perHost[site] >= p.maxHost {
 		return nil, false
 	}
 	p.inFlight++
 	p.perTenant[tenant]++
+	p.perHost[site]++
 	return func() {
 		p.mu.Lock()
 		defer p.mu.Unlock()
@@ -86,6 +107,37 @@ func (p *Proxy) acquire(tenant string) (release func(), ok bool) {
 		if p.perTenant[tenant]--; p.perTenant[tenant] <= 0 {
 			delete(p.perTenant, tenant)
 		}
+		if p.perHost[site]--; p.perHost[site] <= 0 {
+			delete(p.perHost, site)
+		}
+	}, true
+}
+
+// siteOf is the registrable domain of an upstream host ("api.openai.com"
+// is "openai.com"), so one owner's many subdomains share one cap.
+func siteOf(host string) string {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	if d, err := publicsuffix.EffectiveTLDPlusOne(host); err == nil {
+		return d
+	}
+	return host
+}
+
+// reserve claims n bytes of the buffered-body budget.
+func (p *Proxy) reserve(n int64) (release func(), ok bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.buffered+n > MaxBufferedBytes {
+		return nil, false
+	}
+	p.buffered += n
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			p.mu.Lock()
+			p.buffered -= n
+			p.mu.Unlock()
+		})
 	}, true
 }
 
@@ -118,19 +170,27 @@ func New(o Options) *Proxy {
 	if timeout <= 0 {
 		timeout = Timeout
 	}
-	maxAll, maxTenant := o.InFlight, o.InFlightPerTenant
+	bodyTimeout := o.BodyTimeout
+	if bodyTimeout <= 0 {
+		bodyTimeout = BodyTimeout
+	}
+	maxAll, maxTenant, maxHost := o.InFlight, o.InFlightPerTenant, o.InFlightPerHost
 	if maxAll <= 0 {
 		maxAll = MaxInFlight
 	}
 	if maxTenant <= 0 {
 		maxTenant = MaxInFlightPerTenant
 	}
-	return &Proxy{timeout: timeout, maxAll: maxAll, maxTenant: maxTenant, perTenant: map[string]int{}, client: &http.Client{
-		Transport: tr,
-		// A redirect could lead anywhere, including somewhere the variable is
-		// not pinned to. It is answered as an error, never followed.
-		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
-	}}
+	if maxHost <= 0 {
+		maxHost = MaxInFlightPerHost
+	}
+	return &Proxy{timeout: timeout, bodyTimeout: bodyTimeout, maxAll: maxAll, maxTenant: maxTenant, maxHost: maxHost,
+		perTenant: map[string]int{}, perHost: map[string]int{}, client: &http.Client{
+			Transport: tr,
+			// A redirect could lead anywhere, including somewhere the variable is
+			// not pinned to. It is answered as an error, never followed.
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		}}
 }
 
 // requestHeaders are the only headers a visitor's browser may pass upstream.
@@ -163,35 +223,53 @@ type Call struct {
 	Label string
 	// Tenant is the workspace the page belongs to, for the concurrency cap.
 	Tenant string
+	// Admit, when set, runs once the call holds a slot and just before it
+	// goes upstream: the place to spend a budget, so a call refused as busy
+	// or for a bad body costs nothing. An error it returns is the answer.
+	Admit func() *apierr.Error
 }
 
 // Forward sends the visitor's request upstream and streams the answer back.
 // Secrets appear only in the upstream request; errors and logs never carry
 // them, and an upstream that echoes one has it replaced in the response.
 func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, c Call) {
-	release, ok := p.acquire(c.Tenant)
+	// The body comes in first, whole and under a deadline, and only then
+	// does the call take a slot: a client that sends it slowly cannot hold
+	// slots that other pages' calls need.
+	body, unbuffer, e := p.requestBody(w, r, c)
+	if e != nil {
+		if e.Status == http.StatusServiceUnavailable {
+			w.Header().Set("Retry-After", "5")
+		}
+		apierr.Write(w, r, e)
+		return
+	}
+	defer unbuffer()
+	release, ok := p.acquire(c.Tenant, c.Route.Upstream.Hostname())
 	if !ok {
 		w.Header().Set("Retry-After", "5")
 		apierr.Write(w, r, apierr.Unavailable("route busy, try again shortly"))
 		return
 	}
 	defer release()
+	if c.Admit != nil {
+		if e := c.Admit(); e != nil {
+			apierr.Write(w, r, e)
+			return
+		}
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), p.timeout)
 	defer cancel()
-	body, length, e := c.requestBody(w, r)
-	if e != nil {
-		apierr.Write(w, r, e)
-		return
-	}
 	target := c.target(r.URL.Query())
-	out, err := http.NewRequestWithContext(ctx, r.Method, target, body)
+	out, err := http.NewRequestWithContext(ctx, r.Method, target, http.NoBody)
 	if err != nil {
 		apierr.Write(w, r, apierr.Internal(errors.New("proxy: building the upstream request failed")))
 		return
 	}
-	out.ContentLength = length
-	if body == nil {
-		out.Body = http.NoBody
+	if body != nil {
+		out.Body = io.NopCloser(bytes.NewReader(body))
+		out.ContentLength = int64(len(body))
+		out.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
 	}
 	for _, h := range requestHeaders {
 		if v := r.Header.Values(h); len(v) > 0 {
@@ -205,6 +283,8 @@ func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, c Call) {
 	out.Header.Set(LoopHeader, "1")
 	start := time.Now()
 	resp, err := p.client.Do(out)
+	// The body has gone upstream; its bytes no longer count as held.
+	unbuffer()
 	if err != nil {
 		p.upstreamError(w, r, c, err)
 		return
@@ -282,41 +362,83 @@ func (c Call) target(visitor url.Values) string {
 	return u.String()
 }
 
-// requestBody is what goes upstream: nothing for GET, the body rewritten by
-// the route's rules when it has any (read whole, at most MaxRuleBodyBytes),
-// and otherwise the visitor's body streamed through a size cap, never
-// buffered. length is -1 when unknown.
-func (c Call) requestBody(w http.ResponseWriter, r *http.Request) (io.Reader, int64, *apierr.Error) {
-	if r.Method == http.MethodGet || r.Body == nil || r.Body == http.NoBody {
-		return nil, 0, nil
+// requestBody reads what goes upstream, whole, before the call takes a slot:
+// nothing for GET; for a route with body rules, the body rewritten by them
+// (at most MaxRuleBodyBytes, whatever the method, and required unless the
+// method is DELETE); otherwise the visitor's body as sent, at most
+// MaxRequestBytes. The read must finish within the body deadline. unbuffer
+// returns the bytes to the buffered budget and is safe to call twice.
+func (p *Proxy) requestBody(w http.ResponseWriter, r *http.Request, c Call) (body []byte, unbuffer func(), e *apierr.Error) {
+	none := func() {}
+	if r.Method == http.MethodGet {
+		return nil, none, nil
 	}
-	if c.Route.Body != nil && r.Method != http.MethodDelete {
-		if r.ContentLength > MaxRuleBodyBytes {
-			return nil, 0, apierr.TooLarge("request body is larger than 1 MB")
+	limit, what := int64(MaxRequestBytes), "4 MB"
+	if c.Route.Body != nil {
+		limit, what = MaxRuleBodyBytes, "1 MB"
+	}
+	var raw []byte
+	if r.Body != nil && r.Body != http.NoBody {
+		if r.ContentLength > limit {
+			return nil, none, apierr.TooLarge("request body is larger than " + what)
 		}
-		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, MaxRuleBodyBytes))
+		hold := limit
+		if r.ContentLength >= 0 {
+			hold = r.ContentLength
+		}
+		release, ok := p.reserve(hold)
+		if !ok {
+			return nil, none, apierr.Unavailable("route busy, try again shortly")
+		}
+		// Not every ResponseWriter supports deadlines (test recorders do
+		// not); the server's own timeouts still apply then.
+		rc := http.NewResponseController(w)
+		_ = rc.SetReadDeadline(time.Now().Add(p.bodyTimeout))
+		var err error
+		raw, err = io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 		if err != nil {
-			return nil, 0, apierr.TooLarge("request body is larger than 1 MB")
+			// The deadline stays: the server then gives up on the rest of
+			// the body at once instead of waiting to drain it.
+			release()
+			var mbe *http.MaxBytesError
+			var ne net.Error
+			switch {
+			case errors.As(err, &mbe):
+				return nil, none, apierr.TooLarge("request body is larger than " + what)
+			case errors.Is(err, os.ErrDeadlineExceeded) || (errors.As(err, &ne) && ne.Timeout()):
+				return nil, none, apierr.RequestTimeout("the request body did not arrive in time")
+			default:
+				return nil, none, apierr.Invalid("the request body could not be read")
+			}
+		}
+		// Lifted again so the server's watch for the client going away
+		// does not take the passed deadline for a closed connection.
+		_ = rc.SetReadDeadline(time.Time{})
+		unbuffer = release
+	} else {
+		unbuffer = none
+	}
+	if c.Route.Body != nil {
+		if len(raw) == 0 && r.Method == http.MethodDelete {
+			return nil, unbuffer, nil
 		}
 		out, err := c.Route.Body.ApplyBody(raw)
 		if err != nil {
-			return nil, 0, apierr.Invalid(err.Error())
+			unbuffer()
+			return nil, none, apierr.Invalid(err.Error())
 		}
-		return bytes.NewReader(out), int64(len(out)), nil
+		return out, unbuffer, nil
 	}
-	if r.ContentLength > MaxRequestBytes {
-		return nil, 0, apierr.TooLarge("request body is larger than 4 MB")
+	if len(raw) == 0 {
+		return nil, unbuffer, nil
 	}
-	return http.MaxBytesReader(w, r.Body, MaxRequestBytes), r.ContentLength, nil
+	return raw, unbuffer, nil
 }
 
 func (p *Proxy) upstreamError(w http.ResponseWriter, r *http.Request, c Call, err error) {
 	slog.Warn("proxy upstream failed", "call", c.Label, "host", c.Route.Upstream.Host, "err", safeErr(err))
 	var ne net.Error
-	var mbe *http.MaxBytesError
 	switch {
-	case errors.As(err, &mbe):
-		apierr.Write(w, r, apierr.TooLarge("request body is larger than 4 MB"))
 	case errors.Is(err, errBlocked):
 		// The host is the owner's business; a visitor learns only that the
 		// route does not work.
