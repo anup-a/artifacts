@@ -102,6 +102,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/artifacts/{id}/comments-enabled", h.private(h.setCommentsEnabled))
 	mux.HandleFunc("POST /app/artifacts/{id}/visibility", h.private(h.setVisibility))
 	mux.HandleFunc("POST /app/artifacts/{id}/share-code", h.private(h.setShareCode))
+	mux.HandleFunc("POST /app/artifacts/{id}/access", h.private(h.setAccess))
 	mux.HandleFunc("POST /app/artifacts/{id}/meta", h.private(h.setMetadata))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/resolve", h.private(h.resolveThread))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments/{thread}/reply", h.private(h.replyThread))
@@ -224,10 +225,17 @@ func (h *Handler) GateArtifactAccess(w http.ResponseWriter, r *http.Request, g s
 	status := http.StatusOK
 	if g.Locked {
 		status = http.StatusTooManyRequests
-	} else if g.Wrong {
+	} else if g.Wrong || g.Expired {
 		status = http.StatusForbidden
 	}
-	p := page{Title: "Enter the code", Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: g}
+	title := "Enter the code"
+	switch g.Kind {
+	case "password":
+		title = "Enter the password"
+	case "email":
+		title = "Shared with specific people"
+	}
+	p := page{Title: title, Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: g}
 	var buf bytes.Buffer
 	if err := pages["gate"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
 		http.Error(w, "This artifact needs a code.", status)

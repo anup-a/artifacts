@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -17,6 +18,16 @@ func (s *server) viewerLimit(w http.ResponseWriter, r *http.Request) bool {
 		apierr.Write(w, r, apierr.RateLimited(retry))
 	}
 	return ok
+}
+
+// viewerName is the author a viewer comment is signed with. On a restricted
+// page that is the address the visitor proved, whatever name they typed: the
+// owner let in people, not pseudonyms, and the address cannot be forged.
+func (s *server) viewerName(r *http.Request, a store.Artifact, typed string) (string, *apierr.Error) {
+	if email := serve.VisitorEmail(r, a, s.Cfg.KeySecret); email != "" {
+		return email, nil
+	}
+	return s.validName(typed)
 }
 
 func (s *server) viewerCreateThread(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +53,7 @@ func (s *server) viewerCreateThread(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	name, e := s.validName(in.AuthorName)
+	name, e := s.viewerName(r, a, in.AuthorName)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -120,7 +131,7 @@ func (s *server) viewerReply(w http.ResponseWriter, r *http.Request) {
 	if !s.viewerLimit(w, r) {
 		return
 	}
-	_, t, e := s.viewerThread(r)
+	a, t, e := s.viewerThread(r)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -133,7 +144,7 @@ func (s *server) viewerReply(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	name, e := s.validName(in.AuthorName)
+	name, e := s.viewerName(r, a, in.AuthorName)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return

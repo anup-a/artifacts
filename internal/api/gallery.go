@@ -11,6 +11,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/cover"
+	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -183,7 +184,7 @@ func (s *server) galleryFields(a store.Artifact) map[string]any {
 	return map[string]any{
 		"project": a.Project, "tags": tags, "cover": a.CoverPath,
 		"cover_url": s.artifactViewURL(a) + "_cover.svg", "cover_style": style, "visibility": a.Visibility,
-		"expires_at": a.ExpiresAt,
+		"expires_at": a.ExpiresAt, "access": serve.ModeOf(a),
 	}
 }
 

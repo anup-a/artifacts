@@ -1,24 +1,81 @@
 {{define "content"}}
+{{$d := .Data}}
 <div class="auth-split">
   {{template "auth-stage"}}
   <section class="auth-panel">
     <span class="brand auth-brand">{{template "icon" "mark"}}<span>byagent</span></span>
     <div class="auth-body">
+    {{if eq $d.Kind "password"}}
+      <h1>Enter the password</h1>
+      {{if $d.Locked}}
+        <p>Too many wrong passwords have been tried for this page. Wait a few minutes, then try again.</p>
+        <p class="muted">If you do not have the password, ask whoever shared the link.</p>
+      {{else}}
+        <p>This page is protected with a password.</p>
+        <form method="post" action="/a/{{$d.ArtifactID}}/_unlock" class="gate-form">
+          <input type="password" name="password" autocomplete="current-password" maxlength="512" required autofocus
+                 aria-label="Password" placeholder="Password" class="gate-code gate-text{{if $d.Wrong}} is-wrong{{end}}">
+          <button type="submit" class="btn primary">Open</button>
+        </form>
+        {{if $d.Wrong}}<p class="gate-error" role="alert">That password did not match. Try again.</p>{{end}}
+        <p class="muted">The password opens this page only. You will not need it again on this device for a while.</p>
+      {{end}}
+    {{else if eq $d.Kind "email"}}
+      <h1>{{if $d.Token}}Open the page{{else if $d.Sent}}Check your email{{else}}Who are you?{{end}}</h1>
+      {{if $d.NoMail}}
+        <p>This page is shared with specific people, and this server cannot send the email that lets them in.</p>
+        <p class="muted">Ask whoever shared the link to share it another way.</p>
+      {{else if $d.Locked}}
+        <p>Too many tries for this page from here. Wait a few minutes, then try again.</p>
+      {{else if $d.Token}}
+        <p>Continue as <strong>{{$d.Email}}</strong>.</p>
+        <form method="post" action="/a/{{$d.ArtifactID}}/_access/link" class="gate-form">
+          <input type="hidden" name="t" value="{{$d.Token}}">
+          <button type="submit" class="btn primary">Open the page</button>
+        </form>
+      {{else if $d.Sent}}
+        <p>If <strong>{{$d.Email}}</strong> can open this page, we sent it a six-digit code. Enter it here, or open the link in the email.</p>
+        <form method="post" action="/a/{{$d.ArtifactID}}/_access/code" class="gate-form">
+          <input type="hidden" name="email" value="{{$d.Email}}">
+          <input type="text" name="code" inputmode="numeric" pattern="[0-9 -]*" autocomplete="one-time-code"
+                 maxlength="12" required autofocus aria-label="Six-digit code" placeholder="000000"
+                 class="gate-code{{if $d.Wrong}} is-wrong{{end}}">
+          <button type="submit" class="btn primary">Open</button>
+        </form>
+        {{if $d.Wrong}}<p class="gate-error" role="alert">That code did not work. Check the digits, or ask for a new code.</p>{{end}}
+        <form method="post" action="/a/{{$d.ArtifactID}}/_access/email" class="gate-resend">
+          <input type="hidden" name="email" value="{{$d.Email}}">
+          <button type="submit" class="btn small">Send a new code</button>
+        </form>
+        <p class="muted">The code works once and for 15 minutes. You do not need an account.</p>
+      {{else}}
+        {{if $d.Expired}}<p class="gate-error" role="alert">That link has expired or was already used. Ask for a new code below.</p>{{end}}
+        <p>This page is shared with specific people. Enter your email address and we will send you a code to open it.</p>
+        <form method="post" action="/a/{{$d.ArtifactID}}/_access/email" class="gate-form">
+          <input type="email" name="email" autocomplete="email" maxlength="254" required autofocus
+                 aria-label="Email address" placeholder="you@example.com" class="gate-code gate-text{{if $d.Wrong}} is-wrong{{end}}">
+          <button type="submit" class="btn primary">Send code</button>
+        </form>
+        {{if $d.Wrong}}<p class="gate-error" role="alert">Enter a valid email address.</p>{{end}}
+        <p class="muted">You do not need an account. Only addresses the owner allowed can get in.</p>
+      {{end}}
+    {{else}}
       <h1>Enter the code</h1>
-      {{if .Data.Locked}}
+      {{if $d.Locked}}
         <p>Too many wrong codes have been tried for this artifact. Wait a few minutes, then try again.</p>
         <p class="muted">If you do not have the code, ask whoever shared the link.</p>
       {{else}}
         <p>This artifact was shared with a code. Enter the six digits you were sent.</p>
-        <form method="post" action="/a/{{.Data.ArtifactID}}/_unlock" class="gate-form">
+        <form method="post" action="/a/{{$d.ArtifactID}}/_unlock" class="gate-form">
           <input type="text" name="code" inputmode="numeric" pattern="[0-9 -]*" autocomplete="one-time-code"
                  maxlength="12" required autofocus aria-label="Six-digit code" placeholder="000000"
-                 class="gate-code{{if .Data.Wrong}} is-wrong{{end}}">
+                 class="gate-code{{if $d.Wrong}} is-wrong{{end}}">
           <button type="submit" class="btn primary">Open</button>
         </form>
-        {{if .Data.Wrong}}<p class="gate-error" role="alert">That code did not match. Check the digits and try again.</p>{{end}}
+        {{if $d.Wrong}}<p class="gate-error" role="alert">That code did not match. Check the digits and try again.</p>{{end}}
         <p class="muted">The code opens this artifact only. You will not need it again on this device for a while.</p>
       {{end}}
+    {{end}}
     </div>
   </section>
 </div>

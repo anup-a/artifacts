@@ -67,6 +67,17 @@ type Artifact struct {
 	// ExpiresAt is set on pages of an unclaimed guest workspace. Once it has
 	// passed, the store reads the artifact back as deleted at that moment.
 	ExpiresAt *time.Time
+	// AccessMode is "" (visibility and share code decide), "password" or
+	// "restricted"; both of the latter come with a private page and no share
+	// code. AccessPassword is the password's hash and, like ShareCode, must
+	// never reach a viewer. AccessAllow lists the addresses and "@domain"
+	// entries a restricted page admits; never nil when read back.
+	// AccessVersion signs visitor grants and moves on every mode or password
+	// change. SetAccess changes all four.
+	AccessMode     string
+	AccessPassword string
+	AccessAllow    []string
+	AccessVersion  int
 }
 
 // ProjectCount is one row of Projects: a project label and how many live
@@ -180,6 +191,7 @@ type Store interface {
 	TenantStore
 	AuthStore
 	ConnectStore
+	AccessStore
 	Migrate(ctx context.Context) error
 	CreateKey(ctx context.Context, hash, email string) (Key, error)
 	// CreateGuest makes a guest workspace with one key, for publishing

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/config"
 	"github.com/anup-a/artifacts/internal/ratelimit"
@@ -44,6 +45,12 @@ type Deps struct {
 	// WebGuide renders a guide as a page of the site. Without it the guides
 	// are plain pages.
 	WebGuide func(http.ResponseWriter, *http.Request, agents.GuideDoc)
+	// Mail sends restricted pages' sign-in codes and invites. NewHandler
+	// defaults it from EMAIL_PROVIDER; nil means the server sends no mail.
+	Mail auth.Mailer
+	// InviteLimiter meters access invites per workspace. NewHandler defaults
+	// it to 100 a day.
+	InviteLimiter *ratelimit.Limiter
 }
 
 type server struct {

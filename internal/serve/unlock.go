@@ -81,7 +81,14 @@ func (h *Handler) unlocked(r *http.Request, a store.Artifact) bool {
 // Unlocked is the same check for callers outside this package — the viewer
 // comment routes, which must admit exactly the readers the page was served to
 // and nobody else.
+//
+// A password or restricted page is unlocked by its own grant instead; such a
+// page never has a share code.
 func Unlocked(r *http.Request, a store.Artifact, secret string) bool {
+	if a.AccessMode == AccessPassword || a.AccessMode == AccessRestricted {
+		_, ok := accessGrant(r, a, secret, time.Now())
+		return ok
+	}
 	if a.ShareCode == "" {
 		return false
 	}
@@ -171,12 +178,24 @@ func (h *Handler) tryUnlock(w http.ResponseWriter, r *http.Request, a store.Arti
 	return true
 }
 
-// submitCode takes the gate form's code.
+// submitCode takes the gate form's code, or its password on a password page.
 func (h *Handler) submitCode(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	a, err := h.Store.Artifact(r.Context(), id)
-	if err != nil || a.DeletedAt != nil || a.ShareCode == "" {
+	if err != nil || a.DeletedAt != nil || (a.ShareCode == "" && a.AccessMode != AccessPassword) {
 		h.refuse(w, r)
+		return
+	}
+	if a.AccessMode == AccessPassword {
+		if crossSite(r) {
+			h.refuse(w, r)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			h.renderGate(w, r, GateView{ArtifactID: id, Kind: "password", Wrong: true})
+			return
+		}
+		h.tryPassword(w, r, a, r.PostFormValue("password"))
 		return
 	}
 	if err := r.ParseForm(); err != nil {

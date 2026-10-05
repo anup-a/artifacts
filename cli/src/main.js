@@ -12,6 +12,7 @@ import { hooks } from "./commands/hooks.js";
 import { brief } from "./commands/brief.js";
 import { version, diff } from "./commands/artifacts.js";
 import { analytics } from "./commands/analytics.js";
+import { access } from "./commands/access.js";
 
 // needsConfig is false for login, which builds its own config from its flags.
 const COMMANDS = {
@@ -30,6 +31,7 @@ const COMMANDS = {
   diff: { run: diff, needsConfig: true },
   delete: { run: remove, needsConfig: true },
   expire: { run: expire, needsConfig: true },
+  access: { run: access, needsConfig: true },
   comments: { run: comments, needsConfig: true },
   reply: { run: reply, needsConfig: true },
   resolve: { run: resolve, needsConfig: true },
@@ -52,9 +54,12 @@ Usage:
                   [--comments|--no-comments] [--project <name>] [--tag <t>]...
                   [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
                   [--agent <name>] [--model <name>] [--expires <when>]
+                  [--password]
   byagent get <id>
   byagent share <id> [--off] [--expires <when>]
   byagent expire <id> <when|never>
+  byagent access <id> [--public | --password | --restricted --allow <email|@domain>...
+                      | --add <email|@domain>... | --off] [--invite <email>...]
   byagent list [--search <text>] [--end-user <id>] [--project <name>]
   byagent collections
   byagent collection <name>
@@ -127,6 +132,16 @@ changed between two versions; <to> defaults to the live one.
 expire (or publish --expires) makes a page stop working at that moment; it
 then answers 410 and is erased like a delete. expire <id> never keeps it.
 share --expires ends the share code at that moment; the page stays private.
+access shows or sets who can open a page. --public: anyone with the link
+(the page becomes public). --password: anyone with the password; it is read
+from stdin (printf '%s' "$PW" | byagent access <id> --password) or asked
+for twice at a terminal, never taken from argv, and the page goes private.
+Changing it signs every visitor out. --restricted --allow sam@acme.com
+--allow @acme.com: only those people; a visitor enters their email, gets a
+one-time code, and needs no account. --allow replaces the whole list; --add
+adds to it. --off: only your workspace. --invite emails people on the list
+by name a link to the page (never a whole @domain). publish --password
+publishes privately, then sets the password. Readers who get in can comment.
 mark shows readers what is happening to their comment: seen, working, or
 declined. declined needs --note with the reason; it posts the note as a reply
 and resolves the thread. --note works with seen and working too. Thread JSON
