@@ -364,14 +364,27 @@ Manifest schema: a top-level `routes` object keyed by route name (1 to 64 of
 `a-z 0-9 - _`, at most 20). Each route has `upstream` (required; `https`, default
 port, a host name, no user info, fragment, dot segments or `{{…}}`), `methods`
 (required; GET, POST, PUT, PATCH, DELETE; `"method": "POST"` also works),
-`headers` and `query` (optional maps whose values may hold `{{NAME}}`), and
-`paths` (optional sub-paths callers may append: exact, or a prefix ending in
-`/*`; without it the route is the upstream URL alone). Unknown fields are
-errors. The file is at most 64 KB. Publishing an invalid manifest fails with
-400 naming the problem; a valid one adds `proxy: {routes, warnings}` to the
-publish response, warning about variables that are missing or not pinned to a
-route's host. `_proxy/` is a reserved path in uploads and `.byagent/` files are
-never served.
+`headers` and `query` (optional maps whose values may hold `{{NAME}}`; at most
+4 distinct variables per route), `paths` (optional sub-paths callers may append:
+exact, or a prefix ending in `/*`, with letters, digits and `-._~` only;
+without it the route is the upstream URL alone), and `body` (optional rules for
+a JSON object body: `"pin": {"model": "x"}` sets fields whatever the caller
+sent, `"max": {"max_tokens": 1024}` caps numbers and fills them in when
+missing; such bodies are read whole, up to 1 MB). A top-level
+`limit_per_hour` sets the owner's own cap on calls to the page's routes (the
+server's per-page limit still applies). Unknown fields are errors. The file is
+at most 64 KB. Publishing an invalid manifest fails with 400 naming the
+problem; a valid one adds `proxy: {routes, warnings}` to the publish response,
+warning about variables that are missing or not pinned to a route's host. A
+publish for an end user (`X-Artifact-End-User`) that ships a manifest is
+refused with 403 unless its manifest JSON sets `"proxy_routes_for_end_user":
+true`. `_proxy/` is a reserved path in uploads, and `.byagent/` files are never
+served and cannot be the cover.
+
+Routes run only for a live version whose manifest passed these checks when it
+was published. A version published before routes existed, by a guest key that
+was later claimed, or for an end user without the opt-in never runs them, and
+restoring such a version does not switch them on.
 
 Security rules, all enforced on the server:
 
@@ -380,12 +393,15 @@ Security rules, all enforced on the server:
   Error messages and logs name variables, never values.
 - A variable is sent only to a route whose upstream host is one of its
   `allowed_upstreams` or a subdomain of one (whole labels: `openai.com` admits
-  `api.openai.com`, never `evilopenai.com`). Otherwise the call answers 403 and
+  `api.openai.com`, never `evilopenai.com`). Public suffixes and hosts shared
+  by strangers (`supabase.co`, `workers.dev`, `amazonaws.com`, `co.uk`) cannot
+  be listed; name the service's own host (`xyz.supabase.co`). Otherwise
   nothing is sent.
 - Upstreams are `https` on port 443 only. The server resolves the host itself,
   refuses it if any address is private, loopback, link-local (including the
   169.254.169.254 metadata service), CGNAT, multicast, reserved, or an IPv6 form
-  of those (mapped, NAT64, 6to4, Teredo, unique local), dials the vetted
+  of those (mapped, IPv4-compatible, SIIT, NAT64, 6to4, Teredo, SRv6, unique
+  local, documentation), dials the vetted
   address, and checks the socket address again as it connects. Redirects are
   never followed (502). Routes may not point at this server's own hosts, and a
   call carrying `X-Byagent-Proxy` (one the proxy sent) is refused.
@@ -395,13 +411,22 @@ Security rules, all enforced on the server:
   hop-by-hop, CORS and forwarding headers never cross. Answers carry
   `Cache-Control: no-store` and a sandboxing CSP, and an upstream that echoes a
   secret has it replaced with `[redacted]`.
-- Request bodies up to 4 MB, answers up to 10 MB, 120 s per call. Calls are
-  metered per client address (`LIMIT_PROXY_PER_IP_PER_HOUR`, default 100) and
-  per page (`LIMIT_PROXY_PER_PAGE_PER_HOUR`, default 1000).
+- Request bodies up to 4 MB, streamed through rather than buffered; answers up
+  to 10 MB; 60 s per call, and the upstream must start answering within 20 s.
+  At most 128 calls run at once across the server and 16 per workspace; past
+  that a call gets 503 with `Retry-After`. Calls are metered per client
+  address (`LIMIT_PROXY_PER_IP_PER_HOUR`, default 100; IPv6 clients by their
+  /64) and per page (`LIMIT_PROXY_PER_PAGE_PER_HOUR`, default 1000, or the
+  manifest's lower `limit_per_hour`). Only calls that reach a real route and
+  method spend the page's budget.
 - Browsers may call a route only from its own origin: a cross-site
   `Sec-Fetch-Site` or a foreign `Origin` gets 403.
 - Methods are limited to what the route declares (405 otherwise), and sub-paths
-  to its `paths`, with encoded slashes, dots and backslashes refused.
+  to its `paths`; a sub-path segment holds letters, digits and `-._~` only (no
+  percent escapes, `;` or non-ASCII).
+- A visitor whose call fails on configuration (a missing, unreadable or
+  unpinned variable, a blocked upstream address) sees only `route
+  unavailable`; which variable or host was at fault goes to the server log.
 - A private page's routes answer only browsers that have unlocked the page with
   its share code (the same gate as the page; `/app/view` pages cannot call
   them). Guest workspaces cannot store variables or publish routes. Deleted

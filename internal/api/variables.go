@@ -212,7 +212,7 @@ func (s *server) reservedHosts() []string {
 // with the reason rather than going live with dead routes. Variables that
 // are missing or not pinned to a route's host only warn, since they can be
 // set after the publish.
-func (s *server) checkProxyManifest(ctx context.Context, m manifest) (*proxyInfo, *apierr.Error) {
+func (s *server) checkProxyManifest(ctx context.Context, m manifest, endUser string) (*proxyInfo, *apierr.Error) {
 	var f *manifestFile
 	for i := range m.Files {
 		if m.Files[i].Path == proxy.ManifestPath {
@@ -224,6 +224,10 @@ func (s *server) checkProxyManifest(ctx context.Context, m manifest) (*proxyInfo
 	}
 	if _, ok := guestFrom(ctx); ok {
 		return nil, apierr.Forbidden("proxy routes need an account; guest pages cannot ship " + proxy.ManifestPath)
+	}
+	if endUser != "" && !m.ProxyRoutesForEndUser {
+		return nil, apierr.Forbidden("a page published for an end user cannot ship " + proxy.ManifestPath +
+			" unless the manifest sets proxy_routes_for_end_user: true, since its routes spend this workspace's variables")
 	}
 	if f.Size > proxy.MaxManifestBytes {
 		return nil, apierr.Invalid(proxy.ManifestPath + " is larger than 64 KB")
@@ -272,6 +276,18 @@ func (s *server) checkProxyManifest(ctx context.Context, m manifest) (*proxyInfo
 		}
 	}
 	return info, nil
+}
+
+// markProxyRoutes records that the version just stored carries a vetted
+// manifest. Only such versions run routes.
+func (s *server) markProxyRoutes(ctx context.Context, artifactID string, version int, info *proxyInfo) *apierr.Error {
+	if info == nil {
+		return nil
+	}
+	if err := s.Store.MarkProxyRoutes(ctx, artifactID, version); err != nil {
+		return apierr.Internal(err)
+	}
+	return nil
 }
 
 // withProxy adds the page's routes to a publish response when it has any.

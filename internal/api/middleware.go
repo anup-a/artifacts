@@ -11,6 +11,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -72,6 +73,11 @@ func (s *server) authenticate(r *http.Request, tok string) (store.Key, bool) {
 // that overwrites them (e.g. Cloudflare). Otherwise the transport peer address
 // wins.
 func clientIP(r *http.Request, trustProxy bool) string {
+	return ratelimit.ClientKey(clientAddr(r, trustProxy))
+}
+
+// clientAddr is the caller's address, before bucketing.
+func clientAddr(r *http.Request, trustProxy bool) string {
 	if trustProxy {
 		if v := r.Header.Get("CF-Connecting-IP"); v != "" {
 			return strings.TrimSpace(v)

@@ -13,6 +13,7 @@ import (
 	"net/netip"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/apierr"
@@ -22,12 +23,19 @@ import (
 const (
 	MaxRequestBytes  = 4 << 20
 	MaxResponseBytes = 10 << 20
+	// MaxRuleBodyBytes bounds a body the proxy has to read whole, to apply
+	// a route's body rules. Other bodies stream straight through.
+	MaxRuleBodyBytes = 1 << 20
 	// Timeout bounds the whole exchange, streamed body included: long enough
 	// for a streamed model answer, short enough that a stuck upstream frees
-	// its connection.
-	Timeout        = 120 * time.Second
-	headerTimeout  = 60 * time.Second
+	// its slot. An upstream must start answering within headerTimeout.
+	Timeout        = 60 * time.Second
+	headerTimeout  = 20 * time.Second
 	maxHeaderBytes = 64 << 10
+	// MaxInFlight and MaxInFlightPerTenant cap concurrent calls, server-wide
+	// and per workspace, so slow upstreams cannot pin every connection.
+	MaxInFlight          = 128
+	MaxInFlightPerTenant = 16
 )
 
 // LoopHeader marks requests this server sends upstream. One arriving here is
@@ -44,12 +52,41 @@ type Options struct {
 	RootCAs   *x509.CertPool
 	// Timeout replaces the whole-call Timeout, so tests need not wait it out.
 	Timeout time.Duration
+	// InFlight and InFlightPerTenant replace the concurrency caps.
+	InFlight, InFlightPerTenant int
 }
 
 // Proxy forwards route calls. It is safe for concurrent use.
 type Proxy struct {
 	client  *http.Client
 	timeout time.Duration
+
+	mu        sync.Mutex
+	inFlight  int
+	perTenant map[string]int
+	maxAll    int
+	maxTenant int
+}
+
+// acquire takes a slot for one call, or reports that the server or the
+// workspace is at its cap. It never waits: a caller over the cap is told to
+// come back, not queued.
+func (p *Proxy) acquire(tenant string) (release func(), ok bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.inFlight >= p.maxAll || p.perTenant[tenant] >= p.maxTenant {
+		return nil, false
+	}
+	p.inFlight++
+	p.perTenant[tenant]++
+	return func() {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		p.inFlight--
+		if p.perTenant[tenant]--; p.perTenant[tenant] <= 0 {
+			delete(p.perTenant, tenant)
+		}
+	}, true
 }
 
 // New builds the proxy and its HTTP client: no environment proxy, no
@@ -81,7 +118,14 @@ func New(o Options) *Proxy {
 	if timeout <= 0 {
 		timeout = Timeout
 	}
-	return &Proxy{timeout: timeout, client: &http.Client{
+	maxAll, maxTenant := o.InFlight, o.InFlightPerTenant
+	if maxAll <= 0 {
+		maxAll = MaxInFlight
+	}
+	if maxTenant <= 0 {
+		maxTenant = MaxInFlightPerTenant
+	}
+	return &Proxy{timeout: timeout, maxAll: maxAll, maxTenant: maxTenant, perTenant: map[string]int{}, client: &http.Client{
 		Transport: tr,
 		// A redirect could lead anywhere, including somewhere the variable is
 		// not pinned to. It is answered as an error, never followed.
@@ -117,28 +161,37 @@ type Call struct {
 	Secrets map[string]string
 	// Label names the call in logs (artifact and route), never secrets.
 	Label string
+	// Tenant is the workspace the page belongs to, for the concurrency cap.
+	Tenant string
 }
 
 // Forward sends the visitor's request upstream and streams the answer back.
 // Secrets appear only in the upstream request; errors and logs never carry
 // them, and an upstream that echoes one has it replaced in the response.
 func (p *Proxy) Forward(w http.ResponseWriter, r *http.Request, c Call) {
+	release, ok := p.acquire(c.Tenant)
+	if !ok {
+		w.Header().Set("Retry-After", "5")
+		apierr.Write(w, r, apierr.Unavailable("route busy, try again shortly"))
+		return
+	}
+	defer release()
 	ctx, cancel := context.WithTimeout(r.Context(), p.timeout)
 	defer cancel()
-	var body io.Reader
-	if r.Body != nil && r.Method != http.MethodGet {
-		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, MaxRequestBytes))
-		if err != nil {
-			apierr.Write(w, r, apierr.TooLarge("request body is larger than 4 MB"))
-			return
-		}
-		body = bytes.NewReader(raw)
+	body, length, e := c.requestBody(w, r)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
 	}
 	target := c.target(r.URL.Query())
 	out, err := http.NewRequestWithContext(ctx, r.Method, target, body)
 	if err != nil {
 		apierr.Write(w, r, apierr.Internal(errors.New("proxy: building the upstream request failed")))
 		return
+	}
+	out.ContentLength = length
+	if body == nil {
+		out.Body = http.NoBody
 	}
 	for _, h := range requestHeaders {
 		if v := r.Header.Values(h); len(v) > 0 {
@@ -229,12 +282,45 @@ func (c Call) target(visitor url.Values) string {
 	return u.String()
 }
 
+// requestBody is what goes upstream: nothing for GET, the body rewritten by
+// the route's rules when it has any (read whole, at most MaxRuleBodyBytes),
+// and otherwise the visitor's body streamed through a size cap, never
+// buffered. length is -1 when unknown.
+func (c Call) requestBody(w http.ResponseWriter, r *http.Request) (io.Reader, int64, *apierr.Error) {
+	if r.Method == http.MethodGet || r.Body == nil || r.Body == http.NoBody {
+		return nil, 0, nil
+	}
+	if c.Route.Body != nil && r.Method != http.MethodDelete {
+		if r.ContentLength > MaxRuleBodyBytes {
+			return nil, 0, apierr.TooLarge("request body is larger than 1 MB")
+		}
+		raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, MaxRuleBodyBytes))
+		if err != nil {
+			return nil, 0, apierr.TooLarge("request body is larger than 1 MB")
+		}
+		out, err := c.Route.Body.ApplyBody(raw)
+		if err != nil {
+			return nil, 0, apierr.Invalid(err.Error())
+		}
+		return bytes.NewReader(out), int64(len(out)), nil
+	}
+	if r.ContentLength > MaxRequestBytes {
+		return nil, 0, apierr.TooLarge("request body is larger than 4 MB")
+	}
+	return http.MaxBytesReader(w, r.Body, MaxRequestBytes), r.ContentLength, nil
+}
+
 func (p *Proxy) upstreamError(w http.ResponseWriter, r *http.Request, c Call, err error) {
 	slog.Warn("proxy upstream failed", "call", c.Label, "host", c.Route.Upstream.Host, "err", safeErr(err))
 	var ne net.Error
+	var mbe *http.MaxBytesError
 	switch {
+	case errors.As(err, &mbe):
+		apierr.Write(w, r, apierr.TooLarge("request body is larger than 4 MB"))
 	case errors.Is(err, errBlocked):
-		apierr.Write(w, r, apierr.Forbidden("the upstream host resolves to an address proxy routes may not reach"))
+		// The host is the owner's business; a visitor learns only that the
+		// route does not work.
+		apierr.Write(w, r, apierr.BadGateway("route unavailable"))
 	case errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &ne) && ne.Timeout()):
 		apierr.Write(w, r, apierr.GatewayTimeout("the upstream did not answer in time"))
 	case errors.Is(err, context.Canceled):
@@ -266,7 +352,8 @@ func copyCapped(dst *redactor, src io.Reader, w http.ResponseWriter) (int64, err
 			if n+int64(k) > MaxResponseBytes {
 				k = int(MaxResponseBytes - n)
 				dst.Write(buf[:k])
-				dst.Flush()
+				// No Flush: what is held may be the start of a secret
+				// whose end was cut off.
 				return n + int64(k), errors.New("response larger than the cap")
 			}
 			if _, werr := dst.Write(buf[:k]); werr != nil {
@@ -281,7 +368,6 @@ func copyCapped(dst *redactor, src io.Reader, w http.ResponseWriter) (int64, err
 			return n, nil
 		}
 		if err != nil {
-			dst.Flush()
 			return n, err
 		}
 	}

@@ -12,3 +12,12 @@ CREATE TABLE variables (
  updated_at TIMESTAMP NOT NULL,
  PRIMARY KEY(tenant_id,name)
 );
+
+-- A version whose .byagent/proxy.json passed the publish checks (published
+-- by a workspace key, not a guest, and not for an end user unless opted in).
+-- Only such a version runs proxy routes, also after a restore.
+-- dialect:sqlite
+ALTER TABLE versions ADD COLUMN proxy_routes INTEGER NOT NULL DEFAULT 0;
+
+-- dialect:postgres
+ALTER TABLE versions ADD COLUMN proxy_routes BOOLEAN NOT NULL DEFAULT FALSE;

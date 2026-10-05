@@ -33,6 +33,11 @@ type VariableStore interface {
 	Variables(ctx context.Context, tenantID string) ([]Variable, error)
 	// DeleteVariable removes one, or returns ErrNotFound.
 	DeleteVariable(ctx context.Context, tenantID, name string) error
+	// MarkProxyRoutes records that a version's proxy manifest passed the
+	// publish checks; VersionProxyRoutes reads it back (false for a version
+	// that does not exist).
+	MarkProxyRoutes(ctx context.Context, artifactID string, version int) error
+	VersionProxyRoutes(ctx context.Context, artifactID string, version int) (bool, error)
 }
 
 func (s *sqlStore) PutVariable(ctx context.Context, v Variable, max int) (bool, error) {
@@ -96,4 +101,24 @@ func (s *sqlStore) DeleteVariable(ctx context.Context, tenantID, name string) er
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (s *sqlStore) MarkProxyRoutes(ctx context.Context, artifactID string, version int) error {
+	res, err := s.db.ExecContext(ctx, s.q(`UPDATE versions SET proxy_routes=? WHERE artifact_id=? AND version=?`), true, artifactID, version)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *sqlStore) VersionProxyRoutes(ctx context.Context, artifactID string, version int) (bool, error) {
+	var on bool
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT proxy_routes FROM versions WHERE artifact_id=? AND version=?`), artifactID, version).Scan(&on)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return on, err
 }

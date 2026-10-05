@@ -137,15 +137,34 @@ func TestNormalizeHost(t *testing.T) {
 }
 
 func TestHostAllowed(t *testing.T) {
-	allowed := []string{"api.openai.com", "supabase.co"}
-	for _, h := range []string{"api.openai.com", "API.OPENAI.COM", "eu.api.openai.com", "xyz.supabase.co", "supabase.co."} {
+	allowed := []string{"api.openai.com", "xyz.supabase.co"}
+	for _, h := range []string{"api.openai.com", "API.OPENAI.COM", "eu.api.openai.com", "xyz.supabase.co", "xyz.supabase.co."} {
 		if !HostAllowed(h, allowed) {
 			t.Errorf("%q should be allowed", h)
 		}
 	}
-	for _, h := range []string{"evilapi.openai.com", "openai.com", "api.openai.com.evil.test", "notsupabase.co", "supabase.co.evil.test", ""} {
+	for _, h := range []string{"evilapi.openai.com", "openai.com", "api.openai.com.evil.test", "abc.supabase.co", "xyz.supabase.co.evil.test", ""} {
 		if HostAllowed(h, allowed) {
 			t.Errorf("%q should be refused", h)
+		}
+	}
+	// A shared suffix that slipped into a list admits nothing.
+	for _, h := range []string{"attacker.supabase.co", "x.workers.dev", "bucket.s3.amazonaws.com"} {
+		if HostAllowed(h, []string{"supabase.co", "workers.dev", "amazonaws.com"}) {
+			t.Errorf("%q admitted through a public suffix", h)
+		}
+	}
+}
+
+func TestPublicSuffixesCannotBeAllowlisted(t *testing.T) {
+	for _, h := range []string{"supabase.co", "workers.dev", "amazonaws.com", "s3.amazonaws.com", "co.uk", "github.io", "vercel.app", "com"} {
+		if _, err := NormalizeHost(h); err == nil {
+			t.Errorf("%q accepted", h)
+		}
+	}
+	for _, h := range []string{"xyz.supabase.co", "my-worker.me.workers.dev", "api.openai.com", "openrouter.ai", "bbc.co.uk"} {
+		if _, err := NormalizeHost(h); err != nil {
+			t.Errorf("%q refused: %v", h, err)
 		}
 	}
 }

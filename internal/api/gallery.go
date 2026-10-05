@@ -11,6 +11,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/cover"
+	"github.com/anup-a/artifacts/internal/proxy"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
 )
@@ -100,6 +101,9 @@ var coverExts = map[string]bool{".svg": true, ".png": true, ".jpg": true, ".jpeg
 func validateCover(p string, files []manifestFile) *apierr.Error {
 	if !coverExts[strings.ToLower(path.Ext(p))] {
 		return apierr.Invalid("cover must be an svg, png, jpg or webp file")
+	}
+	if strings.HasPrefix(p, proxy.HiddenDir) {
+		return apierr.Invalid("cover cannot be a file under " + proxy.HiddenDir)
 	}
 	for _, f := range files {
 		if f.Path == p {

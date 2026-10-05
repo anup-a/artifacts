@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/anup-a/artifacts/internal/proxy"
+	"github.com/anup-a/artifacts/internal/store"
 )
 
 const testSecret = "sk-or-v1-test-0123456789"
@@ -299,14 +300,18 @@ func TestProxyRouteEndToEnd(t *testing.T) {
 	}
 	// Pinning: the variable no longer lists the route's host.
 	setVar(t, srv.URL, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["openrouter.ai"]}`)
-	if code, body := callRoute(t, nil, "POST", base, nil); code != 403 || strings.Contains(body, testSecret) || hits.n.Load() != before {
+	// The visitor is told the route is unavailable, never which variable
+	// or host is at fault.
+	if code, body := callRoute(t, nil, "POST", base, nil); code != 502 || strings.Contains(body, testSecret) ||
+		strings.Contains(body, "OPENROUTER_API_KEY") || strings.Contains(body, "example.com") || hits.n.Load() != before {
 		t.Fatalf("unpinned host: %d %s", code, body)
 	}
 	// A variable of the same name in another workspace is never used.
 	other := mintKey(t, d, "personal")
 	_, ob := publishRoutes(t, srv.URL, other, chatManifest)
-	if code, _ := callRoute(t, nil, "POST", srv.URL+"/a/"+ob["id"].(string)+"/_proxy/chat", nil); code != 502 || hits.n.Load() != before {
-		t.Fatalf("another workspace's page used this workspace's variable: %d", code)
+	if code, body := callRoute(t, nil, "POST", srv.URL+"/a/"+ob["id"].(string)+"/_proxy/chat", nil); code != 502 || hits.n.Load() != before ||
+		strings.Contains(body, "OPENROUTER_API_KEY") {
+		t.Fatalf("another workspace's page used this workspace's variable: %d %s", code, body)
 	}
 	// Deleting the page closes its routes.
 	do(t, authReq(t, "DELETE", srv.URL+"/api/artifacts/"+id, tok))
@@ -401,5 +406,134 @@ func TestProxyPrivatePageNeedsUnlock(t *testing.T) {
 	res.Body.Close()
 	if code, body := callRoute(t, client, "POST", base, nil); code != 200 {
 		t.Fatalf("unlocked browser: %d %s", code, body)
+	}
+}
+
+// Probing routes that do not exist, or methods a route does not take, must
+// not spend the page's budget; only calls that reach a route do.
+func TestProxyPageBudgetOnlyForRealRoutes(t *testing.T) {
+	srv, _, tok, _ := newVarsServer(t, func(d *Deps) {
+		d.Cfg.Limits.ProxyPerIPHour = 1000
+		d.Cfg.Limits.ProxyPerPageHour = 2
+	})
+	setVar(t, srv.URL, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)
+	_, b := publishRoutes(t, srv.URL, tok, chatManifest)
+	page := srv.URL + "/a/" + b["id"].(string) + "/_proxy/"
+	for i := 0; i < 20; i++ {
+		callRoute(t, nil, "POST", page+"nonexistent", nil)
+		callRoute(t, nil, "GET", page+"chat", nil)
+		callRoute(t, nil, "POST", page+"chat/undeclared", nil)
+	}
+	for i := 0; i < 2; i++ {
+		if code, body := callRoute(t, nil, "POST", page+"chat", nil); code != 200 {
+			t.Fatalf("call %d after probing: %d %s", i, code, body)
+		}
+	}
+	if code, _ := callRoute(t, nil, "POST", page+"chat", nil); code != 429 {
+		t.Fatalf("budget: %d", code)
+	}
+}
+
+func TestProxyOwnerPageLimit(t *testing.T) {
+	srv, _, tok, _ := newVarsServer(t, nil)
+	setVar(t, srv.URL, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)
+	man := `{"limit_per_hour":2,"routes":{"chat":{"upstream":"https://example.com/api/v1/chat","methods":["POST"],
+	  "headers":{"Authorization":"Bearer {{OPENROUTER_API_KEY}}"}}}}`
+	_, b := publishRoutes(t, srv.URL, tok, man)
+	base := srv.URL + "/a/" + b["id"].(string) + "/_proxy/chat"
+	for i := 0; i < 2; i++ {
+		if code, _ := callRoute(t, nil, "POST", base, nil); code != 200 {
+			t.Fatalf("call %d: %d", i, code)
+		}
+	}
+	if code, _ := callRoute(t, nil, "POST", base, nil); code != 429 {
+		t.Fatalf("owner limit: %d", code)
+	}
+}
+
+// An IPv6 client is limited by its /64, so cycling through addresses in its
+// own prefix does not buy more calls.
+func TestProxyIPv6BucketsBySlash64(t *testing.T) {
+	srv, _, tok, _ := newVarsServer(t, func(d *Deps) {
+		d.Cfg.TrustProxyHeaders = true
+		d.Cfg.Limits.ProxyPerIPHour = 2
+	})
+	setVar(t, srv.URL, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)
+	_, b := publishRoutes(t, srv.URL, tok, chatManifest)
+	base := srv.URL + "/a/" + b["id"].(string) + "/_proxy/chat"
+	for i, ip := range []string{"2001:db8:1:2::1", "2001:db8:1:2::2"} {
+		if code, _ := callRoute(t, nil, "POST", base, map[string]string{"CF-Connecting-IP": ip}); code != 200 {
+			t.Fatalf("call %d: %d", i, code)
+		}
+	}
+	if code, _ := callRoute(t, nil, "POST", base, map[string]string{"CF-Connecting-IP": "2001:db8:1:2:ffff::9"}); code != 429 {
+		t.Fatalf("same /64, fresh address: %d", code)
+	}
+	if code, _ := callRoute(t, nil, "POST", base, map[string]string{"CF-Connecting-IP": "2001:db8:1:3::1"}); code != 200 {
+		t.Fatalf("another /64: %d", code)
+	}
+}
+
+func TestProxyEndUserPublishNeedsOptIn(t *testing.T) {
+	srv, d, _, _ := newVarsServer(t, nil)
+	tok := mintKey(t, d, "integrator")
+	files := []pubFile{{"index.html", "<body>customer</body>"}, {proxy.ManifestPath, chatManifest}}
+	req := publishWith(t, "POST", srv.URL+"/api/artifacts", tok, nil, files)
+	req.Header.Set("X-Artifact-End-User", "customer-1")
+	if code, b := do(t, req); code != 403 || !strings.Contains(b["error"].(map[string]any)["message"].(string), "proxy_routes_for_end_user") {
+		t.Fatalf("end-user publish with routes: %d %v", code, b)
+	}
+	req = publishWith(t, "POST", srv.URL+"/api/artifacts", tok, map[string]any{"proxy_routes_for_end_user": true}, files)
+	req.Header.Set("X-Artifact-End-User", "customer-1")
+	if code, b := do(t, req); code != 201 || b["proxy"] == nil {
+		t.Fatalf("opted in: %d %v", code, b)
+	}
+}
+
+// A version whose manifest never passed the publish checks (added before
+// routes existed, by a guest key later claimed, or for an end user without
+// the opt-in) runs no routes, also when a restore makes it live again.
+func TestProxyOnlyVettedVersionsRunRoutes(t *testing.T) {
+	srv, d, tok, _ := newVarsServer(t, nil)
+	setVar(t, srv.URL, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)
+	_, b := publishRoutes(t, srv.URL, tok, chatManifest)
+	id := b["id"].(string)
+	base := srv.URL + "/a/" + id + "/_proxy/chat"
+	if code, _ := callRoute(t, nil, "POST", base, nil); code != 200 {
+		t.Fatal(code)
+	}
+	ctx := context.Background()
+	files, err := d.Store.Files(ctx, id, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Store.AddVersion(ctx, store.Version{ArtifactID: id, Version: 2, CreatedAt: d.Now(), FileCount: len(files)}, files); err != nil {
+		t.Fatal(err)
+	}
+	if code, _ := callRoute(t, nil, "POST", base, nil); code != 404 {
+		t.Fatalf("unvetted live version ran routes: %d", code)
+	}
+	code, rb := do(t, jsonReq(t, "POST", srv.URL+"/api/artifacts/"+id+"/versions/1/restore", "", map[string]string{"Authorization": "Bearer " + tok}))
+	if code != 200 {
+		t.Fatalf("restore: %d %v", code, rb)
+	}
+	if code, _ := callRoute(t, nil, "POST", base, nil); code != 200 {
+		t.Fatalf("restored vetted version: %d", code)
+	}
+	code, _ = do(t, jsonReq(t, "POST", srv.URL+"/api/artifacts/"+id+"/versions/2/restore", "", map[string]string{"Authorization": "Bearer " + tok}))
+	if code != 200 {
+		t.Fatal(code)
+	}
+	if code, _ := callRoute(t, nil, "POST", base, nil); code != 404 {
+		t.Fatalf("restoring an unvetted version switched routes on: %d", code)
+	}
+}
+
+func TestCoverCannotBeAHiddenFile(t *testing.T) {
+	srv, _, tok, _ := newVarsServer(t, nil)
+	code, b := do(t, publishWith(t, "POST", srv.URL+"/api/artifacts", tok, map[string]any{"cover": ".byagent/cover.svg"},
+		[]pubFile{{"index.html", "x"}, {".byagent/cover.svg", "<svg/>"}}))
+	if code != 400 {
+		t.Fatalf("hidden cover: %d %v", code, b)
 	}
 }

@@ -268,7 +268,7 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, missingBlobErr(missing))
 		return
 	}
-	routes, e := s.checkProxyManifest(r.Context(), m)
+	routes, e := s.checkProxyManifest(r.Context(), m, external)
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -293,6 +293,10 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	a, v, e := s.publishVersion(r.Context(), a, m)
 	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	if e := s.markProxyRoutes(r.Context(), a.ID, v, routes); e != nil {
 		apierr.Write(w, r, e)
 		return
 	}
@@ -335,7 +339,7 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	var routes *proxyInfo
 	if e == nil {
-		routes, e = s.checkProxyManifest(r.Context(), m)
+		routes, e = s.checkProxyManifest(r.Context(), m, external)
 	}
 	if e != nil {
 		apierr.Write(w, r, e)
@@ -343,6 +347,10 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	a, v, e := s.publishVersion(r.Context(), a, m)
 	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	if e := s.markProxyRoutes(r.Context(), a.ID, v, routes); e != nil {
 		apierr.Write(w, r, e)
 		return
 	}

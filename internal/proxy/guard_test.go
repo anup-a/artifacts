@@ -16,6 +16,7 @@ func TestPublicAddr(t *testing.T) {
 		"::", "::1", "fe80::1", "fc00::1", "fd00:ec2::254", "fec0::1", "ff02::1",
 		"::ffff:127.0.0.1", "::ffff:169.254.169.254", "::ffff:10.0.0.1",
 		"64:ff9b::a9fe:a9fe", "64:ff9b:1::1", "2002:7f00:1::", "2001::1", "2001:db8::1", "100::1",
+		"::7f00:1", "::a9fe:a9fe", "::ffff:0:7f00:1", "::ffff:0:a9fe:a9fe", "5f00::1", "3fff::1", "3fff:fff::1",
 	} {
 		if PublicAddr(netip.MustParseAddr(s)) {
 			t.Errorf("%s must be blocked", s)

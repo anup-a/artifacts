@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/anup-a/artifacts/internal/variables"
@@ -37,6 +38,13 @@ const (
 	maxQuery         = 20
 	maxPaths         = 50
 	maxTemplateBytes = 8 << 10
+	// MaxVarsPerRoute bounds the secrets one call carries, which also bounds
+	// the work of redacting them from the answer.
+	MaxVarsPerRoute = 4
+	maxBodyRules    = 20
+	// MaxLimitPerHour is the most an owner may write in limit_per_hour; the
+	// server's own per-page limit still applies on top.
+	MaxLimitPerHour = 1_000_000
 )
 
 // Methods are the HTTP methods a route may declare.
@@ -55,11 +63,27 @@ type Route struct {
 	// each exact ("/models") or a prefix ending in "/*" ("/v1/*"). Empty
 	// means the route is the upstream URL and nothing below it.
 	Paths []string
+	// Body, when set, holds rules for a JSON request body: fields the route
+	// fixes and numeric fields it caps. A body is then required to be a
+	// JSON object.
+	Body *BodyRules
+}
+
+// BodyRules constrain top-level fields of a JSON request body. Pin sets a
+// field to a fixed value whatever the caller sent ("model": the one the owner
+// pays for). Max caps a number, and sets it when the caller left it out
+// ("max_tokens": 1024).
+type BodyRules struct {
+	Pin map[string]json.RawMessage `json:"pin"`
+	Max map[string]float64         `json:"max"`
 }
 
 // Manifest is a parsed .byagent/proxy.json.
 type Manifest struct {
 	Routes map[string]Route
+	// LimitPerHour, when set, is the owner's own cap on calls to this page's
+	// routes per hour. The server's per-page limit applies when it is lower.
+	LimitPerHour int
 }
 
 type rawRoute struct {
@@ -69,13 +93,16 @@ type rawRoute struct {
 	Headers  map[string]string `json:"headers"`
 	Query    map[string]string `json:"query"`
 	Paths    []string          `json:"paths"`
+	Body     *BodyRules        `json:"body"`
 }
 
 var (
 	routeNameRe  = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
 	headerNameRe = regexp.MustCompile("^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,128}$")
 	varRefRe     = regexp.MustCompile(`\{\{\s*([^{}]*?)\s*\}\}`)
-	subPathRe    = regexp.MustCompile(`^(/[A-Za-z0-9._~!$&'()*+,;=:@-]+)+$`)
+	// Sub-path segments are unreserved characters only: no percent
+	// escapes, no ";" parameters, nothing outside ASCII.
+	subPathRe = regexp.MustCompile(`^(/[A-Za-z0-9._~-]+)+$`)
 )
 
 // forbiddenHeaders may not be set by a manifest: they belong to the
@@ -101,8 +128,9 @@ func Parse(raw []byte, reserved ...string) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("is larger than %d KB", MaxManifestBytes>>10)
 	}
 	var doc struct {
-		Routes  map[string]json.RawMessage `json:"routes"`
-		Proxies json.RawMessage            `json:"proxies"`
+		Routes       map[string]json.RawMessage `json:"routes"`
+		Proxies      json.RawMessage            `json:"proxies"`
+		LimitPerHour *int                       `json:"limit_per_hour"`
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
@@ -119,6 +147,12 @@ func Parse(raw []byte, reserved ...string) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("declares more than %d routes", MaxRoutes)
 	}
 	m := Manifest{Routes: map[string]Route{}}
+	if doc.LimitPerHour != nil {
+		if *doc.LimitPerHour < 1 || *doc.LimitPerHour > MaxLimitPerHour {
+			return Manifest{}, fmt.Errorf("limit_per_hour must be between 1 and %d", MaxLimitPerHour)
+		}
+		m.LimitPerHour = *doc.LimitPerHour
+	}
 	for name, body := range doc.Routes {
 		rt, err := parseRoute(name, body, reserved)
 		if err != nil {
@@ -185,11 +219,52 @@ func parseRoute(name string, body json.RawMessage, reserved []string) (Route, er
 	for _, p := range rr.Paths {
 		base := strings.TrimSuffix(p, "/*")
 		if !subPathRe.MatchString(base) || hasDotSegment(base) {
-			return Route{}, fmt.Errorf(`path %q must start with / and hold no "..", "//", "%%", "?" or "#"; end it in /* to allow anything below`, p)
+			return Route{}, fmt.Errorf(`path %q must start with / and hold only letters, digits and "-._~" in each segment; end it in /* to allow anything below`, p)
 		}
 		rt.Paths = append(rt.Paths, p)
 	}
+	if n := len(rt.Vars()); n > MaxVarsPerRoute {
+		return Route{}, fmt.Errorf("uses %d variables; a route may use at most %d", n, MaxVarsPerRoute)
+	}
+	if rr.Body != nil {
+		if err := checkBodyRules(rr.Body); err != nil {
+			return Route{}, fmt.Errorf("body: %w", err)
+		}
+		rt.Body = rr.Body
+	}
 	return rt, nil
+}
+
+func checkBodyRules(b *BodyRules) error {
+	if len(b.Pin)+len(b.Max) == 0 {
+		return errors.New(`give "pin" and/or "max", for example {"pin": {"model": "x"}, "max": {"max_tokens": 1024}}`)
+	}
+	if len(b.Pin)+len(b.Max) > maxBodyRules {
+		return fmt.Errorf("more than %d rules", maxBodyRules)
+	}
+	for k, v := range b.Pin {
+		if k == "" || len(k) > 128 {
+			return errors.New("field names are 1 to 128 characters")
+		}
+		if len(v) > maxTemplateBytes {
+			return fmt.Errorf("pin %q is larger than %d bytes", k, maxTemplateBytes)
+		}
+		if bytes.Contains(v, []byte("{{")) {
+			return errors.New("variables cannot be put in a body")
+		}
+		if _, both := b.Max[k]; both {
+			return fmt.Errorf("%q is both pinned and capped", k)
+		}
+	}
+	for k, v := range b.Max {
+		if k == "" || len(k) > 128 {
+			return errors.New("field names are 1 to 128 characters")
+		}
+		if v <= 0 {
+			return fmt.Errorf("max %q must be a positive number", k)
+		}
+	}
+	return nil
 }
 
 func parseUpstream(s string, reserved []string) (*url.URL, error) {
@@ -348,22 +423,46 @@ func (rt Route) MatchPath(sub string) bool {
 }
 
 // CleanSub checks the escaped sub-path a caller appended after the route
-// name. Anything that could climb out of the upstream path (dot segments,
-// encoded slashes or dots, backslashes, empty segments) is refused rather
-// than normalised.
+// name. Each segment may hold unreserved characters only (letters, digits
+// and "-._~"): no percent escapes at all, so nothing can be decoded into a
+// slash, a dot segment or a parameter on the way upstream, and no ";", "\\"
+// or non-ASCII. Dot segments and empty segments are refused.
 func CleanSub(escaped string) (string, bool) {
 	if escaped == "" {
 		return "", true
 	}
-	low := strings.ToLower(escaped)
-	if strings.Contains(low, "%2f") || strings.Contains(low, "%5c") || strings.Contains(low, "%2e") ||
-		strings.Contains(escaped, "\\") || strings.Contains(escaped, "%00") {
-		return "", false
-	}
-	if !strings.HasPrefix(escaped, "/") || hasDotSegment(escaped) || strings.HasSuffix(escaped, "/") {
+	if !subPathRe.MatchString(escaped) || hasDotSegment(escaped) {
 		return "", false
 	}
 	return escaped, true
+}
+
+// ApplyBody enforces a route's body rules on a request body. The body must be
+// a JSON object; pinned fields are set, capped numbers are lowered (or set
+// when absent). It returns the body to send.
+func (b *BodyRules) ApplyBody(raw []byte) ([]byte, error) {
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &obj); err != nil || obj == nil {
+		return nil, errors.New("the request body must be a JSON object")
+	}
+	for k, v := range b.Pin {
+		obj[k] = v
+	}
+	for k, max := range b.Max {
+		v, ok := obj[k]
+		if !ok || string(v) == "null" {
+			obj[k] = json.RawMessage(strconv.FormatFloat(max, 'f', -1, 64))
+			continue
+		}
+		var n float64
+		if err := json.Unmarshal(v, &n); err != nil {
+			return nil, fmt.Errorf("%s must be a number", k)
+		}
+		if n > max {
+			obj[k] = json.RawMessage(strconv.FormatFloat(max, 'f', -1, 64))
+		}
+	}
+	return json.Marshal(obj)
 }
 
 // Expand fills a template's {{NAME}} references from vals. Every name was

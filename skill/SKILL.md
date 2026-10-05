@@ -124,11 +124,13 @@ Then ship `.byagent/proxy.json` in the published directory:
 and call it from `index.html` with a relative path: `fetch("_proxy/chat", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({model, messages, stream: true})})`. Streaming answers arrive as they are produced.
 
 - Route names: lowercase letters, digits, `-` and `_`. `upstream`: an `https` URL on the default port with a host name (no IP addresses, no user info). `methods`: any of GET, POST, PUT, PATCH, DELETE; others answer 405.
-- `headers` and `query` hold `{{NAME}}` references to variables (not `${NAME}`). Optional `paths` lets callers append sub-paths: `"paths": ["/models", "/v1/*"]` allows `_proxy/<route>/models` and anything under `/v1/`.
+- `headers` and `query` hold `{{NAME}}` references to variables (not `${NAME}`), at most 4 per route. Optional `paths` lets callers append sub-paths: `"paths": ["/models", "/v1/*"]` allows `_proxy/<route>/models` and anything under `/v1/` (letters, digits and `-._~` only).
+- Keep the bill bounded: `"body": {"pin": {"model": "<model>"}, "max": {"max_tokens": 1024}}` fixes the model and caps tokens whatever the page sends, and a top-level `"limit_per_hour": 200` caps calls to the page's routes.
 - Only `Content-Type`, `Accept` and `Accept-Language` pass from the browser; cookies and every other header stay behind. The visitor's query string is passed on, but cannot replace the route's own `query` values.
 - Call it from a page at the root of the directory; a page in a subfolder uses `../_proxy/<route>`. The `_proxy/` path is reserved and `.byagent/` files are never served.
 - Publish checks the manifest and fails with the reason if it is invalid. Its JSON carries `proxy: {routes, warnings}`; a warning means a variable is missing or not allowed for that host. Fix it before handing over the URL.
-- Anyone who can open the page can call its routes, so they cost the key's owner money: say so, and suggest a spending limit on the upstream key. Routes are metered per visitor and per page. Private pages answer only browsers unlocked with the share code. Guest pages cannot use routes.
+- Pin the variable to the service's own host (`openrouter.ai`, `xyz.supabase.co`); shared suffixes like `supabase.co` or `workers.dev` are refused.
+- Anyone who can open the page can call its routes, so they cost the key's owner money: say so, pin the model and cap tokens as above, and suggest a spending limit on the upstream key. Routes are metered per visitor and per page. Private pages answer only browsers unlocked with the share code. Guest pages cannot use routes.
 
 
 ```

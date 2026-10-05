@@ -241,7 +241,10 @@ feature off in an incident without losing the key, set `VARIABLES=off` and
 restart: the variables API answers 503 and every proxy route 404.
 
 Proxy routes are metered per client address (`LIMIT_PROXY_PER_IP_PER_HOUR`,
-default 100) and per page (`LIMIT_PROXY_PER_PAGE_PER_HOUR`, default 1000).
+default 100, IPv6 by /64) and per page (`LIMIT_PROXY_PER_PAGE_PER_HOUR`,
+default 1000). At most 128 calls run at once (16 per workspace), each for at
+most 60 s. A visitor sees only "route unavailable" when a route is
+misconfigured; the reason is in the `proxy route unavailable` log line.
 Per-address limits rely on `TRUST_PROXY_HEADERS=true` behind Cloudflare, as
 on the box. Each call logs `proxy` with the page, route, upstream host, status
 and size; values never appear in logs.

@@ -55,3 +55,35 @@ func TestVariablesStore(t *testing.T) {
 		t.Fatalf("other workspace touched: %+v", vs)
 	}
 }
+
+func TestVersionProxyRoutesFlag(t *testing.T) {
+	ctx := context.Background()
+	s := newStore(t)
+	k, err := s.CreateKey(ctx, "hash-vars", "v@x.io")
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	if err := s.CreateArtifact(ctx, Artifact{ID: "art1", KeyID: k.ID, Title: "t", CreatedAt: now, UpdatedAt: now}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UpsertBlob(ctx, "sha-a", 1); err != nil {
+		t.Fatal(err)
+	}
+	for v := 1; v <= 2; v++ {
+		if err := s.AddVersion(ctx, Version{ArtifactID: "art1", Version: v, CreatedAt: now}, []File{{Path: "index.html", SHA256: "sha-a", Size: 1, ContentType: "text/html"}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.MarkProxyRoutes(ctx, "art1", 2); err != nil {
+		t.Fatal(err)
+	}
+	for v, want := range map[int]bool{1: false, 2: true, 3: false} {
+		if got, err := s.VersionProxyRoutes(ctx, "art1", v); err != nil || got != want {
+			t.Errorf("v%d: %v %v", v, got, err)
+		}
+	}
+	if err := s.MarkProxyRoutes(ctx, "art1", 9); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing version: %v", err)
+	}
+}

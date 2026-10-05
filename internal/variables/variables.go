@@ -17,6 +17,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 // Limits on what a workspace may store.
@@ -99,7 +101,25 @@ func NormalizeHost(s string) (string, error) {
 			return "", fmt.Errorf("%q is not a host name", s)
 		}
 	}
+	if sharedSuffix(s) {
+		return "", fmt.Errorf("%q is shared by many unrelated sites (a public suffix); name the service's own host, such as abc.%s", s, s)
+	}
 	return s, nil
+}
+
+// sharedParents are hosts under which strangers get their own subdomains but
+// which are not public suffixes themselves, so the list does not catch them.
+var sharedParents = map[string]bool{"amazonaws.com": true, "amazonaws.com.cn": true}
+
+// sharedSuffix reports whether allowing host and its subdomains would admit
+// sites run by anyone: a public suffix such as co.uk, workers.dev or
+// supabase.co, or a parent of such suffixes like amazonaws.com.
+func sharedSuffix(host string) bool {
+	if sharedParents[host] {
+		return true
+	}
+	ps, _ := publicsuffix.PublicSuffix(host)
+	return ps == host
 }
 
 // NormalizeHosts cleans a list of allowed upstreams: at least one, at most
@@ -132,6 +152,9 @@ func NormalizeHosts(in []string) ([]string, error) {
 func HostAllowed(host string, allowed []string) bool {
 	host = strings.TrimSuffix(strings.ToLower(host), ".")
 	for _, a := range allowed {
+		if sharedSuffix(a) {
+			continue
+		}
 		if host == a || strings.HasSuffix(host, "."+a) {
 			return true
 		}

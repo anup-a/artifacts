@@ -88,6 +88,14 @@ func TestParseRefusesHostileManifests(t *testing.T) {
 		"path double slash":  route(`{"upstream":"https://a.example.com","methods":["GET"],"paths":["/a//b"]}`),
 		"path query":         route(`{"upstream":"https://a.example.com","methods":["GET"],"paths":["/a?x=1"]}`),
 		"empty query name":   route(`{"upstream":"https://a.example.com","methods":["GET"],"query":{"":"x"}}`),
+		"five variables":     route(`{"upstream":"https://a.example.com","methods":["GET"],"headers":{"A":"{{K1}}{{K2}}","B":"{{K3}}"},"query":{"c":"{{K4}}{{K5}}"}}`),
+		"empty body rules":   route(`{"upstream":"https://a.example.com","methods":["POST"],"body":{}}`),
+		"unknown body rule":  route(`{"upstream":"https://a.example.com","methods":["POST"],"body":{"strip":["x"]}}`),
+		"negative max":       route(`{"upstream":"https://a.example.com","methods":["POST"],"body":{"max":{"max_tokens":-1}}}`),
+		"pin and max":        route(`{"upstream":"https://a.example.com","methods":["POST"],"body":{"pin":{"n":1},"max":{"n":2}}}`),
+		"variable in body":   route(`{"upstream":"https://a.example.com","methods":["POST"],"body":{"pin":{"key":"{{K}}"}}}`),
+		"zero page limit":    `{"limit_per_hour":0,"routes":{"r":{"upstream":"https://a.example.com","methods":["GET"]}}}`,
+		"huge page limit":    `{"limit_per_hour":100000000,"routes":{"r":{"upstream":"https://a.example.com","methods":["GET"]}}}`,
 		"too large manifest": `{"routes":{"r":{"upstream":"https://a.example.com","methods":["GET"],"headers":{"X":"` + strings.Repeat("a", MaxManifestBytes) + `"}}}}`,
 	}
 	for name, raw := range cases {
@@ -97,13 +105,27 @@ func TestParseRefusesHostileManifests(t *testing.T) {
 	}
 }
 
+func TestParseLimitAndBodyRules(t *testing.T) {
+	m, err := Parse([]byte(`{"limit_per_hour":50,"routes":{"r":{"upstream":"https://a.example.com","methods":["POST"],
+		"body":{"pin":{"model":"x/y"},"max":{"max_tokens":1024}}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.LimitPerHour != 50 || m.Routes["r"].Body == nil || string(m.Routes["r"].Body.Pin["model"]) != `"x/y"` {
+		t.Fatalf("%+v", m)
+	}
+	if _, err := Parse([]byte(`{"routes":{"r":{"upstream":"https://a.example.com","methods":["GET"],"headers":{"A":"{{K1}}{{K2}}"},"query":{"b":"{{K3}}{{K4}}{{K1}}"}}}}`)); err != nil {
+		t.Fatalf("four variables, one used twice: %v", err)
+	}
+}
+
 func TestCleanSub(t *testing.T) {
-	for _, ok := range []string{"", "/models", "/v1/chat%20x", "/items/42"} {
+	for _, ok := range []string{"", "/models", "/v1/chat-x_y.z~", "/items/42"} {
 		if _, good := CleanSub(ok); !good {
 			t.Errorf("%q refused", ok)
 		}
 	}
-	for _, bad := range []string{"/..", "/a/../b", "/./a", "//a", "/a/", "/a%2fb", "/a%2Fb", "/%2e%2e/x", "/a%5cb", "/a\\b", "/a%00", "models"} {
+	for _, bad := range []string{"/..", "/a/../b", "/./a", "//a", "/a/", "/a%2fb", "/a%2Fb", "/%2e%2e/x", "/a%5cb", "/a\\b", "/a%00", "models", "/a%20b", "/a%25", "/a;x=1", "/caf\u00e9", "/a b", "/a:b", "/a@b"} {
 		if _, good := CleanSub(bad); good {
 			t.Errorf("%q accepted", bad)
 		}

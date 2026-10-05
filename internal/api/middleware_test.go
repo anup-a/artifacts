@@ -50,7 +50,20 @@ func TestClientIPUsesProxyHeadersWhenTrusted(t *testing.T) {
 func TestClientIPHandlesIPv6RemoteAddr(t *testing.T) {
 	r := httptest.NewRequest("GET", "/", nil)
 	r.RemoteAddr = "[2001:db8::1]:4444"
-	if got := clientIP(r, false); got != "2001:db8::1" {
-		t.Fatalf("clientIP = %q, want 2001:db8::1", got)
+	if got := clientAddr(r, false); got != "2001:db8::1" {
+		t.Fatalf("clientAddr = %q, want 2001:db8::1", got)
+	}
+	// Rate limits bucket an IPv6 client by its /64, since one client
+	// usually holds the whole prefix.
+	if got := clientIP(r, false); got != "2001:db8::/64" {
+		t.Fatalf("clientIP = %q, want 2001:db8::/64", got)
+	}
+	r.RemoteAddr = "[2001:db8::ffff:1234]:1"
+	if got := clientIP(r, false); got != "2001:db8::/64" {
+		t.Fatalf("same /64, other bucket: %q", got)
+	}
+	r.RemoteAddr = "[::ffff:9.9.9.9]:1"
+	if got := clientIP(r, false); got != "9.9.9.9" {
+		t.Fatalf("IPv4-mapped: %q", got)
 	}
 }

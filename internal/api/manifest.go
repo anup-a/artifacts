@@ -40,6 +40,11 @@ type manifest struct {
 	Model   string `json:"model"`
 	project *string
 	tags    []string
+
+	// ProxyRoutesForEndUser lets a publish for an end user (an integrator's
+	// customer) carry .byagent/proxy.json. Without it such a publish is
+	// refused: the customer's page would spend the integrator's secrets.
+	ProxyRoutesForEndUser bool `json:"proxy_routes_for_end_user"`
 }
 
 var shaRe = regexp.MustCompile(`^[0-9a-f]{64}$`)

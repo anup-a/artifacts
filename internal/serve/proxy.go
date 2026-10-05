@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -102,11 +103,7 @@ func (h *Handler) ServeProxy(w http.ResponseWriter, r *http.Request, id, rest st
 		return
 	}
 	if t.Plan == guest.Plan {
-		apierr.Write(w, r, apierr.Forbidden("proxy routes need a page published from an account; guest pages cannot use them"))
-		return
-	}
-	if ok, retry := rt.PerPage.Allow("page:" + a.ID); !ok {
-		apierr.Write(w, r, apierr.RateLimited(retry))
+		apierr.Write(w, r, apierr.NotFound("proxy route"))
 		return
 	}
 	m, e := h.liveManifest(r.Context(), a)
@@ -133,6 +130,14 @@ func (h *Handler) ServeProxy(w http.ResponseWriter, r *http.Request, id, rest st
 		apierr.Write(w, r, apierr.MethodNotAllowed("route "+name+" accepts "+strings.Join(route.Methods, ", ")))
 		return
 	}
+	// Only a call that reaches a real route spends the page's budget, so
+	// probing missing routes cannot use it up. The owner's own cap in the
+	// manifest applies when it is lower than the server's.
+	if ok, retry := rt.PerPage.AllowMax("page:"+a.ID, m.LimitPerHour); !ok {
+		apierr.Write(w, r, apierr.RateLimited(retry))
+		return
+	}
+	label := a.ID + "/" + name
 	have := map[string]proxy.Secret{}
 	if names := route.Vars(); len(names) > 0 {
 		if have, err = rt.Secrets(r.Context(), a.TenantID, names); err != nil {
@@ -140,12 +145,15 @@ func (h *Handler) ServeProxy(w http.ResponseWriter, r *http.Request, id, rest st
 			return
 		}
 	}
-	vals, e := route.Resolve(have)
-	if e != nil {
-		apierr.Write(w, r, e)
+	vals, err := route.Resolve(have)
+	if err != nil {
+		// The detail (which variable, which host) is for the owner's logs; a
+		// visitor learns only that the route does not work.
+		slog.Warn("proxy route unavailable", "call", label, "reason", err.Error())
+		apierr.Write(w, r, apierr.BadGateway("route unavailable"))
 		return
 	}
-	rt.Proxy.Forward(w, r, proxy.Call{Route: route, Sub: sub, Secrets: vals, Label: a.ID + "/" + name})
+	rt.Proxy.Forward(w, r, proxy.Call{Route: route, Sub: sub, Secrets: vals, Label: label, Tenant: a.TenantID})
 }
 
 // sameOrigin refuses calls a browser makes from another site. Without it any
@@ -171,6 +179,17 @@ func sameOrigin(r *http.Request) *apierr.Error {
 // never a pinned or older one, so withdrawing a route takes effect on the
 // next publish. Parsed manifests are cached by content hash.
 func (h *Handler) liveManifest(ctx context.Context, a store.Artifact) (proxy.Manifest, *apierr.Error) {
+	// Only a version whose manifest passed the publish checks runs routes:
+	// one published by a guest key, for an end user without the opt-in, or
+	// before routes existed has a .byagent/proxy.json that nobody vetted,
+	// and restoring such a version must not switch it on.
+	vetted, err := h.Store.VersionProxyRoutes(ctx, a.ID, a.CurrentVersion)
+	if err != nil {
+		return proxy.Manifest{}, apierr.Internal(err)
+	}
+	if !vetted {
+		return proxy.Manifest{}, apierr.NotFound("proxy route")
+	}
 	files, err := h.Store.Files(ctx, a.ID, a.CurrentVersion)
 	if err != nil {
 		return proxy.Manifest{}, apierr.Internal(err)

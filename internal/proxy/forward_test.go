@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -121,10 +122,10 @@ func TestForwardSubPath(t *testing.T) {
 	var path string
 	p, _ := upstream(t, func(w http.ResponseWriter, r *http.Request) { path = r.URL.EscapedPath() })
 	rt := route(t, `{"upstream":"https://example.com/rest/v1/","methods":["GET"],"paths":["/items/*"]}`)
-	if rec := call(p, rt, httptest.NewRequest("GET", "/x", nil), "/items/a%20b"); rec.Code != 200 {
+	if rec := call(p, rt, httptest.NewRequest("GET", "/x", nil), "/items/a-b_c.d~e"); rec.Code != 200 {
 		t.Fatal(rec.Code)
 	}
-	if path != "/rest/v1/items/a%20b" {
+	if path != "/rest/v1/items/a-b_c.d~e" {
 		t.Fatalf("path %q", path)
 	}
 }
@@ -273,8 +274,8 @@ func TestForwardBlocksPrivateUpstreamWithoutLeaking(t *testing.T) {
 		p := New(Options{Resolve: fixedResolve(addr), Timeout: time.Second})
 		rt := route(t, `{"upstream":"https://rebind.example.com/x","methods":["GET"],"query":{"key":"{{KEY}}"}}`)
 		rec := call(p, rt, httptest.NewRequest("GET", "/x", nil), "")
-		if rec.Code != http.StatusForbidden {
-			t.Errorf("%s: status %d", addr, rec.Code)
+		if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), "route unavailable") {
+			t.Errorf("%s: status %d %s", addr, rec.Code, rec.Body)
 		}
 		if strings.Contains(rec.Body.String(), secret) {
 			t.Errorf("%s: secret in the answer", addr)
@@ -301,17 +302,161 @@ func TestForwardBlocksPrivateUpstreamWithoutLeaking(t *testing.T) {
 
 func TestResolveChecksPinning(t *testing.T) {
 	rt := route(t, `{"upstream":"https://api.openai.com/v1/x","methods":["GET"],"headers":{"Authorization":"Bearer {{KEY}}"}}`)
-	if _, e := rt.Resolve(map[string]Secret{}); e == nil || e.Status != 502 {
-		t.Fatalf("missing variable: %v", e)
+	if _, err := rt.Resolve(map[string]Secret{}); err == nil || !strings.Contains(err.Error(), "KEY") {
+		t.Fatalf("missing variable: %v", err)
 	}
-	if _, e := rt.Resolve(map[string]Secret{"KEY": {Value: secret, AllowedUpstreams: []string{"openrouter.ai"}}}); e == nil || e.Status != 403 || strings.Contains(e.Message, secret) {
-		t.Fatalf("unpinned host: %v", e)
+	if _, err := rt.Resolve(map[string]Secret{"KEY": {Value: secret, AllowedUpstreams: []string{"openrouter.ai"}}}); err == nil || strings.Contains(err.Error(), secret) {
+		t.Fatalf("unpinned host: %v", err)
 	}
-	if _, e := rt.Resolve(map[string]Secret{"KEY": {Value: secret, AllowedUpstreams: []string{"evilopenai.com"}}}); e == nil {
+	if _, err := rt.Resolve(map[string]Secret{"KEY": {Value: secret, AllowedUpstreams: []string{"evilopenai.com"}}}); err == nil {
 		t.Fatal("suffix trick accepted")
 	}
-	vals, e := rt.Resolve(map[string]Secret{"KEY": {Value: secret, AllowedUpstreams: []string{"openai.com"}}})
-	if e != nil || vals["KEY"] != secret {
-		t.Fatalf("parent domain pin: %v", e)
+	if _, err := rt.Resolve(map[string]Secret{"KEY": {Value: strings.Repeat("k", MaxSecretBytes+1), AllowedUpstreams: []string{"openai.com"}}}); err == nil {
+		t.Fatal("oversized secrets accepted")
+	}
+	vals, err := rt.Resolve(map[string]Secret{"KEY": {Value: secret, AllowedUpstreams: []string{"openai.com"}}})
+	if err != nil || vals["KEY"] != secret {
+		t.Fatalf("parent domain pin: %v", err)
+	}
+}
+
+// A worst case for naive matching: long secrets that are all one byte but
+// the last, against a body of nothing but that byte. Matching must stay
+// linear in the body.
+func TestRedactorIsLinear(t *testing.T) {
+	run := func(fill string) time.Duration {
+		secrets := map[string]string{}
+		for i := 0; i < MaxVarsPerRoute; i++ {
+			secrets[fmt.Sprint("K", i)] = strings.Repeat(fill, 2047) + string(rune('B'+i))
+		}
+		r := newRedactor(io.Discard, secrets)
+		chunk := bytes.Repeat([]byte("A"), 32<<10)
+		start := time.Now()
+		for n := 0; n < MaxResponseBytes; n += len(chunk) {
+			r.Write(chunk)
+		}
+		return time.Since(start)
+	}
+	benign := run("Z")
+	hostile := run("A")
+	// Quadratic matching would make the hostile case thousands of times
+	// slower than the benign one; linear keeps them in the same range. The
+	// ratio, not wall time, is checked so a busy machine does not fail it.
+	if hostile > 20*benign+500*time.Millisecond {
+		t.Fatalf("hostile %v vs benign %v", hostile, benign)
+	}
+}
+
+func TestRedactorAcrossManyChunks(t *testing.T) {
+	var out bytes.Buffer
+	r := newRedactor(&out, map[string]string{"K": "abcabcabd-secret"})
+	in := "xx abcabcabcabd-secret yy abcabcabd-secre"
+	for i := 0; i < len(in); i++ {
+		r.Write([]byte{in[i]})
+	}
+	r.Flush()
+	if got := out.String(); got != "xx abc[redacted] yy abcabcabd-secre" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestRedactorNeverFlushesACutSecret(t *testing.T) {
+	p, _ := upstream(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write(bytes.Repeat([]byte("x"), MaxResponseBytes-10))
+		w.Write([]byte(secret))
+	})
+	rt := route(t, `{"upstream":"https://example.com/big","methods":["GET"],"headers":{"Authorization":"Bearer {{KEY}}"}}`)
+	rec := call(p, rt, httptest.NewRequest("GET", "/x", nil), "")
+	if strings.Contains(rec.Body.String(), secret[:10]) {
+		t.Fatal("the start of a secret cut off by the cap was sent")
+	}
+}
+
+func TestForwardStreamsRequestBodies(t *testing.T) {
+	var got atomic.Int64
+	p, _ := upstream(t, func(w http.ResponseWriter, r *http.Request) {
+		n, _ := io.Copy(io.Discard, r.Body)
+		got.Store(n)
+	})
+	rt := route(t, `{"upstream":"https://example.com/up","methods":["POST"]}`)
+	// Unknown length: streamed through the cap, refused once past it.
+	req := httptest.NewRequest("POST", "/x", io.MultiReader(bytes.NewReader(make([]byte, MaxRequestBytes)), strings.NewReader("over")))
+	req.ContentLength = -1
+	if rec := call(p, rt, req, ""); rec.Code == 200 {
+		t.Fatalf("an oversized chunked body went through (%d bytes)", got.Load())
+	}
+	req = httptest.NewRequest("POST", "/x", bytes.NewReader(make([]byte, 1<<20)))
+	req.ContentLength = -1
+	if rec := call(p, rt, req, ""); rec.Code != 200 || got.Load() != 1<<20 {
+		t.Fatalf("chunked body: %d, %d bytes", rec.Code, got.Load())
+	}
+}
+
+func TestForwardCapsConcurrency(t *testing.T) {
+	release := make(chan struct{})
+	started := make(chan struct{}, 4)
+	p, srv := upstream(t, func(w http.ResponseWriter, r *http.Request) {
+		started <- struct{}{}
+		<-release
+	})
+	defer close(release)
+	_, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	pool := x509.NewCertPool()
+	pool.AddCert(srv.Certificate())
+	p = New(Options{Resolve: fixedResolve("127.0.0.1"), AllowAddr: func(netip.Addr) bool { return true }, DialPort: port,
+		RootCAs: pool, Timeout: 5 * time.Second, InFlight: 3, InFlightPerTenant: 2})
+	rt := route(t, `{"upstream":"https://example.com/slow","methods":["GET"]}`)
+	callAs := func(tenant string) chan int {
+		ch := make(chan int, 1)
+		go func() {
+			rec := httptest.NewRecorder()
+			p.Forward(rec, httptest.NewRequest("GET", "/x", nil), Call{Route: rt, Tenant: tenant, Label: "t"})
+			ch <- rec.Code
+		}()
+		return ch
+	}
+	callAs("a")
+	callAs("a")
+	<-started
+	<-started
+	if code := <-callAs("a"); code != http.StatusServiceUnavailable {
+		t.Fatalf("third call for one workspace: %d", code)
+	}
+	callAs("b")
+	<-started
+	if code := <-callAs("c"); code != http.StatusServiceUnavailable {
+		t.Fatalf("call past the server cap: %d", code)
+	}
+}
+
+func TestForwardAppliesBodyRules(t *testing.T) {
+	var got []byte
+	p, _ := upstream(t, func(w http.ResponseWriter, r *http.Request) { got, _ = io.ReadAll(r.Body) })
+	rt := route(t, `{"upstream":"https://example.com/chat","methods":["POST"],
+		"body":{"pin":{"model":"cheap/model"},"max":{"max_tokens":512}}}`)
+	req := httptest.NewRequest("POST", "/x", strings.NewReader(`{"model":"expensive/model","max_tokens":100000,"messages":[]}`))
+	if rec := call(p, rt, req, ""); rec.Code != 200 {
+		t.Fatal(rec.Code)
+	}
+	var body map[string]any
+	json.Unmarshal(got, &body)
+	if body["model"] != "cheap/model" || body["max_tokens"] != 512.0 || body["messages"] == nil {
+		t.Fatalf("body sent: %s", got)
+	}
+	req = httptest.NewRequest("POST", "/x", strings.NewReader(`{"messages":[]}`))
+	call(p, rt, req, "")
+	json.Unmarshal(got, &body)
+	if body["max_tokens"] != 512.0 {
+		t.Fatalf("missing cap not filled in: %s", got)
+	}
+	got = nil
+	for _, bad := range []string{`[1,2]`, `not json`, `{"max_tokens":"lots"}`} {
+		if rec := call(p, rt, httptest.NewRequest("POST", "/x", strings.NewReader(bad)), ""); rec.Code != 400 || got != nil {
+			t.Errorf("%s: %d", bad, rec.Code)
+		}
+	}
+	big := `{"x":"` + strings.Repeat("a", MaxRuleBodyBytes) + `"}`
+	if rec := call(p, rt, httptest.NewRequest("POST", "/x", strings.NewReader(big)), ""); rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("oversized rule body: %d", rec.Code)
 	}
 }
