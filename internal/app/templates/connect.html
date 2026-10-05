@@ -29,32 +29,7 @@
   <div class="callout-head">{{template "icon" "check"}}<strong>Connected.</strong> <span>{{.Data.Approved}} can publish to {{.Viewer.Tenant.Name}} now. Go back to your terminal. You can revoke it any time under <a class="link" href="/app/keys">API keys</a>.</span></div>
 </div>
 
-{{else}}{{if .Data.Prompt}}
-<section class="card">
-  <div class="card-head">
-    <h2>Paste this into your agent</h2>
-    <span class="muted">Claude Code, Codex, Cursor or any agent with a shell. The code in it works once and expires <time title="{{when .Data.ExpiresAt}} UTC">{{when .Data.ExpiresAt}} UTC</time>.</span>
-  </div>
-  <textarea id="connect-prompt" class="connect-prompt" readonly rows="7" aria-label="Prompt for your agent">{{.Data.Prompt}}</textarea>
-  <div class="field-row">
-    <button type="button" class="btn primary" data-copy="#connect-prompt">{{template "icon" "copy"}} Copy prompt</button>
-    <span class="muted">The agent gets its own key, named after it. No key passes through the chat.</span>
-  </div>
-</section>
-
 {{else}}
-<section class="card">
-  <div class="card-head">
-    <h2>Connect an agent</h2>
-    <span class="muted">Give an agent its own key without pasting one into a chat.</span>
-  </div>
-  <p class="muted">You get a prompt to paste into your agent. It carries a one-time code that expires in 10 minutes. The agent trades the code for a key of its own, named after it, which you can revoke under <a class="link" href="/app/keys">API keys</a>.</p>
-  <form method="post" action="/app/connect" class="field-row">
-    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-    {{if .Data.Claimed}}<input type="hidden" name="claimed" value="1">{{end}}
-    <button type="submit" class="btn primary">{{template "icon" "link"}} Create connect prompt</button>
-  </form>
-</section>
-<p class="muted">Started from the terminal instead? <code>byagent login --browser</code> prints a link that brings you here to approve it.</p>
-{{end}}{{end}}{{end}}
+{{template "connect-card" .Data.Prompt}}
+{{end}}{{end}}
 {{end}}

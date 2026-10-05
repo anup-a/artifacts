@@ -19,10 +19,8 @@ var promptCode = regexp.MustCompile(`login --code ([A-Z0-9]{4}-[A-Z0-9]{4})`)
 func TestConnectPrompt(t *testing.T) {
 	e := fixture(t)
 	e.signIn("ann@example.test")
-	want(t, e.get("/app/connect"), 200, "Create connect prompt", `href="/app/connect" class="active"`)
-
-	res := e.post("/app/connect", "/app/connect", url.Values{})
-	want(t, res, 200, "Paste this into your agent", "npx -y byagent@latest login --code ", "/skill.md", "Copy prompt")
+	res := e.get("/app/connect")
+	want(t, res, 200, "Connect your agent", `href="/app/connect" class="active"`, "npx -y byagent@latest login --code ", "/skill.md", "Copy prompt")
 	if strings.Contains(res.Body, "ak_") {
 		t.Fatal("the prompt page shows a key")
 	}
@@ -78,8 +76,7 @@ func TestApproveDeviceThroughSignIn(t *testing.T) {
 func TestApproveRefusesDashboardCodesAndExpired(t *testing.T) {
 	e := fixture(t)
 	e.signIn("ann@example.test")
-	res := e.post("/app/connect", "/app/connect", url.Values{})
-	dash := promptCode.FindStringSubmatch(res.Body)[1]
+	dash := promptCode.FindStringSubmatch(e.get("/app/connect").Body)[1]
 	// A dashboard code is already approved; it is not a CLI request.
 	want(t, e.get("/app/connect?code="+dash), 410)
 	want(t, e.get("/app/connect?code=nope"), 410, "not valid")
@@ -97,6 +94,5 @@ func TestClaimLeadsToConnect(t *testing.T) {
 	if res.StatusCode != 303 || res.Header.Get("Location") != "/app/connect?claimed=1" {
 		t.Fatalf("claim: %d %q", res.StatusCode, res.Header.Get("Location"))
 	}
-	res = e.post("/app/connect", "/app/connect?claimed=1", url.Values{"claimed": {"1"}})
-	want(t, res, 200, "Your guest pages are in", "login --code ")
+	want(t, e.get("/app/connect?claimed=1"), 200, "Your guest pages are in", "login --code ")
 }

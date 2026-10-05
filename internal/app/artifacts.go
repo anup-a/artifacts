@@ -41,6 +41,8 @@ type artifactsData struct {
 	Quota *pageQuota
 	// Views is each listed artifact's views over the last 30 days.
 	Views map[string]int64
+	// Connect is the connect prompt shown when the workspace has nothing yet.
+	Connect *promptView
 }
 
 // PageURL is the list URL with the current filters and the given cursor, so
@@ -149,6 +151,9 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 	}
 	for _, a := range older {
 		d.Rows = append(d.Rows, artifactRow{Artifact: a, URL: h.artifactURL(a), CoverURL: h.artifactCoverURL(a)})
+	}
+	if firstPage && !d.Filtered && len(list) == 0 {
+		d.Connect = h.mintPrompt(r, v)
 	}
 	h.render(w, r, 200, "artifacts", "Artifacts", v, d)
 }

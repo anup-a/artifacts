@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -17,9 +18,8 @@ import (
 const connectCookie = "byagent_connect"
 
 type connectData struct {
-	// Prompt is the text to paste into an agent, holding a fresh Code.
-	Prompt, Code string
-	ExpiresAt    time.Time
+	// Prompt is a fresh connect prompt; nil when none could be made.
+	Prompt *promptView
 	// Claimed is set right after guest pages were kept: the agent that made
 	// them lost its guest key and needs connecting.
 	Claimed bool
@@ -53,7 +53,7 @@ func (h *Handler) connectPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if code == "" {
-		h.render(w, r, 200, "connect", "Connect an agent", v, connectData{Claimed: r.URL.Query().Get("claimed") == "1"})
+		h.render(w, r, 200, "connect", "Connect an agent", v, connectData{Prompt: h.mintPrompt(r, v), Claimed: r.URL.Query().Get("claimed") == "1"})
 		return
 	}
 	c, msg := h.pendingByCode(r, code)
@@ -79,25 +79,36 @@ func (h *Handler) pendingByCode(r *http.Request, code string) (store.ConnectCode
 	return c, ""
 }
 
-// createConnect makes a one-time code for this workspace and shows the
-// prompt that carries it. The code is approved as it is made: the person
-// asking is signed in.
-func (h *Handler) createConnect(w http.ResponseWriter, r *http.Request, v *viewer) {
-	if ok, _ := h.KeyLimiter.Allow(v.Tenant.ID); !ok {
-		h.renderError(w, r, 429, "Too many keys and connect codes made recently. Try again in an hour.")
-		return
+// promptView is a ready-to-paste connect prompt and the code inside it.
+type promptView struct {
+	Text, Code string
+	ExpiresAt  time.Time
+}
+
+// mintPrompt makes a one-time code for this workspace, approved as it is
+// made (the person asking is signed in), and the prompt that carries it.
+// Pages that show a prompt mint one on every view: codes are hashes that
+// expire in ten minutes, so an unused one costs a row until the next GC.
+// It returns nil when the workspace has minted too many recently.
+func (h *Handler) mintPrompt(r *http.Request, v *viewer) *promptView {
+	if ok, _ := h.ConnectLimiter.Allow(v.Tenant.ID); !ok {
+		return nil
 	}
 	code := connect.NewCode()
 	now := h.Now()
 	c := store.ConnectCode{CodeSHA256: connect.Hash(code), TenantID: v.Tenant.ID, Email: v.User.Email,
 		CreatedAt: now, ExpiresAt: now.Add(connect.TTL), ApprovedAt: &now}
 	if err := h.Store.CreateConnect(r.Context(), c); err != nil {
-		h.fail(w, r, err)
-		return
+		slog.Error("connect code", "err", err)
+		return nil
 	}
-	d := connectData{Code: code, ExpiresAt: c.ExpiresAt, Prompt: connectPrompt(h.Cfg, v.Tenant.Name, code),
-		Claimed: r.PostForm.Get("claimed") == "1"}
-	h.render(w, r, 200, "connect", "Connect an agent", v, d)
+	return &promptView{Text: connectPrompt(h.Cfg, code), Code: code, ExpiresAt: c.ExpiresAt}
+}
+
+// createConnect answers the old "Create connect prompt" form; the page now
+// shows a prompt straight away, so this just shows it again.
+func (h *Handler) createConnect(w http.ResponseWriter, r *http.Request, v *viewer) {
+	h.render(w, r, 200, "connect", "Connect an agent", v, connectData{Prompt: h.mintPrompt(r, v), Claimed: r.PostForm.Get("claimed") == "1"})
 }
 
 // approveConnect binds a waiting CLI request to this workspace. The CLI,
@@ -123,15 +134,15 @@ func (h *Handler) approveConnect(w http.ResponseWriter, r *http.Request, v *view
 
 // connectPrompt is what a person pastes into their agent. It names the
 // one-time code, never a key, and points at the skill for everything after.
-func connectPrompt(cfg config.Config, workspace, code string) string {
+func connectPrompt(cfg config.Config, code string) string {
 	login := "npx -y byagent@latest login --code " + code
 	if cfg.APIOrigin != defaultAPI {
 		login += " --api " + cfg.APIOrigin
 	}
-	return "Connect to my byagent workspace \"" + workspace + "\" so you can publish pages I can comment on.\n\n" +
+	return "Set up byagent so you can publish pages I can comment on.\n\n" +
 		"1. Run: " + login + "\n" +
-		"   The code works once and expires in 10 minutes. It saves a key named after you, so never ask me for a key or print one.\n" +
-		"2. Read " + cfg.ShareOrigin + "/skill.md and follow it from now on."
+		"2. Read " + cfg.ShareOrigin + "/skill.md and follow it.\n\n" +
+		"The code works once in the next 10 minutes. Never ask me for a key."
 }
 
 // defaultAPI is the origin the CLI uses when given none.
