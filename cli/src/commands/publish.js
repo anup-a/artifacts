@@ -178,6 +178,7 @@ export async function publish(cfg, { positional, flags, source, env = process.en
       expires_at: res.expires_at ?? null,
       ...(access ? { access: access.mode, share_url: access.share_url } : {}),
       ...(res.guest ? { guest: true, claim_url: res.claim_url } : {}),
+      ...(res.proxy ? { proxy: res.proxy } : {}),
     },
     human: [
       `${res.url}`,
@@ -186,6 +187,7 @@ export async function publish(cfg, { positional, flags, source, env = process.en
       ...(access ? [`password set; share ${access.share_url}`] : res.visibility === "private" ? ["private — sign in to the owning workspace to view"] : []),
       ...(res.expires_at && !res.guest ? [`stops working at ${res.expires_at}, then is erased`] : []),
       ...guestLines(res),
+      ...(res.proxy ? [`proxy routes: ${res.proxy.routes.join(", ")}`, ...res.proxy.warnings.map((w) => `warning: ${w}`)] : []),
     ],
   };
 }

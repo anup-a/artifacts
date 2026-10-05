@@ -12,6 +12,7 @@ import { list, share } from "../src/commands/artifacts.js";
 import { comments, waitForComments } from "../src/commands/comments.js";
 import { findProject } from "../src/project.js";
 import { main } from "../src/main.js";
+import { upstreamsOf } from "../src/commands/vars.js";
 
 function tmp() {
   return mkdtempSync(join(tmpdir(), "artifacts-cli-"));
@@ -854,4 +855,22 @@ test("access never takes a password from argv and takes one mode at a time", asy
   assert.equal((await command(["access", "artifact1234", "--password=hunter2hunter2"])).code, 2);
   assert.equal((await command(["access", "artifact1234", "--public", "--off"])).code, 2);
   assert.equal((await command(["publish", "./x", "--password", "--public"])).code, 2);
+});
+
+test("vars set takes --upstream more than once or comma-separated", () => {
+  const { flags } = parseArgs(["vars", "set", "K", "--upstream", "a.example.com", "--upstream", "b.example.com, c.example.com"]);
+  assert.deepEqual(upstreamsOf(flags), ["a.example.com", "b.example.com", "c.example.com"]);
+  assert.deepEqual(upstreamsOf({}), []);
+});
+
+test("vars set refuses a value given as an argument before calling anything", async () => {
+  const errs = [];
+  const code = await main(["vars", "set", "K", "--upstream", "a.example.com", "--value", "sk-123", "--json"], {
+    out: () => {},
+    err: (l) => errs.push(l),
+    env: { ARTIFACTS_TOKEN: "t", ARTIFACTS_API: "http://127.0.0.1:1" },
+  });
+  assert.equal(code, 2);
+  assert.ok(!errs.join("").includes("sk-123"));
+  assert.match(JSON.parse(errs[0]).error.message, /stdin/);
 });

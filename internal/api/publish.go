@@ -268,6 +268,11 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, missingBlobErr(missing))
 		return
 	}
+	routes, e := s.checkProxyManifest(r.Context(), m)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
 	now := s.Now()
 	// CommentsEnabled mirrors the column default; the manifest may switch it off below.
 	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, Visibility: "public", CommentsEnabled: true, CreatedAt: now, UpdatedAt: now}
@@ -291,7 +296,7 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	apierr.WriteJSON(w, 201, s.publishResponse(a, v))
+	apierr.WriteJSON(w, 201, withProxy(s.publishResponse(a, v), routes))
 }
 
 func (s *server) publishResponse(a store.Artifact, version int) map[string]any {
@@ -328,6 +333,10 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 	if e == nil {
 		e = guestPublishCheck(r, m, external)
 	}
+	var routes *proxyInfo
+	if e == nil {
+		routes, e = s.checkProxyManifest(r.Context(), m)
+	}
 	if e != nil {
 		apierr.Write(w, r, e)
 		return
@@ -337,5 +346,5 @@ func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
-	apierr.WriteJSON(w, 200, s.publishResponse(a, v))
+	apierr.WriteJSON(w, 200, withProxy(s.publishResponse(a, v), routes))
 }

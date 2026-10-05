@@ -93,9 +93,43 @@ Claude-artifact bar: one self-contained `index.html`, CSS/JS inlined, real conte
 
 Avoid the generic look: cream + serif + terracotta, Inter-only, acid-green on black, identical rounded cards, emoji as section labels. `<title>` is 2–4 specific words.
 
-Scripts only from `cdnjs.cloudflare.com` / `cdn.jsdelivr.net`; stylesheets from those two or `fonts.googleapis.com` (fonts from `fonts.gstatic.com`). Pin versions. Embed the data; the page cannot call an API later. Wide tables/diagrams in `overflow-x: auto`.
+Scripts only from `cdnjs.cloudflare.com` / `cdn.jsdelivr.net`; stylesheets from those two or `fonts.googleapis.com` (fonts from `fonts.gstatic.com`). Pin versions. Embed the data; a page reaches an API only through a proxy route (below). Wide tables/diagrams in `overflow-x: auto`.
 
-## Comments
+## Calling an API from a page (variables and proxy routes)
+
+A page that needs a live API (a chatbot on OpenRouter, a form writing to Supabase) never holds the key. The key is an account **variable** stored on byagent; the page declares a **proxy route** and calls it with a relative URL; the server adds the key and forwards the call.
+
+"Add my OpenRouter key for the chatbot":
+
+```
+printf %s "$OPENROUTER_API_KEY" | byagent vars set OPENROUTER_API_KEY --upstream openrouter.ai --json
+```
+
+The value comes from stdin (or `--from-env VAR`), never from an argument; never print it, echo it into chat or write it into a page file. `--upstream` is required: the value is only ever sent to those hosts and their subdomains. `byagent vars --json` lists names and hosts (values never come back); `byagent vars rm NAME` deletes one. If the user has not given you the key, ask them to run the command themselves or add it in the dashboard (Settings > Variables).
+
+Then ship `.byagent/proxy.json` in the published directory:
+
+```json
+{
+  "routes": {
+    "chat": {
+      "upstream": "https://openrouter.ai/api/v1/chat/completions",
+      "methods": ["POST"],
+      "headers": { "Authorization": "Bearer {{OPENROUTER_API_KEY}}" }
+    }
+  }
+}
+```
+
+and call it from `index.html` with a relative path: `fetch("_proxy/chat", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({model, messages, stream: true})})`. Streaming answers arrive as they are produced.
+
+- Route names: lowercase letters, digits, `-` and `_`. `upstream`: an `https` URL on the default port with a host name (no IP addresses, no user info). `methods`: any of GET, POST, PUT, PATCH, DELETE; others answer 405.
+- `headers` and `query` hold `{{NAME}}` references to variables (not `${NAME}`). Optional `paths` lets callers append sub-paths: `"paths": ["/models", "/v1/*"]` allows `_proxy/<route>/models` and anything under `/v1/`.
+- Only `Content-Type`, `Accept` and `Accept-Language` pass from the browser; cookies and every other header stay behind. The visitor's query string is passed on, but cannot replace the route's own `query` values.
+- Call it from a page at the root of the directory; a page in a subfolder uses `../_proxy/<route>`. The `_proxy/` path is reserved and `.byagent/` files are never served.
+- Publish checks the manifest and fails with the reason if it is invalid. Its JSON carries `proxy: {routes, warnings}`; a warning means a variable is missing or not allowed for that host. Fix it before handing over the URL.
+- Anyone who can open the page can call its routes, so they cost the key's owner money: say so, and suggest a spending limit on the upstream key. Routes are metered per visitor and per page. Private pages answer only browsers unlocked with the share code. Guest pages cannot use routes.
+
 
 ```
 byagent comments <id> --open --json

@@ -13,6 +13,7 @@ import { brief } from "./commands/brief.js";
 import { version, diff } from "./commands/artifacts.js";
 import { analytics } from "./commands/analytics.js";
 import { access } from "./commands/access.js";
+import { vars } from "./commands/vars.js";
 
 // needsConfig is false for login, which builds its own config from its flags.
 const COMMANDS = {
@@ -39,6 +40,7 @@ const COMMANDS = {
   hooks: { run: hooks, needsConfig: false },
   brief: { run: brief, needsConfig: true },
   analytics: { run: analytics, needsConfig: true },
+  vars: { run: vars, needsConfig: true },
 };
 
 const help = (api) => `byagent - publish a page, share the URL, read the comments on it
@@ -78,6 +80,9 @@ Usage:
   byagent hooks install|uninstall claude|codex [--scope user|project]
   byagent brief [push [--private|--public] [--project <name>]]
   byagent analytics [<id>] [--range 24h|7d|30d|90d|all]
+  byagent vars
+  byagent vars set NAME --upstream <host> [--upstream <host>]... [--from-env VAR]
+  byagent vars rm NAME
 
 A .md file (or a directory whose index is index.md / README.md) is rendered to
 a styled page on the way in; its first H1 becomes the title unless --title is
@@ -191,6 +196,13 @@ and devices; the workspace report adds the top pages. Bots, link previews,
 HEAD requests, assets and the dashboard preview are not counted. Visitors
 are counted per page per day from a hash that changes daily and is never
 stored, so a range's visitors add up the days. No cookies are used.
+vars manages account variables: API keys a page's proxy routes use without
+the key reaching the browser. vars set reads the value from stdin (piped, or
+typed hidden at a prompt), or from --from-env VAR; never from an argument.
+--upstream names the hosts the value may be sent to (and their subdomains).
+A page declares routes in .byagent/proxy.json and calls _proxy/<route>; the
+server adds the key and forwards the call. vars lists names and hosts only;
+values are never shown again. vars rm deletes one.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.

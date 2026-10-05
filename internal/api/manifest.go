@@ -10,6 +10,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/proxy"
 )
 
 type manifestFile struct {
@@ -66,6 +67,9 @@ func parseManifest(raw []byte, lim config.Limits) (manifest, *apierr.Error) {
 	for i, f := range m.Files {
 		if err := validPath(f.Path); err != "" {
 			return m, apierr.Invalid(fmt.Sprintf("files[%d].path: %s", i, err))
+		}
+		if f.Path == proxy.PathPrefix || strings.HasPrefix(f.Path, proxy.PathPrefix+"/") {
+			return m, apierr.Invalid(fmt.Sprintf("files[%d].path: %s/ is reserved for proxy routes", i, proxy.PathPrefix))
 		}
 		if seen[f.Path] {
 			return m, apierr.Invalid("duplicate path " + f.Path)

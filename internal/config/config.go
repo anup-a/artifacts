@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"github.com/anup-a/artifacts/internal/variables"
 )
 
 type Limits struct {
@@ -22,6 +24,10 @@ type Limits struct {
 	// restricted page's gate mails: per workspace, and for the whole server.
 	AccessMailPerWorkspaceDay int
 	AccessMailPerDay          int
+	// Proxy route calls an hour, per client address across every page and
+	// per page across every address.
+	ProxyPerIPHour   int
+	ProxyPerPageHour int
 }
 
 type Config struct {
@@ -70,8 +76,18 @@ type Config struct {
 	// Set, it wins over ShowcaseSlug, so pages can be picked from any
 	// project without relabelling them. SHOWCASE_PAGES=id,id,...
 	ShowcasePages []string
-	Limits        Limits
+	// VariablesKey seals account variables (the secrets proxy routes send
+	// upstream) at rest: comma-separated base64 32-byte AES keys, the first
+	// for new writes, the rest still read during a rotation. Empty turns
+	// variables and proxy routes off. VARIABLES=off turns them off with the
+	// key still set. VARIABLES_KEY.
+	VariablesKey string
+	VariablesOff bool
+	Limits       Limits
 }
+
+// VariablesEnabled reports whether account variables and proxy routes run.
+func (c Config) VariablesEnabled() bool { return c.VariablesKey != "" && !c.VariablesOff }
 
 // WebEnabled reports whether at least one sign-in provider is configured.
 func (c Config) WebEnabled() bool { return c.GitHubClientID != "" || c.EmailProvider != "" }
@@ -114,6 +130,8 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		ReadOnly:          getenv("READ_ONLY") == "on",
 		ShowcaseSlug:      getenv("SHOWCASE_COLLECTION"),
 		ShowcasePages:     splitList(getenv("SHOWCASE_PAGES")),
+		VariablesKey:      getenv("VARIABLES_KEY"),
+		VariablesOff:      getenv("VARIABLES") == "off",
 	}
 	var err error
 	if c.Limits, err = limitsFromEnv(getenv); err != nil {
@@ -155,6 +173,11 @@ func FromEnv(getenv func(string) string) (Config, error) {
 	if c.GuestPublish && !c.WebEnabled() {
 		return c, errors.New("GUEST_PUBLISH=on requires web sign-in, so guests can claim their pages")
 	}
+	if c.VariablesKey != "" {
+		if _, err := variables.NewSealer(c.VariablesKey); err != nil {
+			return c, fmt.Errorf("VARIABLES_KEY: %w", err)
+		}
+	}
 	if c.AdminToken == "" && c.KeySecret == "" {
 		return c, errors.New("set ADMIN_TOKEN (self-host) or KEY_SIGNING_SECRET (managed)")
 	}
@@ -164,7 +187,8 @@ func FromEnv(getenv func(string) string) (Config, error) {
 func limitsFromEnv(getenv func(string) string) (Limits, error) {
 	l := Limits{VersionBytes: 26214400, Files: 500, VersionsKept: 20, PublishPerMin: 10,
 		ArtifactsPerTenant: 200, CommentBytes: 2048, CommentsPerMin: 20, AnchorBytes: 4096,
-		AccessMailPerWorkspaceDay: 200, AccessMailPerDay: 2000}
+		AccessMailPerWorkspaceDay: 200, AccessMailPerDay: 2000,
+		ProxyPerIPHour: 100, ProxyPerPageHour: 1000}
 	set := func(k string, dst *int) error {
 		v := getenv(k)
 		if v == "" {
@@ -191,6 +215,11 @@ func limitsFromEnv(getenv func(string) string) (Limits, error) {
 		"LIMIT_ANCHOR_BYTES":                  &l.AnchorBytes,
 		"LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY": &l.AccessMailPerWorkspaceDay, "LIMIT_ACCESS_MAIL_PER_DAY": &l.AccessMailPerDay,
 	} {
+		if err := set(k, dst); err != nil {
+			return l, err
+		}
+	}
+	for k, dst := range map[string]*int{"LIMIT_PROXY_PER_IP_PER_HOUR": &l.ProxyPerIPHour, "LIMIT_PROXY_PER_PAGE_PER_HOUR": &l.ProxyPerPageHour} {
 		if err := set(k, dst); err != nil {
 			return l, err
 		}

@@ -34,6 +34,13 @@ func RateLimited(sec int) *Error    { return &Error{"RATE_LIMITED", 429, "rate l
 func Quota(msg string) *Error       { return &Error{"QUOTA_EXCEEDED", 429, msg, 0, nil} }
 func Internal(err error) *Error     { return &Error{"INTERNAL", 500, "internal error", 0, err} }
 
+// BadGateway and GatewayTimeout report a proxy route's upstream failing.
+func BadGateway(msg string) *Error     { return &Error{"BAD_GATEWAY", 502, msg, 0, nil} }
+func GatewayTimeout(msg string) *Error { return &Error{"GATEWAY_TIMEOUT", 504, msg, 0, nil} }
+func MethodNotAllowed(msg string) *Error {
+	return &Error{"METHOD_NOT_ALLOWED", 405, msg, 0, nil}
+}
+
 type ctxKey struct{}
 
 func WithRequestID(ctx context.Context, id string) context.Context {
