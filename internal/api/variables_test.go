@@ -666,3 +666,43 @@ func TestProxyRestrictedPageNeedsAnAllowedAddress(t *testing.T) {
 		t.Fatalf("taken off the list, still calling routes: %d", code)
 	}
 }
+
+// On a page host the routes are /_proxy/{route} at the host's root, only
+// for that page and only from its own origin.
+func TestProxyOnPageHost(t *testing.T) {
+	srv, d, tok, hits := newVarsServer(t, func(d *Deps) {
+		d.Cfg.ContentScheme, d.Cfg.ContentDomain, d.Cfg.ContentShared = "https", "share.test", true
+	})
+	setVar(t, srv.URL, tok, "OPENROUTER_API_KEY", `{"value":"`+testSecret+`","allowed_upstreams":["example.com"]}`)
+	code, b := publishRoutes(t, srv.URL, tok, chatManifest)
+	if code != 201 {
+		t.Fatalf("publish: %d %v", code, b)
+	}
+	a := pageOf(t, d, b["id"].(string))
+	other := pageOf(t, d, publishOne(t, srv.URL, tok, "<p>other</p>"))
+	host := a.Slug + ".share.test"
+	call := func(h, origin string) hostRes {
+		hdr := map[string]string{"Content-Type": "application/json"}
+		if origin != "" {
+			hdr["Origin"] = origin
+		}
+		return onHost(t, srv, hostReq{method: "POST", host: h, path: "/_proxy/chat", body: `{"messages":[]}`, hdr: hdr})
+	}
+	if res := call(host, "https://"+host); res.code != 200 || !strings.Contains(res.body, `"/api/v1/chat"`) || hits.auth.Load() != "Bearer "+testSecret {
+		t.Fatalf("own origin: %d %s", res.code, res.body)
+	}
+	before := hits.n.Load()
+	for _, o := range []string{"https://" + other.Slug + ".share.test", "https://evil.example", ""} {
+		if res := call(host, o); res.code != 403 {
+			t.Errorf("from %q: %d", o, res.code)
+		}
+	}
+	// Another page's host has no such route, even from its own origin.
+	oh := other.Slug + ".share.test"
+	if res := call(oh, "https://"+oh); res.code != 404 {
+		t.Errorf("other page's host: %d %s", res.code, res.body)
+	}
+	if hits.n.Load() != before {
+		t.Fatal("a refused call reached the upstream")
+	}
+}

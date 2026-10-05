@@ -123,7 +123,7 @@ Two layouts work:
   `/_unlock`, the comment runtime at `/_rt/comments.js` and the page's own
   comment routes at `/c/<its id>/`. A route naming another page's id answers
   404, and the API, dashboard and agent pages are not there. `/_proxy/` is
-  reserved for page proxy routes.
+  the page's proxy routes (same-origin only).
 - `/a/<id>/...` on the share origin 308-redirects to the page host with the
   sub-path and query kept, so old links and share links (`?k=`) keep working;
   the code then unlocks on the page host. A private page nobody outside the

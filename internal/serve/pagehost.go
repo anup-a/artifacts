@@ -8,6 +8,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/pageurl"
+	"github.com/anup-a/artifacts/internal/proxy"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -138,9 +139,9 @@ func (h *Handler) pageURLs() pageurl.Builder {
 	return b
 }
 
-// proxyPrefix is where a page's proxy routes will live on its host,
-// /_proxy/{route}. Reserved now so no page file shadows them.
-const proxyPrefix = "_proxy"
+// proxyPrefix is where a page's proxy routes live on its host,
+// /_proxy/{route}, so no page file shadows them.
+const proxyPrefix = proxy.PathPrefix
 
 // ServePage answers a request on a page's own host (r carries WithPageHost).
 // The request path is the page's own: "/" is its index, the same thing
@@ -195,21 +196,19 @@ func (h *Handler) refuseCrossPage(w http.ResponseWriter, r *http.Request) {
 	apierr.Write(w, r, apierr.Forbidden("requests to a page must come from the page itself"))
 }
 
-// pageProxy is the hook for proxy routes (the variables and proxy PR, #72):
-// on a page host they are /_proxy/{route}[/{sub...}] and belong to this page
-// only. When that lands, call
-//
-//	h.ServeProxy(w, r, id, strings.TrimPrefix(r.URL.EscapedPath(), "/"+proxyPrefix))
-//
-// here. The same-origin rule applies to every method, reads included,
-// because a proxied GET still spends the page's quota and secrets.
+// pageProxy answers a page's proxy routes (#72) on its own host:
+// /_proxy/{route}[/{sub...}], belonging to this page only. The same-origin
+// rule applies to every method, reads included, because a proxied GET still
+// spends the page's quota and secrets; ServeProxy then runs its own checks
+// (grant, rate limits, manifest) exactly as under /a/{id}/_proxy/.
 func (h *Handler) pageProxy(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	if !SameOriginRequest(r) {
 		h.refuseCrossPage(w, r)
 		return
 	}
-	apierr.Write(w, r, apierr.NotFound("proxy route"))
+	p, _ := pageHostFrom(r)
+	h.ServeProxy(w, r, p.ArtifactID, strings.TrimPrefix(r.URL.EscapedPath(), "/"+proxyPrefix))
 }
 
 // redirectToPageHost moves a share-origin address of a page, /a/{id}/...,
