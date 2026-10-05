@@ -368,6 +368,29 @@ textarea { resize: vertical; line-height: 1.45; }
 .prompt-copy .ic-done, .prompt-copy.is-copied .ic-copy { display: none; }
 .prompt-copy.is-copied .ic-done { display: inline-flex; color: var(--ok); }
 .connect-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+/* First run: the empty Artifacts page draws the loop byagent is for, then
+   offers the setup prompt. */
+.first-run { min-height: 62vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.first-run-art { width: 100%; max-width: 346px; height: auto; margin-bottom: 28px; }
+.first-run-title { margin: 0 0 6px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.first-run-sub { margin: 0 0 20px; max-width: 380px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.first-run-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.fr-term { fill: #171717; stroke: var(--line-strong); }
+.fr-dot { fill: #ededed; opacity: .35; }
+.fr-cmd { fill: #ededed; font: 500 11px var(--mono); }
+.fr-out { fill: #52a8ff; font: 500 10px var(--mono); }
+.fr-arrow { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.fr-arrow-head { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.fr-page { fill: var(--panel); stroke: var(--line-strong); }
+.fr-bar, .fr-bar-fix { fill: var(--panel-2); }
+.fr-url { fill: var(--line-strong); }
+.fr-line { fill: var(--line-strong); }
+.fr-h { fill: var(--faint); }
+.fr-hl { fill: var(--accent-soft); }
+.fr-on { fill: var(--accent); opacity: .55; }
+.fr-bubble { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; }
+.fr-avatar { fill: var(--accent); }
+.fr-bubble-line { fill: var(--line-strong); }
 .connect-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 14px; font-size: 13.5px; }
 .connect-facts dt { color: var(--fg-2); }
 .connect-facts dd { margin: 0; }
