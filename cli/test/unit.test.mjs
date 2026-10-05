@@ -720,6 +720,7 @@ test("analytics prints no series for a range without views", async () => {
   const { render } = await import("../src/commands/analytics.js");
   const lines = render(report({ totals: { all_time_views: 0, range_views: 0, range_visitors: 0 }, series: [{ bucket: "2026-10-04", views: 0, visitors: 0 }], top_referrers: [], top_paths: [], top_devices: [] }), "ar_page1");
   assert.deepEqual(lines, ["ar_page1, last 7 days: 0 views, 0 visitors (0 all time)"]);
+});
 
 test("detectAgent: BYAGENT_AGENT, then Codex, then Claude Code, then AI_AGENT", async () => {
   const { detectAgent, keyName, clientHeaders } = await import("../src/agent.js");
