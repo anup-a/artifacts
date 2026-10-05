@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"html"
 	"io"
 	"net/http"
@@ -65,6 +66,16 @@ func TestLandingFAQIsMarkedUp(t *testing.T) {
 	for _, n := range graph.Graph {
 		if n["@type"] == "Organization" {
 			ids["org"], _ = n["@id"].(string)
+			f, _ := n["founder"].(map[string]any)
+			ids["founder"], _ = f["@id"].(string)
+			continue
+		}
+		// The founder's own profiles, so the Organization links to a person.
+		if n["@type"] == "Person" {
+			ids["person"], _ = n["@id"].(string)
+			if s := fmt.Sprint(n["sameAs"]); s != "[https://github.com/anup-a https://x.com/anup_x_dev]" {
+				t.Errorf("founder sameAs %s", s)
+			}
 			continue
 		}
 		p, _ := n["publisher"].(map[string]any)
@@ -72,6 +83,9 @@ func TestLandingFAQIsMarkedUp(t *testing.T) {
 	}
 	if ids["org"] != "http://share.test/#org" || ids["WebSite"] != ids["org"] || ids["SoftwareApplication"] != ids["org"] {
 		t.Errorf("publisher ids %v", ids)
+	}
+	if ids["founder"] != "http://share.test/#founder" || ids["person"] != ids["founder"] {
+		t.Errorf("founder ids %v", ids)
 	}
 	if strings.Contains(body, "—") || strings.Contains(body, "MCP") {
 		t.Error("the landing page has an em dash or mentions MCP")
