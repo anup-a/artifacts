@@ -39,6 +39,8 @@ type artifactsData struct {
 	// Quota is set on the unfiltered first page once the workspace is near
 	// its page limit, so the warning shows before publishes start failing.
 	Quota *pageQuota
+	// Views is each listed artifact's views over the last 30 days.
+	Views map[string]int64
 }
 
 // PageURL is the list URL with the current filters and the given cursor, so
@@ -120,6 +122,7 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 		d.Next = store.ArtifactCursor(list[pageSize-1])
 	}
 	d.Count = len(list)
+	d.Views = h.listViews(r, list)
 	older := list
 	if firstPage {
 		var recent []store.Artifact

@@ -184,7 +184,7 @@ func (s *sqlStore) CountArtifacts(ctx context.Context, tenantID string) (int, er
 }
 
 // Erase removes everything a deleted artifact still holds: its comments and
-// threads, its daily view counts, every version (which releases the blobs
+// threads, its view counts and analytics, every version (which releases the blobs
 // to GC) and the labels on the row. The row itself stays, emptied, so the
 // id keeps answering 410 and is never handed out again.
 func (s *sqlStore) Erase(ctx context.Context, id string) error {
@@ -197,6 +197,8 @@ func (s *sqlStore) Erase(ctx context.Context, id string) error {
 		`DELETE FROM comments WHERE thread_id IN (SELECT id FROM threads WHERE artifact_id=?)`,
 		`DELETE FROM threads WHERE artifact_id=?`,
 		`DELETE FROM artifact_views WHERE artifact_id=?`,
+		`DELETE FROM artifact_view_hours WHERE artifact_id=?`,
+		`DELETE FROM artifact_view_facets WHERE artifact_id=?`,
 		`UPDATE artifacts SET title='', project=NULL, tags=NULL, cover_path=NULL, cover_style='', share_code='' WHERE id=? AND deleted_at IS NOT NULL`,
 	} {
 		if _, err := tx.ExecContext(ctx, s.q(q), id); err != nil {
@@ -215,7 +217,8 @@ func (s *sqlStore) Erase(ctx context.Context, id string) error {
 // pages deleted before erasure existed, and guest pages the GC expired.
 func (s *sqlStore) Unerased(ctx context.Context) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT a.id FROM artifacts a WHERE a.deleted_at IS NOT NULL AND (a.title<>'' OR a.project IS NOT NULL OR a.tags IS NOT NULL OR a.cover_path IS NOT NULL OR a.share_code<>''
- OR EXISTS(SELECT 1 FROM versions v WHERE v.artifact_id=a.id) OR EXISTS(SELECT 1 FROM threads t WHERE t.artifact_id=a.id) OR EXISTS(SELECT 1 FROM artifact_views w WHERE w.artifact_id=a.id)) LIMIT 500`)
+ OR EXISTS(SELECT 1 FROM versions v WHERE v.artifact_id=a.id) OR EXISTS(SELECT 1 FROM threads t WHERE t.artifact_id=a.id) OR EXISTS(SELECT 1 FROM artifact_views w WHERE w.artifact_id=a.id)
+ OR EXISTS(SELECT 1 FROM artifact_view_hours w WHERE w.artifact_id=a.id) OR EXISTS(SELECT 1 FROM artifact_view_facets w WHERE w.artifact_id=a.id)) LIMIT 500`)
 	if err != nil {
 		return nil, err
 	}

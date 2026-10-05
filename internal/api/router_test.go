@@ -18,7 +18,7 @@ func TestWebRegistrarAndViewHook(t *testing.T) {
 	d.Web = func(mux *http.ServeMux) {
 		mux.HandleFunc("GET /app/{$}", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("web app")) })
 	}
-	d.OnView = func(id string) { views <- id }
+	d.OnView = func(r *http.Request, id, path string) { views <- id + " " + path }
 	h, err := NewHandler(d)
 	if err != nil {
 		t.Fatal(err)
@@ -47,8 +47,8 @@ func TestWebRegistrarAndViewHook(t *testing.T) {
 	}
 	select {
 	case got := <-views:
-		if got != id {
-			t.Fatalf("view hook got %q, want %q", got, id)
+		if got != id+" index.html" {
+			t.Fatalf("view hook got %q, want %q", got, id+" index.html")
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("view hook not called")

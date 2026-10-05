@@ -82,11 +82,6 @@ func TestUsageMonthsAreTenantScoped(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	for id, at := range map[string]time.Time{"deleted-current": currentEvent, "deleted-previous": previous.Add(time.Hour)} {
-		if err := s.SoftDelete(ctx, id, at); err != nil {
-			t.Fatal(err)
-		}
-	}
 	threads := []struct {
 		id, artifact string
 		created      time.Time
@@ -121,6 +116,13 @@ func TestUsageMonthsAreTenantScoped(t *testing.T) {
 		{ArtifactID: "other-tenant", Day: previous.Format(time.DateOnly), Count: 1000},
 	}); err != nil {
 		t.Fatal(err)
+	}
+	// Deleted after their views were flushed: a flush skips pages already
+	// deleted, since delete erases their counts.
+	for id, at := range map[string]time.Time{"deleted-current": currentEvent, "deleted-previous": previous.Add(time.Hour)} {
+		if err := s.SoftDelete(ctx, id, at); err != nil {
+			t.Fatal(err)
+		}
 	}
 	for _, want := range []MonthUsage{
 		{Month: previous, Publishes: 2, StorageBytes: 700, PageViews: 8, OpenComments: 3},

@@ -26,8 +26,9 @@ type Deps struct {
 	// defaults it to 5 an hour.
 	GuestLimiter *ratelimit.Limiter
 	Runtime      []byte // comments.js bytes served at /_rt/comments.js
-	// OnView is told about every page view of a current artifact index.
-	OnView func(artifactID string)
+	// OnView is told about every HTML page of a current artifact served to
+	// a reader; see serve.Handler.OnView.
+	OnView func(r *http.Request, artifactID, path string)
 	// Web mounts the browser app (/app, /p) on the same mux when set.
 	Web func(*http.ServeMux)
 	// WebDeny renders the browser page for a refused private artifact address.

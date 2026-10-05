@@ -1379,3 +1379,21 @@ a.deck:hover .deck-card-2 { transform: translate(-24px, -18px) rotate(-8.5deg) s
 
 .claim-list { margin: 0 0 16px; padding-left: 18px; display: grid; gap: 6px; }
 .thread-suggestion { margin: 6px 0 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---- Views card (artifact detail) -------------------------------- */
+.views-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.views-totals { display: flex; gap: 32px; margin-bottom: 14px; }
+.views-totals > div { display: flex; flex-direction: column; gap: 2px; }
+.views-chart { display: block; width: 100%; height: 96px; overflow: visible; }
+.views-chart rect { fill: var(--accent); }
+.views-chart rect:hover { fill: var(--fg); }
+.views-chart line { stroke: var(--line-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.views-axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--faint); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.views-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px 24px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.views-lists h3 { font-size: 12.5px; font-weight: 500; color: var(--muted); margin: 0 0 6px; }
+.views-lists ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.views-lists li { display: flex; justify-content: space-between; gap: 12px; min-width: 0; }
+.views-lists .num { font-variant-numeric: tabular-nums; color: var(--fg-2); }
+.views-lists .mono { font-family: var(--mono); font-size: 12.5px; }
+.artifacts-table th.c-views { width: 88px; }
+@media (max-width: 720px) { .artifacts-table .c-views { display: none; } }

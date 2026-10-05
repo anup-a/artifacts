@@ -658,3 +658,27 @@ test("expire and publish --expires end a page; never keeps it", () => {
   const bad = run(["expire", pub.id, "tomorrow", "--json"]);
   assert.equal(bad.code, 2);
 });
+
+// Views reach the store on a 30 second flush, so this checks the report
+// itself; the counting is covered by the Go tests.
+test("analytics reports a page and the workspace", async () => {
+  const pub = json(["publish", siteDir("<p>counted</p>")]);
+  const res = await fetch(pub.url, { headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0 (Macintosh) Safari/605" } });
+  assert.equal(res.status, 200);
+  const page = json(["analytics", pub.id, "--range", "24h"]);
+  assert.equal(page.id, pub.id);
+  assert.equal(page.bucket, "hour");
+  assert.equal(page.series.length, 24);
+  assert.equal(typeof page.totals.range_views, "number");
+  assert.ok(Array.isArray(page.top_referrers));
+  const all = json(["analytics"]);
+  assert.equal(all.range, "30d");
+  assert.equal(all.series.length, 30);
+  assert.ok(Array.isArray(all.top_pages));
+  const human = run(["analytics", pub.id]);
+  assert.equal(human.code, 0);
+  assert.match(human.stdout, new RegExp(`^${pub.id}, last 30 days: \\d+ views, \\d+ visitors`));
+  const raw = await fetch(`${BASE}/api/analytics?range=1y`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  assert.equal(raw.status, 400);
+  assert.equal(run(["analytics", "nope00000000", "--json"]).code, 1);
+});

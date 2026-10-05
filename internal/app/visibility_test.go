@@ -69,7 +69,7 @@ func TestArtifactVisibilityActionPermissionsAndPreservation(t *testing.T) {
 
 	// The side peek remains open and receives the updated links and badge.
 	res = e.post(action, detail, url.Values{"visibility": {"public"}, "panel": {"1"}})
-	want(t, res, 200, `class="peek-inner"`, ">Public</span>", `src="http://share.test/a/aaaaaaaaaaaa/"`, "Owner reply while private")
+	want(t, res, 200, `class="peek-inner"`, ">Public</span>", `src="http://share.test/a/aaaaaaaaaaaa/?byagent_preview=1"`, "Owner reply while private")
 	if strings.Contains(res.Body, "<html") || strings.Contains(res.Body, "Viewer comments are unavailable") {
 		t.Fatal("visibility form lost panel mode or private-only copy remained")
 	}

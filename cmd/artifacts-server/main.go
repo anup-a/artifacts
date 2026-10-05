@@ -89,6 +89,7 @@ func main() {
 	}
 	now := func() time.Time { return time.Now().UTC() }
 	views := usage.New(st)
+	views.TrustProxy, views.Now = cfg.TrustProxyHeaders, now
 	webApp := app.New(st, cfg, now)
 	deps := api.Deps{
 		Cfg: cfg, Store: st, Blobs: bl, Now: now,
@@ -96,7 +97,7 @@ func main() {
 		CommentLimiter: ratelimit.New(cfg.Limits.CommentsPerMin),
 		PortalLimiter:  ratelimit.New(portalLinksPerMin),
 		Runtime:        runtime.CommentsJS,
-		OnView:         func(id string) { views.Hit(id, now()) },
+		OnView:         views.Record,
 		Web:            webApp.Register,
 		WebDeny:        webApp.DenyArtifactAccess,
 		WebGate:        webApp.GateArtifactAccess,

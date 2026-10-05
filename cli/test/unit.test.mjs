@@ -655,3 +655,69 @@ test("parseWhen reads durations, RFC 3339 times and never", async () => {
   assert.throws(() => parseWhen("tomorrow", now), /--expires takes/);
   assert.throws(() => parseWhen("2026-12-01", now), /--expires takes/);
 });
+
+function report(over = {}) {
+  return {
+    id: "ar_page1", url: "https://share.example/a/ar_page1/", range: "7d", bucket: "day",
+    from: "2026-09-28T00:00:00Z", to: "2026-10-05T00:00:00Z", first_view_day: "2026-09-30",
+    totals: { all_time_views: 40, range_views: 12, range_visitors: 7 },
+    series: ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"]
+      .map((bucket, i) => ({ bucket, views: [0, 0, 1, 2, 0, 3, 6][i], visitors: [0, 0, 1, 1, 0, 2, 3][i] })),
+    top_referrers: [{ referrer: "news.ycombinator.com", views: 9 }, { referrer: "(direct)", views: 3 }],
+    top_countries: [], top_paths: [{ path: "/", views: 12 }], top_devices: [{ device: "desktop", views: 12 }],
+    ...over,
+  };
+}
+
+test("analytics <id> asks for the page report and prints totals, the series and the top lists", async (t) => {
+  const rep = report();
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(url.pathname, "/api/artifacts/ar_page1/analytics");
+    assert.equal(url.searchParams.get("range"), "7d");
+    assert.equal(options.method, "GET");
+    return Response.json(rep);
+  });
+  const json = await command(["analytics", "ar_page1", "--range", "7d", "--json"]);
+  assert.equal(json.code, 0);
+  assert.deepEqual(json.output.map(JSON.parse), [rep]);
+  const human = await command(["analytics", "ar_page1", "--range", "7d"]);
+  assert.equal(human.code, 0);
+  assert.equal(human.output[0], "ar_page1, last 7 days: 12 views, 7 visitors (40 all time)");
+  assert.match(human.output[1], /^2026-09-28 {2}.{7} {2}2026-10-04$/);
+  assert.ok(human.output.includes("DAY (UTC)   VIEWS  VISITORS"), human.output.join("\n"));
+  assert.ok(human.output.includes("2026-10-04      6         3"), human.output.join("\n"));
+  assert.ok(human.output.some((l) => /^news\.ycombinator\.com\s+9$/.test(l)));
+  assert.ok(!human.output.some((l) => l.startsWith("COUNTRY")), "empty lists are left out");
+});
+
+test("analytics without an id reads the workspace report and lists the top pages", async (t) => {
+  const rep = report({
+    id: undefined, url: undefined, range: "30d",
+    top_pages: [{ id: "ar_page1", title: "Launch\u001b[2J plan", url: "https://share.example/a/ar_page1/", views: 12, visitors: 7 }],
+    top_paths: [{ id: "ar_page1", path: "/", views: 12 }],
+  });
+  t.mock.method(globalThis, "fetch", async (url) => {
+    assert.equal(url.pathname, "/api/analytics");
+    assert.equal(url.searchParams.has("range"), false);
+    return Response.json(rep);
+  });
+  const human = await command(["analytics"]);
+  assert.equal(human.code, 0);
+  assert.equal(human.output[0], "all pages, last 30 days: 12 views, 7 visitors (40 all time)");
+  assert.ok(human.output.some((l) => /^ar_page1\s+12\s+7\s+Launch\[2J plan$/.test(l)), human.output.join("\n"));
+  assert.ok(!human.output.some((l) => l.includes("\u001b")), "control characters reach the terminal");
+  assert.ok(human.output.some((l) => /^ar_page1 \/\s+12$/.test(l)));
+});
+
+test("analytics rejects an unknown range before making a request", async (t) => {
+  t.mock.method(globalThis, "fetch", () => { throw new Error("must reject before networking"); });
+  const res = await command(["analytics", "ar_page1", "--range", "1y", "--json"]);
+  assert.equal(res.code, 2);
+  assert.equal(JSON.parse(res.errors[0]).error.code, "USAGE");
+});
+
+test("analytics prints no series for a range without views", async () => {
+  const { render } = await import("../src/commands/analytics.js");
+  const lines = render(report({ totals: { all_time_views: 0, range_views: 0, range_visitors: 0 }, series: [{ bucket: "2026-10-04", views: 0, visitors: 0 }], top_referrers: [], top_paths: [], top_devices: [] }), "ar_page1");
+  assert.deepEqual(lines, ["ar_page1, last 7 days: 0 views, 0 visitors (0 all time)"]);
+});

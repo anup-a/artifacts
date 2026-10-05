@@ -65,7 +65,7 @@
 <div class="table-card">
 <table class="table artifacts-table">
   <thead><tr>
-    <th class="c-title">Title</th><th class="c-project">Project</th><th class="c-id">Id</th>{{if .Viewer.Integrator}}<th class="c-user">End user</th>{{end}}<th class="num c-version">Version</th><th class="num c-comments">Comments</th><th class="c-when">Updated</th><th class="actions"></th>
+    <th class="c-title">Title</th><th class="c-project">Project</th><th class="c-id">Id</th>{{if .Viewer.Integrator}}<th class="c-user">End user</th>{{end}}<th class="num c-version">Version</th><th class="num c-views" title="Views in the last 30 days">Views</th><th class="num c-comments">Comments</th><th class="c-when">Updated</th><th class="actions"></th>
   </tr></thead>
   <tbody>
   {{range .Data.Rows}}
@@ -79,6 +79,7 @@
     </td>
     {{if $.Viewer.Integrator}}<td class="c-user">{{if .Artifact.EndUser}}<a class="link" href="/app/artifacts?end_user={{str .Artifact.EndUser}}">{{str .Artifact.EndUser}}</a>{{else}}<span class="muted">—</span>{{end}}</td>{{end}}
     <td class="num c-version"><span class="badge mono">v{{.Artifact.CurrentVersion}}</span></td>
+    <td class="num c-views">{{with index $.Data.Views .Artifact.ID}}<span class="count" title="{{num .}} views in the last 30 days">{{template "icon" "eye"}}{{num .}}</span>{{else}}<span class="count muted">{{template "icon" "eye"}}0</span>{{end}}</td>
     <td class="num c-comments">{{if .Artifact.OpenComments}}<a class="count is-open" href="/app/artifacts/{{.Artifact.ID}}#comments" title="Open comments" data-peek>{{template "icon" "comment"}}{{.Artifact.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}{{if not .Artifact.CommentsEnabled}} <span class="badge off" title="Comments are off for this artifact">off</span>{{end}}</td>
     <td class="when c-when"><time datetime="{{.Artifact.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="{{when .Artifact.UpdatedAt}} UTC">{{ago .Artifact.UpdatedAt $.Now}}</time></td>
     <td class="actions">

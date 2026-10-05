@@ -14,6 +14,7 @@ import (
 	"github.com/anup-a/artifacts/internal/ids"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/artifacts/internal/usage"
 )
 
 func contains(list []string, s string) bool {
@@ -90,6 +91,10 @@ type artifactData struct {
 	// public one carrying the code. SendLabel says which of those it is, so
 	// the field never silently hands over a link that will not work.
 	SendURL, SendLabel string
+	// PreviewURL is URL marked as the dashboard's own preview, so opening
+	// this page in the dashboard does not count as a view of it.
+	PreviewURL string
+	Views      viewsPanel
 }
 
 // artifactOpts is what a re-render after a form post carries besides the
@@ -139,6 +144,15 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	d := artifactData{Artifact: a, URL: h.artifactURL(a), CoverURL: h.artifactCoverURL(a), Error: o.Error, ErrThread: o.ErrThread,
 		Meta: metaFromArtifact(a), MetaError: o.MetaError, Styles: cover.Styles(), CoverFiles: coverFiles(files)}
 	d.SendURL, d.SendLabel = d.URL, "Share link"
+	d.PreviewURL = d.URL
+	if a.Visibility != "private" {
+		// The private viewer is never counted; the public page needs the mark.
+		d.PreviewURL += "?" + usage.PreviewParam + "=1"
+	}
+	if d.Views, err = h.viewsPanel(r, a); err != nil {
+		h.fail(w, r, err)
+		return
+	}
 	if a.Visibility == "private" {
 		// Private and uncoded: the only people this link works for are signed-in
 		// members of the workspace. Say so rather than calling it a share link.

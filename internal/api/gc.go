@@ -4,7 +4,12 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"github.com/anup-a/artifacts/internal/usage"
 )
+
+// viewHoursKept is how long hourly view rows are kept.
+const viewHoursKept = 48 * time.Hour
 
 // RunGC deletes zero-ref blobs older than 24h on a timer until ctx is done.
 func RunGC(ctx context.Context, d Deps, every time.Duration) {
@@ -43,6 +48,10 @@ func gcOnce(ctx context.Context, d Deps, olderThan time.Time) error {
 		}
 	}
 	if err := d.Store.DeleteExpiredCredentials(ctx, d.Now()); err != nil {
+		return err
+	}
+	// Hour rows only feed the 24 hour report; day rows keep the history.
+	if err := d.Store.PruneViewHours(ctx, usage.HourStart(d.Now().Add(-viewHoursKept))); err != nil {
 		return err
 	}
 	shas, err := d.Store.ZeroRefBlobs(ctx, olderThan)

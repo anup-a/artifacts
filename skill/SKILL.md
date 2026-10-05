@@ -107,3 +107,7 @@ Every publish of the same page is kept as a version (the newest 20, plus any wit
 - **Removing one old version** (it held a secret or personal data): `byagent version rm <id> <version> --json`. It is permanent and cannot be the live version; roll back or republish first. Ask first.
 
 For a page that should not outlive its purpose (a review draft, a demo for one meeting), pass `--expires 7d` on publish, or run `byagent expire <id> 7d` later; it then stops working and is erased. `byagent share <id> --expires 2d` ends a private page's share code instead. `byagent delete <id>` is permanent: the page, its versions and its comments are erased. Ask first.
+
+## Views
+
+"How many people viewed this page this week?" Run `byagent analytics <id> --range 7d --json`: `totals.range_views` and `totals.range_visitors` answer it, `series` has one point per day (per hour for `24h`), and `top_referrers`, `top_countries`, `top_paths` and `top_devices` say where readers came from. `byagent analytics --json` covers every page in the workspace and adds `top_pages`. Ranges are `24h`, `7d`, `30d` (default), `90d` and `all`. Bots, link previews and the owner's dashboard previews are not counted; visitors are counted per page per day, so a range's visitors add up the days. Numbers arrive within a minute. Guest pages have no analytics until they are claimed.

@@ -27,6 +27,9 @@ func erased(t *testing.T, d Deps, id string) {
 	if left, err := d.Store.Unerased(ctx); err != nil || len(left) != 0 {
 		t.Fatalf("unerased: %v %v", left, err)
 	}
+	if rep, err := d.Store.Analytics(ctx, store.AnalyticsQuery{TenantID: a.TenantID, ArtifactID: id, ToDay: "9999", ToHour: "9999"}); err != nil || rep.AllTimeViews != 0 || len(rep.Referrers) != 0 {
+		t.Fatalf("analytics left: %+v %v", rep, err)
+	}
 }
 
 func TestDeleteErasesEverything(t *testing.T) {
@@ -36,6 +39,10 @@ func TestDeleteErasesEverything(t *testing.T) {
 		t.Fatalf("thread: %d %v", code, b)
 	}
 	if err := d.Store.AddViews(context.Background(), []store.ViewCount{{ArtifactID: id, Day: "2026-10-02", Count: 3}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Store.AddViewDetails(context.Background(), []store.ViewHour{{ArtifactID: id, Hour: "2026-10-02T09", Views: 3, Visitors: 2}},
+		[]store.ViewFacet{{ArtifactID: id, Day: "2026-10-02", Kind: store.FacetReferrer, Value: "news.ycombinator.com", Views: 3}}); err != nil {
 		t.Fatal(err)
 	}
 	res, err := http.DefaultClient.Do(authReq(t, "DELETE", srv.URL+"/api/artifacts/"+id, tok))
