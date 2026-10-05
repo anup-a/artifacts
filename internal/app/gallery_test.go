@@ -69,7 +69,7 @@ func TestArtifactsSectionsAndHero(t *testing.T) {
 		`class="tile-cover" href="/app/artifacts/yest00000003" data-peek aria-label="yest00000003" title="Untitled: yest00000003"`,
 		`<img src="http://share.test/a/today0000005/_cover.svg" alt="" loading="lazy"`,
 		`<span class="dot" data-color="#`, `>Hi Travel</span></a>`, `<span class="tag">report</span><span class="tag">quarterly</span>`,
-		`class="icon-btn tile-open" href="http://share.test/a/today0000001/"`,
+		`class="btn icon-btn tile-open" data-variant="ghost" data-size="icon-sm" href="http://share.test/a/today0000001/"`,
 		`<th class="c-project">Project</th>`, `class="thumb" src="http://share.test/a/old000000001/_cover.svg"`, ">Distill</a>", "Old one", "9 artifacts")
 	if n := count(res.Body, `class="tile is-hero"`); n != 1 {
 		t.Fatalf("%d heroes, want 1", n)

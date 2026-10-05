@@ -16,12 +16,45 @@
       <span class="spacer"></span>
       {{with index $p.Data.Views $a.ID}}<span class="count" title="{{num .}} views in the last 30 days">{{template "icon" "eye"}}{{num .}}</span>{{end}}
       {{if $a.OpenComments}}<a class="count is-open" href="/app/artifacts/{{$a.ID}}#comments" title="Open comments" data-peek>{{template "icon" "comment"}}{{$a.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}
-      {{if not $a.CommentsEnabled}}<span class="badge off" title="Comments are off for this artifact">off</span>{{end}}
+      {{if not $a.CommentsEnabled}}<span class="badge off" data-variant="outline" title="Comments are off for this artifact">off</span>{{end}}
       <time datetime="{{$a.CreatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="Published {{when $a.CreatedAt}} UTC">{{ago $a.CreatedAt $p.Now}}</time>
-      <a class="icon-btn tile-open" href="{{$c.URL}}" target="_blank" rel="noopener" title="Open published page" aria-label="Open published page">{{template "icon" "external"}}</a>
+      <a class="btn icon-btn tile-open" data-variant="ghost" data-size="icon-sm" href="{{$c.URL}}" target="_blank" rel="noopener" title="Open published page" aria-label="Open published page">{{template "icon" "external"}}</a>
     </div>
   </div>
 </article>
 {{end}}
 
-{{define "visibility-badge"}}{{if eq .Visibility "private"}}<span class="badge" title="Only signed-in members of the owning workspace can view this artifact">Private</span>{{else}}<span class="badge" title="Anyone with the link can view this artifact">Public</span>{{end}}{{end}}
+{{define "visibility-badge"}}{{if eq .Visibility "private"}}<span class="badge" data-variant="secondary" title="Only signed-in members of the owning workspace can view this artifact">{{template "icon" "lock"}}Private</span>{{else}}<span class="badge" data-variant="outline" title="Anyone with the link can view this artifact">{{template "icon" "globe"}}Public</span>{{end}}{{end}}
+
+{{/* The ⋯ menu of an artifact row: copy, open the peek, delete behind an
+     alert dialog. Receives dict Page + Item (row with .Artifact and .URL).
+     The dialog sits next to the menu, not in it: a closed popover is hidden,
+     and a modal opened from inside it would be hidden with it. */}}
+{{define "row-menu"}}
+{{$p := .Page}}{{$r := .Item}}{{$id := $r.Artifact.ID}}
+<div class="dropdown-menu" id="m-{{$id}}">
+  <button type="button" id="m-{{$id}}-trigger" class="btn icon-btn" data-variant="ghost" data-size="icon-sm" aria-haspopup="menu" aria-controls="m-{{$id}}-menu" aria-expanded="false" aria-label="More actions" title="More">{{template "icon" "more"}}</button>
+  <div id="m-{{$id}}-popover" data-popover aria-hidden="true" data-align="end" class="min-w-44">
+    <div role="menu" id="m-{{$id}}-menu" aria-labelledby="m-{{$id}}-trigger">
+      <button type="button" role="menuitem" data-copy-text="{{$r.URL}}">{{template "icon" "link"}}<span class="menu-item-text">Copy link</span></button>
+      <button type="button" role="menuitem" data-copy-text="{{$id}}">{{template "icon" "copy"}}<span class="menu-item-text">Copy id</span></button>
+      <a role="menuitem" href="/app/artifacts/{{$id}}" data-peek>{{template "icon" "file"}}<span>View details</span></a>
+      <hr role="separator">
+      <button type="button" role="menuitem" data-variant="destructive" data-dialog="del-{{$id}}">{{template "icon" "trash"}}<span>Delete…</span></button>
+    </div>
+  </div>
+</div>
+<dialog id="del-{{$id}}" class="alert-dialog" aria-labelledby="del-{{$id}}-title" aria-describedby="del-{{$id}}-desc">
+  <form method="post" action="/app/artifacts/{{$id}}/delete">
+    <input type="hidden" name="csrf" value="{{$p.Viewer.CSRF}}">
+    <header>
+      <h2 id="del-{{$id}}-title">Delete {{if $r.Artifact.Title}}“{{$r.Artifact.Title}}”{{else}}this artifact{{end}}?</h2>
+      <p id="del-{{$id}}-desc">The share link stops working immediately. Every version, comment and view count is erased. This cannot be undone.</p>
+    </header>
+    <footer>
+      <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn" data-variant="destructive">Confirm delete</button>
+    </footer>
+  </form>
+</dialog>
+{{end}}

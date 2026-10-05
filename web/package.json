@@ -1,0 +1,14 @@
+{
+  "name": "@artifacts/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "basecoat-css": "1.0.2",
+    "lucide-static": "1.52.0",
+    "tailwindcss": "4.3.3"
+  }
+}

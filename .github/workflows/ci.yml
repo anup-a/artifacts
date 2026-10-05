@@ -88,6 +88,25 @@ jobs:
       - run: npm ci
         working-directory: cli
       - run: npm run e2e
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - name: build and verify the committed dashboard assets are current
+        run: |
+          npm run build
+          if ! git diff --quiet -- ../internal/app/static/dashboard.css ../internal/app/static/basecoat.js ../internal/app/templates/partials/lucide.html; then
+            echo "dashboard assets are stale; run 'npm --prefix web run build' and commit"
+            git diff --stat -- ../internal/app/static ../internal/app/templates/partials
+            exit 1
+          fi
   cli:
     runs-on: ubuntu-latest
     defaults:
@@ -105,7 +124,7 @@ jobs:
       - run: npm ci
       - run: npm test
   image:
-    needs: [go, runtime, cli]
+    needs: [go, runtime, cli, web]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -133,7 +152,7 @@ jobs:
   # ("authentication handshake failed: EOF"), and the fallback is building the
   # image locally. A runner has none of that, so the build happens here.
   deploy:
-    needs: [go, runtime, cli]
+    needs: [go, runtime, cli, web]
     # Retired once the repo variable DEPLOY_TARGET is set to box.
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.DEPLOY_TARGET != 'box'
     runs-on: ubuntu-latest
@@ -161,7 +180,7 @@ jobs:
   # The VPS behind a Cloudflare Tunnel (deploy/box). Same build as a laptop
   # ship: the image goes over ssh, so the box needs no registry login.
   deploy-box:
-    needs: [go, runtime, cli]
+    needs: [go, runtime, cli, web]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.DEPLOY_TARGET == 'box'
     runs-on: ubuntu-latest
     concurrency:

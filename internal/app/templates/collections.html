@@ -5,10 +5,12 @@
   {{range .Data.Decks}}{{template "deck" (dict $ .)}}{{end}}
 </div>
 {{else}}
-<div class="empty">
-  <span class="empty-icon">{{template "icon" "collections"}}</span>
-  <h2>No collections yet</h2>
-  <p>Every artifact published with the same <code>--project</code> joins one collection. A course, a report series or a product's docs stay together as one stack.</p>
-</div>
+<section class="empty">
+  <header>
+    <figure>{{template "icon" "collections"}}</figure>
+    <h2>No collections yet</h2>
+    <p>Every artifact published with the same <code>--project</code> joins one collection. A course, a report series or a product's docs stay together as one stack.</p>
+  </header>
+</section>
 {{end}}
 {{end}}

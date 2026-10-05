@@ -1,6 +1,7 @@
-// The landing page carries its own light/dark switch: a visitor meets it
-// before they have an account to hold a preference in. The choice is one of
-// "auto", "light" or "dark" and lives in localStorage.
+// The landing page and the dashboard carry a light/dark switch: a visitor
+// meets it before they have an account to hold a preference in. The choice
+// is one of "auto", "light" or "dark" and lives in localStorage, so both
+// surfaces follow the same pick.
 //
 // This file is loaded without defer so the resolved theme is on <html> before
 // the first paint. Without that, a visitor who chose against their system
@@ -25,6 +26,8 @@
   function apply(choice) {
     root.dataset.themeChoice = choice;
     root.dataset.theme = choice === "auto" ? (media.matches ? "dark" : "light") : choice;
+    // The dashboard's stylesheet (Tailwind) keys dark mode on the class.
+    root.classList.toggle("dark", root.dataset.theme === "dark");
   }
 
   function mark(picker, choice) {

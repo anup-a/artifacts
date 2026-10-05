@@ -16,78 +16,118 @@
 <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 {{block "head" .}}{{end}}
+{{/* Not deferred: the theme is on <html> before the first paint. */}}
+{{if .UI}}<script src="{{.ThemeJS}}"></script>{{end}}
 <link rel="stylesheet" href="{{.CSS}}">
+{{if .UI}}<script src="{{.Basecoat}}" defer></script>{{end}}
 <script src="{{.JS}}" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-{{template "sprite"}}
+{{if .UI}}{{template "sprite-ui"}}{{else}}{{template "sprite"}}{{end}}
 {{if .Viewer}}
-<div class="shell">
-  <aside class="sidebar">
-    <a class="brand" href="/app/artifacts">{{template "icon" "mark"}}<span>byagent</span></a>
-
-    {{if gt (len .Viewer.Tenants) 1}}
-    <details class="switcher">
-      <summary class="ws" aria-label="Switch workspace">
+<aside class="sidebar">
+  <nav aria-label="Sidebar">
+    <header>
+      <a class="brand" href="/app/artifacts">{{template "icon" "mark"}}<span>byagent</span></a>
+      {{if gt (len .Viewer.Tenants) 1}}
+      <div class="dropdown-menu switcher" id="ws">
+        <button type="button" id="ws-trigger" class="btn ws-trigger" data-variant="ghost" aria-haspopup="menu" aria-controls="ws-menu" aria-expanded="false" aria-label="Switch workspace">
+          <span class="ws-avatar">{{printf "%.1s" .Viewer.Tenant.Name}}</span>
+          <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{.Viewer.Tenant.Kind}}</span></span>
+          {{template "icon" "chevrons"}}
+        </button>
+        <div id="ws-popover" data-popover aria-hidden="true">
+          <div role="menu" id="ws-menu" aria-labelledby="ws-trigger">
+            <div role="group" aria-labelledby="ws-heading">
+              <div role="heading" id="ws-heading">Workspaces</div>
+              {{range .Viewer.Tenants}}
+              <form method="post" action="/app/switch-tenant">
+                <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+                <input type="hidden" name="tenant_id" value="{{.ID}}">
+                <button type="submit" role="menuitem"{{if eq .ID $.Viewer.Tenant.ID}} aria-current="true"{{end}}>
+                  <span class="ws-avatar small">{{printf "%.1s" .Name}}</span>
+                  <span class="truncate">{{.Name}}</span>
+                  <span class="badge" data-variant="secondary">{{.Kind}}</span>
+                  {{if eq .ID $.Viewer.Tenant.ID}}{{template "icon" "check"}}{{end}}
+                </button>
+              </form>
+              {{end}}
+            </div>
+            <hr role="separator">
+            <a role="menuitem" href="/app/settings">{{template "icon" "settings"}}<span>Workspace settings</span></a>
+          </div>
+        </div>
+      </div>
+      {{else}}
+      <div class="btn ws-trigger" data-variant="ghost">
         <span class="ws-avatar">{{printf "%.1s" .Viewer.Tenant.Name}}</span>
         <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{.Viewer.Tenant.Kind}}</span></span>
-        {{template "icon" "chevrons"}}
-      </summary>
-      <div class="menu ws-menu" role="menu">
-        <div class="menu-label">Workspaces</div>
-        {{range .Viewer.Tenants}}
-        <form method="post" action="/app/switch-tenant">
-          <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <input type="hidden" name="tenant_id" value="{{.ID}}">
-          <button type="submit" class="menu-item{{if eq .ID $.Viewer.Tenant.ID}} is-current{{end}}" role="menuitem">
-            <span class="ws-avatar small">{{printf "%.1s" .Name}}</span>
-            <span class="menu-item-text">{{.Name}}</span>
-            <span class="badge">{{.Kind}}</span>
-            {{if eq .ID $.Viewer.Tenant.ID}}{{template "icon" "check"}}{{end}}
-          </button>
-        </form>
-        {{end}}
-        <div class="menu-sep"></div>
-        <a class="menu-item" href="/app/settings" role="menuitem">{{template "icon" "settings"}}<span class="menu-item-text">Workspace settings</span></a>
       </div>
-    </details>
-    {{else}}
-    <div class="ws is-static">
-      <span class="ws-avatar">{{printf "%.1s" .Viewer.Tenant.Name}}</span>
-      <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{.Viewer.Tenant.Kind}}</span></span>
-    </div>
-    {{end}}
-
-    <nav class="nav" aria-label="Main">
-      <a href="/app/artifacts"{{if eq .Section "artifacts"}} class="active" aria-current="page"{{end}}>{{template "icon" "artifacts"}}<span>Artifacts</span></a>
-      <a href="/app/collections"{{if eq .Section "collections"}} class="active" aria-current="page"{{end}}>{{template "icon" "collections"}}<span>Collections</span></a>
-      {{if .Viewer.Integrator}}<a href="/app/end-users"{{if eq .Section "end-users"}} class="active" aria-current="page"{{end}}>{{template "icon" "users"}}<span>End users</span></a>{{end}}
-      <a href="/app/connect"{{if eq .Section "connect"}} class="active" aria-current="page"{{end}}>{{template "icon" "link"}}<span>Connect agent</span></a>
-      <a href="/app/keys"{{if eq .Section "keys"}} class="active" aria-current="page"{{end}}>{{template "icon" "key"}}<span>API keys</span></a>
-      <a href="/app/usage"{{if eq .Section "usage"}} class="active" aria-current="page"{{end}}>{{template "icon" "usage"}}<span>Usage</span></a>
-      <a href="/app/settings"{{if eq .Section "settings"}} class="active" aria-current="page"{{end}}>{{template "icon" "settings"}}<span>Settings</span></a>
-    </nav>
-
-    <div class="sidebar-foot">
-      <span class="avatar">{{printf "%.1s" .Viewer.User.Email}}</span>
-      <span class="user-email" title="{{.Viewer.User.Email}}">{{.Viewer.User.Email}}</span>
-      <form method="post" action="/app/logout">
-        <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-        <button type="submit" class="icon-btn" title="Sign out" aria-label="Sign out">{{template "icon" "logout"}}</button>
-      </form>
-    </div>
-  </aside>
-
-  <div class="main">
-    <header class="topbar">
-      {{block "topbar" .}}<h1 class="page-title">{{.Title}}</h1>{{end}}
+      {{end}}
     </header>
-    <main class="content" id="main">
-      {{template "content" .}}
-    </main>
-  </div>
+
+    <section class="scrollbar-sm">
+      <div role="group" aria-labelledby="nav-pages">
+        <h3 id="nav-pages">Pages</h3>
+        <ul>
+          <li><a href="/app/artifacts"{{if eq .Section "artifacts"}} class="active" aria-current="page"{{end}}>{{template "icon" "artifacts"}}<span>Artifacts</span></a></li>
+          <li><a href="/app/collections"{{if eq .Section "collections"}} class="active" aria-current="page"{{end}}>{{template "icon" "collections"}}<span>Collections</span></a></li>
+          {{if .Viewer.Integrator}}<li><a href="/app/end-users"{{if eq .Section "end-users"}} class="active" aria-current="page"{{end}}>{{template "icon" "users"}}<span>End users</span></a></li>{{end}}
+        </ul>
+      </div>
+      <div role="group" aria-labelledby="nav-setup">
+        <h3 id="nav-setup">Setup</h3>
+        <ul>
+          <li><a href="/app/connect"{{if eq .Section "connect"}} class="active" aria-current="page"{{end}}>{{template "icon" "agent"}}<span>Connect agent</span></a></li>
+          <li><a href="/app/keys"{{if eq .Section "keys"}} class="active" aria-current="page"{{end}}>{{template "icon" "key"}}<span>API keys</span></a></li>
+          <li><a href="/app/usage"{{if eq .Section "usage"}} class="active" aria-current="page"{{end}}>{{template "icon" "usage"}}<span>Usage</span></a></li>
+          <li><a href="/app/settings"{{if eq .Section "settings"}} class="active" aria-current="page"{{end}}>{{template "icon" "settings"}}<span>Settings</span></a></li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="sidebar-foot">
+      <div class="dropdown-menu" id="user">
+        <button type="button" id="user-trigger" class="btn user-trigger" data-variant="ghost" aria-haspopup="menu" aria-controls="user-menu" aria-expanded="false">
+          <span class="user-avatar">{{printf "%.1s" .Viewer.User.Email}}</span>
+          <span class="ws-text"><span class="ws-name">{{if .Viewer.User.Name}}{{.Viewer.User.Name}}{{else}}{{.Viewer.User.Email}}{{end}}</span>{{if .Viewer.User.Name}}<span class="ws-kind normal-case">{{.Viewer.User.Email}}</span>{{end}}</span>
+          {{template "icon" "chevrons"}}
+        </button>
+        <div id="user-popover" data-popover aria-hidden="true" data-side="top">
+          <div role="menu" id="user-menu" aria-labelledby="user-trigger">
+            <div role="heading" class="truncate" title="{{.Viewer.User.Email}}">{{.Viewer.User.Email}}</div>
+            <div class="theme-picker" role="group" aria-label="Theme" data-theme-picker data-keep-mobile-sidebar-open>
+              <span>Theme</span>
+              <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
+              <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
+              <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
+            </div>
+            <hr role="separator">
+            <a role="menuitem" href="/app/settings">{{template "icon" "settings"}}<span>Settings</span></a>
+            <hr role="separator">
+            <form method="post" action="/app/logout">
+              <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+              <button type="submit" role="menuitem">{{template "icon" "logout"}}<span>Sign out</span></button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </nav>
+</aside>
+
+<div class="app-main">
+  <header class="topbar">
+    <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" data-sidebar-toggle aria-label="Toggle sidebar" title="Toggle sidebar">{{template "icon" "sidebar"}}</button>
+    <span class="sep" aria-hidden="true"></span>
+    {{block "topbar" .}}<h1 class="page-title">{{.Title}}</h1>{{end}}
+  </header>
+  <main class="content" id="main">
+    {{template "content" .}}
+  </main>
 </div>
+<div id="toaster" class="toaster"></div>
 {{else}}
 <main class="bare" id="main">
   {{template "content" .}}

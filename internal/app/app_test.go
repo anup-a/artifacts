@@ -244,12 +244,13 @@ func TestSignInFlowSecurityHeadersAndStatics(t *testing.T) {
 	if strings.Contains(res.Body, "<style") || strings.Contains(res.Body, "onclick") {
 		t.Fatal("inline style or script")
 	}
-	css := regexp.MustCompile(`href="(/app/static/app\.[0-9a-f]{12}\.css)"`).FindStringSubmatch(res.Body)
+	css := regexp.MustCompile(`href="(/app/static/dashboard\.[0-9a-f]{12}\.css)"`).FindStringSubmatch(res.Body)
 	js := regexp.MustCompile(`src="(/app/static/app\.[0-9a-f]{12}\.js)"`).FindStringSubmatch(res.Body)
-	if css == nil || js == nil {
+	bc := regexp.MustCompile(`src="(/app/static/basecoat\.[0-9a-f]{12}\.js)"`).FindStringSubmatch(res.Body)
+	if css == nil || js == nil || bc == nil {
 		t.Fatalf("no hashed assets in page")
 	}
-	for _, p := range []string{css[1], js[1]} {
+	for _, p := range []string{css[1], js[1], bc[1]} {
 		r := e.get(p)
 		if r.StatusCode != 200 || !strings.Contains(r.Header.Get("Cache-Control"), "immutable") || len(r.Body) < 100 {
 			t.Fatalf("static %s: %d %q", p, r.StatusCode, r.Header.Get("Cache-Control"))

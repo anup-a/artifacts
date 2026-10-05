@@ -1,29 +1,29 @@
 {{define "content"}}
 {{with .Data.Pages}}
-<section class="usage">
-  <div class="section-head">
-    <h2>Pages</h2>
-    <span class="muted">live now, across every key</span>
-  </div>
-  <div class="stat quota{{if .Full}} is-full{{else if .Near}} is-near{{end}}">
-    <span class="stat-label">{{template "icon" "artifacts"}}Live pages</span>
-    <span class="stat-value">{{num .Used}} <span class="quota-of">of {{num .Limit}}</span></span>
-    <progress value="{{.Used}}" max="{{.Limit}}" aria-label="{{.Used}} of {{.Limit}} pages used">{{.Used}} of {{.Limit}}</progress>
-    <span class="stat-sub">{{if .Full}}Limit reached. New pages are refused until you delete one; new versions of existing pages still publish.{{else}}{{num .Left}} left. Deleting a page frees its slot.{{end}}</span>
+<section class="usage grid gap-4">
+  <h2 class="day-label">Pages <span class="normal-case tracking-normal font-normal">live now, across every key</span></h2>
+  <div class="card stat-card quota{{if .Full}} is-full{{else if .Near}} is-near{{end}} max-w-md">
+    <header>
+      <p>{{template "icon" "artifacts"}}Live pages</p>
+      <h2>{{num .Used}} <span class="quota-of">of {{num .Limit}}</span></h2>
+    </header>
+    <section>
+      {{/* A native <progress>: Basecoat's bar takes its width from a style
+           attribute, which the CSP forbids. */}}
+      <progress value="{{.Used}}" max="{{.Limit}}" aria-label="{{.Used}} of {{.Limit}} pages used">{{.Used}} of {{.Limit}}</progress>
+    </section>
+    <footer class="text-sm text-muted-foreground">{{if .Full}}Limit reached. New pages are refused until you delete one; new versions of existing pages still publish.{{else}}{{num .Left}} left. Deleting a page frees its slot.{{end}}</footer>
   </div>
 </section>
 {{end}}
 {{range .Data.Months}}
-<section class="usage">
-  <div class="section-head">
-    <h2>{{.Label}}</h2>
-    <span class="muted">{{.Month.Format "January 2006"}} · UTC</span>
-  </div>
+<section class="usage grid gap-4">
+  <h2 class="day-label">{{.Label}} <span class="normal-case tracking-normal font-normal">{{.Month.Format "January 2006"}} · UTC</span></h2>
   <div class="stats">
-    <div class="stat"><span class="stat-label">{{template "icon" "artifacts"}}Publishes</span><span class="stat-value">{{num .Publishes}}</span><span class="stat-sub">versions published</span></div>
-    <div class="stat"><span class="stat-label">{{template "icon" "usage"}}Storage</span><span class="stat-value">{{bytes .StorageBytes}}</span><span class="stat-sub">across kept versions</span></div>
-    <div class="stat"><span class="stat-label">{{template "icon" "external"}}Page views</span><span class="stat-value">{{num .PageViews}}</span><span class="stat-sub">on share links</span></div>
-    <div class="stat"><span class="stat-label">{{template "icon" "comment"}}Open comments</span><span class="stat-value">{{num .OpenComments}}</span><span class="stat-sub">threads awaiting you</span></div>
+    <div class="card stat-card"><header><p>{{template "icon" "artifacts"}}Publishes</p><h2>{{num .Publishes}}</h2></header><footer class="text-sm text-muted-foreground">versions published</footer></div>
+    <div class="card stat-card"><header><p>{{template "icon" "usage"}}Storage</p><h2>{{bytes .StorageBytes}}</h2></header><footer class="text-sm text-muted-foreground">across kept versions</footer></div>
+    <div class="card stat-card"><header><p>{{template "icon" "eye"}}Page views</p><h2>{{num .PageViews}}</h2></header><footer class="text-sm text-muted-foreground">on share links</footer></div>
+    <div class="card stat-card"><header><p>{{template "icon" "comment"}}Open comments</p><h2>{{num .OpenComments}}</h2></header><footer class="text-sm text-muted-foreground">threads awaiting you</footer></div>
   </div>
 </section>
 {{end}}

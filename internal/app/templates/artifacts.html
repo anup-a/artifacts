@@ -1,21 +1,29 @@
 {{define "topbar"}}
 <h1 class="page-title">Artifacts</h1>
-<form method="get" action="/app/artifacts" class="search" role="search">
-  {{if .Data.EndUser}}<input type="hidden" name="end_user" value="{{.Data.EndUser}}">{{end}}
-  {{if .Data.Project}}<input type="hidden" name="project" value="{{.Data.Project}}">{{end}}
-  {{template "icon" "search"}}
-  <input type="search" name="q" value="{{.Data.Query}}" placeholder="Search titles…" aria-label="Search titles">
-</form>
+<div class="actions">
+  <form method="get" action="/app/artifacts" class="search input-group" role="search">
+    {{if .Data.EndUser}}<input type="hidden" name="end_user" value="{{.Data.EndUser}}">{{end}}
+    {{if .Data.Project}}<input type="hidden" name="project" value="{{.Data.Project}}">{{end}}
+    <input type="search" name="q" value="{{.Data.Query}}" placeholder="Search titles…" aria-label="Search titles">
+    <span data-align="start" aria-hidden="true">{{template "icon" "search"}}</span>
+  </form>
+</div>
 {{end}}
 
 {{define "content"}}
 {{if .Data.EndUser}}
-<p class="filter-bar">Showing artifacts of end user <code>{{.Data.EndUser}}</code> <a class="link" href="{{.Data.ChipURL .Data.Project}}">Clear filter</a></p>
+<div class="alert">
+  {{template "icon" "users"}}
+  <h2>Showing artifacts of end user <code>{{.Data.EndUser}}</code></h2>
+  <section><a class="link" href="{{.Data.ChipURL .Data.Project}}">Clear filter</a></section>
+</div>
 {{end}}
 
 {{with .Data.Quota}}
-<div class="callout quota-callout{{if .Full}} is-full{{end}}" role="status">
-  <div class="callout-head">{{template "icon" "artifacts"}}<span>{{if .Full}}<strong>You have reached the limit of {{num .Limit}} pages.</strong> New pages are refused until you delete one.{{else}}<strong>{{num .Used}} of {{num .Limit}} pages used.</strong> At {{num .Limit}}, new pages are refused until you delete one.{{end}} <a class="link" href="/app/usage">See usage</a></span></div>
+<div class="alert quota-callout{{if .Full}} is-full{{end}}" role="status">
+  {{template "icon" "alert"}}
+  <h2>{{if .Full}}You have reached the limit of {{num .Limit}} pages.{{else}}{{num .Used}} of {{num .Limit}} pages used.{{end}}</h2>
+  <section>{{if .Full}}New pages are refused until you delete one.{{else}}At {{num .Limit}}, new pages are refused until you delete one.{{end}} <a class="link" href="/app/usage">See usage</a></section>
 </div>
 {{end}}
 
@@ -41,6 +49,7 @@
 
 {{if .Data.Count}}
 
+<div>
 {{range .Data.Sections}}
 <section class="day" data-day="{{.Day}}" data-at="{{.At.Format "2006-01-02T15:04:05Z07:00"}}">
   <h2 class="day-label">{{.Label}}</h2>
@@ -62,10 +71,12 @@
 {{if .Data.Rows}}
 <section class="day">
   {{if or .Data.Sections .Data.Grid}}<h2 class="day-label">Older</h2>{{end}}
-<div class="table-card">
+{{/* No scrolling wrapper: the fixed layout fits the card, and a scroller
+     would clip the row menus that open below it. */}}
+<div class="table-card has-menus">
 <table class="table artifacts-table">
   <thead><tr>
-    <th class="c-title">Title</th><th class="c-project">Project</th><th class="c-id">Id</th>{{if .Viewer.Integrator}}<th class="c-user">End user</th>{{end}}<th class="num c-version">Version</th><th class="num c-views" title="Views in the last 30 days">Views</th><th class="num c-comments">Comments</th><th class="c-when">Updated</th><th class="actions"></th>
+    <th class="c-title">Title</th><th class="c-project">Project</th><th class="c-id">Id</th>{{if .Viewer.Integrator}}<th class="c-user">End user</th>{{end}}<th class="num c-version">Version</th><th class="num c-views" title="Views in the last 30 days">Views</th><th class="num c-comments">Comments</th><th class="c-when">Updated</th><th class="actions"><span class="sr-only">Actions</span></th>
   </tr></thead>
   <tbody>
   {{range .Data.Rows}}
@@ -78,29 +89,14 @@
       <span class="chip"><code>{{.Artifact.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{.Artifact.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
     </td>
     {{if $.Viewer.Integrator}}<td class="c-user">{{if .Artifact.EndUser}}<a class="link" href="/app/artifacts?end_user={{str .Artifact.EndUser}}">{{str .Artifact.EndUser}}</a>{{else}}<span class="muted">—</span>{{end}}</td>{{end}}
-    <td class="num c-version"><span class="badge mono">v{{.Artifact.CurrentVersion}}</span></td>
+    <td class="num c-version"><span class="badge mono" data-variant="outline">v{{.Artifact.CurrentVersion}}</span></td>
     <td class="num c-views">{{with index $.Data.Views .Artifact.ID}}<span class="count" title="{{num .}} views in the last 30 days">{{template "icon" "eye"}}{{num .}}</span>{{else}}<span class="count muted">{{template "icon" "eye"}}0</span>{{end}}</td>
-    <td class="num c-comments">{{if .Artifact.OpenComments}}<a class="count is-open" href="/app/artifacts/{{.Artifact.ID}}#comments" title="Open comments" data-peek>{{template "icon" "comment"}}{{.Artifact.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}{{if not .Artifact.CommentsEnabled}} <span class="badge off" title="Comments are off for this artifact">off</span>{{end}}</td>
+    <td class="num c-comments">{{if .Artifact.OpenComments}}<a class="count is-open" href="/app/artifacts/{{.Artifact.ID}}#comments" title="Open comments" data-peek>{{template "icon" "comment"}}{{.Artifact.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}{{if not .Artifact.CommentsEnabled}} <span class="badge off" data-variant="outline" title="Comments are off for this artifact">off</span>{{end}}</td>
     <td class="when c-when"><time datetime="{{.Artifact.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="{{when .Artifact.UpdatedAt}} UTC">{{ago .Artifact.UpdatedAt $.Now}}</time></td>
     <td class="actions">
       <div class="row-actions">
-        <a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
-        <details class="menu-wrap">
-          <summary class="icon-btn" aria-label="More actions" title="More">{{template "icon" "more"}}</summary>
-          <div class="menu right" role="menu">
-            <button type="button" class="menu-item" data-copy-text="{{.URL}}" role="menuitem">{{template "icon" "link"}}<span class="menu-item-text">Copy link</span></button>
-            <a class="menu-item" href="/app/artifacts/{{.Artifact.ID}}" role="menuitem" data-peek>{{template "icon" "artifacts"}}<span class="menu-item-text">View details</span></a>
-            <div class="menu-sep"></div>
-            <details class="confirm">
-              <summary class="menu-item danger" role="menuitem">{{template "icon" "trash"}}<span class="menu-item-text">Delete…</span></summary>
-              <form method="post" action="/app/artifacts/{{.Artifact.ID}}/delete" class="confirm-body">
-                <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-                <p>The share link stops working immediately.</p>
-                <button type="submit" class="btn small danger solid">Confirm delete</button>
-              </form>
-            </details>
-          </div>
-        </details>
+        <a class="btn" data-variant="outline" data-size="sm" href="{{.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
+        {{template "row-menu" (dict $ .)}}
       </div>
     </td>
   </tr>
@@ -109,33 +105,37 @@
 </table>
 <div class="table-foot">
   <span>{{.Data.Count}} {{plural .Data.Count "artifact" "artifacts"}}{{if .Data.Next}} on this page{{end}}</span>
-  {{if .Data.Next}}<a class="btn small" href="{{.Data.PageURL .Data.Next}}">Older</a>{{end}}
+  {{if .Data.Next}}<a class="btn" data-variant="outline" data-size="sm" href="{{.Data.PageURL .Data.Next}}">Older</a>{{end}}
 </div>
 </div>
 </section>
 {{else}}
 <div class="table-foot bare-foot">
   <span>{{.Data.Count}} {{plural .Data.Count "artifact" "artifacts"}}{{if .Data.Next}} on this page{{end}}</span>
-  {{if .Data.Next}}<a class="btn small" href="{{.Data.PageURL .Data.Next}}">Older</a>{{end}}
+  {{if .Data.Next}}<a class="btn" data-variant="outline" data-size="sm" href="{{.Data.PageURL .Data.Next}}">Older</a>{{end}}
 </div>
 {{end}}
-
-{{else if .Data.Filtered}}
-<div class="empty">
-  <span class="empty-icon">{{template "icon" "search"}}</span>
-  <h2>No artifacts match</h2>
-  <p>Try a different search or project, or <a class="link" href="/app/artifacts">show everything</a>.</p>
 </div>
 
+{{else if .Data.Filtered}}
+<section class="empty">
+  <header>
+    <figure>{{template "icon" "search"}}</figure>
+    <h2>No artifacts match</h2>
+    <p>Try a different search or project.</p>
+  </header>
+  <footer><a class="btn" data-variant="outline" href="/app/artifacts">Show everything</a></footer>
+</section>
+
 {{else}}
-<div class="first-run">
+<section class="first-run">
   {{template "first-run-art"}}
   <h2 class="first-run-title">Your agent's pages land here</h2>
   <p class="first-run-sub">Connect it once. Readers comment on any line, and the next run reads them.</p>
   <div class="first-run-actions">
-    {{with .Data.Connect}}<button type="button" class="btn primary" data-copy-text="{{.Text}}">{{template "icon" "copy"}}<span class="menu-item-text">Copy setup prompt</span></button>{{end}}
-    <a class="btn" href="/app/connect">Connect agent</a>
+    {{with .Data.Connect}}<button type="button" class="btn" data-copy-text="{{.Text}}">{{template "icon" "copy"}}<span class="menu-item-text">Copy setup prompt</span></button>{{end}}
+    <a class="btn" data-variant="outline" href="/app/connect">{{template "icon" "agent"}} Connect agent</a>
   </div>
-</div>
+</section>
 {{end}}
 {{end}}

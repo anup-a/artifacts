@@ -1,15 +1,20 @@
 {{define "content"}}
 <div class="auth-split">
-  {{template "auth-stage"}}
   <section class="auth-panel">
-    <a class="brand auth-brand" href="/app/login">{{template "icon" "mark"}}<span>byagent</span></a>
+    <a class="brand" href="/app/login">{{template "icon" "mark"}}<span>byagent</span></a>
     <div class="auth-body">
-      <h1>Check your inbox</h1>
-      <p class="muted auth-sub">If this address can receive mail, a sign-in link is on its way.</p>
-      <p class="auth-email">{{.Data.Email}}</p>
-      <p class="auth-facts muted">Works once · Expires in 15 minutes</p>
-      <p class="muted">Wrong address? <a class="link" href="/app/login">Use a different email</a>.</p>
+      <div class="auth-form">
+        <header>
+          <span class="auth-icon">{{template "icon" "mail"}}</span>
+          <h1>Check your inbox</h1>
+          <p>If this address can receive mail, a sign-in link is on its way.</p>
+        </header>
+        <p class="auth-email">{{.Data.Email}}</p>
+        <p class="auth-foot">Works once · Expires in 15 minutes</p>
+        <a class="btn w-full" data-variant="outline" href="/app/login">{{template "icon" "arrow-left"}} Use a different email</a>
+      </div>
     </div>
   </section>
+  {{template "auth-stage"}}
 </div>
 {{end}}

@@ -3,24 +3,24 @@
 {{$p := .Page}}{{$t := .Item}}{{$a := $p.Data.Artifact}}
 <article class="thread{{if eq $t.Status "resolved"}} is-resolved{{end}}" id="{{$t.ID}}">
   <header class="thread-head">
-    {{if $t.Quote}}<blockquote class="thread-quote" title="Anchored text">{{$t.Quote}}</blockquote>{{else}}<span class="muted">No anchor</span>{{end}}
-    {{if $t.Suggestion}}<p class="thread-suggestion"><span class="muted">Suggested:</span> {{$t.Suggestion}}</p>{{end}}
+    {{if $t.Quote}}<blockquote class="thread-quote" title="Anchored text">{{$t.Quote}}</blockquote>{{else}}<span class="muted text-sm">No anchor</span>{{end}}
     <span class="thread-tags">
-      <span class="badge mono">v{{$t.Version}}</span>
+      <span class="badge mono" data-variant="outline">v{{$t.Version}}</span>
       {{if eq $t.AnchorStatus "drifted"}}<span class="badge warn">drifted</span>{{else if eq $t.AnchorStatus "orphaned"}}<span class="badge warn">orphaned</span>{{end}}
-      {{if eq $t.Progress "seen"}}<span class="badge">seen</span>{{else if eq $t.Progress "working"}}<span class="badge ok">working on it</span>{{else if eq $t.Progress "declined"}}<span class="badge warn">declined</span>{{end}}
-      {{if eq $t.Status "resolved"}}<span class="badge">resolved{{if $t.ResolvedAt}} · <time title="{{when $t.ResolvedAt}} UTC">{{ago $t.ResolvedAt $p.Now}}</time>{{end}}</span>{{end}}
+      {{if eq $t.Progress "seen"}}<span class="badge" data-variant="secondary">seen</span>{{else if eq $t.Progress "working"}}<span class="badge ok">working on it</span>{{else if eq $t.Progress "declined"}}<span class="badge warn">declined</span>{{end}}
+      {{if eq $t.Status "resolved"}}<span class="badge" data-variant="secondary">resolved{{if $t.ResolvedAt}} · <time title="{{when $t.ResolvedAt}} UTC">{{ago $t.ResolvedAt $p.Now}}</time>{{end}}</span>{{end}}
     </span>
+    {{if $t.Suggestion}}<p class="thread-suggestion"><span class="muted">Suggested:</span> {{$t.Suggestion}}</p>{{end}}
   </header>
   <div class="comments">
     {{range $t.Comments}}
     <div class="comment{{if eq .AuthorKind "owner"}} is-owner{{end}}">
-      <span class="avatar small">{{printf "%.1s" .AuthorName}}</span>
+      <span class="avatar-letter" aria-hidden="true">{{printf "%.1s" .AuthorName}}</span>
       <div class="comment-body">
         <div class="comment-meta">
           <span class="comment-author">{{.AuthorName}}</span>
           {{if eq .AuthorKind "owner"}}<span class="badge ok">owner</span>{{end}}
-          {{if .Verified}}<span class="badge" title="Signed in through the page's email check">verified email</span>{{end}}
+          {{if .Verified}}<span class="badge" data-variant="outline" title="Signed in through the page's email check">verified email</span>{{end}}
           <time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $p.Now}}</time>
         </div>
         <p class="comment-text">{{.Body}}</p>
@@ -31,13 +31,13 @@
   <div class="thread-actions">
     <form method="post" action="/app/artifacts/{{$a.ID}}/comments/{{$t.ID}}/reply" class="reply-form">
       <input type="hidden" name="csrf" value="{{$p.Viewer.CSRF}}">
-      <textarea name="body" rows="1" required placeholder="Reply as {{if $p.Viewer.User.Name}}{{$p.Viewer.User.Name}}{{else}}{{$p.Viewer.User.Email}}{{end}}…" aria-label="Reply"{{if eq $p.Data.ErrThread $t.ID}} class="is-invalid" autofocus{{end}}></textarea>
-      <button type="submit" class="btn small">Reply</button>
+      <textarea class="textarea" name="body" rows="1" required placeholder="Reply as {{if $p.Viewer.User.Name}}{{$p.Viewer.User.Name}}{{else}}{{$p.Viewer.User.Email}}{{end}}…" aria-label="Reply"{{if eq $p.Data.ErrThread $t.ID}} aria-invalid="true" autofocus{{end}}></textarea>
+      <button type="submit" class="btn" data-variant="outline">Reply</button>
     </form>
     {{if ne $t.Status "resolved"}}
     <form method="post" action="/app/artifacts/{{$a.ID}}/comments/{{$t.ID}}/resolve">
       <input type="hidden" name="csrf" value="{{$p.Viewer.CSRF}}">
-      <button type="submit" class="btn small ghost">{{template "icon" "check"}} Resolve</button>
+      <button type="submit" class="btn" data-variant="ghost">{{template "icon" "check"}} Resolve</button>
     </form>
     {{end}}
   </div>

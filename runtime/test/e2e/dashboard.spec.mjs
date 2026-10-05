@@ -141,6 +141,9 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   const peek = page.locator("aside.peek");
   await expect(peek).toBeVisible();
   await expect(peek.locator(".peek-title")).toHaveText("Quarterly report");
+  // The detail is tabbed: Overview first, the rest one click away.
+  await expect(peek.locator("#about")).toBeVisible();
+  await peek.getByRole("tab", { name: /Versions/ }).click();
   await expect(peek.locator("#versions")).toBeVisible();
   await expect(peek.locator(".detail-cover img")).toHaveAttribute("src", `${BASE}/a/${first.id}/_cover.svg`);
   await expect(page).toHaveURL(`${BASE}/app/artifacts/${first.id}`);
@@ -155,6 +158,7 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   await page.evaluate(() => { window.__noReload = true; });
   await row.locator(".tile-cover").click();
   await expect(peek).toBeVisible();
+  await peek.getByRole("tab", { name: /Comments/ }).click();
   await expect(peek.locator(".switch")).toHaveAttribute("aria-checked", "true");
   await peek.locator(".switch").click();
   await expect(peek.locator(".switch")).toHaveAttribute("aria-checked", "false");
@@ -162,6 +166,8 @@ test("dashboard: magic link, key, CLI publish, integrator workspace and portal",
   expect(await page.evaluate(() => window.__noReload)).toBe(true);
   await expect(page).toHaveURL(`${BASE}/app/artifacts/${first.id}`);
 
+  // The re-render kept the Comments tab open; About is on Overview.
+  await peek.getByRole("tab", { name: "Overview" }).click();
   const about = peek.locator("#about");
   await expect(about.getByLabel("Project")).toHaveValue("Hi Travel");
   await expect(about.getByLabel("Tags")).toHaveValue("report, q3");

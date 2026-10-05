@@ -222,7 +222,7 @@ func TestArtifactPanelFragment(t *testing.T) {
 	want(t, e.get("/app/artifacts"), 200, `class="tile-cover" href="/app/artifacts/aaaaaaaaaaaa" data-peek`)
 
 	frag := e.get(detail + "?panel=1")
-	want(t, frag, 200, `class="peek-inner" data-peek-title="Quarterly report"`, `class="icon-btn peek-close" data-peek-close`, "<iframe", "Restore", "Confirm delete",
+	want(t, frag, 200, `class="peek-inner" data-peek-title="Quarterly report"`, `class="btn icon-btn peek-close" data-variant="ghost" data-size="icon-sm" data-peek-close`, "<iframe", "Restore", "Confirm delete",
 		`class="switch is-on"`, "Typo in the heading", "/comments/th_one/reply")
 	for _, s := range []string{`<aside class="sidebar">`, "<html", "<head>", `class="back"`, `class="topbar"`} {
 		if strings.Contains(frag.Body, s) {

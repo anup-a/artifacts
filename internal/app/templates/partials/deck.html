@@ -25,6 +25,6 @@
   <input type="hidden" name="to" value="{{$m.To}}">
   <span class="dot" data-color="{{$m.Color}}"></span>
   <span><b>{{$m.From}}</b> ({{$m.FromCount}}) and <b>{{$m.To}}</b> ({{$m.ToCount}}) look like the same collection.</span>
-  <button type="submit" class="btn small">Merge into {{$m.To}}</button>
+  <button type="submit" class="btn" data-variant="outline" data-size="sm">Merge into {{$m.To}}</button>
 </form>
 {{end}}

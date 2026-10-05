@@ -1,32 +1,40 @@
 {{define "content"}}
 {{if .Data.Claimed}}
-<div class="callout ok">
-  <div class="callout-head">{{template "icon" "check"}}<strong>Your guest pages are in <a class="link" href="/app/artifacts">Artifacts</a> now.</strong> The guest key has stopped working. Connect your agent below so it keeps publishing here.</div>
+<div class="alert ok">
+  {{template "icon" "circle-check"}}
+  <h2>Your guest pages are in <a class="link" href="/app/artifacts">Artifacts</a> now.</h2>
+  <section>The guest key has stopped working. Connect your agent below so it keeps publishing here.</section>
 </div>
 {{end}}
 
 {{with .Data.Pending}}
-<section class="card">
-  <div class="card-head">
+<section class="card max-w-2xl">
+  <header>
     <h2>Approve an agent</h2>
-    <span class="muted">A CLI asked to publish to {{$.Viewer.Tenant.Name}}. The request expires <time title="{{when .ExpiresAt}} UTC">{{when .ExpiresAt}} UTC</time>.</span>
-  </div>
-  <dl class="connect-facts">
-    <dt>Key name</dt><dd>{{.Name}}</dd>
-    <dt>Code</dt><dd><code class="connect-code">{{.Code}}</code></dd>
-  </dl>
-  <p class="muted">Approve only if you just ran <code>byagent login --browser</code> and your terminal shows this same code. Approving gives that agent a key that publishes and manages every artifact in {{$.Viewer.Tenant.Name}}.</p>
-  <form method="post" action="/app/connect/approve" class="field-row">
-    <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-    <input type="hidden" name="code" value="{{.Code}}">
-    <button type="submit" class="btn primary">Approve</button>
-    <a class="btn" href="/app/artifacts">Cancel</a>
-  </form>
+    <p>A CLI asked to publish to {{$.Viewer.Tenant.Name}}. The request expires <time title="{{when .ExpiresAt}} UTC">{{when .ExpiresAt}} UTC</time>.</p>
+  </header>
+  <section class="grid gap-5">
+    <dl class="props">
+      <dt>Key name</dt><dd class="font-medium">{{.Name}}</dd>
+      <dt>Code</dt><dd><code class="connect-code">{{.Code}}</code></dd>
+    </dl>
+    <div class="alert">{{template "icon" "info"}}<h3>Check the code first</h3><section>Approve only if you just ran <code>byagent login --browser</code> and your terminal shows this same code. Approving gives that agent a key that publishes and manages every artifact in {{$.Viewer.Tenant.Name}}.</section></div>
+  </section>
+  <footer class="border-t gap-2">
+    <form method="post" action="/app/connect/approve">
+      <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+      <input type="hidden" name="code" value="{{.Code}}">
+      <button type="submit" class="btn">{{template "icon" "check"}} Approve</button>
+    </form>
+    <a class="btn" data-variant="outline" href="/app/artifacts">Cancel</a>
+  </footer>
 </section>
 
 {{else}}{{if .Data.Approved}}
-<div class="callout ok">
-  <div class="callout-head">{{template "icon" "check"}}<strong>Connected.</strong> <span>{{.Data.Approved}} can publish to {{.Viewer.Tenant.Name}} now. Go back to your terminal. You can revoke it any time under <a class="link" href="/app/keys">API keys</a>.</span></div>
+<div class="alert ok">
+  {{template "icon" "circle-check"}}
+  <h2>Connected.</h2>
+  <section>{{.Data.Approved}} can publish to {{.Viewer.Tenant.Name}} now. Go back to your terminal. You can revoke it any time under <a class="link" href="/app/keys">API keys</a>.</section>
 </div>
 
 {{else}}

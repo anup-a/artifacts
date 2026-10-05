@@ -18,6 +18,15 @@ import (
 //go:embed templates/*.html templates/partials/*.html
 var templateFS embed.FS
 
+// dashboardPages are drawn with the dashboard's own stylesheet (Tailwind and
+// Basecoat, see web/) and the Lucide icon sprite. Every other page, the
+// public site, the access gate, the portal and errors, keeps app.css.
+var dashboardPages = map[string]bool{
+	"login": true, "check_inbox": true, "claim": true, "connect": true,
+	"artifacts": true, "artifact": true, "collections": true, "collection": true,
+	"end_users": true, "keys": true, "usage": true, "settings": true,
+}
+
 var pageNames = []string{"landing", "login", "check_inbox", "artifacts", "artifact", "collections", "collection", "collection_public", "end_users", "keys", "usage", "settings", "portal", "error", "gate", "privacy", "terms", "security", "subprocessors", "acceptable_use", "pricing", "showcase", "guide", "claim", "connect"}
 
 // pages holds one template set per page, each sharing layout.html and the
@@ -75,6 +84,11 @@ type page struct {
 	Viewer *viewer
 	CSS    string
 	JS     string
+	// UI is set on dashboard pages: the layout then loads Basecoat and the
+	// theme script and draws the Lucide sprite.
+	UI       bool
+	Basecoat string
+	ThemeJS  string
 	Now    time.Time // reference point for relative times
 	Data   any
 	// AnalyticsID is the GA4 Measurement ID for first-party app surfaces.
@@ -123,6 +137,9 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, nam
 // for a full page, "panel" for the shell-less fragment the side peek loads.
 func (h *Handler) renderRoot(w http.ResponseWriter, r *http.Request, status int, name, root, title string, v *viewer, data any) {
 	p := page{Title: title, Path: r.URL.Path, Viewer: v, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: data, AnalyticsID: h.analyticsIDFor(r.URL.Path), GAJS: h.static.gaJSURL}
+	if dashboardPages[name] {
+		p.UI, p.CSS, p.Basecoat, p.ThemeJS = true, h.static.uiCSSURL, h.static.basecoatURL, h.static.themeJSURL
+	}
 	var buf bytes.Buffer
 	if err := pages[name].ExecuteTemplate(&buf, root, p); err != nil {
 		h.fail(w, r, fmt.Errorf("render %s: %w", name, err))

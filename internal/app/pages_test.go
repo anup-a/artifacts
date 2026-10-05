@@ -200,7 +200,7 @@ func TestSettingsRenameSwitchAndIntegratorRules(t *testing.T) {
 	e.signIn("a@x.io")
 	res := e.get("/app/settings")
 	want(t, res, 200, "Create an integrator workspace", "<dt>email</dt><dd>a@x.io</dd>", "personal")
-	if strings.Contains(res.Body, `class="switcher"`) {
+	if strings.Contains(res.Body, `class="dropdown-menu switcher"`) {
 		t.Fatal("switcher shown with a single tenant")
 	}
 	want(t, e.post("/app/settings/tenant", "/app/settings", url.Values{"name": {""}}), 400, "1 to 64 characters")
@@ -216,7 +216,7 @@ func TestSettingsRenameSwitchAndIntegratorRules(t *testing.T) {
 		t.Fatalf("tenant %+v", acme)
 	}
 	res = e.get("/app/settings")
-	want(t, res, 200, `class="switcher"`, "My space", "Acme", `action="/app/switch-tenant"`)
+	want(t, res, 200, `class="dropdown-menu switcher"`, "My space", "Acme", `action="/app/switch-tenant"`)
 	if strings.Contains(res.Body, "Create an integrator workspace") {
 		t.Fatal("integrator form shown on integrator tenant")
 	}

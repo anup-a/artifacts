@@ -1,5 +1,11 @@
 {{define "topbar"}}
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/app/collections">Collections</a><span class="crumb-sep">/</span><h1 class="page-title truncate">{{.Data.Name}}</h1></nav>
+<nav class="breadcrumb crumbs" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/app/collections">Collections</a></li>
+    <li aria-hidden="true">{{template "icon" "chevron-right"}}</li>
+    <li class="min-w-0"><h1 class="page-title truncate" aria-current="page">{{.Data.Name}}</h1></li>
+  </ol>
+</nav>
 {{end}}
 
 {{define "content"}}
@@ -22,34 +28,59 @@
     <div class="collection-actions">
       <form method="post" action="{{$d.Path}}/share">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-        {{if $d.ShareURL}}<button type="submit" class="btn small">Stop sharing</button>
-        {{else}}<input type="hidden" name="on" value="1"><button type="submit" class="btn small primary">Share collection</button>{{end}}
+        {{if $d.ShareURL}}<button type="submit" class="btn" data-variant="outline" data-size="sm">Stop sharing</button>
+        {{else}}<input type="hidden" name="on" value="1"><button type="submit" class="btn" data-size="sm">{{template "icon" "link"}} Share collection</button>{{end}}
       </form>
-      <details class="menu-wrap">
-        <summary class="btn small">Edit description</summary>
-        <form class="menu pop-form" method="post" action="{{$d.Path}}/meta">
-          <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <label class="field-label" for="collection-desc">Description</label>
-          <textarea id="collection-desc" name="description" rows="4" maxlength="500">{{$d.Description}}</textarea>
-          <button type="submit" class="btn small primary">Save</button>
-        </form>
-      </details>
-      <details class="menu-wrap">
-        <summary class="btn small">Rename or merge</summary>
-        <form class="menu pop-form" method="post" action="{{$d.Path}}/rename">
-          <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <label class="field-label" for="collection-to">New name</label>
-          <input type="text" id="collection-to" name="to" value="{{$d.Name}}" maxlength="64" required>
-          <p class="hint">Every artifact in it is relabelled. Using the name of another collection merges the two.</p>
-          <button type="submit" class="btn small primary">Rename</button>
-        </form>
-      </details>
+      <button type="button" class="btn" data-variant="outline" data-size="sm" data-dialog="collection-desc-dialog">Edit description</button>
+      <button type="button" class="btn" data-variant="outline" data-size="sm" data-dialog="collection-rename-dialog">Rename or merge</button>
     </div>
     {{if $d.ShareURL}}
     <p class="collection-share">Public index <span class="chip"><code>{{$d.ShareURL}}</code><button type="button" class="chip-copy" data-copy-text="{{$d.ShareURL}}" title="Copy link" aria-label="Copy link">{{template "icon" "copy"}}</button></span> lists the public artifacts in this order. Private ones stay hidden.</p>
     {{end}}
   </div>
 </header>
+
+<dialog id="collection-desc-dialog" class="dialog" aria-labelledby="collection-desc-title">
+  <form method="post" action="{{$d.Path}}/meta" class="sm:max-w-md">
+    <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+    <header>
+      <h2 id="collection-desc-title">Describe this collection</h2>
+      <p>Shown on this page and on the public index.</p>
+    </header>
+    <section>
+      <div role="group" class="field">
+        <label for="collection-desc">Description</label>
+        <textarea id="collection-desc" name="description" rows="4" maxlength="500">{{$d.Description}}</textarea>
+      </div>
+    </section>
+    <footer>
+      <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn">Save</button>
+    </footer>
+    <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" aria-label="Close" data-dialog-close>{{template "icon" "x"}}</button>
+  </form>
+</dialog>
+
+<dialog id="collection-rename-dialog" class="dialog" aria-labelledby="collection-rename-title">
+  <form method="post" action="{{$d.Path}}/rename" class="sm:max-w-md">
+    <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+    <header>
+      <h2 id="collection-rename-title">Rename or merge</h2>
+      <p>Every artifact in it is relabelled. Using the name of another collection merges the two.</p>
+    </header>
+    <section>
+      <div role="group" class="field">
+        <label for="collection-to">New name</label>
+        <input type="text" id="collection-to" name="to" value="{{$d.Name}}" maxlength="64" required>
+      </div>
+    </section>
+    <footer>
+      <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn">Rename</button>
+    </footer>
+    <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" aria-label="Close" data-dialog-close>{{template "icon" "x"}}</button>
+  </form>
+</dialog>
 
 <div class="collection-toolbar">
   <h2 class="day-label">{{if $d.Newest}}Newest first{{else}}Course order{{end}}</h2>
@@ -69,11 +100,11 @@
       <span class="course-sub">{{if eq .Artifact.Visibility "private"}}{{template "visibility-badge" .Artifact}} {{end}}{{if .Artifact.OpenComments}}{{.Artifact.OpenComments}} open · {{end}}<code>{{.Artifact.ID}}</code></span>
     </span>
     <time datetime="{{.Artifact.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}">{{ago .Artifact.UpdatedAt $.Now}}</time>
-    <a class="icon-btn" href="{{.URL}}" target="_blank" rel="noopener" title="Open published page" aria-label="Open published page">{{template "icon" "external"}}</a>
+    <a class="btn icon-btn" data-variant="ghost" data-size="icon-sm" href="{{.URL}}" target="_blank" rel="noopener" title="Open published page" aria-label="Open published page">{{template "icon" "external"}}</a>
     {{if not $d.Newest}}
     <span class="course-move">
-      <form method="post" action="{{$d.Path}}/move"><input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}"><input type="hidden" name="id" value="{{.Artifact.ID}}"><input type="hidden" name="dir" value="up"><button type="submit" class="icon-btn" title="Move up" aria-label="Move up"{{if eq .N 1}} disabled{{end}}>↑</button></form>
-      <form method="post" action="{{$d.Path}}/move"><input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}"><input type="hidden" name="id" value="{{.Artifact.ID}}"><input type="hidden" name="dir" value="down"><button type="submit" class="icon-btn" title="Move down" aria-label="Move down"{{if eq .N $d.Count}} disabled{{end}}>↓</button></form>
+      <form method="post" action="{{$d.Path}}/move"><input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}"><input type="hidden" name="id" value="{{.Artifact.ID}}"><input type="hidden" name="dir" value="up"><button type="submit" class="btn icon-btn" data-variant="ghost" data-size="icon-sm" title="Move up" aria-label="Move up"{{if eq .N 1}} disabled{{end}}>{{template "icon" "arrow-up"}}</button></form>
+      <form method="post" action="{{$d.Path}}/move"><input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}"><input type="hidden" name="id" value="{{.Artifact.ID}}"><input type="hidden" name="dir" value="down"><button type="submit" class="btn icon-btn" data-variant="ghost" data-size="icon-sm" title="Move down" aria-label="Move down"{{if eq .N $d.Count}} disabled{{end}}>{{template "icon" "arrow-down"}}</button></form>
     </span>
     {{end}}
   </li>

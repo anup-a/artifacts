@@ -1,62 +1,76 @@
 {{define "content"}}
 {{if .Data.NewKey}}
-<div class="callout ok">
-  <div class="callout-head">{{template "icon" "key"}}<strong>Your new key is ready.</strong> This is the only time the key is shown. Store it in your password manager, or pipe it to <code>byagent login --api {{.Data.API}}</code>. To give an agent a key without pasting one into a chat, use <a class="link" href="/app/connect">Connect agent</a> instead.</div>
-  <div class="copyrow">
-    <input type="text" readonly value="{{.Data.NewKey}}" id="new-key" aria-label="New API key">
-    <button type="button" class="btn primary" data-copy="#new-key">{{template "icon" "copy"}} Copy key</button>
-  </div>
+<div class="alert ok">
+  {{template "icon" "key"}}
+  <h2>Your new key is ready.</h2>
+  <section>
+    <p>This is the only time the key is shown. Store it in your password manager, or pipe it to <code>byagent login --api {{.Data.API}}</code>. To give an agent a key without pasting one into a chat, use <a class="link" href="/app/connect">Connect agent</a> instead.</p>
+    <div class="copyrow mt-3">
+      <input class="input" type="text" readonly value="{{.Data.NewKey}}" id="new-key" aria-label="New API key">
+      <button type="button" class="btn" data-copy="#new-key">{{template "icon" "copy"}} Copy key</button>
+    </div>
+  </section>
 </div>
 {{end}}
 
-<section class="card">
-  <div class="card-head">
+<form method="post" action="/app/keys" class="card">
+  <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
+  <header>
     <h2>Create a key</h2>
-    <span class="muted">Keys publish and manage every artifact in this workspace.</span>
-  </div>
-  <form method="post" action="/app/keys" class="field-row">
-    <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-    <label class="field">
-      <span class="field-label">Name</span>
-      <input type="text" name="name" required maxlength="64" placeholder="e.g. laptop, ci, agent" aria-label="Key name">
-    </label>
-    <button type="submit" class="btn primary">Create key</button>
-  </form>
-  {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
-</section>
+    <p>Keys publish and manage every artifact in this workspace.</p>
+  </header>
+  <section class="form-row">
+    <div role="group" class="field">
+      <label for="key-name">Name</label>
+      <input id="key-name" type="text" name="name" required maxlength="64" placeholder="e.g. laptop, ci, agent" aria-label="Key name">
+    </div>
+    <button type="submit" class="btn">{{template "icon" "plus"}} Create key</button>
+  </section>
+  {{if .Data.Error}}<section><div class="alert" data-variant="destructive">{{template "icon" "alert"}}<h2>{{.Data.Error}}</h2></div></section>{{end}}
+</form>
 
 {{if .Data.Rows}}
 <div class="table-card">
+<div class="table-container">
 <table class="table">
-  <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th class="actions"></th></tr></thead>
+  <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th class="actions"><span class="sr-only">Actions</span></th></tr></thead>
   <tbody>
   {{range .Data.Rows}}
   <tr{{if .RevokedAt}} class="revoked"{{end}}>
-    <td class="c-title">{{if .Name}}{{.Name}}{{else}}<span class="muted">unnamed</span>{{end}}</td>
+    <td class="c-title font-medium">{{if .Name}}{{.Name}}{{else}}<span class="muted">unnamed</span>{{end}}</td>
     <td><span class="chip"><code>{{.Prefix}}…</code></span></td>
     <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time></td>
     <td class="when">{{if .LastUsedAt}}<time title="{{when .LastUsedAt}} UTC">{{ago .LastUsedAt $.Now}}</time>{{else}}<span class="muted">never</span>{{end}}</td>
     <td class="actions">
-      {{if .RevokedAt}}<span class="badge">Revoked <time title="{{when .RevokedAt}} UTC">{{ago .RevokedAt $.Now}}</time></span>{{else}}
-      <details class="confirm menu-wrap">
-        <summary class="btn small danger">Revoke</summary>
-        <form method="post" action="/app/keys/{{.ID}}/revoke" class="menu right confirm-body">
+      {{if .RevokedAt}}<span class="badge" data-variant="secondary">Revoked <time title="{{when .RevokedAt}} UTC">{{ago .RevokedAt $.Now}}</time></span>{{else}}
+      <button type="button" class="btn" data-variant="outline" data-size="sm" data-dialog="revoke-{{.ID}}">Revoke</button>
+      <dialog id="revoke-{{.ID}}" class="alert-dialog" aria-labelledby="revoke-{{.ID}}-title">
+        <form method="post" action="/app/keys/{{.ID}}/revoke">
           <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <p>Anything using this key stops working now.</p>
-          <button type="submit" class="btn small danger solid">Confirm revoke</button>
+          <header>
+            <h2 id="revoke-{{.ID}}-title">Revoke {{if .Name}}“{{.Name}}”{{else}}this key{{end}}?</h2>
+            <p>Anything using this key stops working now.</p>
+          </header>
+          <footer>
+            <button type="button" class="btn" data-variant="outline" data-dialog-close>Cancel</button>
+            <button type="submit" class="btn" data-variant="destructive">Confirm revoke</button>
+          </footer>
         </form>
-      </details>{{end}}
+      </dialog>{{end}}
     </td>
   </tr>
   {{end}}
   </tbody>
 </table>
 </div>
-{{else}}
-<div class="empty">
-  <span class="empty-icon">{{template "icon" "key"}}</span>
-  <h2>No keys yet</h2>
-  <p>Create one above for CI or a script. For an agent, <a class="link" href="/app/connect">Connect agent</a> gives it a key of its own.</p>
 </div>
+{{else}}
+<section class="empty">
+  <header>
+    <figure>{{template "icon" "key"}}</figure>
+    <h2>No keys yet</h2>
+    <p>Create one above for CI or a script. For an agent, <a class="link" href="/app/connect">Connect agent</a> gives it a key of its own.</p>
+  </header>
+</section>
 {{end}}
 {{end}}

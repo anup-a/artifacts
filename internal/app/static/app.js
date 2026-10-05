@@ -1,21 +1,28 @@
-// Progressive touches on top of plain forms: copy buttons, menus that close
-// when you click elsewhere or press Escape, and growing reply boxes. Every
-// action on the page works without this file; it just feels rougher.
+// Progressive touches on top of plain forms: copy buttons, confirm dialogs,
+// the side peek, and growing reply boxes. On the dashboard, Basecoat
+// (basecoat.js) runs the menus, sidebar and tabs; this file adds what is
+// byagent's own. Every form posts without it.
 (function () {
   "use strict";
 
   // ---- Copy to clipboard ---------------------------------------------
   // data-copy="#input" copies that field's value; data-copy-text="…" copies
   // the literal. The button shows a check for a moment.
+  // The dashboard confirms with a toast; elsewhere the button's own label
+  // reads "Copied" for a moment.
   function flash(btn) {
-    var label = btn.querySelector(".menu-item-text") || (btn.classList.contains("btn") ? btn : null);
-    var old = label ? label.textContent : null;
+    var toaster = document.getElementById("toaster");
     btn.classList.add("is-copied");
-    if (label) label.textContent = "Copied";
-    setTimeout(function () {
-      btn.classList.remove("is-copied");
-      if (label) label.textContent = old;
-    }, 1400);
+    setTimeout(function () { btn.classList.remove("is-copied"); }, 1400);
+    if (toaster && toaster.toast) {
+      toaster.toast({ category: "success", title: "Copied to clipboard", duration: 2000 });
+      return;
+    }
+    var label = btn.querySelector(".menu-item-text") || (btn.classList.contains("btn") ? btn : null);
+    if (!label || label.children.length) return;
+    var old = label.textContent;
+    label.textContent = "Copied";
+    setTimeout(function () { label.textContent = old; }, 1400);
   }
 
   function copyText(text, fallbackInput) {
@@ -58,9 +65,10 @@
     if (menu) setTimeout(function () { menu.removeAttribute("open"); }, 500);
   });
 
-  // ---- Menus and confirms --------------------------------------------
-  // Only one details-based menu stays open; clicking outside or pressing
-  // Escape closes it, like a real popover.
+  // ---- Menus, dialogs and the sidebar --------------------------------
+  // Basecoat's dropdown menus close themselves. The <details> menus left on
+  // the public site get the same manners: one open at a time, closed by a
+  // click elsewhere or Escape.
   function closeMenus(except) {
     document.querySelectorAll("details.menu-wrap[open], details.switcher[open], details.confirm[open]").forEach(function (d) {
       if (except && (d === except || d.contains(except))) return;
@@ -79,15 +87,78 @@
     closeMenus(null);
   });
 
+  function menuOpen() {
+    return document.querySelector("details.menu-wrap[open], details.switcher[open], details.confirm[open], .dropdown-menu [aria-expanded='true'], dialog[open]");
+  }
+
+  // data-dialog="id" opens that <dialog> as a modal (the confirm before a
+  // delete, the small edit forms); data-dialog-close and a click on the
+  // backdrop close it.
+  document.addEventListener("click", function (ev) {
+    var opener = ev.target.closest("[data-dialog]");
+    if (opener) {
+      var dialog = document.getElementById(opener.getAttribute("data-dialog"));
+      if (dialog && dialog.showModal) { ev.preventDefault(); dialog.showModal(); }
+      return;
+    }
+    if (ev.target.closest("[data-dialog-close]")) {
+      var open = ev.target.closest("dialog");
+      if (open) { ev.preventDefault(); open.close(); }
+      return;
+    }
+    if (ev.target instanceof HTMLDialogElement && ev.target.open) ev.target.close();
+    var toggle = ev.target.closest("[data-sidebar-toggle]");
+    var sidebar = toggle && document.querySelector("aside.sidebar");
+    if (sidebar && sidebar.toggle) sidebar.toggle();
+  });
+
   document.addEventListener("keydown", function (ev) {
     if (ev.key !== "Escape") return;
-    var hadMenu = document.querySelector("details.menu-wrap[open], details.switcher[open], details.confirm[open]");
+    var hadMenu = menuOpen();
     closeMenus(null);
     if (hadMenu || !peek.open) return;
     // A half-written reply is worth more than the shortcut: leave the box first.
     if (ev.target instanceof HTMLTextAreaElement && ev.target.value) { ev.target.blur(); return; }
     closePeek(true);
   });
+
+  // ---- Tabs and the address ------------------------------------------
+  // selectTab marks a tab chosen in fresh markup, before Basecoat wires it:
+  // Basecoat then starts on whichever tab says aria-selected.
+  function selectTab(tab) {
+    var list = tab.closest("[role=tablist]");
+    if (!list) return;
+    list.querySelectorAll("[role=tab]").forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      var panel = document.getElementById(t.getAttribute("aria-controls"));
+      if (panel) panel.hidden = !on;
+    });
+  }
+
+  // A link to #comments or #versions lands on the tab holding it, and a
+  // picked tab is kept in the address so a reload or a shared link opens
+  // the same one. Basecoat switches the panels; this only chooses which.
+  function revealHash(root) {
+    var id = location.hash.slice(1);
+    if (!id) return;
+    var target = null;
+    try { target = (root || document).querySelector("#" + CSS.escape(id)); } catch (e) { return; }
+    var panel = target && target.closest("[role=tabpanel]");
+    if (!panel || !panel.hidden) return;
+    var tab = document.querySelector("[role=tab][aria-controls='" + panel.id + "']");
+    if (tab) tab.click();
+    target.scrollIntoView({ block: "nearest" });
+  }
+
+  document.addEventListener("click", function (ev) {
+    var tab = ev.target.closest("[role=tab][data-hash]");
+    if (tab && history.replaceState && !tab.closest(".peek")) history.replaceState(history.state, "", "#" + tab.getAttribute("data-hash"));
+  });
+  window.addEventListener("hashchange", function () { revealHash(document); });
+  // Basecoat wires its tabs on DOMContentLoaded, which fires after every
+  // deferred script; this listener is added after its own, so runs later.
+  document.addEventListener("DOMContentLoaded", function () { revealHash(document); });
 
   // ---- Side peek -----------------------------------------------------
   // Links marked data-peek (row titles, View) open the artifact detail in a
@@ -120,13 +191,23 @@
   // a re-render after a form post, and scrolls to the hash on a fresh open.
   function renderPeek(html, hash) {
     var top = peek.el.scrollTop;
+    // A save re-renders the fragment; it stays on the tab it was posted from.
+    var was = peek.el.querySelector("[role=tab][aria-selected=true]");
+    var wasId = was && was.id;
     peek.el.innerHTML = html;
+    var tab = wasId && !hash ? document.getElementById(wasId) : null;
+    if (tab && peek.el.contains(tab)) selectTab(tab);
     peek.el.classList.remove("is-loading");
     var inner = peek.el.querySelector(".peek-inner");
     if (inner && inner.getAttribute("data-peek-title")) document.title = inner.getAttribute("data-peek-title") + " · Artifacts";
     var focus = peek.el.querySelector("[autofocus]");
     if (focus) { focus.focus(); return; }
     var target = hash ? peek.el.querySelector("#" + hash) : null;
+    var panel = target && target.closest("[role=tabpanel]");
+    if (panel && panel.hidden) {
+      var tab = peek.el.querySelector("[role=tab][aria-controls='" + panel.id + "']");
+      if (tab) tab.click();
+    }
     if (target) { target.scrollIntoView({ block: "start" }); return; }
     peek.el.scrollTop = top;
   }

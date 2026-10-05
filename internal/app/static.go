@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//go:embed static/app.css static/app.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/dashboard-light.webp static/dashboard-dark.webp static/thread-light.webp static/thread-dark.webp
+//go:embed static/app.css static/app.js static/dashboard.css static/basecoat.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/dashboard-light.webp static/dashboard-dark.webp static/thread-light.webp static/thread-dark.webp
 var staticFS embed.FS
 
 type asset struct {
@@ -24,7 +24,9 @@ type statics struct {
 	files         map[string]asset
 	cssURL        string
 	jsURL         string
-	themeJSURL    string // resolves the landing page's theme before first paint
+	uiCSSURL      string // the dashboard's stylesheet, built by web/build.mjs
+	basecoatURL   string // Basecoat's menus, sidebar, tabs and toasts
+	themeJSURL    string // resolves the light or dark theme before first paint
 	gaJSURL       string // starts GA4; a file because the CSP forbids inline script
 	shotURL       string // landing page dashboard screenshot
 	shotDarkURL   string // the same view for a reader on a dark theme
@@ -54,6 +56,8 @@ func newStatics() *statics {
 	s := &statics{files: map[string]asset{}}
 	s.cssURL = s.add("app", ".css", "text/css; charset=utf-8")
 	s.jsURL = s.add("app", ".js", "text/javascript; charset=utf-8")
+	s.uiCSSURL = s.add("dashboard", ".css", "text/css; charset=utf-8")
+	s.basecoatURL = s.add("basecoat", ".js", "text/javascript; charset=utf-8")
 	s.themeJSURL = s.add("theme", ".js", "text/javascript; charset=utf-8")
 	s.gaJSURL = s.add("ga", ".js", "text/javascript; charset=utf-8")
 	s.shotURL = s.add("dashboard-light", ".webp", "image/webp")
