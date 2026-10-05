@@ -142,7 +142,7 @@ func TestFactsAreCLIOnlyAndCarryTheServerLimits(t *testing.T) {
 		} `json:"interface"`
 		Auth struct {
 			Publish    string `json:"publish"`
-			KeyOverAPI bool   `json:"key_over_api"`
+			KeyOverAPI string `json:"key_over_api"`
 		} `json:"auth"`
 		Limits struct {
 			Files int `json:"files_per_version"`
@@ -155,7 +155,8 @@ func TestFactsAreCLIOnlyAndCarryTheServerLimits(t *testing.T) {
 	if f.Name != "byagent" || f.URL != "https://share.test/" || f.Interface.Kind != "cli" || f.Interface.Install != "npm install -g byagent" {
 		t.Errorf("identity: %+v", f)
 	}
-	if !strings.Contains(f.Auth.Publish, "https://api.test/app/keys") || f.Auth.KeyOverAPI {
+	if !strings.Contains(f.Auth.Publish, "https://api.test/app/connect") || !strings.Contains(f.Auth.Publish, "https://api.test/app/keys") ||
+		!strings.Contains(f.Auth.KeyOverAPI, "signed-in person") {
 		t.Errorf("auth: %+v", f.Auth)
 	}
 	if f.Limits.Files != 500 {

@@ -211,6 +211,7 @@ func (s *sqlStore) DeleteExpiredCredentials(ctx context.Context, now time.Time) 
 		{`DELETE FROM sessions WHERE expires_at<=?`, now},
 		{`DELETE FROM magic_links WHERE expires_at<=?`, now},
 		{`DELETE FROM oauth_states WHERE expires_at<=?`, now},
+		{`DELETE FROM connect_codes WHERE expires_at<=?`, now},
 	}
 	for _, q := range queries {
 		if _, err = tx.ExecContext(ctx, s.q(q.q), q.cutoff); err != nil {

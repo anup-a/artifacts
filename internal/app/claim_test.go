@@ -47,10 +47,10 @@ func TestClaimThroughSignIn(t *testing.T) {
 	want(t, res, 200, "Keep your guest pages", "Guest draft")
 
 	res = e.post(claim, claim, url.Values{})
-	if res.StatusCode != 303 || res.Header.Get("Location") != "/app/keys?claimed=1" {
+	if res.StatusCode != 303 || res.Header.Get("Location") != "/app/connect?claimed=1" {
 		t.Fatalf("claim: %d %s", res.StatusCode, res.Body)
 	}
-	want(t, e.get("/app/keys?claimed=1"), 200, "Your guest pages are in")
+	want(t, e.get("/app/connect?claimed=1"), 200, "Your guest pages are in", "Create connect prompt")
 	_, tenant := e.me()
 	a, err := e.st.Artifact(context.Background(), "guestpage001")
 	if err != nil || a.TenantID != tenant.ID || a.ExpiresAt != nil {

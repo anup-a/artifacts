@@ -63,8 +63,12 @@ The link preview card is `/og-card.png`, rendered from `scripts/og-card.html`.
 
 ## Dashboard and customer portals
 
-Open `PUBLIC_API_ORIGIN/app/login`, sign in, and create a named API key at
-`PUBLIC_API_ORIGIN/app/keys`. The full key is shown once. The dashboard lists
+Open `PUBLIC_API_ORIGIN/app/login` and sign in. To give an agent a key,
+use `PUBLIC_API_ORIGIN/app/connect`: it makes a prompt with a one-time code
+(ten minutes, one use) that `byagent login --code` trades for a key named
+after the agent, and it is where `byagent login --browser` sends you to
+approve a CLI. Neither puts a key in the chat. For CI, create a named key at
+`PUBLIC_API_ORIGIN/app/keys`; the full key is shown once. The dashboard lists
 artifacts, and each artifact has a detail page at `/app/artifacts/{id}` with
 its share link, a preview, the kept versions (each with Preview, which opens
 it for you without making it live, Restore and Delete), and
@@ -125,6 +129,8 @@ byagent publish ./site --title "Hello" --json
 
 | Command | What it does |
 | --- | --- |
+| `login --code <code> [--api <url>] [--name <n>]` | Trades a one-time code from `<url>/app/connect` for a key named after the agent (`POST /api/connect`) and writes `~/.artifacts/config.json` |
+| `login --browser [--no-wait] [--timeout <s>]`, `login --wait` | Asks for an approval link (`POST /api/connect/device`), then polls `POST /api/connect/device/token` until a signed-in person approves it; `--no-wait` exits after printing the link, `--wait` resumes (exit 3 while pending) |
 | `login --api <url> [--token <key>]` | Verifies a key created at `<url>/app/keys`, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
 | `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--private\|--public] [--comments\|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
 | `get <id>` | URL, title, current version, open comment count, project and tags; the share code and its link when one is set |

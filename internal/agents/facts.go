@@ -44,8 +44,9 @@ func (h *Handler) facts(w http.ResponseWriter, r *http.Request) {
 			"docs":         "none: every page under /agents, /skill.md and /llms.txt is public and read-only",
 			"read_page":    "none for a public page; a private page needs a signed-in workspace member",
 			"comment":      "none for readers of a public page with comments on",
-			"publish":      "API key, created by a signed-in person at " + d.API + "/app/keys and stored with byagent login",
-			"key_over_api": false,
+			"publish":      "API key. An agent gets its own with byagent login --code (a one-time code from " + d.API + "/app/connect) or byagent login --browser (a signed-in person approves it); keys for CI are created at " + d.API + "/app/keys",
+			"guest":        "byagent publish with nothing configured gets a 24-hour guest key: public pages only, three at most",
+			"key_over_api": "only by redeeming a one-time connect code a signed-in person made or approved; never from a password or by asking",
 		},
 		"capabilities": []string{
 			"publish a Markdown file or an HTML directory to a link",

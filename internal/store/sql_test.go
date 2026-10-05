@@ -45,7 +45,7 @@ func newPGStore(t *testing.T, url string) Store {
 	db := s.(*sqlStore).db
 	// Everything but schema_migrations: tenant and auth rows must go too, or a
 	// membership left by an earlier test changes what "first sign-in" means.
-	if _, err := db.ExecContext(ctx, `TRUNCATE comments, threads, files, versions, artifacts, blobs, keys, artifact_views, artifact_view_hours, artifact_view_facets, end_users, sessions, magic_links, oauth_states, identities, memberships, users, tenants RESTART IDENTITY CASCADE`); err != nil {
+	if _, err := db.ExecContext(ctx, `TRUNCATE connect_codes, comments, threads, files, versions, artifacts, blobs, keys, artifact_views, artifact_view_hours, artifact_view_facets, end_users, sessions, magic_links, oauth_states, identities, memberships, users, tenants RESTART IDENTITY CASCADE`); err != nil {
 		t.Fatalf("truncate: %v", err)
 	}
 	t.Cleanup(func() { s.Close() })

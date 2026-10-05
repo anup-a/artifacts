@@ -20,6 +20,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 	if d.GuestLimiter == nil {
 		d.GuestLimiter = ratelimit.NewWindow(5, time.Hour)
 	}
+	if d.ConnectLimiter == nil {
+		d.ConnectLimiter = ratelimit.New(60)
+	}
 	s := &server{Deps: d}
 	if d.Cfg.AdminToken != "" {
 		k, err := ensureAdminKey(d)
@@ -32,6 +35,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /api/me", s.withAuth(s.me))
 	mux.HandleFunc("POST /api/guest", s.createGuest)
+	mux.HandleFunc("POST /api/connect", s.redeemConnect)
+	mux.HandleFunc("POST /api/connect/device", s.startDevice)
+	mux.HandleFunc("POST /api/connect/device/token", s.pollDevice)
 	mux.HandleFunc("POST /api/end-users/{external_id}/portal-link", s.withAuth(s.portalLink))
 	mux.HandleFunc("GET /api/artifacts", s.withAuth(s.listArtifacts))
 	mux.HandleFunc("GET /api/projects", s.withAuth(s.listProjects))

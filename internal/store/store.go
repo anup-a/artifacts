@@ -143,9 +143,43 @@ type Comment struct {
 	CreatedAt  time.Time
 }
 
+// ErrPending is returned by RedeemConnect for a CLI-started connect code
+// nobody has approved yet.
+var ErrPending = errors.New("connect code not approved yet")
+
+// ConnectCode is one request to turn a signed-in person's approval into an
+// API key for one agent. CodeSHA256 hashes the short code a person reads;
+// DeviceSHA256, set only when the CLI started the request, hashes the secret
+// the CLI polls with. TenantID and Email are empty until it is approved.
+type ConnectCode struct {
+	CodeSHA256, DeviceSHA256 string
+	// Name is what the key will be called, e.g. "claude-code on laptop".
+	Name                   string
+	TenantID, Email        string
+	CreatedAt, ExpiresAt   time.Time
+	ApprovedAt, ConsumedAt *time.Time
+}
+
+// ConnectStore keeps connect codes. Every lookup sees only live codes:
+// unexpired and not yet redeemed.
+type ConnectStore interface {
+	CreateConnect(ctx context.Context, c ConnectCode) error
+	// ConnectByCode finds a live code by the hash of its short code.
+	ConnectByCode(ctx context.Context, codeHash string, now time.Time) (ConnectCode, error)
+	// ApproveConnect binds a live, unapproved CLI-started code to a workspace.
+	ApproveConnect(ctx context.Context, codeHash, tenantID, email string, now time.Time) error
+	// RedeemConnect spends an approved code and creates its key in one
+	// transaction. byDevice says whether hash is the CLI's device secret or
+	// the short code; a short code never redeems a CLI-started request. name
+	// is used when the code carries none. It returns ErrPending while a
+	// CLI-started code waits for approval and ErrNotFound for anything else.
+	RedeemConnect(ctx context.Context, hash string, byDevice bool, keyHash, prefix, name string, now time.Time) (Key, error)
+}
+
 type Store interface {
 	TenantStore
 	AuthStore
+	ConnectStore
 	Migrate(ctx context.Context) error
 	CreateKey(ctx context.Context, hash, email string) (Key, error)
 	// CreateGuest makes a guest workspace with one key, for publishing

@@ -18,7 +18,7 @@ The skill uses the `byagent` CLI, which Claude can run with `npx byagent` or you
 npm install -g byagent
 ```
 
-You don't need an account to try it. With no key, the first publish gets a guest key: up to three public pages, 5 MB each, that stop working after 24 hours. The output includes a `claim_url`; open it and sign in to keep the pages. For anything internal, create a key at {{.API}}/app/keys and run `byagent login`.
+You don't need an account to try it. With no key, the first publish gets a guest key: up to three public pages, 5 MB each, that stop working after 24 hours. The output includes a `claim_url`; open it and sign in to keep the pages. For anything internal, connect Claude Code first: paste the prompt from {{.API}}/app/connect, or run `byagent login --browser` and approve it.
 
 ## Publish the plan
 

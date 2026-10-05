@@ -721,3 +721,98 @@ test("analytics prints no series for a range without views", async () => {
   const lines = render(report({ totals: { all_time_views: 0, range_views: 0, range_visitors: 0 }, series: [{ bucket: "2026-10-04", views: 0, visitors: 0 }], top_referrers: [], top_paths: [], top_devices: [] }), "ar_page1");
   assert.deepEqual(lines, ["ar_page1, last 7 days: 0 views, 0 visitors (0 all time)"]);
 });
+
+test("detectAgent: BYAGENT_AGENT, then Codex, then Claude Code, then AI_AGENT", async () => {
+  const { detectAgent, keyName, clientHeaders } = await import("../src/agent.js");
+  assert.equal(detectAgent({}), "");
+  assert.equal(detectAgent({ CLAUDECODE: "1" }), "claude-code");
+  // Codex started from inside Claude Code inherits CLAUDECODE; Codex is the one publishing.
+  assert.equal(detectAgent({ CLAUDECODE: "1", CODEX_THREAD_ID: "019" }), "codex");
+  assert.equal(detectAgent({ CODEX_SANDBOX: "seatbelt" }), "codex");
+  assert.equal(detectAgent({ AI_AGENT: "claude-code_2-1-289_agent" }), "claude-code");
+  assert.equal(detectAgent({ AI_AGENT: "Not A Tool!" }), "");
+  assert.equal(detectAgent({ CODEX_THREAD_ID: "1", BYAGENT_AGENT: "my-bot" }), "my-bot");
+
+  assert.equal(keyName({ CLAUDECODE: "1" }, "soul-mbp.local"), "claude-code on soul-mbp");
+  assert.equal(keyName({}, ""), "byagent-cli");
+  assert.equal(clientHeaders({ CODEX_THREAD_ID: "1" })["X-Byagent-Client"], "codex");
+  assert.equal(clientHeaders({})["X-Byagent-Client"], undefined);
+  assert.match(clientHeaders({})["User-Agent"], /^byagent-cli\/\d/);
+});
+
+// withHome points os.homedir() at a temp dir so login writes nothing real.
+function withHome(t) {
+  const home = tmp();
+  const prev = process.env.HOME;
+  process.env.HOME = home;
+  t.after(() => {
+    process.env.HOME = prev;
+  });
+  return home;
+}
+
+test("login --code trades a one-time code for a key named after the agent and saves it", async (t) => {
+  const home = withHome(t);
+  const sent = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    sent.push({ url: String(url), body: JSON.parse(init.body), client: init.headers["X-Byagent-Client"] });
+    return Response.json(
+      { status: "approved", token: "ak_secret123456", api: "https://api.example", key: { name: "codex on box", prefix: "ak_secret" }, workspace: { id: "t_1", name: "Ann" } },
+      { status: 201 },
+    );
+  });
+  const out = [];
+  const code = await main(["login", "--code", "k7qd-m3xr", "--api", "https://api.example/", "--json"], {
+    out: (l) => out.push(l),
+    err: () => {},
+    env: { CODEX_THREAD_ID: "1" },
+  });
+  assert.equal(code, 0);
+  assert.equal(sent[0].url, "https://api.example/api/connect");
+  assert.equal(sent[0].body.code, "k7qd-m3xr");
+  assert.match(sent[0].body.name, /^codex on /);
+  const res = JSON.parse(out[0]);
+  assert.equal(res.ok, true);
+  assert.deepEqual(res.workspace, { id: "t_1", name: "Ann" });
+  assert.equal(JSON.stringify(res).includes("ak_secret123456"), false, "the key is never printed");
+  assert.deepEqual(JSON.parse(readFileSync(configPath(home), "utf8")), { token: "ak_secret123456", api: "https://api.example" });
+});
+
+test("login --code reports a spent code without writing a config", async (t) => {
+  const home = withHome(t);
+  t.mock.method(globalThis, "fetch", async () =>
+    Response.json({ error: { code: "NOT_FOUND", message: "this connect code has expired, was already used, or does not exist" } }, { status: 404 }),
+  );
+  const errs = [];
+  const code = await main(["login", "--code", "K7QD-M3XR", "--json"], { out: () => {}, err: (l) => errs.push(l), env: {} });
+  assert.equal(code, 1);
+  assert.match(JSON.parse(errs[0]).error.message, /already used/);
+  assert.throws(() => statSync(configPath(home)));
+});
+
+test("login --browser polls until approved; --no-wait and --wait split it in two", async (t) => {
+  const { browserLogin } = await import("../src/commands/login.js");
+  const home = tmp();
+  const start = { device_code: "dc_x", user_code: "K7QD-M3XR", verify_url: "https://api.example/app/connect?code=K7QD-M3XR", expires_at: "2099-01-01T00:00:00Z", interval: 2 };
+  const done = { status: "approved", token: "ak_new", api: "https://api.example", key: { name: "n" }, workspace: { name: "Ann" } };
+  let polls = 0;
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (String(url).endsWith("/api/connect/device")) return Response.json(start, { status: 201 });
+    polls++;
+    return polls < 3 ? Response.json({ status: "pending", interval: 2 }, { status: 202 }) : Response.json(done, { status: 201 });
+  });
+
+  const later = await browserLogin("https://api.example", { name: "n", noWait: true, home, note: () => {} });
+  assert.equal(later.json.pending, true);
+  assert.equal(later.json.user_code, "K7QD-M3XR");
+  assert.equal(polls, 0);
+
+  // Not approved within the timeout: exit 3, and the request is kept for --wait.
+  const clock = fakeClock();
+  await assert.rejects(browserLogin("https://api.example", { wait: true, timeoutMs: 1000, home, note: () => {}, ...clock }), (e) => e.exit === 3 && e.code === "PENDING");
+  const res = await browserLogin("https://api.example", { wait: true, home, note: () => {}, ...fakeClock() });
+  assert.equal(res.json.ok, true);
+  assert.equal(polls, 3);
+  assert.deepEqual(JSON.parse(readFileSync(configPath(home), "utf8")), { token: "ak_new", api: "https://api.example" });
+  await assert.rejects(browserLogin("https://api.example", { wait: true, home, note: () => {} }), /nothing to wait for/);
+});

@@ -87,7 +87,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/login/email/verify", h.public(h.emailVerify))
 
 	mux.HandleFunc("GET /app/{$}", h.private(func(w http.ResponseWriter, r *http.Request, _ *viewer) {
-		if resumeClaim(w, r) {
+		if resumeClaim(w, r) || resumeConnect(w, r) {
 			return
 		}
 		http.Redirect(w, r, "/app/artifacts", http.StatusFound)
@@ -117,6 +117,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	})
 	mux.HandleFunc("GET /app/end-users", h.private(h.endUsers))
 	mux.HandleFunc("POST /app/end-users/{external_id}/portal-link", h.private(h.portalLink))
+	mux.HandleFunc("GET /app/connect", h.public(h.connectPage))
+	mux.HandleFunc("POST /app/connect", h.private(h.createConnect))
+	mux.HandleFunc("POST /app/connect/approve", h.private(h.approveConnect))
 	mux.HandleFunc("GET /app/keys", h.private(h.keys))
 	mux.HandleFunc("POST /app/keys", h.private(h.createKey))
 	mux.HandleFunc("POST /app/keys/{id}/revoke", h.private(h.revokeKey))

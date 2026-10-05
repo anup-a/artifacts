@@ -18,7 +18,7 @@ import (
 //go:embed templates/*.html templates/partials/*.html
 var templateFS embed.FS
 
-var pageNames = []string{"landing", "login", "check_inbox", "artifacts", "artifact", "collections", "collection", "collection_public", "end_users", "keys", "usage", "settings", "portal", "error", "gate", "privacy", "terms", "security", "subprocessors", "acceptable_use", "pricing", "showcase", "guide", "claim"}
+var pageNames = []string{"landing", "login", "check_inbox", "artifacts", "artifact", "collections", "collection", "collection_public", "end_users", "keys", "usage", "settings", "portal", "error", "gate", "privacy", "terms", "security", "subprocessors", "acceptable_use", "pricing", "showcase", "guide", "claim", "connect"}
 
 // pages holds one template set per page, each sharing layout.html and the
 // partials (icon sprite, shared rows).
@@ -96,6 +96,8 @@ func (p page) Section() string {
 		return "end-users"
 	case strings.HasPrefix(p.Path, "/app/keys"):
 		return "keys"
+	case strings.HasPrefix(p.Path, "/app/connect"):
+		return "connect"
 	case strings.HasPrefix(p.Path, "/app/usage"):
 		return "usage"
 	case strings.HasPrefix(p.Path, "/app/settings"):

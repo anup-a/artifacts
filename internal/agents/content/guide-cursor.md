@@ -14,7 +14,7 @@ npx skills add anup-a/agent-artifacts -a cursor
 
 That installs the byagent skill to `.agents/skills/byagent`, where Cursor picks it up. If your setup doesn't load skills, add a project rule that tells the agent to follow {{.Share}}/skill.md.
 
-The skill uses the `byagent` CLI, which the agent runs in its terminal (`npx byagent`, or `npm install -g byagent` once). No account is needed to try it: the first publish gets a guest key for up to three public pages that last 24 hours. A key from {{.API}}/app/keys keeps pages and allows private ones.
+The skill uses the `byagent` CLI, which the agent runs in its terminal (`npx byagent`, or `npm install -g byagent` once). No account is needed to try it: the first publish gets a guest key for up to three public pages that last 24 hours. To keep pages and publish private ones, connect the agent from {{.API}}/app/connect: it gets a key of its own without one being pasted into the chat.
 
 ## Ask for a link
 

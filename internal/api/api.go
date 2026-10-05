@@ -25,7 +25,11 @@ type Deps struct {
 	// GuestLimiter meters POST /api/guest per client address. NewHandler
 	// defaults it to 5 an hour.
 	GuestLimiter *ratelimit.Limiter
-	Runtime      []byte // comments.js bytes served at /_rt/comments.js
+	// ConnectLimiter meters the unauthenticated /api/connect routes per
+	// client address and route. NewHandler defaults it to 60 a minute, enough
+	// for a CLI polling every two seconds.
+	ConnectLimiter *ratelimit.Limiter
+	Runtime        []byte // comments.js bytes served at /_rt/comments.js
 	// OnView is told about every HTML page of a current artifact served to
 	// a reader; see serve.Handler.OnView.
 	OnView func(r *http.Request, artifactID, path string)

@@ -12,7 +12,7 @@ npx skills add anup-a/agent-artifacts -a codex
 
 That puts the byagent skill where Codex looks for skills (`.agents/skills/byagent`). You can also point your `AGENTS.md` at {{.Share}}/skill.md and ask Codex to follow it.
 
-The skill drives the `byagent` CLI (`npm install -g byagent`, or `npx byagent`). The first publish works without an account: it gets a guest key for up to three public pages that last 24 hours. Create a key at {{.API}}/app/keys to keep pages and publish private ones.
+The skill drives the `byagent` CLI (`npm install -g byagent`, or `npx byagent`). The first publish works without an account: it gets a guest key for up to three public pages that last 24 hours. To keep pages and publish private ones, connect Codex from {{.API}}/app/connect, or run `byagent login --browser` and approve it; it gets a key of its own without one being pasted into the chat.
 
 ## Publish
 

@@ -1,5 +1,6 @@
 import { CliError } from "./errors.js";
 import { DEFAULT_API, saveConfig, trimSlash } from "./config.js";
+import { clientHeaders } from "./agent.js";
 
 // createGuest asks the server for a 24-hour guest key and saves it as the
 // config, so the next command (and the next run) uses it. A guest key
@@ -9,7 +10,7 @@ export async function createGuest({ env = process.env, home } = {}) {
   const api = trimSlash(env.ARTIFACTS_API || DEFAULT_API);
   let res;
   try {
-    res = await fetch(api + "/api/guest", { method: "POST" });
+    res = await fetch(api + "/api/guest", { method: "POST", headers: clientHeaders() });
   } catch (err) {
     throw new CliError(`cannot reach ${api}: ${err.message}`, { code: "UNREACHABLE" });
   }
@@ -21,7 +22,7 @@ export async function createGuest({ env = process.env, home } = {}) {
     const e = body.error || {};
     throw new CliError(
       res.status === 404
-        ? `${api} does not offer guest keys: create a key at ${api}/app/keys and run byagent login`
+        ? `${api} does not offer guest keys: run byagent login --browser to connect this agent`
         : e.message || `guest key request failed with ${res.status}`,
       { code: e.code || "NOT_CONFIGURED", exit: 2, status: res.status },
     );

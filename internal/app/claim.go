@@ -76,7 +76,7 @@ func (h *Handler) claim(w http.ResponseWriter, r *http.Request, v *viewer) {
 		h.fail(w, r, err)
 		return
 	}
-	http.Redirect(w, r, "/app/keys?claimed=1", http.StatusSeeOther)
+	http.Redirect(w, r, "/app/connect?claimed=1", http.StatusSeeOther)
 }
 
 // resumeClaim sends someone who just signed in back to the claim link they

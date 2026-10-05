@@ -589,6 +589,31 @@ test("login verifies the key before writing the config file", () => {
   assert.equal(existsSync(join(badHome, ".artifacts", "config.json")), false);
 });
 
+test("login --browser asks the real server for an approval link and waits for a person", () => {
+  const home = tmp("artifacts-connect-home-");
+  const env = { ...process.env, ARTIFACTS_TOKEN: "", ARTIFACTS_API: "", HOME: home, CODEX_THREAD_ID: "e2e" };
+  const start = spawnSync(process.execPath, [BIN, "login", "--browser", "--no-wait", "--api", BASE, "--json"], { encoding: "utf8", env });
+  assert.equal(start.status, 0, start.stderr);
+  const p = JSON.parse(start.stdout);
+  assert.equal(p.pending, true);
+  assert.match(p.user_code, /^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+  assert.equal(p.verify_url, `${BASE}/app/connect?code=${p.user_code}`);
+  assert.equal(existsSync(join(home, ".artifacts", "config.json")), false);
+
+  // Nobody approved it: --wait gives up at the timeout with exit 3 and a way on.
+  const wait = spawnSync(process.execPath, [BIN, "login", "--wait", "--timeout", "1", "--json"], { encoding: "utf8", env });
+  assert.equal(wait.status, 3, wait.stderr);
+  const e = JSON.parse(wait.stderr.trim().split("\n").pop()).error;
+  assert.equal(e.code, "PENDING");
+  assert.match(e.message, /byagent login --wait/);
+
+  // A made-up dashboard code is refused and nothing is saved.
+  const bad = spawnSync(process.execPath, [BIN, "login", "--code", "K7QD-M3XR", "--api", BASE, "--json"], { encoding: "utf8", env });
+  assert.equal(bad.status, 1);
+  assert.equal(JSON.parse(bad.stderr).error.code, "NOT_FOUND");
+  assert.equal(existsSync(join(home, ".artifacts", "config.json")), false);
+});
+
 test("publish with nothing configured gets a guest key, saves it and reuses it", () => {
   const home = tmp("artifacts-guest-home-");
   const env = { ...process.env, HOME: home, ARTIFACTS_API: BASE };
