@@ -60,6 +60,7 @@ func (h *Handler) facts(w http.ResponseWriter, r *http.Request) {
 			"not a hosting platform for apps with a backend: pages are static",
 			"not a search engine, ranking or directory of other sites",
 			"not a marketplace",
+			"not an AI search optimization or agent discovery service",
 			"keys are never created over the API",
 		},
 		"limits": map[string]any{

@@ -20,6 +20,7 @@
 <script src="{{.JS}}" defer></script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 {{template "sprite"}}
 {{if .Viewer}}
 <div class="shell">
@@ -81,13 +82,13 @@
     <header class="topbar">
       {{block "topbar" .}}<h1 class="page-title">{{.Title}}</h1>{{end}}
     </header>
-    <main class="content">
+    <main class="content" id="main">
       {{template "content" .}}
     </main>
   </div>
 </div>
 {{else}}
-<main class="bare">
+<main class="bare" id="main">
   {{template "content" .}}
 </main>
 {{end}}

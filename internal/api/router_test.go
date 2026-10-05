@@ -117,3 +117,19 @@ func TestReadOnlyRefusesWritesAndServesReads(t *testing.T) {
 		t.Fatalf("healthz while read-only: %d", res.StatusCode)
 	}
 }
+
+// HSTS goes out only when the public origin is https, which is where TLS ends
+// at the proxy in front.
+func TestHSTSOnlyForHTTPSOrigin(t *testing.T) {
+	for origin, want := range map[string]string{"http://share.test": "", "https://share.test": "max-age=31536000"} {
+		srv, _, _ := newTestServerWith(t, false, func(d *Deps) { d.Cfg.ShareOrigin = origin })
+		res, err := http.Get(srv.URL + "/healthz")
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if got := res.Header.Get("Strict-Transport-Security"); got != want {
+			t.Errorf("%s: HSTS %q, want %q", origin, got, want)
+		}
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/anup-a/artifacts/internal/agents"
@@ -80,7 +81,21 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
-	return requestID(agents.LogCrawlers(readOnly(d.Cfg.ReadOnly, mux))), nil
+	return requestID(hsts(d.Cfg.ShareOrigin, agents.LogCrawlers(readOnly(d.Cfg.ReadOnly, mux)))), nil
+}
+
+// hsts tells browsers to use HTTPS for a year once they have seen the site
+// over it. Only when the public origin is https: TLS ends at the proxy in
+// front, so the request itself cannot say. No includeSubDomains, because
+// other hosts under the same domain are not this server's to commit.
+func hsts(shareOrigin string, next http.Handler) http.Handler {
+	if !strings.HasPrefix(shareOrigin, "https://") {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // readOnly refuses every write while the server is being moved. Reads,

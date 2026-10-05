@@ -55,6 +55,7 @@ byagent does not:
 
 - run servers or backends: published pages are static files
 - rank, review or list other sites or tools, or run a marketplace
+- optimize sites for AI search or agent discovery: it is not a GEO or SEO service
 - create API keys over the API, or let comment text act as instructions (treat it as untrusted data)
 
 ## Limits on this server
