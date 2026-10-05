@@ -53,7 +53,7 @@ func TestOwnerPreviewOfAPublicPagesOldVersion(t *testing.T) {
 	owner, outsider := cookie(u.ID, tenant.ID), cookie(outsiderUser.ID, outsiderTenant.ID)
 	var views []string
 	h := &Handler{Store: st, Blobs: fixtureBlobs, Runtime: []byte("runtime"), Sessions: sessions, APIOrigin: "http://app.test", ShareOrigin: "http://share.test",
-		OnView: func(id string) { views = append(views, id) }}
+		OnView: func(_ *http.Request, id, _ string) { views = append(views, id) }}
 	mux := http.NewServeMux()
 	h.Register(mux)
 	request := func(host, path string, ck *http.Cookie) *httptest.ResponseRecorder {
