@@ -112,9 +112,9 @@ export function mountPanel(shadow, ctx) {
     onchange: (e) => {
       const v = e.target.value;
       const m = location.pathname.match(/^\/a\/([^/]+)\//);
-      if (!m) return;
-      location.href =
-        String(v) === String(state.currentVersion) ? `/a/${m[1]}/` : `/a/${m[1]}/v/${v}/`;
+      const base = config.base || (m ? `/a/${m[1]}/` : "");
+      if (!base) return;
+      location.href = String(v) === String(state.currentVersion) ? base : `${base}v/${v}/`;
     },
   });
   const verWrap = el("span", { class: "verwrap" }, [versionSel, icon("chevron", 12)]);

@@ -117,7 +117,7 @@ func (s *server) accountAnalytics(w http.ResponseWriter, r *http.Request) {
 	out := s.report(&win, rep)
 	pages := []pageCount{}
 	for _, p := range rep.Pages {
-		pages = append(pages, pageCount{ID: p.ArtifactID, Title: p.Title, URL: s.artifactViewURL(store.Artifact{ID: p.ArtifactID, Visibility: p.Visibility}),
+		pages = append(pages, pageCount{ID: p.ArtifactID, Title: p.Title, URL: s.artifactViewURL(store.Artifact{ID: p.ArtifactID, Slug: p.Slug, Visibility: p.Visibility}),
 			Views: p.Views, Visitors: p.Visitors})
 	}
 	out.TopPages = &pages

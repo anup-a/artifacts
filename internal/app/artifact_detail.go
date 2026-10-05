@@ -164,15 +164,15 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 		d.SendLabel = "Workspace link"
 	}
 	if a.ShareCode != "" {
-		d.ShareLink = serve.ShareURL(h.Cfg.ShareOrigin, a.ID, a.ShareCode)
+		d.ShareLink = h.pages().Share(a.ID, a.Slug, a.ShareCode)
 		d.SendURL, d.SendLabel = d.ShareLink, "Share link, code included"
 	}
 	d.Access, d.AccessError = h.accessFormOf(a), o.AccessError
 	switch a.AccessMode {
 	case serve.AccessPassword:
-		d.SendURL, d.SendLabel = h.Cfg.ShareOrigin+"/a/"+a.ID+"/", "Share link, password needed"
+		d.SendURL, d.SendLabel = h.pages().Page(a.ID, a.Slug), "Share link, password needed"
 	case serve.AccessRestricted:
-		d.SendURL, d.SendLabel = h.Cfg.ShareOrigin+"/a/"+a.ID+"/", "Share link, for the people you chose"
+		d.SendURL, d.SendLabel = h.pages().Page(a.ID, a.Slug), "Share link, for the people you chose"
 	}
 	if o.Meta != nil {
 		d.Meta = *o.Meta

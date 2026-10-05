@@ -90,7 +90,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	if d.Cfg.WebEnabled() {
 		sessions = &auth.Sessions{Store: d.Store, Now: d.Now, Secure: auth.SecureOrigin(d.Cfg.APIOrigin)}
 	}
-	(&serve.Handler{
+	sh := &serve.Handler{
 		Sessions: sessions, Deny: d.WebDeny, Gate: d.WebGate,
 		Store: d.Store, Blobs: d.Blobs, Runtime: d.Runtime,
 		ShareOrigin: d.Cfg.ShareOrigin, APIOrigin: d.Cfg.APIOrigin,
@@ -98,7 +98,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 		Mail: d.Mail, TrustProxy: d.Cfg.TrustProxyHeaders,
 		MailPerWorkspaceDay: d.Cfg.Limits.AccessMailPerWorkspaceDay, MailPerDay: d.Cfg.Limits.AccessMailPerDay,
 		Routes: routes,
-	}).Register(mux)
+		Pages:  s.pages(),
+	}
+	sh.Register(mux)
 	// The pages written for agents and crawlers: /agents, /llms.txt,
 	// /robots.txt, /sitemap.xml and the rest. Public, no key.
 	(&agents.Handler{Cfg: d.Cfg, GuidePage: d.WebGuide}).Register(mux)
@@ -111,7 +113,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
-	return requestID(hsts(d.Cfg.ShareOrigin, agents.LogCrawlers(readOnly(d.Cfg.ReadOnly, mux)))), nil
+	return requestID(hsts(d.Cfg.ShareOrigin, agents.LogCrawlers(readOnly(d.Cfg.ReadOnly, s.hosts(mux, sh))))), nil
 }
 
 // hsts tells browsers to use HTTPS for a year once they have seen the site

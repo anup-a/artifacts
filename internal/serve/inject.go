@@ -40,31 +40,50 @@ func insertBeforeBody(html, chunk []byte) []byte {
 
 // metaTags builds the Open Graph and Twitter card tags for a served page.
 // coverURL is absolute so link unfurlers on other hosts can fetch it.
-func metaTags(title, coverURL string) []byte {
-	return []byte(`<meta property="og:title" content="` + html.EscapeString(title) + `">` +
-		`<meta property="og:image" content="` + html.EscapeString(coverURL) + `">` +
-		`<meta name="twitter:card" content="summary_large_image">`)
+func metaTags(title, coverURL, pageURL string) []byte {
+	tags := `<meta property="og:title" content="` + html.EscapeString(title) + `">` +
+		`<meta property="og:image" content="` + html.EscapeString(coverURL) + `">`
+	if pageURL != "" {
+		tags += `<meta property="og:url" content="` + html.EscapeString(pageURL) + `">`
+	}
+	return []byte(tags + `<meta name="twitter:card" content="summary_large_image">`)
 }
 
 // InjectMeta adds og:title, og:image and twitter:card to a page: right after
 // the opening <head> tag when there is one, otherwise where the runtime tag
 // goes (before </body>, or appended).
 func InjectMeta(doc []byte, title, coverURL string) []byte {
-	return insertInHead(doc, metaTags(title, coverURL))
+	return InjectMetaURL(doc, title, coverURL, "")
 }
 
-// iconTag points a published page at the shelf mark. The path is absolute so
-// it resolves the same from /a/<id>/ and from a nested page inside it.
-var iconTag = []byte(`<link rel="icon" href="/favicon.svg">`)
+// InjectMetaURL is InjectMeta with og:url too, the page's address as
+// pageurl builds it, so a share of an old /a/{id}/ link unfurls under the
+// page's own host.
+func InjectMetaURL(doc []byte, title, coverURL, pageURL string) []byte {
+	return insertInHead(doc, metaTags(title, coverURL, pageURL))
+}
 
 // InjectIcon gives a published page a favicon, but only when it declares no
 // icon of its own: the page belongs to whoever published it, so an author who
-// shipped their own mark keeps it.
-func InjectIcon(doc []byte) []byte {
+// shipped their own mark keeps it. The path is absolute so it resolves the
+// same from /a/<id>/ and from a nested page inside it.
+func InjectIcon(doc []byte) []byte { return InjectIconHref(doc, "/favicon.svg") }
+
+// InjectIconHref is InjectIcon with the mark at href: on a page's own host
+// every path is the page's, so the mark comes from the share origin.
+func InjectIconHref(doc []byte, href string) []byte {
 	if hasIcon(doc) {
 		return doc
 	}
-	return insertInHead(doc, iconTag)
+	return insertInHead(doc, []byte(`<link rel="icon" href="`+html.EscapeString(href)+`">`))
+}
+
+// InjectBase is Inject for a page not under /a/{id}/: data-base tells the
+// runtime's version switcher where the page lives ("/" on its own host).
+func InjectBase(doc []byte, artifactID string, version int, rev, base string) []byte {
+	t := tag(artifactID, version, rev)
+	t = append(t[:len(t)-len(" defer></script>")], []byte(` data-base="`+html.EscapeString(base)+`" defer></script>`)...)
+	return insertBeforeBody(doc, t)
 }
 
 // hasIcon reports whether the document's head already has a <link> tag

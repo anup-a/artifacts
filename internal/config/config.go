@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -83,7 +84,20 @@ type Config struct {
 	// key still set. VARIABLES_KEY.
 	VariablesKey string
 	VariablesOff bool
-	Limits       Limits
+	// ContentDomain gives every published page a browser origin of its own,
+	// https://{slug}.{ContentDomain}/, the way GitHub Pages and here.now do,
+	// so one page's script cannot read or act on another page, or set
+	// cookies for byagent's own hosts. It must be a registrable domain apart
+	// from the share and API origins (byagent.page next to byagent.dev).
+	// Empty keeps every page under PUBLIC_SHARE_ORIGIN/a/{id}/ as before.
+	// CONTENT_DOMAIN=byagent.page, or a whole origin such as
+	// http://page.localhost:8080 to set the scheme and port for local work.
+	// Host[:port], lower case, no scheme.
+	ContentDomain string
+	// ContentScheme is http or https for page hosts: the scheme
+	// CONTENT_DOMAIN named, else the share origin's.
+	ContentScheme string
+	Limits        Limits
 }
 
 // VariablesEnabled reports whether account variables and proxy routes run.
@@ -134,6 +148,9 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		VariablesOff:      getenv("VARIABLES") == "off",
 	}
 	var err error
+	if c.ContentScheme, c.ContentDomain, err = contentDomain(getenv("CONTENT_DOMAIN"), c.ShareOrigin, c.APIOrigin); err != nil {
+		return c, err
+	}
 	if c.Limits, err = limitsFromEnv(getenv); err != nil {
 		return c, err
 	}
@@ -244,4 +261,67 @@ func splitList(v string) []string {
 		}
 	}
 	return out
+}
+
+// contentDomain reads CONTENT_DOMAIN: a bare domain (byagent.page), which
+// takes the share origin's scheme, or an origin (http://page.localhost:8080).
+//
+// Page hosts must not overlap byagent's own hosts in either direction. A
+// share or API host under the content domain would be served as a page;
+// a content domain under them would let a page set cookies the dashboard
+// reads, which is the thing the separate domain exists to prevent.
+func contentDomain(raw, shareOrigin, apiOrigin string) (scheme, domain string, err error) {
+	raw = strings.TrimSpace(strings.ToLower(raw))
+	if raw == "" {
+		return "", "", nil
+	}
+	scheme = "https"
+	if strings.HasPrefix(shareOrigin, "http://") {
+		scheme = "http"
+	}
+	if !strings.Contains(raw, "://") {
+		raw = scheme + "://" + raw
+	}
+	u, err := url.Parse(strings.TrimSuffix(raw, "/"))
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.Path != "" || u.RawQuery != "" || u.User != nil {
+		return "", "", fmt.Errorf("CONTENT_DOMAIN must be a domain such as byagent.page, got %q", raw)
+	}
+	host := strings.TrimSuffix(u.Hostname(), ".")
+	for _, c := range host {
+		if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-' || c == '.') {
+			return "", "", fmt.Errorf("CONTENT_DOMAIN must be a DNS name, got %q", host)
+		}
+	}
+	for _, origin := range []string{shareOrigin, apiOrigin} {
+		o, err := url.Parse(origin)
+		if err != nil {
+			continue
+		}
+		own := strings.ToLower(o.Hostname())
+		// localhost is the one parent allowed: page.localhost next to
+		// localhost:8080 is how this runs on a laptop, where browsers
+		// resolve every *.localhost name to the machine itself.
+		under := strings.HasSuffix(host, "."+own) && own != "localhost"
+		if own == host || strings.HasSuffix(own, "."+host) || under {
+			return "", "", fmt.Errorf("CONTENT_DOMAIN %q overlaps %s; pages need a domain of their own", host, origin)
+		}
+		if lastLabels(own, 2) == lastLabels(host, 2) {
+			slog.Warn("CONTENT_DOMAIN shares a parent domain with byagent's own hosts, so pages can set cookies for them", "content_domain", host, "origin", origin)
+		}
+	}
+	domain = host
+	if p := u.Port(); p != "" {
+		domain += ":" + p
+	}
+	return u.Scheme, domain, nil
+}
+
+// lastLabels is the last n labels of a host name: a rough registrable domain
+// (there is no public suffix list here), good enough to warn about.
+func lastLabels(host string, n int) string {
+	parts := strings.Split(host, ".")
+	if len(parts) > n {
+		parts = parts[len(parts)-n:]
+	}
+	return strings.Join(parts, ".")
 }

@@ -141,7 +141,7 @@
       </table>
     </div>
     <h3>Where Google Analytics runs</h3>
-    <p>On byagent.dev: the home page, pricing, the guides, these policy pages and shared collection pages. On app.byagent.dev: sign-in, the dashboard and client portal pages. It does not run on published pages under byagent.dev/a/, on the page that asks for a share code, or on the pages written for agents under /agents. There is no cookie banner today, so this section is how we tell you.</p>
+    <p>On byagent.dev: the home page, pricing, the guides, these policy pages and shared collection pages. On app.byagent.dev: sign-in, the dashboard and client portal pages. It does not run on published pages ({{if $d.ContentDomain}}on {{$d.ContentDomain}}{{else}}under byagent.dev/a/{{end}}), on the page that asks for a share code, or on the pages written for agents under /agents. There is no cookie banner today, so this section is how we tell you.</p>
     <h3>What published pages load</h3>
     <p>A published page is HTML its owner wrote. Its policy lets it load scripts from cdnjs.cloudflare.com and cdn.jsdelivr.net, fonts from Google Fonts, and images from any HTTPS address. When a page does that, your browser requests those files from those providers directly, and they see your IP address as with any website. We do not control what a page owner loads.</p>
     <h3>IP addresses and logs</h3>
@@ -155,7 +155,7 @@
         <thead><tr><th>Name</th><th>Where</th><th>What it does</th><th>Lasts</th></tr></thead>
         <tbody>
           <tr><td><code>artifacts_session</code></td><td>app.byagent.dev, dashboard only</td><td>Keeps you signed in. HttpOnly, never sent to published pages.</td><td>30 days without use</td></tr>
-          <tr><td><code>artifact_unlock_&lt;page&gt;</code></td><td>byagent.dev, one page only</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>
+          {{if $d.ContentDomain}}<tr><td><code>__Host-artifact_unlock</code></td><td>That one page's own host on {{$d.ContentDomain}}</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>{{else}}<tr><td><code>artifact_unlock_&lt;page&gt;</code></td><td>byagent.dev, one page only</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>{{end}}
           <tr><td><code>_ga</code>, <code>_ga_&lt;id&gt;</code></td><td>The pages listed under “Where Google Analytics runs”</td><td>Set by Google Analytics to tell visits apart.</td><td>Set by Google, up to 2 years</td></tr>
         </tbody>
       </table>

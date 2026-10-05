@@ -52,7 +52,7 @@ var sitePages = map[string][]string{
 		"Accounts and keys", "Who has access to production", "Backups", "Incident response", "Reporting a vulnerability",
 		"What we do not claim",
 		"one machine at Fly.io", "Singapore region", "encrypted at rest", "uses TLS",
-		"byagent.dev/a/&lt;id&gt;/", "app.byagent.dev", "CSP sandbox", "Content Security Policy",
+		"/a/&lt;id&gt;/", "app.byagent.dev", "CSP sandbox", "Content Security Policy",
 		"after 10 wrong codes", "until 15 minutes pass", "for 14 days",
 		"stored as SHA-256 hashes", "shown once", "expires after 15 minutes",
 		"The operator only", "keeps each snapshot for 5 days",
@@ -129,7 +129,7 @@ func TestPoliciesCarryDateVersionAndSummary(t *testing.T) {
 	e := siteEnv(t)
 	for _, path := range []string{"/privacy", "/terms", "/security", "/subprocessors", "/acceptable-use"} {
 		body := e.getHost("share.test", path).Body
-		for _, want := range []string{"Effective 5 October 2026", "Version v1.3", `class="lp-summary"`, "In short"} {
+		for _, want := range []string{"Effective 5 October 2026", "Version v1.4", `class="lp-summary"`, "In short"} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s: missing %q", path, want)
 			}

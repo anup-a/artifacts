@@ -11,22 +11,31 @@ import (
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/artifacts/internal/pageurl"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
-func (s *server) artifactURL(id string) string { return s.Cfg.ShareOrigin + "/a/" + id + "/" }
-
+// artifactViewURL is where the owner sends people to a page: its public
+// address (pageurl), or for a private page the signed-in viewer on the
+// account origin.
 func (s *server) artifactViewURL(a store.Artifact) string {
 	if a.Visibility == "private" {
 		return s.Cfg.APIOrigin + "/app/view/" + a.ID + "/"
 	}
-	return s.artifactURL(a.ID)
+	return s.pages().Page(a.ID, a.Slug)
 }
+
+func (s *server) pages() pageurl.Builder { return pageurl.New(s.Cfg) }
 
 // ownedArtifact loads the artifact and checks ownership. Deleted → GONE.
 func (s *server) ownedArtifact(r *http.Request, id string) (store.Artifact, *apierr.Error) {
 	k, _ := KeyFrom(r.Context())
 	a, err := s.Store.Artifact(r.Context(), id)
+	if errors.Is(err, store.ErrNotFound) && len(id) == ids.SlugLen {
+		// A page host's label works where an id does, so an agent holding
+		// only https://{slug}.byagent.page/ can still read its comments.
+		a, err = s.Store.ArtifactBySlug(r.Context(), id)
+	}
 	if errors.Is(err, store.ErrNotFound) {
 		return a, apierr.NotFound("artifact")
 	}
@@ -275,7 +284,7 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	now := s.Now()
 	// CommentsEnabled mirrors the column default; the manifest may switch it off below.
-	a := store.Artifact{ID: ids.NewArtifactID(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, Visibility: "public", CommentsEnabled: true, CreatedAt: now, UpdatedAt: now}
+	a := store.Artifact{ID: ids.NewArtifactID(), Slug: ids.NewSlug(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, Visibility: "public", CommentsEnabled: true, CreatedAt: now, UpdatedAt: now}
 	if m.Visibility != nil {
 		a.Visibility = *m.Visibility
 	}

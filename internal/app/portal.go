@@ -42,7 +42,7 @@ func (h *Handler) portal(w http.ResponseWriter, r *http.Request) {
 		if a.Visibility == "private" {
 			continue
 		}
-		d.Rows = append(d.Rows, artifactRow{Artifact: a, URL: h.shareURL(a.ID)})
+		d.Rows = append(d.Rows, artifactRow{Artifact: a, URL: h.shareURL(a)})
 	}
 	h.render(w, r, 200, "portal", "Artifacts from "+t.Name, nil, d)
 }

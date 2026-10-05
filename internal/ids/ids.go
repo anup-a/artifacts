@@ -42,6 +42,25 @@ func random(n int) []byte {
 // NewArtifactID returns 12 random base62 characters.
 func NewArtifactID() string { return base62(12) }
 
+// slugAlphabet is lower-case RFC 4648 base32: DNS names ignore case, so a
+// page's host label cannot use the mixed-case id.
+const slugAlphabet = "abcdefghijklmnopqrstuvwxyz234567"
+
+// SlugLen is the length of a page slug: 16 characters of base32 is 80 bits,
+// more than the id's 71, so a page host is no easier to guess than its id.
+const SlugLen = 16
+
+// NewSlug returns a page's host label, the {slug} in {slug}.byagent.page. It
+// is drawn independently of the id, so neither says anything about the other.
+// 32 divides 256, so masking a byte is uniform and needs no rejection.
+func NewSlug() string {
+	b := random(SlugLen)
+	for i := range b {
+		b[i] = slugAlphabet[b[i]&31]
+	}
+	return string(b)
+}
+
 // NewKey returns the plaintext key (shown once) and its sha256 hex (stored).
 func NewKey() (string, string) {
 	plain := "ak_" + NewToken()

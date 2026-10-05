@@ -7,7 +7,7 @@ description: Use when writing, designing, or turning anything into a shareable p
 
 Canonical copy: https://github.com/anup-a/agent-artifacts
 
-The hand-back is the returned published URL (public: `https://<share-host>/a/<id>/`; private: `https://<api-host>/app/view/<id>/`). Chat markdown, a local `.md` path or a local HTML path is not done.
+The hand-back is the returned published URL (public: `https://<name>.byagent.page/`, every page on a host of its own, or `https://<share-host>/a/<id>/` on a self-hosted server without one; private: `https://<api-host>/app/view/<id>/`). Chat markdown, a local `.md` path or a local HTML path is not done. Commands take the `id` from publish output; the `<name>` from a page URL works too.
 
 ## Setting up
 
@@ -93,7 +93,7 @@ Start with a single `# Title` (it becomes the page title and the browser tab; 2�
 
 ## HTML design
 
-Claude-artifact bar: one self-contained `index.html`, CSS/JS inlined, real content (never lorem), a 4–6 colour palette taken from **this** subject, a display face + a body face, both light and dark (`prefers-color-scheme`), readable on first paint (no scroll-triggered reveals). Relative asset paths only — a leading `/` 404s under `/a/<id>/`. Prose as real text nodes so comments can attach. No commenting UI of your own.
+Claude-artifact bar: one self-contained `index.html`, CSS/JS inlined, real content (never lorem), a 4–6 colour palette taken from **this** subject, a display face + a body face, both light and dark (`prefers-color-scheme`), readable on first paint (no scroll-triggered reveals). Relative asset paths only — a leading `/` breaks pinned versions (`/v/<n>/`) and pages served under `/a/<id>/`. Prose as real text nodes so comments can attach. No commenting UI of your own.
 
 Avoid the generic look: cream + serif + terracotta, Inter-only, acid-green on black, identical rounded cards, emoji as section labels. `<title>` is 2–4 specific words.
 

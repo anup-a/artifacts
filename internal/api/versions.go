@@ -14,8 +14,8 @@ import (
 // besides the stored ones: whether it is live, when a restore last made it
 // live, and where to open it.
 //
-// url is the pinned address /a/{id}/v/{n}/. On a public page anyone with the
-// link can open it, on purpose: the comment panel's version switcher sends
+// url is the pinned address, the page's address + v/{n}/. On a public page
+// anyone with the link can open it, on purpose: the version switcher sends
 // readers there to see the text a comment was made on. On a private page it
 // is the app-origin viewer, which only signed-in members of the workspace
 // can open. preview_url is always that app-origin viewer: it needs a
@@ -25,7 +25,7 @@ import (
 func (s *server) versionFields(r *http.Request, a store.Artifact, v store.Version) map[string]any {
 	pinned := "/v/" + strconv.Itoa(v.Version) + "/"
 	view := s.Cfg.APIOrigin + "/app/view/" + a.ID + pinned
-	url := s.artifactURL(a.ID) + pinned[1:]
+	url := s.pages().Version(a.ID, a.Slug, v.Version)
 	if a.Visibility == "private" {
 		url = view
 	}

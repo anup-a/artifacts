@@ -58,6 +58,9 @@ func (h *Handler) publicArtifact(next http.HandlerFunc) http.HandlerFunc {
 			apierr.Write(w, r, apierr.NotFound("artifact"))
 			return
 		}
+		if h.redirectToPageHost(w, r) {
+			return
+		}
 		next(w, r)
 	}
 }
@@ -128,8 +131,8 @@ func (h *Handler) refuseOrGate(w http.ResponseWriter, r *http.Request, a store.A
 		// A cookie that no longer matches means the code was rotated; drop it
 		// so the viewer is asked again rather than silently refused forever.
 		// The same goes for a changed password or a visitor taken off the list.
-		clearUnlockCookie(w, a.ID)
-		clearAccessCookie(w, a.ID)
+		h.clearUnlockCookie(w, r, a.ID)
+		h.clearAccessCookie(w, r, a.ID)
 		h.renderGate(w, r, GateView{ArtifactID: a.ID, Kind: gateKind(a)})
 		return
 	}

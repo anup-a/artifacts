@@ -49,7 +49,7 @@ func (s *server) getArtifact(w http.ResponseWriter, r *http.Request) {
 	// terminals and screen shares than anyone asked to show it in.
 	if a.ShareCode != "" {
 		v["share_code"] = a.ShareCode
-		v["share_url"] = serve.ShareURL(s.Cfg.ShareOrigin, a.ID, a.ShareCode)
+		v["share_url"] = s.pages().Share(a.ID, a.Slug, a.ShareCode)
 		v["share_code_expires_at"] = a.ShareCodeExpiresAt
 	}
 	apierr.WriteJSON(w, 200, v)
@@ -258,7 +258,7 @@ func (s *server) setShareCode(w http.ResponseWriter, r *http.Request) {
 	out := map[string]any{"id": a.ID, "visibility": a.Visibility, "share_code": nil, "share_url": nil, "share_code_expires_at": nil}
 	if code != "" {
 		out["share_code"] = code
-		out["share_url"] = serve.ShareURL(s.Cfg.ShareOrigin, a.ID, code)
+		out["share_url"] = s.pages().Share(a.ID, a.Slug, code)
 		out["share_code_expires_at"] = body.ExpiresAt
 	}
 	apierr.WriteJSON(w, 200, out)

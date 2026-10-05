@@ -295,7 +295,12 @@ func AllowedEmail(allow []string, email string) bool {
 
 // ---- Grants ----
 
-func accessCookieName(id string) string { return "artifact_access_" + id }
+// accessCookie is the kind of cookie a password or email grant is kept in
+// (see cookie.go).
+const accessCookie = "artifact_access"
+
+// accessCookieName is the share origin's name for it, per page.
+func accessCookieName(id string) string { return accessCookie + "_" + id }
 
 // accessMAC signs one grant: the page, its door, the door's version and
 // password hash, who (for restricted) and until when. Changing any of them,
@@ -317,11 +322,11 @@ func accessGrant(r *http.Request, a store.Artifact, secret string, now time.Time
 	if secret == "" || (a.AccessMode != AccessPassword && a.AccessMode != AccessRestricted) {
 		return "", false
 	}
-	c, err := r.Cookie(accessCookieName(a.ID))
-	if err != nil {
+	v := pageCookie(r, accessCookie, a.ID)
+	if v == "" {
 		return "", false
 	}
-	parts := strings.Split(c.Value, ".")
+	parts := strings.Split(v, ".")
 	if len(parts) != 3 {
 		return "", false
 	}
@@ -356,25 +361,16 @@ func VisitorEmail(r *http.Request, a store.Artifact, secret string) string {
 	return email
 }
 
+// setAccessCookie keeps a password or restricted grant for this page only,
+// through the page-cookie helpers (cookie.go): host-only on the page's own
+// host, path-scoped on the share origin.
 func (h *Handler) setAccessCookie(w http.ResponseWriter, r *http.Request, a store.Artifact, email string) {
 	exp := h.now().Add(unlockTTL).Unix()
-	for _, path := range unlockCookiePaths(a.ID) {
-		http.SetCookie(w, &http.Cookie{
-			Name:     accessCookieName(a.ID),
-			Value:    accessValue(h.UnlockSecret, a, email, exp),
-			Path:     path,
-			HttpOnly: true,
-			Secure:   r.TLS != nil || strings.HasPrefix(h.ShareOrigin, "https://"),
-			SameSite: http.SameSiteLaxMode,
-			MaxAge:   int(unlockTTL.Seconds()),
-		})
-	}
+	h.setPageCookie(w, r, accessCookie, a.ID, accessValue(h.UnlockSecret, a, email, exp), int(unlockTTL.Seconds()))
 }
 
-func clearAccessCookie(w http.ResponseWriter, id string) {
-	for _, path := range unlockCookiePaths(id) {
-		http.SetCookie(w, &http.Cookie{Name: accessCookieName(id), Value: "", Path: path, HttpOnly: true, MaxAge: -1})
-	}
+func (h *Handler) clearAccessCookie(w http.ResponseWriter, r *http.Request, id string) {
+	h.clearPageCookie(w, r, accessCookie, id)
 }
 
 func (h *Handler) now() time.Time {
@@ -486,7 +482,7 @@ func (h *Handler) tryPassword(w http.ResponseWriter, r *http.Request, a store.Ar
 		return
 	}
 	h.setAccessCookie(w, r, a, "")
-	http.Redirect(w, r, "/a/"+a.ID+"/", http.StatusSeeOther)
+	http.Redirect(w, r, PageBase(r, a.ID), http.StatusSeeOther)
 }
 
 // ---- Restricted gate ----
@@ -597,10 +593,11 @@ func (h *Handler) mailAccessCode(ctx context.Context, a store.Artifact, email st
 	if err := h.Store.CreateAccessCode(ctx, c); err != nil {
 		return err
 	}
-	// The link is built on the share origin, never on the Host the request
-	// came in on: a forged Host would otherwise mail a live token to a server
-	// of the attacker's choosing.
-	link := h.ShareOrigin + "/a/" + a.ID + "/" + accessLinkPath + "?t=" + url.QueryEscape(token)
+	// The link is built from configuration (the page's own host, or the
+	// share origin), never from the Host the request came in on: a forged
+	// Host would otherwise mail a live token to a server of the attacker's
+	// choosing.
+	link := h.pageURLs().Page(a.ID, a.Slug) + accessLinkPath + "?t=" + url.QueryEscape(token)
 	text := "Your code to open a page shared with you on byagent:\n\n    " + code + "\n\n" +
 		"Enter it on the page, or open this link in the browser you want to read it in:\n\n" + link + "\n\n" +
 		"The code and the link work once and stop working in 15 minutes. If you did not ask for this, ignore this email.\n"
@@ -650,13 +647,19 @@ func (h *Handler) admitByCode(w http.ResponseWriter, r *http.Request, a store.Ar
 		return
 	}
 	h.setAccessCookie(w, r, a, c.Email)
-	http.Redirect(w, r, "/a/"+a.ID+"/", http.StatusSeeOther)
+	http.Redirect(w, r, PageBase(r, a.ID), http.StatusSeeOther)
 }
 
 // accessLinkPath is the mailed link. GET only shows a button: mail scanners
 // open links to check them, and a link spent on a scanner's visit would never
 // reach the person it was sent to. The POST the button makes spends it.
 const accessLinkPath = "_access/link"
+
+// accessEmailPath asks for a code by address; accessCodePath sends it back.
+const (
+	accessEmailPath = "_access/email"
+	accessCodePath  = "_access/code"
+)
 
 func (h *Handler) liveLink(r *http.Request, a store.Artifact, token string) (store.AccessCode, bool) {
 	if token == "" || len(token) > 128 {

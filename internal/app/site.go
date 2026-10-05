@@ -5,6 +5,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/agents"
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/pageurl"
 )
 
 // siteData is what the bar and the footer of every public page need: the
@@ -17,15 +18,23 @@ type siteData struct {
 	AgentsURL   string // the read-only entrypoint written for agents
 	ThemeJS     string // resolves the chosen theme before first paint
 	Here        string // the path of the page being shown, for the current tab
+	// PageForm is how a published page's address looks here, for prose:
+	// https://<name>.byagent.page/ with page hosts, else .../a/<id>/.
+	// ContentDomain is set (byagent.page) only when every page has a host
+	// of its own, which the security and privacy pages describe.
+	PageForm      string
+	ContentDomain string
 }
 
 func (h *Handler) site() siteData {
 	return siteData{
-		ShareOrigin: h.Cfg.ShareOrigin,
-		AppURL:      h.Cfg.APIOrigin + "/app/",
-		SkillURL:    h.Cfg.ShareOrigin + "/skill.md",
-		AgentsURL:   h.Cfg.ShareOrigin + "/agents",
-		ThemeJS:     h.static.themeJSURL,
+		ShareOrigin:   h.Cfg.ShareOrigin,
+		AppURL:        h.Cfg.APIOrigin + "/app/",
+		SkillURL:      h.Cfg.ShareOrigin + "/skill.md",
+		AgentsURL:     h.Cfg.ShareOrigin + "/agents",
+		ThemeJS:       h.static.themeJSURL,
+		PageForm:      h.pages().Form(),
+		ContentDomain: pageurl.Hostname(h.Cfg.ContentDomain),
 	}
 }
 
@@ -33,7 +42,7 @@ func (h *Handler) site() siteData {
 // of a policy changes in substance, and say what changed in the PR.
 const (
 	policyEffective = "5 October 2026"
-	policyVersion   = "v1.3"
+	policyVersion   = "v1.4"
 )
 
 // docData is one policy or pricing page.

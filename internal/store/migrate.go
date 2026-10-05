@@ -18,6 +18,13 @@ var migrationFS embed.FS
 // the `?` placeholders in the bookkeeping statements to the target dialect
 // (identity for sqlite, `$n` for postgres); without it Postgres rejects `?`.
 func runMigrations(ctx context.Context, db *sql.DB, rewrite func(string) string) error {
+	return migrateTo(ctx, db, rewrite, 0)
+}
+
+// migrateTo applies migrations up to and including version upTo, or all of
+// them when upTo is 0. Tests stop short of a migration to load the rows it
+// then has to carry forward.
+func migrateTo(ctx context.Context, db *sql.DB, rewrite func(string) string, upTo int) error {
 	dialect := "sqlite"
 	if rewrite("?") != "?" {
 		dialect = "postgres"
@@ -46,6 +53,9 @@ func runMigrations(ctx context.Context, db *sql.DB, rewrite func(string) string)
 		if err != nil {
 			return fmt.Errorf("migration name %q: %w", name, err)
 		}
+		if upTo > 0 && ver > upTo {
+			break
+		}
 		var n int
 		if err := db.QueryRowContext(ctx, rewrite(`SELECT COUNT(*) FROM schema_migrations WHERE version = ?`), ver).Scan(&n); err != nil {
 			return err
@@ -67,6 +77,12 @@ func runMigrations(ctx context.Context, db *sql.DB, rewrite func(string) string)
 		}
 		if ver == 2 {
 			if err := backfillTenants(ctx, tx, rewrite); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		if ver == slugMigration {
+			if err := backfillSlugs(ctx, tx, rewrite); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -96,6 +112,39 @@ func migrationSQL(body, dialect string) string {
 		}
 	}
 	return out.String()
+}
+
+// slugMigration is 0019_page_slugs, which backfillSlugs completes.
+const slugMigration = 19
+
+// backfillSlugs gives every artifact without a slug a fresh one. It runs in
+// the migration's transaction, and only touches rows still NULL, so running
+// it again is harmless.
+func backfillSlugs(ctx context.Context, tx *sql.Tx, q func(string) string) error {
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM artifacts WHERE slug IS NULL`)
+	if err != nil {
+		return err
+	}
+	var missing []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return err
+		}
+		missing = append(missing, id)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return err
+	}
+	for _, id := range missing {
+		if _, err := tx.ExecContext(ctx, q(`UPDATE artifacts SET slug=? WHERE id=? AND slug IS NULL`), ids.NewSlug(), id); err != nil {
+			return fmt.Errorf("slug for %s: %w", id, err)
+		}
+	}
+	return nil
 }
 
 func backfillTenants(ctx context.Context, tx *sql.Tx, q func(string) string) error {

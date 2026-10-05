@@ -100,6 +100,7 @@ type FacetCount struct {
 
 type PageViews struct {
 	ArtifactID, Title, Visibility string
+	Slug                          string // for the page's address
 	Views, Visitors               int64
 }
 

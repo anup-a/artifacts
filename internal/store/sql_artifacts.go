@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/anup-a/artifacts/internal/ids"
 )
 
 // CreateArtifact inserts the row. comments_enabled is left to its column
@@ -23,19 +25,22 @@ func (s *sqlStore) CreateArtifact(ctx context.Context, a Artifact) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(ctx, s.q(`INSERT INTO artifacts(id,key_id,tenant_id,end_user_id,title,current_version,project,tags,cover_path,cover_style,created_at,updated_at,visibility,expires_at) VALUES (?,?,COALESCE(NULLIF(?,''),(SELECT tenant_id FROM keys WHERE id=?)),?,?,?,?,?,?,?,?,?,?,?)`),
-		a.ID, a.KeyID, a.TenantID, a.KeyID, a.EndUserID, a.Title, a.CurrentVersion, a.Project, tags, a.CoverPath, a.CoverStyle, a.CreatedAt, a.UpdatedAt, a.Visibility, a.ExpiresAt)
+	if a.Slug == "" {
+		a.Slug = ids.NewSlug()
+	}
+	_, err = s.db.ExecContext(ctx, s.q(`INSERT INTO artifacts(id,key_id,tenant_id,end_user_id,title,current_version,project,tags,cover_path,cover_style,created_at,updated_at,visibility,expires_at,slug) VALUES (?,?,COALESCE(NULLIF(?,''),(SELECT tenant_id FROM keys WHERE id=?)),?,?,?,?,?,?,?,?,?,?,?,?)`),
+		a.ID, a.KeyID, a.TenantID, a.KeyID, a.EndUserID, a.Title, a.CurrentVersion, a.Project, tags, a.CoverPath, a.CoverStyle, a.CreatedAt, a.UpdatedAt, a.Visibility, a.ExpiresAt, a.Slug)
 	return err
 }
 
-const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility,a.share_code,a.expires_at,a.share_code_expires_at,a.access_mode,a.access_password,a.access_allow,a.access_version`
+const artifactCols = `a.id,COALESCE(a.key_id,0),a.tenant_id,a.end_user_id,a.title,a.current_version,a.comments_enabled,a.project,a.tags,a.cover_path,a.cover_style,a.created_at,a.updated_at,a.deleted_at,(SELECT e.external_id FROM end_users e WHERE e.id=a.end_user_id),(SELECT COUNT(*) FROM threads t WHERE t.artifact_id=a.id AND t.status='open'),a.visibility,a.share_code,a.expires_at,a.share_code_expires_at,a.access_mode,a.access_password,a.access_allow,a.access_version,COALESCE(a.slug,'')`
 
 func scanArtifact(row interface{ Scan(...any) error }) (Artifact, error) {
 	var a Artifact
 	var tags sql.NullString
 	var allow string
 	err := row.Scan(&a.ID, &a.KeyID, &a.TenantID, &a.EndUserID, &a.Title, &a.CurrentVersion, &a.CommentsEnabled, &a.Project, &tags, &a.CoverPath, &a.CoverStyle, &a.CreatedAt, &a.UpdatedAt, &a.DeletedAt, &a.EndUser, &a.OpenComments, &a.Visibility, &a.ShareCode, &a.ExpiresAt, &a.ShareCodeExpiresAt,
-		&a.AccessMode, &a.AccessPassword, &allow, &a.AccessVersion)
+		&a.AccessMode, &a.AccessPassword, &allow, &a.AccessVersion, &a.Slug)
 	if err != nil {
 		return a, notFound(err)
 	}
@@ -140,6 +145,13 @@ func decodeTags(raw sql.NullString) ([]string, error) {
 
 func (s *sqlStore) Artifact(ctx context.Context, id string) (Artifact, error) {
 	return scanArtifact(s.db.QueryRowContext(ctx, s.q(`SELECT `+artifactCols+` FROM artifacts a WHERE a.id=?`), id))
+}
+
+func (s *sqlStore) ArtifactBySlug(ctx context.Context, slug string) (Artifact, error) {
+	if slug == "" {
+		return Artifact{}, ErrNotFound
+	}
+	return scanArtifact(s.db.QueryRowContext(ctx, s.q(`SELECT `+artifactCols+` FROM artifacts a WHERE a.slug=?`), slug))
 }
 func (s *sqlStore) ListArtifacts(ctx context.Context, tenantID string, f ArtifactFilter) ([]Artifact, error) {
 	q := `SELECT ` + artifactCols + ` FROM artifacts a WHERE a.tenant_id=? AND a.deleted_at IS NULL`

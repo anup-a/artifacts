@@ -6,7 +6,7 @@ Part of {{.Share}}/agents. Needs a key: {{.Share}}/agents/tasks/setup.md
 
 ## Steps
 
-1. Find the artifact id. It is the `<id>` in `{{.Share}}/a/<id>/`, the `id` in publish output, or from a search:
+1. Find the artifact id. It is the `id` in publish output, {{if .PerPage}}the `data-artifact` attribute of the comment script in the page's HTML (pages live at `{{.PageForm}}`, and that `<name>` works wherever an id does){{else}}the `<id>` in `{{.PageForm}}`{{end}}, or from a search:
 
    ```sh
    byagent list --search "<text>" --json

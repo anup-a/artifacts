@@ -255,7 +255,7 @@ func TestPasswordGrantCannotBeForgedOrMoved(t *testing.T) {
 	// A grant for one page opens no other, even with the same password.
 	other := "accessother1"
 	sib := a
-	sib.ID = other
+	sib.ID, sib.Slug = other, ""
 	if err := h.Store.CreateArtifact(t.Context(), sib); err != nil {
 		t.Fatal(err)
 	}
@@ -522,7 +522,7 @@ func TestRestrictedLinkSurvivesScannersAndWorksOnce(t *testing.T) {
 	}
 	// The token belongs to this page only.
 	sib, _ := h.Store.Artifact(t.Context(), id)
-	sib.ID = "accessother2"
+	sib.ID, sib.Slug = "accessother2", ""
 	if err := h.Store.CreateArtifact(t.Context(), sib); err != nil {
 		t.Fatal(err)
 	}
@@ -672,7 +672,7 @@ func TestGateMailDailyCaps(t *testing.T) {
 		t.Fatal(err)
 	}
 	other := a
-	other.ID, other.KeyID, other.TenantID = "accessother3", k.ID, ""
+	other.ID, other.KeyID, other.TenantID, other.Slug = "accessother3", k.ID, "", ""
 	if err := h.Store.CreateArtifact(t.Context(), other); err != nil {
 		t.Fatal(err)
 	}

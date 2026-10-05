@@ -336,7 +336,7 @@ func (h *Handler) publicCollection(w http.ResponseWriter, r *http.Request) {
 		if a.Visibility != "public" {
 			continue
 		}
-		d.Rows = append(d.Rows, collectionRow{N: len(d.Rows) + 1, Artifact: a, URL: h.shareURL(a.ID), CoverURL: h.shareURL(a.ID) + "_cover.svg"})
+		d.Rows = append(d.Rows, collectionRow{N: len(d.Rows) + 1, Artifact: a, URL: h.shareURL(a), CoverURL: h.pages().Cover(a.ID, a.Slug)})
 	}
 	h.render(w, r, 200, "collection_public", meta.Name, nil, d)
 }

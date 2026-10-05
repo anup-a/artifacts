@@ -28,6 +28,21 @@ func TestInjectMetaIntoHead(t *testing.T) {
 	}
 }
 
+func TestInjectMetaURLAndBase(t *testing.T) {
+	out := string(InjectMetaURL([]byte(`<head></head><body></body>`), "T", "https://x.page.test/_cover.svg", `https://x.page.test/"`))
+	if !strings.Contains(out, `<meta property="og:image" content="https://x.page.test/_cover.svg"><meta property="og:url" content="https://x.page.test/&#34;">`) {
+		t.Fatal(out)
+	}
+	out = string(InjectBase([]byte("<body></body>"), "abc", 2, "r1", `/a"b/`))
+	if !strings.Contains(out, `data-version="2" data-base="/a&#34;b/" defer></script></body>`) {
+		t.Fatal(out)
+	}
+	out = string(InjectIconHref([]byte("<head></head>"), "https://byagent.dev/favicon.svg"))
+	if !strings.Contains(out, `<link rel="icon" href="https://byagent.dev/favicon.svg">`) {
+		t.Fatal(out)
+	}
+}
+
 func TestInjectIconIntoHead(t *testing.T) {
 	out := string(InjectIcon([]byte(`<!doctype html><html><HEAD><title>x</title></HEAD><body></body></html>`)))
 	if !strings.Contains(out, `<HEAD><link rel="icon" href="/favicon.svg"><title>x</title>`) {

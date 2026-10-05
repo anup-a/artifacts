@@ -13,6 +13,9 @@ import (
 	"github.com/anup-a/artifacts/internal/config"
 )
 
+// exampleSlug is a made-up page host label, the same shape as ids.NewSlug.
+const exampleSlug = "q7mz4kd2xw5ntb3e"
+
 // landingData is the handful of facts the page cannot hardcode: where this
 // deployment's dashboard and published links actually live.
 type landingData struct {
@@ -151,7 +154,7 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 		KeysURL:      h.Cfg.APIOrigin + "/app/keys",
 		ShareHost:    originHost(h.Cfg.ShareOrigin),
 		ExampleID:    exampleID,
-		ExampleURL:   h.Cfg.ShareOrigin + "/a/" + exampleID + "/",
+		ExampleURL:   h.pages().Page(exampleID, exampleSlug),
 		CanonicalURL: h.Cfg.ShareOrigin + "/",
 		CardURL:      h.Cfg.ShareOrigin + "/" + cardFile,
 		ShotURL:      h.static.shotURL,

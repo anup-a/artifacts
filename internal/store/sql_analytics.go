@@ -129,11 +129,11 @@ func (s *sqlStore) Analytics(ctx context.Context, q AnalyticsQuery) (Analytics, 
 		*f.dst = list
 	}
 	if q.ArtifactID == "" {
-		pages := `SELECT a.id, a.title, a.visibility, SUM(v.count) AS n, SUM(v.visitors) FROM artifact_views v JOIN artifacts a ON a.id=v.artifact_id
-			WHERE a.tenant_id=? AND a.deleted_at IS NULL AND v.day>=? AND v.day<? GROUP BY a.id, a.title, a.visibility ORDER BY n DESC, a.id LIMIT ?`
+		pages := `SELECT a.id, a.title, a.visibility, COALESCE(a.slug,''), SUM(v.count) AS n, SUM(v.visitors) FROM artifact_views v JOIN artifacts a ON a.id=v.artifact_id
+			WHERE a.tenant_id=? AND a.deleted_at IS NULL AND v.day>=? AND v.day<? GROUP BY a.id, a.title, a.visibility, a.slug ORDER BY n DESC, a.id LIMIT ?`
 		if q.Hourly {
-			pages = `SELECT a.id, a.title, a.visibility, SUM(v.views) AS n, SUM(v.visitors) FROM artifact_view_hours v JOIN artifacts a ON a.id=v.artifact_id
-			WHERE a.tenant_id=? AND a.deleted_at IS NULL AND v.hour>=? AND v.hour<? GROUP BY a.id, a.title, a.visibility ORDER BY n DESC, a.id LIMIT ?`
+			pages = `SELECT a.id, a.title, a.visibility, COALESCE(a.slug,''), SUM(v.views) AS n, SUM(v.visitors) FROM artifact_view_hours v JOIN artifacts a ON a.id=v.artifact_id
+			WHERE a.tenant_id=? AND a.deleted_at IS NULL AND v.hour>=? AND v.hour<? GROUP BY a.id, a.title, a.visibility, a.slug ORDER BY n DESC, a.id LIMIT ?`
 		}
 		rows, err := s.db.QueryContext(ctx, s.q(pages), q.TenantID, from, to, top)
 		if err != nil {
@@ -142,7 +142,7 @@ func (s *sqlStore) Analytics(ctx context.Context, q AnalyticsQuery) (Analytics, 
 		defer rows.Close()
 		for rows.Next() {
 			var p PageViews
-			if err := rows.Scan(&p.ArtifactID, &p.Title, &p.Visibility, &p.Views, &p.Visitors); err != nil {
+			if err := rows.Scan(&p.ArtifactID, &p.Title, &p.Visibility, &p.Slug, &p.Views, &p.Visitors); err != nil {
 				return out, err
 			}
 			out.Pages = append(out.Pages, p)

@@ -22,6 +22,30 @@ func TestArtifactID(t *testing.T) {
 	}
 }
 
+// A slug is a DNS label: lower case only, and every symbol of the alphabet
+// turns up, so the 80 bits are really there.
+func TestSlug(t *testing.T) {
+	label := regexp.MustCompile(`^[a-z2-7]{16}$`)
+	seen := map[string]bool{}
+	used := map[rune]bool{}
+	for range 2000 {
+		s := NewSlug()
+		if !label.MatchString(s) {
+			t.Fatalf("bad slug %q", s)
+		}
+		if seen[s] {
+			t.Fatalf("dup %q", s)
+		}
+		seen[s] = true
+		for _, r := range s {
+			used[r] = true
+		}
+	}
+	if len(used) != 32 {
+		t.Fatalf("slugs used %d of 32 symbols", len(used))
+	}
+}
+
 // A short code has to be exactly as random as it is short: any bias or any
 // repeat shrinks a space that is already only a million wide.
 func TestShareCode(t *testing.T) {

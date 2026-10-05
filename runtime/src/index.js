@@ -18,7 +18,11 @@ function readConfig() {
   const artifactId = el.getAttribute("data-artifact");
   const version = parseInt(el.getAttribute("data-version") || "0", 10);
   if (!artifactId || !Number.isFinite(version) || version <= 0) return null;
-  return { artifactId, version };
+  // data-base is where the page lives on a host of its own ("/") or a custom
+  // domain ("/docs/"); on byagent.dev it is absent and the page lives at
+  // /a/<id>/.
+  const base = el.getAttribute("data-base") || "";
+  return { artifactId, version, base: base.startsWith("/") && base.endsWith("/") ? base : "" };
 }
 
 function storage(artifactId) {

@@ -13,6 +13,7 @@ import (
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/blob"
+	"github.com/anup-a/artifacts/internal/pageurl"
 	"github.com/anup-a/artifacts/internal/store"
 	"github.com/anup-a/artifacts/skill"
 )
@@ -54,11 +55,15 @@ type Handler struct {
 	// MailPerWorkspaceDay and MailPerDay cap the codes the gate mails per
 	// workspace and for the whole server in a day. Zero takes the defaults.
 	MailPerWorkspaceDay, MailPerDay int
-	mailSync                        bool // tests: send in the request instead of after it
-	access                          *accessGuards
-	unlock                          *unlockGuard
-	runtimeETag                     string
-	runtimeRev                      string // short content hash, cache-busts the injected script URL
+	// Pages builds page addresses. With a content domain set, /a/{id}/ on
+	// the share origin only redirects to the page's own host, and ServePage
+	// answers there.
+	Pages       pageurl.Builder
+	mailSync    bool // tests: send in the request instead of after it
+	access      *accessGuards
+	unlock      *unlockGuard
+	runtimeETag string
+	runtimeRev  string // short content hash, cache-busts the injected script URL
 }
 
 // GateView is what the code page needs to render itself.
@@ -68,6 +73,12 @@ type GateView struct {
 	// code, "password", or "email" for a restricted page, which takes an
 	// address and then the code mailed to it.
 	Kind string
+	// Action is where the code form posts: the page's own _unlock address.
+	// Base is the path the page's own addresses hang off (PageBase), which
+	// the access forms post below. AssetOrigin, when set, is the origin the
+	// gate's stylesheet and script load from, because the gate is standing
+	// in front of a page host whose paths all belong to the page.
+	Action, Base, AssetOrigin string
 	// Wrong marks a submitted code that did not match, Locked a viewer who has
 	// run out of attempts on this artifact for now.
 	Wrong, Locked bool
@@ -92,8 +103,8 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
 	mux.HandleFunc("GET /skill.md", h.skill)
 	mux.HandleFunc("POST /a/{id}/"+unlockPath, h.publicArtifact(h.submitCode))
-	mux.HandleFunc("POST /a/{id}/_access/email", h.publicArtifact(h.requestAccessCode))
-	mux.HandleFunc("POST /a/{id}/_access/code", h.publicArtifact(h.submitAccessCode))
+	mux.HandleFunc("POST /a/{id}/"+accessEmailPath, h.publicArtifact(h.requestAccessCode))
+	mux.HandleFunc("POST /a/{id}/"+accessCodePath, h.publicArtifact(h.submitAccessCode))
 	mux.HandleFunc("GET /a/{id}/"+accessLinkPath, h.publicArtifact(h.openAccessLink))
 	mux.HandleFunc("POST /a/{id}/"+accessLinkPath, h.publicArtifact(h.confirmAccessLink))
 	mux.HandleFunc("GET /a/{id}/"+coverPath, h.publicArtifact(h.cover))
@@ -105,9 +116,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 		mux.HandleFunc("GET /app/view/{id}/v/{version}/{path...}", h.privateArtifact(h.pinned))
 		mux.HandleFunc("GET /app/view/{id}/{path...}", h.privateArtifact(h.current))
 	}
-	mux.HandleFunc("GET /a/{id}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /a/{id}", h.publicArtifact(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/a/"+r.PathValue("id")+"/", http.StatusMovedPermanently)
-	})
+	}))
 }
 
 func (h *Handler) runtime(w http.ResponseWriter, r *http.Request) {
@@ -149,6 +160,16 @@ func (h *Handler) securityHeaders(w http.ResponseWriter, r *http.Request) {
 	if isPrivateViewer(r) {
 		policy = strings.Replace(policy, "connect-src 'self' "+h.ShareOrigin, "connect-src 'none'", 1) + "; sandbox allow-scripts; form-action 'none'; base-uri 'none'"
 	}
+	if OnPageHost(r) {
+		// A page on its own host talks to its own host: the comment routes
+		// are there, and nothing on the share origin is the page's to call.
+		// The share-code gate standing in front of it loads its stylesheet,
+		// script and icon from the share origin.
+		policy = strings.Replace(policy, "connect-src 'self' "+h.ShareOrigin, "connect-src 'self'", 1)
+		policy = strings.Replace(policy, "script-src 'self'", "script-src 'self' "+h.ShareOrigin, 1)
+		policy = strings.Replace(policy, "style-src 'self'", "style-src 'self' "+h.ShareOrigin, 1)
+		policy = strings.Replace(policy, "img-src 'self'", "img-src 'self' "+h.ShareOrigin, 1)
+	}
 	w.Header().Set("Content-Security-Policy", policy)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 }
@@ -189,7 +210,7 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	// other artifact "k" is just a query parameter the published page owns.
 	if a.DeletedAt == nil && !isPrivateViewer(r) && a.ShareCode != "" && r.URL.Query().Has(unlockParam) {
 		if h.unlocked(r, a) {
-			http.Redirect(w, r, "/a/"+a.ID+"/", http.StatusSeeOther)
+			http.Redirect(w, r, PageBase(r, a.ID), http.StatusSeeOther)
 			return
 		}
 		if h.tryUnlock(w, r, a, r.URL.Query().Get(unlockParam)) {
@@ -246,7 +267,9 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		etag = `"` + f.SHA256 + "-nort-" + strconv.Itoa(version) + `"`
 	}
 	if meta {
-		etag = etag[:len(etag)-1] + "-" + titleHash(a.Title) + `"`
+		// og:image and og:url name the host, so turning page hosts on or
+		// off must not leave a cached copy pointing at the other one.
+		etag = etag[:len(etag)-1] + "-" + titleHash(a.Title) + hostTag(r) + `"`
 	}
 	// Guest pages carry a badge until they are claimed, so the claim must
 	// change the tag too.
@@ -289,11 +312,20 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		return
 	}
 	if meta {
-		body = InjectMeta(body, coverTitle(a), CoverURL(h.ShareOrigin, id))
-		body = InjectIcon(body)
+		origin := h.pageOrigin(r)
+		body = InjectMetaURL(body, coverTitle(a), origin+PageBase(r, id)+coverPath, origin+PageBase(r, id))
+		if OnPageHost(r) {
+			body = InjectIconHref(body, h.ShareOrigin+"/favicon.svg")
+		} else {
+			body = InjectIcon(body)
+		}
 	}
 	if inject {
-		body = Inject(body, id, version, h.runtimeRev)
+		if OnPageHost(r) {
+			body = InjectBase(body, id, version, h.runtimeRev, PageBase(r, id))
+		} else {
+			body = Inject(body, id, version, h.runtimeRev)
+		}
 	}
 	if badge {
 		body = InjectGuestBadge(body, h.ShareOrigin)
@@ -312,6 +344,14 @@ func coverTitle(a store.Artifact) string {
 		return a.ID
 	}
 	return a.Title
+}
+
+// hostTag marks an ETag of a page served on its own host.
+func hostTag(r *http.Request) string {
+	if OnPageHost(r) {
+		return "-h"
+	}
+	return ""
 }
 
 func titleHash(title string) string {

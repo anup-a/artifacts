@@ -33,9 +33,13 @@ const (
 	unlockWindow      = 15 * time.Minute
 )
 
-// unlockCookieName is per artifact, so one browser can hold codes for several
-// artifacts at once without them colliding.
-func unlockCookieName(id string) string { return "artifact_unlock_" + id }
+// unlockCookie is the kind of cookie an unlock is kept in (see cookie.go).
+const unlockCookie = "artifact_unlock"
+
+// unlockCookieName is the share origin's name for it: per artifact, so one
+// browser can hold codes for several artifacts at once without them
+// colliding. A page host needs no id in the name; the host is the page.
+func unlockCookieName(id string) string { return unlockCookie + "_" + id }
 
 // normalizeCode makes a retyped code match a stored one. People paste it with
 // spaces around it, or with the grouping punctuation a chat client added.
@@ -92,56 +96,28 @@ func Unlocked(r *http.Request, a store.Artifact, secret string) bool {
 	if a.ShareCode == "" {
 		return false
 	}
-	c, err := r.Cookie(unlockCookieName(a.ID))
-	if err != nil {
+	v := pageCookie(r, unlockCookie, a.ID)
+	if v == "" {
 		return false
 	}
-	return hmac.Equal([]byte(c.Value), []byte(unlockValue(secret, a)))
+	return hmac.Equal([]byte(v), []byte(unlockValue(secret, a)))
 }
 
-// setUnlockCookie remembers the unlock for this artifact only.
+// setUnlockCookie remembers the unlock for this artifact only: host-only on
+// the page's own host, path-scoped on the share origin (see cookie.go).
 //
 // The code cannot simply stay in the query string: the page's own requests for
 // its stylesheet, images and pinned assets are relative, carry no query, and
 // would be refused. Moving it into a cookie also takes the code out of the
 // address bar, the browser history, and any screenshot of the open page.
 func (h *Handler) setUnlockCookie(w http.ResponseWriter, r *http.Request, a store.Artifact) {
-	for _, path := range unlockCookiePaths(a.ID) {
-		http.SetCookie(w, &http.Cookie{
-			Name:     unlockCookieName(a.ID),
-			Value:    h.unlockValue(a),
-			Path:     path,
-			HttpOnly: true,
-			Secure:   r.TLS != nil || strings.HasPrefix(h.ShareOrigin, "https://"),
-			SameSite: http.SameSiteLaxMode,
-			MaxAge:   int(unlockTTL.Seconds()),
-		})
-	}
-}
-
-// unlockCookiePaths are the two places this artifact answers a code holder:
-// the pages under /a/{id}/ and the viewer comment routes under /c/{id}/. Two
-// narrow cookies rather than one at "/" keeps the unlock off every unrelated
-// request to the origin — including other artifacts' pages, where the browser
-// would otherwise offer a credential that has no business being sent.
-func unlockCookiePaths(id string) [2]string {
-	return [2]string{"/a/" + id + "/", "/c/" + id + "/"}
+	h.setPageCookie(w, r, unlockCookie, a.ID, h.unlockValue(a), int(unlockTTL.Seconds()))
 }
 
 // clearUnlockCookie drops a cookie that no longer opens anything, so a viewer
 // whose code was rotated meets the gate again instead of a bare refusal.
-func clearUnlockCookie(w http.ResponseWriter, id string) {
-	for _, path := range unlockCookiePaths(id) {
-		http.SetCookie(w, &http.Cookie{
-			Name: unlockCookieName(id), Value: "", Path: path,
-			HttpOnly: true, MaxAge: -1,
-		})
-	}
-}
-
-// ShareURL is the one-click form of a shared link.
-func ShareURL(shareOrigin, id, code string) string {
-	return shareOrigin + "/a/" + id + "/?" + unlockParam + "=" + normalizeCode(code)
+func (h *Handler) clearUnlockCookie(w http.ResponseWriter, r *http.Request, id string) {
+	h.clearPageCookie(w, r, unlockCookie, id)
 }
 
 // isPageRequest reports whether this path is a document a person navigated to,
@@ -174,7 +150,7 @@ func (h *Handler) tryUnlock(w http.ResponseWriter, r *http.Request, a store.Arti
 	}
 	h.unlock.succeed(a.ID)
 	h.setUnlockCookie(w, r, a)
-	http.Redirect(w, r, "/a/"+a.ID+"/", http.StatusSeeOther)
+	http.Redirect(w, r, PageBase(r, a.ID), http.StatusSeeOther)
 	return true
 }
 
@@ -216,6 +192,13 @@ func (h *Handler) renderGate(w http.ResponseWriter, r *http.Request, g GateView)
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	g.Base = PageBase(r, g.ArtifactID)
+	g.Action = g.Base + unlockPath
+	if OnPageHost(r) {
+		// The page host's paths are the page's; the gate's own stylesheet
+		// and script come from the share origin.
+		g.AssetOrigin = h.ShareOrigin
+	}
 	h.Gate(w, r, g)
 }
 

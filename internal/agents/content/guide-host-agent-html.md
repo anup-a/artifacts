@@ -18,7 +18,7 @@ A folder with `index.html` and its assets:
 byagent publish ./site --title "Onboarding mockup" --project "Onboarding" --tag mockup --json
 ```
 
-The output's `url` is the page, at `{{.Share}}/a/<id>/`. Run the same command again from the same folder to update it in place. The link doesn't change, and every version is kept.
+The output's `url` is the page, at `{{.PageForm}}`. Run the same command again from the same folder to update it in place. The link doesn't change, and every version is kept.
 
 No CLI yet? `npm install -g byagent`, or `npx byagent publish ...`. The first publish works without an account (guest pages are public and last 24 hours).
 

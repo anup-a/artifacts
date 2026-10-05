@@ -30,7 +30,11 @@ type Key struct {
 }
 
 type Artifact struct {
-	ID             string
+	ID string
+	// Slug is the page's host label, {slug}.{CONTENT_DOMAIN}: lower-case and
+	// random, since the id's case does not survive DNS. CreateArtifact makes
+	// one when it is empty; pageurl turns it into the page's address.
+	Slug           string
 	KeyID          int64
 	TenantID       string
 	EndUserID      *string
@@ -212,6 +216,9 @@ type Store interface {
 	KeyByHash(ctx context.Context, hash string) (Key, error)
 	CreateArtifact(ctx context.Context, a Artifact) error
 	Artifact(ctx context.Context, id string) (Artifact, error)
+	// ArtifactBySlug finds the artifact a page host names, deleted ones
+	// included (they answer 410 like an id does).
+	ArtifactBySlug(ctx context.Context, slug string) (Artifact, error)
 	ListArtifacts(ctx context.Context, tenantID string, filter ArtifactFilter) ([]Artifact, error)
 	CountArtifacts(ctx context.Context, tenantID string) (int, error)
 	UpdateTitle(ctx context.Context, id, title string) error
