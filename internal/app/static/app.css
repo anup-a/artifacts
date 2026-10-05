@@ -368,6 +368,12 @@ textarea { resize: vertical; line-height: 1.45; }
 .prompt-copy .ic-done, .prompt-copy.is-copied .ic-copy { display: none; }
 .prompt-copy.is-copied .ic-done { display: inline-flex; color: var(--ok); }
 .connect-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+/* First run: the empty Artifacts page is one line and two soft buttons. */
+.first-run { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; }
+.first-run-title { margin: 0; font-size: 15px; font-weight: 500; color: var(--fg); }
+.first-run-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.btn.pill { height: 36px; padding: 0 16px; border-radius: 999px; border-color: transparent; background: var(--panel-2); }
+.btn.pill:hover { background: var(--hover); border-color: transparent; }
 .connect-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 14px; font-size: 13.5px; }
 .connect-facts dt { color: var(--fg-2); }
 .connect-facts dd { margin: 0; }

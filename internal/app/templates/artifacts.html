@@ -128,6 +128,12 @@
 </div>
 
 {{else}}
-{{template "connect-card" .Data.Connect}}
+<div class="first-run">
+  <p class="first-run-title">Publish your first page</p>
+  <div class="first-run-actions">
+    {{with .Data.Connect}}<button type="button" class="btn pill" data-copy-text="{{.Text}}">{{template "icon" "copy"}}<span class="menu-item-text">Copy prompt</span></button>{{end}}
+    <a class="btn pill" href="/app/connect">{{template "icon" "link"}}<span>Connect agent</span></a>
+  </div>
+</div>
 {{end}}
 {{end}}
