@@ -61,9 +61,9 @@ func TestArtifactVisibilityActionPermissionsAndPreservation(t *testing.T) {
 	}
 	wantRedirect(t, e.post(detail+"/comments/th_private/reply", detail, url.Values{"body": {"Owner reply while private"}}), detail+"#th_private")
 	want(t, e.get(detail), 200, "Owner reply while private")
-	wantRedirect(t, e.post(detail+"/rollback/1", detail, nil), detail)
+	wantRedirect(t, e.post(detail+"/rollback/1", detail, nil), detail+"#versions")
 	got, _ = e.st.Artifact(ctx, a.ID)
-	if got.Visibility != "private" || got.CurrentVersion != 3 {
+	if got.Visibility != "private" || got.CurrentVersion != 1 {
 		t.Fatalf("rollback changed visibility: %+v", got)
 	}
 

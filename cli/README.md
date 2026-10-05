@@ -73,8 +73,10 @@ byagent list [--project <name>]
 byagent collections                    # every --project label: count, last update, share URL
 byagent collection <name>              # one collection's artifacts in reading order, with urls
 byagent share <id> [--off]             # six-digit code for a private artifact; rerun to rotate
-byagent versions <id>
-byagent rollback <id> <version>
+byagent versions <id>                  # history, live version marked, owner-only preview links
+byagent rollback <id> <version>        # make an old version live again; nothing re-uploaded
+byagent version rm <id> <version>      # delete one old version for good (never the live one)
+byagent diff <id> <from> [<to>]        # files added, removed and changed between versions
 byagent comments <id> [--open|--all] [--since <rfc3339>]
 byagent comments <id> --wait [--timeout <seconds>] [--interval <seconds>]
 byagent reply <id> <thread> "<text>"

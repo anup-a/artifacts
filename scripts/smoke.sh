@@ -51,7 +51,15 @@ SHA2=$(printf '%s' "$BODY2" | shasum -a 256 | cut -d' ' -f1)
 printf '%s' "$BODY2" > "$DATA_DIR/index2.html"
 MAN2=$(printf '{"files":[{"path":"index.html","sha256":"%s","size":%d}]}' "$SHA2" "${#BODY2}")
 curl -sf -X PUT -H "$H" -F "manifest=$MAN2" -F "$SHA2=@$DATA_DIR/index2.html" "localhost:8091/api/artifacts/$ID" | grep -q '"version":2' || { echo "update failed"; exit 1; }
-curl -sf -X POST -H "$H" "localhost:8091/api/artifacts/$ID/rollback/1" | grep -q '"version":3' || { echo "rollback failed"; exit 1; }
+# Rollback is a pointer flip: v1 goes live again and no v3 is made.
+RB=$(curl -sf -X POST -H "$H" "localhost:8091/api/artifacts/$ID/rollback/1")
+echo "$RB" | grep -q '"version":1' && echo "$RB" | grep -q '"previous_version":2' || { echo "rollback failed: $RB"; exit 1; }
 curl -sf "localhost:8091/a/$ID/" | grep -q 'hello world' || { echo "rollback content wrong"; exit 1; }
 curl -sf "localhost:8091/a/$ID/v/2/" | grep -q 'hello again' || { echo "pinned version wrong"; exit 1; }
+STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE -H "$H" "localhost:8091/api/artifacts/$ID/versions/1")
+[ "$STATUS" = 409 ] || { echo "deleting the live version answered $STATUS, want 409"; exit 1; }
+curl -sf -X DELETE -H "$H" "localhost:8091/api/artifacts/$ID/versions/2" | grep -q '"deleted_version":2' || { echo "version delete failed"; exit 1; }
+STATUS=$(curl -s -o /dev/null -w '%{http_code}' "localhost:8091/a/$ID/v/2/")
+[ "$STATUS" = 404 ] || { echo "deleted version still served: $STATUS"; exit 1; }
+curl -sf -X PUT -H "$H" -F "manifest=$MAN2" "localhost:8091/api/artifacts/$ID" | grep -q '"version":3' || { echo "publish after restore and delete did not take v3"; exit 1; }
 echo "SMOKE OK"

@@ -158,18 +158,29 @@
       {{range .Data.Versions}}
       <tr{{if .Current}} class="is-current"{{end}}>
         <td><span class="badge mono">v{{.N}}</span>{{if .Current}} <span class="badge ok">Current</span>{{end}}</td>
-        <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time></td>
+        <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time>{{if .RestoredAt}}<br><span class="muted">restored <time title="{{when .RestoredAt}} UTC">{{ago .RestoredAt $.Now}}</time></span>{{end}}</td>
         <td class="muted"{{if .Key}} title="key: {{.Key}}"{{end}}>{{if .By}}{{.By}}{{else}}&ndash;{{end}}</td>
         <td class="num">{{bytes .Bytes}}</td>
         <td class="num">{{.FileCount}}</td>
         <td class="num">{{.Comments}}</td>
         <td class="actions">
+          <div class="row-actions">
+          <a class="btn small" href="{{.Preview}}" target="_blank" rel="noopener" title="Open v{{.N}} without making it live. Only you can see this link.">Preview</a>
           {{if not .Current}}
           <form method="post" action="/app/artifacts/{{$a.ID}}/rollback/{{.N}}">
             <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-            <button type="submit" class="btn small">{{template "icon" "rollback"}} Roll back</button>
+            <button type="submit" class="btn small" title="Make v{{.N}} live again. Access, sharing and comments stay as they are.">{{template "icon" "rollback"}} Restore</button>
           </form>
+          <details class="confirm menu-wrap">
+            <summary class="btn small danger" title="Delete v{{.N}} for good">Delete</summary>
+            <form method="post" action="/app/artifacts/{{$a.ID}}/versions/{{.N}}/delete" class="menu right confirm-body">
+              <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+              <p>v{{.N}} and its link are erased for good. Comments on it stay, marked as on an earlier version.</p>
+              <button type="submit" class="btn small danger solid">Delete v{{.N}}</button>
+            </form>
+          </details>
           {{end}}
+          </div>
         </td>
       </tr>
       {{end}}

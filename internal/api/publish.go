@@ -177,7 +177,12 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 		total += f.Size
 	}
 	k, _ := KeyFrom(ctx)
-	v := store.Version{ArtifactID: a.ID, Version: a.CurrentVersion + 1, CreatedAt: s.Now(), Bytes: total, FileCount: len(files),
+	// Not CurrentVersion+1: after a restore the live version is not the newest.
+	next, err := s.Store.NextVersion(ctx, a.ID)
+	if err != nil {
+		return a, 0, apierr.Internal(err)
+	}
+	v := store.Version{ArtifactID: a.ID, Version: next, CreatedAt: s.Now(), Bytes: total, FileCount: len(files),
 		Agent: m.Agent, Model: m.Model, KeyName: k.Name}
 	// Restrict access before storing any new content. If publishing later fails,
 	// the artifact stays private rather than exposing the attempted update.

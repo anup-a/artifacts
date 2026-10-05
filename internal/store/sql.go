@@ -100,14 +100,25 @@ func (s *sqlStore) AddVersion(ctx context.Context, v Version, files []File) erro
 			return fmt.Errorf("%w: %s", ErrBlobMissing, f.SHA256)
 		}
 	}
-	if _, err := tx.ExecContext(ctx, s.q(`UPDATE artifacts SET current_version=?, updated_at=? WHERE id=?`), v.Version, v.CreatedAt, v.ArtifactID); err != nil {
+	if _, err := tx.ExecContext(ctx, s.q(`UPDATE artifacts SET current_version=?, last_version=CASE WHEN last_version<? THEN ? ELSE last_version END, updated_at=? WHERE id=?`), v.Version, v.Version, v.Version, v.CreatedAt, v.ArtifactID); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
+// NextVersion reads last_version, falling back to current_version for a row
+// written before last_version existed and never published since.
+func (s *sqlStore) NextVersion(ctx context.Context, artifactID string) (int, error) {
+	var last, current int
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT last_version, current_version FROM artifacts WHERE id=?`), artifactID).Scan(&last, &current)
+	if err != nil {
+		return 0, notFound(err)
+	}
+	return max(last, current) + 1, nil
+}
+
 func (s *sqlStore) Versions(ctx context.Context, artifactID string) ([]Version, error) {
-	rows, err := s.db.QueryContext(ctx, s.q(`SELECT artifact_id,version,created_at,bytes,file_count,agent,model,key_name FROM versions WHERE artifact_id=? ORDER BY version`), artifactID)
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT artifact_id,version,created_at,bytes,file_count,agent,model,key_name,restored_at FROM versions WHERE artifact_id=? ORDER BY version`), artifactID)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +126,7 @@ func (s *sqlStore) Versions(ctx context.Context, artifactID string) ([]Version, 
 	var out []Version
 	for rows.Next() {
 		var v Version
-		if err := rows.Scan(&v.ArtifactID, &v.Version, &v.CreatedAt, &v.Bytes, &v.FileCount, &v.Agent, &v.Model, &v.KeyName); err != nil {
+		if err := rows.Scan(&v.ArtifactID, &v.Version, &v.CreatedAt, &v.Bytes, &v.FileCount, &v.Agent, &v.Model, &v.KeyName, &v.RestoredAt); err != nil {
 			return nil, err
 		}
 		out = append(out, v)
@@ -173,25 +184,127 @@ func (s *sqlStore) PruneVersions(ctx context.Context, artifactID string, keep in
 		return nil, err
 	}
 	defer tx.Rollback()
+	// After a restore the live version can be among the oldest. Read it under
+	// the artifact row's lock, the one RestoreVersion takes, so a restore
+	// racing this prune cannot point the page at a version pruned beneath it.
+	// Erase (keep 0) empties a deleted artifact and spares nothing.
+	if keep > 0 {
+		live, err := s.lockArtifact(ctx, tx, artifactID)
+		if err != nil {
+			return nil, err
+		}
+		protected[live] = true
+	}
 	for _, v := range candidates {
 		if protected[v.Version] {
 			continue
 		}
-		// Decrement per file row (mirroring the per-row increment in AddVersion), not
-		// per distinct sha, so a version with two files sharing one sha (same content,
-		// different paths) doesn't leak a refcount.
-		if _, err := tx.ExecContext(ctx, s.q(`UPDATE blobs SET refcount = refcount - (SELECT COUNT(*) FROM files f WHERE f.artifact_id=? AND f.version=? AND f.sha256=blobs.sha256) WHERE sha256 IN (SELECT sha256 FROM files WHERE artifact_id=? AND version=?)`), artifactID, v.Version, artifactID, v.Version); err != nil {
-			return nil, err
-		}
-		if _, err := tx.ExecContext(ctx, s.q(`DELETE FROM files WHERE artifact_id=? AND version=?`), artifactID, v.Version); err != nil {
-			return nil, err
-		}
-		if _, err := tx.ExecContext(ctx, s.q(`DELETE FROM versions WHERE artifact_id=? AND version=?`), artifactID, v.Version); err != nil {
+		if err := s.dropVersion(ctx, tx, artifactID, v.Version); err != nil {
 			return nil, err
 		}
 		pruned = append(pruned, v.Version)
 	}
 	return pruned, tx.Commit()
+}
+
+// dropVersion deletes one version's rows inside tx and releases its blobs.
+func (s *sqlStore) dropVersion(ctx context.Context, tx *sql.Tx, artifactID string, version int) error {
+	// Decrement per file row (mirroring the per-row increment in AddVersion), not
+	// per distinct sha, so a version with two files sharing one sha (same content,
+	// different paths) doesn't leak a refcount.
+	if _, err := tx.ExecContext(ctx, s.q(`UPDATE blobs SET refcount = refcount - (SELECT COUNT(*) FROM files f WHERE f.artifact_id=? AND f.version=? AND f.sha256=blobs.sha256) WHERE sha256 IN (SELECT sha256 FROM files WHERE artifact_id=? AND version=?)`), artifactID, version, artifactID, version); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, s.q(`DELETE FROM files WHERE artifact_id=? AND version=?`), artifactID, version); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, s.q(`DELETE FROM versions WHERE artifact_id=? AND version=?`), artifactID, version)
+	return err
+}
+
+// lockArtifact takes the artifact row's write lock for the rest of tx (a
+// no-op update: Postgres locks the row, SQLite the database) and returns the
+// live version as it stands under that lock. Restoring, deleting and pruning
+// a version all start here, so they serialise and each sees the others'
+// committed result.
+func (s *sqlStore) lockArtifact(ctx context.Context, tx *sql.Tx, artifactID string) (int, error) {
+	res, err := tx.ExecContext(ctx, s.q(`UPDATE artifacts SET current_version=current_version WHERE id=?`), artifactID)
+	if err := affected(res, err); err != nil {
+		return 0, err
+	}
+	var live int
+	err = tx.QueryRowContext(ctx, s.q(`SELECT current_version FROM artifacts WHERE id=?`), artifactID).Scan(&live)
+	return live, notFound(err)
+}
+
+// RestoreVersion points the artifact back at an older version. Only
+// current_version and updated_at change, and the version is stamped with
+// restored_at. Title, visibility, share code, expiry, the comments switch and
+// the labels are columns of the artifact, not of a version, so a restore
+// leaves them exactly as they are.
+func (s *sqlStore) RestoreVersion(ctx context.Context, artifactID string, version int, at time.Time) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	live, err := s.lockArtifact(ctx, tx, artifactID)
+	if err != nil {
+		return err
+	}
+	if live == version {
+		return ErrLiveVersion
+	}
+	// Under the lock, so a version deleted or pruned a moment ago is never
+	// made live: the update finds no row.
+	res, err := tx.ExecContext(ctx, s.q(`UPDATE versions SET restored_at=? WHERE artifact_id=? AND version=?`), at, artifactID, version)
+	if err := affected(res, err); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, s.q(`UPDATE artifacts SET current_version=?, updated_at=? WHERE id=?`), version, at, artifactID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// DeleteVersion removes a version that is not live. Its blobs lose one
+// reference per file: one that another version or artifact still uses keeps
+// its bytes, and the rest are erased by GC. Threads made on the version stay,
+// since they are the readers' words and the owner may still answer them, but
+// what they quote is no longer on any page that is served, so they are
+// marked orphaned.
+func (s *sqlStore) DeleteVersion(ctx context.Context, artifactID string, version int) (int, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	live, err := s.lockArtifact(ctx, tx, artifactID)
+	if err != nil {
+		return 0, err
+	}
+	if live == version {
+		return 0, ErrLiveVersion
+	}
+	var n int
+	if err := tx.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM versions WHERE artifact_id=? AND version=?`), artifactID, version).Scan(&n); err != nil {
+		return 0, err
+	}
+	if n == 0 {
+		return 0, ErrNotFound
+	}
+	if err := s.dropVersion(ctx, tx, artifactID, version); err != nil {
+		return 0, err
+	}
+	res, err := tx.ExecContext(ctx, s.q(`UPDATE threads SET anchor_status='orphaned' WHERE artifact_id=? AND version=?`), artifactID, version)
+	if err != nil {
+		return 0, err
+	}
+	orphaned, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return int(orphaned), tx.Commit()
 }
 
 func (s *sqlStore) UpsertBlob(ctx context.Context, sha string, size int64) error {

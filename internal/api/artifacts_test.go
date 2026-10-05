@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -62,13 +63,16 @@ func TestVersionsRollbackPrune(t *testing.T) {
 	if code != 200 || len(vs) != 3 || vs[0].(map[string]any)["version"].(float64) != 2 {
 		t.Fatalf("expected versions 2,3,4 got %v", body)
 	}
+	// Rollback is a pointer flip: v2 is live again and no v5 is made.
 	code, body = do(t, authReq(t, "POST", srv.URL+"/api/artifacts/"+id+"/rollback/2", tok))
-	if code != 200 || body["version"].(float64) != 5 {
+	if code != 200 || body["version"].(float64) != 2 || body["previous_version"].(float64) != 4 {
 		t.Fatalf("rollback %d %v", code, body)
 	}
-	fs, _ := d.Store.Files(context.Background(), id, 5)
-	if len(fs) != 1 || fs[0].SHA256 != sha("v2") {
-		t.Fatalf("v5 should equal v2 files: %+v", fs)
+	if fs, _ := d.Store.Files(context.Background(), id, 5); len(fs) != 0 {
+		t.Fatalf("rollback copied files into a new version: %+v", fs)
+	}
+	if page := pageBody(t, srv.URL+"/a/"+id+"/"); !strings.HasPrefix(page, "v2") || !strings.Contains(page, `data-version="2"`) {
+		t.Fatalf("live page after rollback = %q, want v2", page)
 	}
 	code, _ = do(t, authReq(t, "POST", srv.URL+"/api/artifacts/"+id+"/rollback/1", tok))
 	if code != 404 {

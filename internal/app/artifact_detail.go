@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -35,6 +36,11 @@ type versionView struct {
 	// By is what produced the version: agent and model when reported, else
 	// the publishing key's name. Key is that name, shown on hover.
 	By, Key string
+	// RestoredAt is when a restore last made the version live again.
+	RestoredAt *time.Time
+	// Preview opens the version in the signed-in, sandboxed viewer on this
+	// origin: owner-only, and never counted as a view.
+	Preview string
 }
 
 func versionBy(v store.Version) string {
@@ -156,7 +162,8 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	for i := len(vs) - 1; i >= 0; i-- { // newest first
 		vv := vs[i]
 		d.Versions = append(d.Versions, versionView{N: vv.Version, CreatedAt: vv.CreatedAt, Bytes: vv.Bytes, FileCount: vv.FileCount,
-			Current: vv.Version == a.CurrentVersion, Comments: counts[vv.Version], By: versionBy(vv), Key: vv.KeyName})
+			Current: vv.Version == a.CurrentVersion, Comments: counts[vv.Version], By: versionBy(vv), Key: vv.KeyName,
+			RestoredAt: vv.RestoredAt, Preview: h.Cfg.APIOrigin + "/app/view/" + a.ID + "/v/" + strconv.Itoa(vv.Version) + "/"})
 	}
 	threads, err := h.Store.Threads(ctx, a.ID, "", time.Time{}, 0)
 	if err != nil {
@@ -230,11 +237,11 @@ func anchorQuote(raw string) string {
 	return a.Quote
 }
 
-// rollbackArtifact republishes an older version's files as a new version,
-// the same way the API's rollback does, so viewers and the CLI see one
-// linear history.
+// rollbackArtifact is the Restore button: the version goes live again by the
+// same pointer flip as the API's restore. Nothing is copied, and access,
+// sharing, expiry and the comments switch stay as they are. Restoring the
+// live version does nothing.
 func (h *Handler) rollbackArtifact(w http.ResponseWriter, r *http.Request, v *viewer) {
-	ctx := r.Context()
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
 		h.storeErr(w, r, err, "That artifact does not exist.")
@@ -245,37 +252,45 @@ func (h *Handler) rollbackArtifact(w http.ResponseWriter, r *http.Request, v *vi
 		h.renderError(w, r, 404, "That version does not exist.")
 		return
 	}
-	if target == a.CurrentVersion {
-		h.backToArtifact(w, r, v, a.ID, "")
-		return
-	}
-	files, err := h.Store.Files(ctx, a.ID, target)
-	if err != nil {
-		h.fail(w, r, err)
-		return
-	}
-	if len(files) == 0 {
+	err = h.Store.RestoreVersion(r.Context(), a.ID, target, h.Now())
+	if errors.Is(err, store.ErrNotFound) {
 		h.renderError(w, r, 404, "That version does not exist.")
 		return
 	}
-	var total int64
-	for _, f := range files {
-		total += f.Size
-	}
-	nv := store.Version{ArtifactID: a.ID, Version: a.CurrentVersion + 1, CreatedAt: h.Now(), Bytes: total, FileCount: len(files)}
-	if err := h.Store.AddVersion(ctx, nv, files); err != nil {
+	if err != nil && !errors.Is(err, store.ErrLiveVersion) {
 		h.fail(w, r, err)
 		return
 	}
-	keep := h.Cfg.Limits.VersionsKept
-	if keep <= 0 {
-		keep = defaultVersionsKept
+	h.backToArtifact(w, r, v, a.ID, "#versions")
+}
+
+// deleteVersion removes one old version for good, as the API's version
+// delete does. The live version has no Delete button; a forged post for it
+// is refused rather than taking the page down.
+func (h *Handler) deleteVersion(w http.ResponseWriter, r *http.Request, v *viewer) {
+	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
+	if err != nil {
+		h.storeErr(w, r, err, "That artifact does not exist.")
+		return
 	}
-	if _, err := h.Store.PruneVersions(ctx, a.ID, keep); err != nil {
+	target, err := strconv.Atoi(r.PathValue("version"))
+	if err != nil || target < 1 {
+		h.renderError(w, r, 404, "That version does not exist.")
+		return
+	}
+	_, err = h.Store.DeleteVersion(r.Context(), a.ID, target)
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		h.renderError(w, r, 404, "That version does not exist.")
+		return
+	case errors.Is(err, store.ErrLiveVersion):
+		h.renderError(w, r, 409, "The live version cannot be deleted. Restore another version first.")
+		return
+	case err != nil:
 		h.fail(w, r, err)
 		return
 	}
-	h.backToArtifact(w, r, v, a.ID, "")
+	h.backToArtifact(w, r, v, a.ID, "#versions")
 }
 
 // setCommentsEnabled is the Comments switch on the detail page: enabled=1

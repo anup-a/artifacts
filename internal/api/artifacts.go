@@ -141,10 +141,14 @@ func (s *server) listVersions(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]map[string]any, 0, len(vs))
 	for _, v := range vs {
-		out = append(out, map[string]any{"version": v.Version, "created_at": v.CreatedAt, "bytes": v.Bytes, "files": v.FileCount, "comment_count": counts[v.Version],
-			"agent": v.Agent, "model": v.Model, "key": v.KeyName})
+		row := map[string]any{"version": v.Version, "created_at": v.CreatedAt, "bytes": v.Bytes, "files": v.FileCount, "comment_count": counts[v.Version],
+			"agent": v.Agent, "model": v.Model, "key": v.KeyName}
+		for k, x := range s.versionFields(r, a, v) {
+			row[k] = x
+		}
+		out = append(out, row)
 	}
-	apierr.WriteJSON(w, 200, map[string]any{"versions": out})
+	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "current_version": a.CurrentVersion, "versions": out})
 }
 
 // artifactFile streams one file of the current version, or of ?version=N,
@@ -198,36 +202,11 @@ func (s *server) artifactFile(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, rc)
 }
 
+// rollback is the original name of restoreVersion (versions.go), kept so
+// older CLIs and scripts keep working. It used to copy the old version's
+// files into a new one; it is now the same pointer flip.
 func (s *server) rollback(w http.ResponseWriter, r *http.Request) {
-	a, e := s.ownedArtifact(r, r.PathValue("id"))
-	if e != nil {
-		apierr.Write(w, r, e)
-		return
-	}
-	target, err := strconv.Atoi(r.PathValue("version"))
-	if err != nil || target < 1 {
-		apierr.Write(w, r, apierr.Invalid("version must be a positive integer"))
-		return
-	}
-	files, err := s.Store.Files(r.Context(), a.ID, target)
-	if err != nil {
-		apierr.Write(w, r, apierr.Internal(err))
-		return
-	}
-	if len(files) == 0 {
-		apierr.Write(w, r, apierr.NotFound("version"))
-		return
-	}
-	m := manifest{Title: a.Title}
-	for _, f := range files {
-		m.Files = append(m.Files, manifestFile{Path: f.Path, SHA256: f.SHA256, Size: f.Size})
-	}
-	_, v, e := s.publishVersion(r.Context(), a, m)
-	if e != nil {
-		apierr.Write(w, r, e)
-		return
-	}
-	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "url": s.artifactViewURL(a), "version": v, "visibility": a.Visibility})
+	s.restoreVersion(w, r)
 }
 
 // setShareCode issues, rotates or withdraws an artifact's share code.
