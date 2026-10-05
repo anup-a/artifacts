@@ -200,6 +200,7 @@ type Store interface {
 	ConnectStore
 	AccessStore
 	VariableStore
+	DomainStore
 	Migrate(ctx context.Context) error
 	CreateKey(ctx context.Context, hash, email string) (Key, error)
 	// CreateGuest makes a guest workspace with one key, for publishing

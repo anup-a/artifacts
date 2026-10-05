@@ -226,6 +226,83 @@ List would make each page host a site of its own, so SameSite would separate
 pages too. Not planned; the draft request is kept in
 [docs/psl-byagent-page.md](../docs/psl-byagent-page.md) for if it ever is.
 
+### Custom domains (Cloudflare for SaaS)
+
+Customers CNAME their hostname to `domains.byagent.dev`; Cloudflare issues the
+certificate and sends the traffic down the same tunnel with the customer's
+Host header intact; the server matches the Host to a connected domain. Nothing
+here is needed until custom domains are turned on, and the server runs fine
+without them (`DOMAINS_PROVIDER` unset: the routes answer 404).
+
+One time, in the Cloudflare dashboard for `byagent.dev`:
+
+1. SSL/TLS > Custom Hostnames: enable Cloudflare for SaaS. It is available on
+   the Free plan with 100 custom hostnames included, then $0.10 per hostname
+   a month; Cloudflare may ask for a payment method on the account first.
+2. Zero Trust > Networks > Tunnels > `byagent` > Public hostnames: add
+   `domains.byagent.dev` to `http://artifacts:8080`. That creates the proxied
+   CNAME the fallback origin needs.
+3. Back in Custom Hostnames, set Fallback Origin to `domains.byagent.dev` and
+   wait for it to read Active.
+4. Tunnel catch-all. A customer's request reaches cloudflared with their own
+   Host (`docs.example.com`), which matches none of the public hostnames, so
+   the tunnel's last rule must send it to the app instead of answering 404.
+   If the dashboard does not let you change that rule, set it with the API
+   (this replaces the whole ingress list, so keep the three hostnames in it):
+
+   ```
+   curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID/configurations" \
+     -H "Authorization: Bearer $CF_TUNNEL_TOKEN" -H "Content-Type: application/json" \
+     --data '{"config":{"ingress":[
+       {"hostname":"byagent.dev","service":"http://artifacts:8080"},
+       {"hostname":"app.byagent.dev","service":"http://artifacts:8080"},
+       {"hostname":"domains.byagent.dev","service":"http://artifacts:8080"},
+       {"service":"http://artifacts:8080"}]}}'
+   ```
+
+   (`GET` the same URL first and keep any other rules it has. The token needs
+   Account > Cloudflare Tunnel > Edit.) Only hostnames Cloudflare routes to the
+   tunnel ever reach it, and the server serves a Host only when it is byagent's
+   own or a connected, verified domain, so the catch-all opens nothing else.
+5. My Profile > API Tokens > Create custom token: Zone > SSL and Certificates
+   > Edit, limited to the `byagent.dev` zone. This is what the server uses to
+   create and delete custom hostnames. Copy the Zone ID from the zone's
+   Overview page.
+6. Add to `/opt/artifacts/.env`, then `docker compose up -d`:
+
+   ```
+   DOMAINS_PROVIDER=cloudflare
+   DOMAINS_CNAME_TARGET=domains.byagent.dev
+   CLOUDFLARE_API_TOKEN=<token from step 5>
+   CLOUDFLARE_ZONE_ID=<zone id>
+   # optional: LIMIT_DOMAINS_PER_TENANT=5, DOMAINS_DNS_RESOLVER=1.1.1.1:53
+   ```
+
+   Ownership TXT records are read from 1.1.1.1 over port 53; ufw already
+   allows outgoing traffic. Set `DOMAINS_DNS_RESOLVER=system` if that is ever
+   blocked.
+7. Check with a hostname you own: `byagent domain add test.<your domain>
+   --page <id>`, add the two records it prints, poll `byagent domain
+   test.<your domain>` until `active`, open `https://test.<your domain>/`,
+   leave a comment there, then `byagent domain rm test.<your domain>`.
+
+Notes:
+
+- Zone rules apply to custom hostname traffic too. Write rate-limit and WAF
+  rules without a hostname condition (for example `/c/` paths on any host)
+  so they cover customer domains.
+- An apex (`example.com`) needs the customer's DNS to support ALIAS, ANAME or
+  CNAME flattening. Cloudflare's apex proxying (fixed IPs) is Enterprise only.
+- A hostname Cloudflare moves (CNAME taken away) shows `error` in the API;
+  byagent asks Cloudflare to look again about hourly, so a fixed record
+  recovers without anyone deleting and re-adding the domain.
+- Leave `DOMAINS_PROVIDER` unset on the Fly app until the move. The `fly`
+  provider works (`FLY_API_TOKEN`, `FLY_APP_NAME=artifacts-share`, and
+  `DOMAINS_APEX_IPS` from `fly ips list`), but every customer would have to
+  re-point their CNAME from `artifacts-share.fly.dev` to `domains.byagent.dev`
+  at the cutover. If it was on, the server registers those domains with
+  Cloudflare by itself after the switch; only the customers' DNS has to change.
+
 ## Validation deployment (Fly)
 
 The cheapest way to put the product in front of real users: one Fly machine,

@@ -79,7 +79,8 @@ func InjectIconHref(doc []byte, href string) []byte {
 }
 
 // InjectBase is Inject for a page not under /a/{id}/: data-base tells the
-// runtime's version switcher where the page lives ("/" on its own host).
+// runtime's version switcher where the page lives ("/" on its own host, the
+// mount's base on a custom domain).
 func InjectBase(doc []byte, artifactID string, version int, rev, base string) []byte {
 	t := tag(artifactID, version, rev)
 	t = append(t[:len(t)-len(" defer></script>")], []byte(` data-base="`+html.EscapeString(base)+`" defer></script>`)...)

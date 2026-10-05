@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
 	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/artifacts/internal/domains"
 	"github.com/anup-a/artifacts/internal/pageurl"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
@@ -25,19 +27,24 @@ const (
 	hostPage
 	// hostNowhere is a name under the content domain that is no page.
 	hostNowhere
+	// hostCustom is a connected custom domain, whose mounts pick the page
+	// by path.
+	hostCustom
 )
 
-// hostTarget is resolveHost's answer: the kind, and the page for hostPage.
+// hostTarget is resolveHost's answer: the kind, the page for hostPage and
+// the site for hostCustom.
 type hostTarget struct {
 	kind hostKind
 	page store.Artifact
+	site *domains.Site
 }
 
 // resolveHost is the one place a request's Host decides what serves it.
 //
-// Custom domains (feat/custom-domains) extend it: a connected domain is one
-// more kind here, resolved after the content domain, whose mounts then pick
-// the page by path. Nothing else should look at r.Host to pick a page.
+// The content domain is resolved first; a connected custom domain after it
+// (hostCustom), whose mounts then pick the page by path. Nothing else should
+// look at r.Host to pick a page.
 func (s *server) resolveHost(r *http.Request) (hostTarget, error) {
 	kind, slug := s.pages().Classify(r.Host)
 	switch kind {
@@ -55,7 +62,17 @@ func (s *server) resolveHost(r *http.Request) (hostTarget, error) {
 		}
 		return hostTarget{kind: hostPage, page: a}, nil
 	}
+	if s.Domains != nil {
+		if site := s.siteForHost(r, s.ownHosts()); site != nil {
+			return hostTarget{kind: hostCustom, site: site}, nil
+		}
+	}
 	return hostTarget{kind: hostOwn}, nil
+}
+
+// ownHosts are byagent's own host names, never looked up as custom domains.
+func (s *server) ownHosts() map[string]bool {
+	return map[string]bool{hostOf(s.Cfg.ShareOrigin): true, hostOf(s.Cfg.APIOrigin): true}
 }
 
 // hosts routes by Host. On byagent's own hosts it is the normal mux; on a
@@ -68,9 +85,10 @@ func (s *server) resolveHost(r *http.Request) (hostTarget, error) {
 // itself (serve.CrossPageWrite): page hosts are same-site with each other
 // until the content domain is on the Public Suffix List.
 func (s *server) hosts(next http.Handler, sh *serve.Handler) http.Handler {
-	if !s.pages().PerPage() {
+	if !s.pages().PerPage() && s.Domains == nil {
 		return next
 	}
+	cm := s.customMux(sh)
 	pm := http.NewServeMux()
 	pm.HandleFunc("GET /_rt/comments.js", sh.ServeRuntime)
 	pm.HandleFunc("POST /c/{id}/comments", thisPage(noStore(s.viewerCreateThread)))
@@ -107,6 +125,16 @@ func (s *server) hosts(next http.Handler, sh *serve.Handler) http.Handler {
 				return
 			}
 			pm.ServeHTTP(w, r)
+		case hostCustom:
+			// A custom domain is same-site with whatever its owner runs on
+			// the parent domain, so every write there must come from the
+			// domain itself, as on a page host.
+			if serve.CrossOriginWrite(r, s.Domains.Scheme+"://"+t.site.Domain.Hostname) {
+				w.Header().Set("Cache-Control", "no-store")
+				apierr.Write(w, r, apierr.Forbidden("requests to a page must come from the page itself"))
+				return
+			}
+			cm.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), siteKey{}, t.site)))
 		default:
 			w.Header().Set("Cache-Control", "no-store")
 			apierr.Write(w, r, apierr.NotFound("page"))

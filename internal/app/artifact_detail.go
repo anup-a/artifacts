@@ -99,6 +99,8 @@ type artifactData struct {
 	// line. AccessError is a failed save of that card.
 	Access      accessForm
 	AccessError string
+	// Domains is the custom domains card, nil when the server has none.
+	Domains *artifactDomains
 }
 
 // artifactOpts is what a re-render after a form post carries besides the
@@ -109,6 +111,7 @@ type artifactOpts struct {
 	MetaError        string
 	Meta             *metaForm
 	AccessError      string
+	DomainError      string
 }
 
 func (h *Handler) artifactDetail(w http.ResponseWriter, r *http.Request, v *viewer) {
@@ -176,6 +179,10 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	}
 	if o.Meta != nil {
 		d.Meta = *o.Meta
+	}
+	if d.Domains, err = h.artifactDomains(ctx, v.Tenant.ID, a.ID, o.DomainError); err != nil {
+		h.fail(w, r, err)
+		return
 	}
 	for _, p := range projects {
 		d.Projects = append(d.Projects, p.Name)

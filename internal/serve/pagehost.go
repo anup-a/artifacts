@@ -57,10 +57,14 @@ func OnPageHost(r *http.Request) bool {
 }
 
 // PageBase is the path a page's own addresses hang off for this request:
-// "/" on its own host, /a/{id}/ on the share origin.
+// "/" on its own host, the mount's base on a custom domain, /a/{id}/ on the
+// share origin.
 func PageBase(r *http.Request, id string) string {
 	if p, ok := pageHostFrom(r); ok && p.ArtifactID == id {
 		return "/"
+	}
+	if m, ok := mountFrom(r); ok && m.ArtifactID == id {
+		return m.Base
 	}
 	return "/a/" + id + "/"
 }
@@ -68,10 +72,22 @@ func PageBase(r *http.Request, id string) string {
 // pageOrigin is the absolute origin of the page being served, for addresses
 // that leave the page: og:image and og:url, fetched by link unfurlers.
 func (h *Handler) pageOrigin(r *http.Request) string {
+	if o := ownOrigin(r); o != "" {
+		return o
+	}
+	return h.ShareOrigin
+}
+
+// ownOrigin is the origin a page answers on when it is not the share
+// origin: its page host, or the custom domain it is mounted on. "" else.
+func ownOrigin(r *http.Request) string {
 	if p, ok := pageHostFrom(r); ok {
 		return p.Origin
 	}
-	return h.ShareOrigin
+	if m, ok := mountFrom(r); ok {
+		return m.origin()
+	}
+	return ""
 }
 
 // CrossPageWrite reports a state-changing request on a page host that the
@@ -97,15 +113,32 @@ func CrossPageWrite(r *http.Request) bool {
 	return !SameOriginRequest(r)
 }
 
-// SameOriginRequest reports whether r came from the page host's own page,
-// by the rule CrossPageWrite describes. Off a page host it is always false.
+// SameOriginRequest reports whether r came from the page host's own page
+// (or, on a custom domain, from that domain), by the rule CrossPageWrite
+// describes. Off a page host or custom domain it is always false.
 func SameOriginRequest(r *http.Request) bool {
-	p, ok := pageHostFrom(r)
-	if !ok {
+	return SameOrigin(r, ownOrigin(r))
+}
+
+// CrossOriginWrite reports a state-changing request that did not come from
+// origin, by the same rule: the check custom domains get at the host
+// dispatch.
+func CrossOriginWrite(r *http.Request, origin string) bool {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return false
+	}
+	return !SameOrigin(r, origin)
+}
+
+// SameOrigin is that rule for a given origin: Origin equal to it, or, when
+// Origin is absent or "null", Sec-Fetch-Site: same-origin.
+func SameOrigin(r *http.Request, origin string) bool {
+	if origin == "" {
 		return false
 	}
 	if o := r.Header.Get("Origin"); o != "" && o != "null" {
-		return strings.EqualFold(o, p.Origin)
+		return strings.EqualFold(o, origin)
 	}
 	return r.Header.Get("Sec-Fetch-Site") == "same-origin"
 }

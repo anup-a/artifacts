@@ -223,6 +223,7 @@ func (s *sqlStore) Erase(ctx context.Context, id string) error {
 		`DELETE FROM artifact_views WHERE artifact_id=?`,
 		`DELETE FROM artifact_view_hours WHERE artifact_id=?`,
 		`DELETE FROM artifact_view_facets WHERE artifact_id=?`,
+		`DELETE FROM domain_mounts WHERE artifact_id=?`,
 		`UPDATE artifacts SET title='', project=NULL, tags=NULL, cover_path=NULL, cover_style='', share_code='' WHERE id=? AND deleted_at IS NOT NULL`,
 		`UPDATE artifacts SET access_password='', access_allow='' WHERE id=? AND deleted_at IS NOT NULL`,
 		`DELETE FROM access_codes WHERE artifact_id=?`,

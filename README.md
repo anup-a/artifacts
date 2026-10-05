@@ -383,6 +383,15 @@ take no auth; the artifact id is the capability.
 | `GET`/`POST` | `/a/:id/_access/link?t=` | The mailed link. GET shows a button (so mail scanners do not spend it); the POST spends it and sets the cookie. |
 | `GET` | `/a/:id/_cover.svg` | The cover: the publisher's `cover` file from the current version when present, else a generated 1200 x 630 SVG card (title, project, share host and publish date over a subtle `cover_style` pattern). `Cache-Control: public, max-age=3600` with an ETag; 404 / 410 like pages. |
 | `GET` | `/healthz` | |
+| `GET` | `/api/domains` | `{domains:[domain]}`: the workspace's custom domains with their mounts. A domain is `{domain, status, verified, ssl_status, is_apex, url, dns_instructions:[{type, host, name, value, purpose}], verification?:{state, message}, mounts:[mount], created_at, verified_at, checked_at}`; `status` is `pending`, `active` or `error`. Every domain route answers 404 when the server has no `DOMAINS_PROVIDER`, and 403 for a guest key. |
+| `POST` | `/api/domains` | `{domain}` → 201 with the domain, or 200 with the existing one when this workspace already connected it. 400 for anything that is not a hostname someone can own (IPs, ports, paths, wildcards, byagent's own hosts), 409 `CONFLICT` when another workspace has it, 429 `QUOTA_EXCEEDED` past `LIMIT_DOMAINS_PER_TENANT`. |
+| `GET` | `/api/domains/:domain` | The domain; a pending one is checked again on the way (at most every 15 seconds). Poll this until `status` is `active`. |
+| `DELETE` | `/api/domains/:domain` | 204. Unmounts every page on it and removes it from the edge. |
+| `GET` | `/api/domains/:domain/mounts` | `{domain, mounts:[{domain, path, artifact_id, url, primary, created_at}]}`. |
+| `POST` | `/api/domains/:domain/mounts` | `{path, artifact_id}` → the mount. `path` is `/` (or empty) for the root, else up to five URL-safe segments, none starting with `_`. Mounting at a path that is taken points it at the new page. 50 pages per domain. |
+| `DELETE` | `/api/domains/:domain/mounts?path=/x` | 204. No `path` is the root. |
+| `GET` | `/api/artifacts/:id/primary-domain` | `{id, primary: mount\|null, primary_url, eligible:[mount]}`. |
+| `POST` | `/api/artifacts/:id/primary-domain` | `{domain, path?}` makes that mount primary: `/a/:id/*` then answers 308 to the same path under it (query kept). `{domain: null}` stops. The domain must be `active` (409 otherwise); `path` is needed when the page is mounted twice on it. A private page without a share code is never redirected. |
 
 Errors: `{"error":{"code","message","request_id"}}`. Codes:
 `INVALID_ARGUMENT` 400, `UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404,
@@ -527,6 +536,48 @@ Limits of these protections, worth knowing before storing a key:
   that create other keys, change billing or manage an account): a visitor
   can use whatever the route lets through.
 
+## Custom domains
+
+A workspace can serve its pages on hostnames it owns, at the root
+(`https://docs.example.com/`) or at paths (`/guide`), like here.now's mounts.
+`byagent domain add docs.example.com --page <id> [--path /guide]` connects the
+hostname and prints two DNS records: a CNAME to `DOMAINS_CNAME_TARGET` (an
+ALIAS or flattened CNAME at an apex, or A/AAAA records when
+`DOMAINS_APEX_IPS` is set) and a TXT record `_byagent.<host>` =
+`byagent-verify=<token>`. byagent checks them every minute or so while a domain
+is new, and on every `GET /api/domains/:domain`.
+
+Ownership is the TXT record. Until it is seen the hostname serves nothing and
+is not even sent to the certificate provider, so a name cannot be parked by
+someone who does not control its DNS; one still unverified after seven days is
+removed. Once verified, the provider (below) issues the certificate and the
+domain goes `active`.
+
+On a custom domain a request is matched to the longest mount path and served
+exactly as `/a/<id>/` is: visibility, the share-code, password and
+restricted gates (`_unlock`, `_access/...` under the mount; their cookies
+scoped to the mount and the page's `/c/<id>/` routes), pinned versions under
+`v/<n>/`, `_cover.svg`, proxy routes under `_proxy/`, security headers and the
+comment runtime. The runtime and the viewer comment routes are served on the
+domain itself, same origin, for the pages mounted there only. The domain
+serves nothing else: no API, no dashboard, no other page. Private pages
+nobody outside the workspace can open answer 404 there too. Every
+state-changing request on a custom domain must carry the domain's own
+`Origin` (or `Sec-Fetch-Site: same-origin` when `Origin` is absent or
+`null`), else 403, as on a page host. Views count against the page like any
+other view. A primary domain makes the page's `/a/<id>/` addresses 308 to it;
+it wins over the page-host redirect (`CONTENT_DOMAIN`) for document
+navigations, while frames, images and fetches (`Sec-Fetch-Dest` other than
+`document`) go to the page host when there is one, else stay on the share
+origin, so dashboard previews and embeds keep working.
+
+Providers (`DOMAINS_PROVIDER`): `cloudflare` registers each verified hostname
+as a Cloudflare for SaaS custom hostname on the zone, `fly` asks the Fly app for
+a certificate (the API form of `fly certs add`), `manual` leaves certificates
+to the operator, `none` is for tests and for TLS handled outside byagent.
+Unset turns custom domains off. Setup steps are in
+[deploy/RUNBOOK.md](deploy/RUNBOOK.md#custom-domains-cloudflare-for-saas).
+
 ## Comments runtime
 
 Every served HTML page gets `<script src="/_rt/comments.js" data-artifact="…" data-version="…" defer>`
@@ -597,6 +648,15 @@ it and fails if the checked-in copy is stale.
 | `VARIABLES` | (empty) | `off` turns variables and proxy routes off while keeping `VARIABLES_KEY` set. |
 | `LIMIT_PROXY_PER_IP_PER_HOUR` | `100` | Proxy route calls per client address per hour, across pages. |
 | `LIMIT_PROXY_PER_PAGE_PER_HOUR` | `1000` | Proxy route calls per page per hour, across addresses. |
+| `LIMIT_DOMAINS_PER_TENANT` | `5` | Custom domains per workspace. |
+| `DOMAINS_PROVIDER` | unset, off | `cloudflare`, `fly`, `manual` or `none`. See Custom domains. |
+| `DOMAINS_CNAME_TARGET` | (empty) | Required with a provider: the hostname customers CNAME to, e.g. `domains.byagent.dev`. Defaults to `<FLY_APP_NAME>.fly.dev` for `fly`. |
+| `DOMAINS_APEX_IPS` | (empty) | Comma-separated addresses an apex domain should point A/AAAA records at. Empty tells apex owners to use ALIAS / CNAME flattening. |
+| `DOMAINS_DNS_RESOLVER` | `1.1.1.1:53` | DNS server ownership TXT records are read from, or `system`. |
+| `CLOUDFLARE_API_TOKEN` | (empty) | Required for `cloudflare`: a token with Zone > SSL and Certificates > Edit on the zone. |
+| `CLOUDFLARE_ZONE_ID` | (empty) | Required for `cloudflare`: the zone holding the CNAME target. |
+| `FLY_API_TOKEN` | (empty) | Required for `fly`. |
+| `FLY_APP_NAME` | (empty) | Required for `fly`. |
 
 ## Deploying
 

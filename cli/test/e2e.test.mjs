@@ -67,6 +67,11 @@ before(async () => {
       LIMIT_COMMENTS_PER_MIN: "1000",
       // Turns account variables and proxy routes on (a fixed test key).
       VARIABLES_KEY: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+      // Custom domains with no edge. The resolver is a closed local port, so
+      // no TXT record is ever found and nothing leaves the machine.
+      DOMAINS_PROVIDER: "none",
+      DOMAINS_CNAME_TARGET: "domains.byagent.dev",
+      DOMAINS_DNS_RESOLVER: "127.0.0.1:1",
     },
   });
   for (let i = 0; i < 100; i++) {
@@ -825,4 +830,47 @@ test("vars: set from stdin, list without values, route a page, remove", async ()
   assert.equal(removed.deleted, true);
   assert.equal(run(["vars", "rm", "OPENROUTER_API_KEY", "--json"]).code, 1);
   assert.deepEqual(json(["vars"]).variables, []);
+});
+
+test("domain add, status, mount, unmount, primary and rm", () => {
+  const page = json(["publish", siteDir("<p>on my domain</p>")]);
+  const added = json(["domain", "add", "Docs.Example.com", "--page", page.id, "--path", "/guide", "--primary"]);
+  assert.equal(added.domain, "docs.example.com");
+  assert.equal(added.status, "pending");
+  assert.deepEqual(added.dns_instructions.map((r) => [r.type, r.host]), [["CNAME", "docs"], ["TXT", "_byagent.docs"]]);
+  assert.equal(added.dns_instructions[0].value, "domains.byagent.dev");
+  assert.match(added.note, /not primary yet/);
+  assert.equal(added.mounts.length, 1);
+  assert.equal(added.mounts[0].path, "/guide");
+  assert.equal(added.mounts[0].url, "http://docs.example.com/guide/"); // the scheme follows PUBLIC_SHARE_ORIGIN
+
+  // Adding again is harmless and keeps the same TXT value.
+  const again = json(["domain", "add", "docs.example.com"]);
+  assert.equal(again.dns_instructions[1].value, added.dns_instructions[1].value);
+
+  const human = run(["domain", "docs.example.com"]);
+  assert.equal(human.code, 0, human.stderr);
+  assert.match(human.stdout, /docs\.example\.com  pending/);
+  assert.match(human.stdout, /_byagent\.docs/);
+  assert.match(human.stdout, /serves .* at http:\/\/docs\.example\.com\/guide\//);
+
+  const list = json(["domains"]);
+  assert.deepEqual(list.domains.map((d) => d.domain), ["docs.example.com"]);
+  assert.equal(json(["get", page.id]).domains[0].domain, "docs.example.com");
+
+  // Primary needs an active domain; this one never verifies here.
+  const primary = run(["domain", "primary", page.id, "docs.example.com", "--json"]);
+  assert.equal(primary.code, 1);
+  assert.equal(JSON.parse(primary.stderr).error.code, "CONFLICT");
+  assert.equal(json(["domain", "primary", page.id, "--off"]).primary, null);
+
+  const bad = run(["domain", "add", "127.0.0.1", "--json"]);
+  assert.equal(JSON.parse(bad.stderr).error.code, "INVALID_ARGUMENT");
+  assert.equal(run(["domain", "add", "x.example.com", "--path", "/x"]).code, 2);
+  assert.equal(run(["domain"]).code, 2);
+
+  assert.deepEqual(json(["domain", "unmount", "docs.example.com", "--path", "/guide"]), { domain: "docs.example.com", path: "/guide", unmounted: true });
+  assert.deepEqual(json(["domain", "rm", "docs.example.com"]), { domain: "docs.example.com", removed: true });
+  const gone = run(["domain", "docs.example.com", "--json"]);
+  assert.equal(JSON.parse(gone.stderr).error.code, "NOT_FOUND");
 });

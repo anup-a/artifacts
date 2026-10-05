@@ -32,6 +32,9 @@ func NewHandler(d Deps) (http.Handler, error) {
 	if d.Mail == nil {
 		d.Mail = auth.MailerFor(d.Cfg.EmailProvider, d.Cfg.ResendAPIKey, d.Cfg.EmailFrom)
 	}
+	if d.DomainLimiter == nil {
+		d.DomainLimiter = ratelimit.NewWindow(20, time.Hour)
+	}
 	s := &server{Deps: d}
 	if d.Cfg.AdminToken != "" {
 		k, err := ensureAdminKey(d)
@@ -100,7 +103,11 @@ func NewHandler(d Deps) (http.Handler, error) {
 		Routes: routes,
 		Pages:  s.pages(),
 	}
+	if d.Domains != nil {
+		sh.Primary = d.Domains.PrimaryURL
+	}
 	sh.Register(mux)
+	s.registerDomains(mux)
 	// The pages written for agents and crawlers: /agents, /llms.txt,
 	// /robots.txt, /sitemap.xml and the rest. Public, no key.
 	(&agents.Handler{Cfg: d.Cfg, GuidePage: d.WebGuide}).Register(mux)
