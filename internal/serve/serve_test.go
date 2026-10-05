@@ -66,7 +66,7 @@ func fixture(t *testing.T) (*httptest.Server, store.Store, string) {
 	mux := http.NewServeMux()
 	viewsSeen = nil
 	h := &Handler{Store: st, Blobs: bl, Runtime: []byte("console.log(1)"), ShareOrigin: "http://share.test",
-		OnView: func(id string) { viewsSeen = append(viewsSeen, id) }}
+		OnView: func(r *http.Request, id, path string) { viewsSeen = append(viewsSeen, id+" "+path) }}
 	h.Register(mux)
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)

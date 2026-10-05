@@ -111,10 +111,10 @@
           </tr>
           <tr>
             <td>Page view counts</td>
-            <td>One total per page per day. Nothing about the visitor.</td>
+            <td>Per page, per day: how many views and how many different visitors, and how those views split by the site the visitor came from (its host name only, such as news.ycombinator.com), country (when our network provider supplies it), path within the page and device type (desktop, mobile or tablet). The same counts per hour for the last two days. No cookies, no IP addresses, no user agents and nothing that identifies a visitor are stored. To tell visitors apart within one day, the server keeps a keyed hash of the IP address and browser string in memory only. The key is random, changes every UTC day and is never written down, so the hash cannot be linked back to a visitor or across days. Bots, link previews and the owner's own previews in the dashboard are not counted.</td>
             <td>Show owners how their pages are used.</td>
             <td>Legitimate interests, 6(1)(f)</td>
-            <td>As long as the page record exists.</td>
+            <td>Daily counts: as long as the page exists. Hourly counts: 2 days. The in-memory hashes: until the end of the UTC day or a server restart.</td>
           </tr>
           <tr>
             <td>Analytics on byagent.dev and the dashboard</td>
@@ -145,7 +145,7 @@
     <h3>What published pages load</h3>
     <p>A published page is HTML its owner wrote. Its policy lets it load scripts from cdnjs.cloudflare.com and cdn.jsdelivr.net, fonts from Google Fonts, and images from any HTTPS address. When a page does that, your browser requests those files from those providers directly, and they see your IP address as with any website. We do not control what a page owner loads.</p>
     <h3>IP addresses and logs</h3>
-    <p>Our application logs record errors, not visitors, and do not contain IP addresses. They also note each request from a known AI crawler or search bot, such as GPTBot, ClaudeBot or Googlebot: the bot's name and the page it fetched, so we can see which pages answer engines read. Every request passes through Fly.io's proxy on the way to our server, and Fly.io processes connection data to deliver it.</p>
+    <p>Our application logs record errors, not visitors, and do not contain IP addresses. Page view counting reads the IP address only to form the in-memory daily hash described under “Page view counts”. They also note each request from a known AI crawler or search bot, such as GPTBot, ClaudeBot or Googlebot: the bot's name and the page it fetched, so we can see which pages answer engines read. Every request passes through Fly.io's proxy on the way to our server, and Fly.io processes connection data to deliver it.</p>
   </section>
 
   <section id="cookies">
@@ -176,7 +176,7 @@
   <section id="retention">
     <h2>Retention and deletion</h2>
     <ul>
-      <li><b>Deleting a page</b> (<code>byagent delete</code>, or Delete on the dashboard) is permanent and needs no email. It takes the page offline at once and erases its title, labels, versions, comments and daily view counts straight away. Its files are erased from storage within a day. Only the page id is kept, so the old link says the page is gone and the id is never reused.</li>
+      <li><b>Deleting a page</b> (<code>byagent delete</code>, or Delete on the dashboard) is permanent and needs no email. It takes the page offline at once and erases its title, labels, versions, comments and view counts straight away. Its files are erased from storage within a day. Only the page id is kept, so the old link says the page is gone and the id is never reused.</li>
       <li><b>Guest pages</b>, published without an account, are erased the same way 24 hours after the guest key was made, unless someone signs in and keeps them first.</li>
       <li><b>Deleting your account</b> is done by email too, within 30 days. It removes your account, your workspace, its pages and keys.</li>
       <li><b>Backups.</b> Fly.io takes a daily snapshot of the storage volume and keeps each one for 5 days, so erased data is gone from backups 5 days later.</li>

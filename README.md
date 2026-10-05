@@ -91,6 +91,26 @@ for the current and previous calendar months in UTC. Views count current-page
 open comments use the month cutoff; previous totals reflect retained data, so
 pruned versions cannot be reconstructed.
 
+Each artifact's detail page has a Views card: views and unique visitors over
+24 hours, 7, 30 or 90 days or all time, a small bar chart (hourly for 24h),
+and the top referrers, countries, paths and devices; the artifacts list shows
+each page's views over the last 30 days. A view is a GET for an HTML page of
+the current version that the server actually served (200 or 304, after any
+share-code gate) to a browser: `Accept` must include `text/html` and the user
+agent must look like a browser and not like a crawler, link previewer,
+monitor, headless browser or HTTP library. HEAD, prefetches, assets, pinned
+versions, the owner's `/app/view` and the dashboard preview frame (marked
+`?byagent_preview=1`) are not counted. No cookies are set and no IP address
+or user agent is stored. Unique visitors are counted in memory with an HMAC
+of the client address and user agent under a random key that is replaced at
+the start of every UTC day and never persisted, so a visitor counts once per
+page per day, a range adds up the days, and a restart forgets the day's set.
+Referrers are reduced to a host name; country comes from Cloudflare's
+`CF-IPCountry` only when `TRUST_PROXY_HEADERS=true`. Each page keeps at most
+50 values per day per breakdown and folds the rest into `(other)`. Daily rows
+are kept for the life of the page, hourly rows for 48 hours; delete erases
+all of them.
+
 ## CLI
 
 The `cli/` directory is the CLI package, published to npm as
@@ -121,6 +141,7 @@ byagent publish ./site --title "Hello" --json
 | `reply <id> <thread> "<text>"` | Posts an owner reply on a thread |
 | `resolve <id> <thread>` | Marks a thread resolved |
 | `delete <id>` | Soft-deletes the artifact; the URL stops working |
+| `analytics [<id>] [--range 24h\|7d\|30d\|90d\|all]` | Views and unique visitors of one page, or of every page in the workspace without an id, over the range (default `30d`): a per-day series (per hour for `24h`), top referrers, countries, paths and devices, and the top pages for the workspace |
 | `hooks install\|uninstall claude\|codex [--scope user\|project]` | Adds (or removes) a PostToolUse hook in Claude Code or Codex that nudges the agent to publish, or republish, `.html` and `.md` pages it writes. It never publishes by itself; once per file, five per session at most; `BYAGENT_NUDGE=0` silences it |
 
 Config comes from `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else
@@ -218,6 +239,8 @@ take no auth; the artifact id is the capability.
 | `GET` | `/api/projects` | `{projects:[{name,count}]}`: the workspace's project labels with live artifact counts, most used first. |
 | `DELETE` | `/api/artifacts/:id` | Soft delete; page returns 410; blobs GC'd later. |
 | `GET` | `/api/artifacts/:id/versions` | `{id, current_version, versions:[{version, created_at, bytes, files, comment_count, agent, model, key, current, restored_at, url, preview_url}]}`, oldest first. `url` is the pinned address (`/a/:id/v/:n/` for a public page, the signed-in viewer for a private one). `preview_url` is `<PUBLIC_API_ORIGIN>/app/view/:id/v/:n/`: it opens that version only for a signed-in member of the owning workspace, sandboxed and never counted as a view. It is `null` for guest keys and on servers without sign-in. |
+| `GET` | `/api/artifacts/:id/analytics?range=24h\|7d\|30d\|90d\|all` | `{id, url, range, bucket, from, to, first_view_day, totals:{all_time_views, range_views, range_visitors}, series:[{bucket, views, visitors}], top_referrers:[{referrer, views}], top_countries:[{country, views}], top_paths:[{path, views}], top_devices:[{device, views}]}`. `range` defaults to `30d`; anything else is 400. `bucket` is `hour` for `24h` (RFC 3339 hour starts) and `day` otherwise (UTC dates), zero-filled. `referrer` is a host, `(direct)` or `(other)`. Visitors are unique per page per day. Guest keys get 403. |
+| `GET` | `/api/analytics?range=...` | The same report across every live page of the workspace, with `top_pages:[{id, title, url, views, visitors}]` and `top_paths` items carrying `id`. Visitors add up per page. |
 | `POST` | `/api/artifacts/:id/share-code` | `{action}`: `issue` or `rotate` for a fresh six-digit code, `revoke` to withdraw it. Returns `{id, visibility, share_code, share_url}`, both null once revoked. Private artifacts only; anything else is 400. |
 | `POST` | `/api/artifacts/:id/versions/:version/restore` | Makes that version live again by pointing the page at it: no files are copied and no version is added. Visibility, share code, expiry, the comments switch, title and labels stay as they are. Returns `{id, url, version, current_version, previous_version, restored_at, visibility, comments_enabled}`. 409 `CONFLICT` if it is already live, 404 if it was deleted or pruned. The next publish takes the next unused number. `POST /api/artifacts/:id/rollback/:version` is the same call. |
 | `DELETE` | `/api/artifacts/:id/versions/:version` | Deletes one version that is not live. Its pinned URL stops answering at once; its files are erased by the hourly GC unless another version or page holds the same bytes. Threads made on it are kept and marked `orphaned`. Returns `{id, deleted_version, current_version, versions_count, orphaned_comments}`. 409 `CONFLICT` for the live version. Version numbers are never reused. |
@@ -296,7 +319,7 @@ it and fails if the checked-in copy is stale.
 | `EMAIL_FROM` | (empty) | Sender for delivered email, for example `artifacts <login@example.com>`. |
 | `PUBLIC_SHARE_ORIGIN` | `http://localhost:8080` | Origin used for generated artifact/comment links and CORS. |
 | `PUBLIC_API_ORIGIN` | `http://localhost:8080` | Origin for API links, `/app/*`, `/p/*`, and the GitHub callback. Keep separate from the share origin when enabling web sign-in. |
-| `TRUST_PROXY_HEADERS` | `false` | Bucket per-IP rate limits by `CF-Connecting-IP` / `X-Forwarded-For` instead of the peer address. Set `true` **only** when the server is reachable exclusively through a proxy that overwrites those headers (the managed box behind Cloudflare does). Leaving it on for a directly-reachable server lets anyone bypass IP rate limits by varying the header. |
+| `TRUST_PROXY_HEADERS` | `false` | Bucket per-IP rate limits by `CF-Connecting-IP` / `X-Forwarded-For` instead of the peer address. Set `true` **only** when the server is reachable exclusively through a proxy that overwrites those headers (the managed box behind Cloudflare does). Leaving it on for a directly-reachable server lets anyone bypass IP rate limits by varying the header. Page analytics also read the visitor address and `CF-IPCountry` from these headers only when it is `true`. |
 | `SHOWCASE_COLLECTION` | (empty) | Share slug of the collection `/showcase` lists (the part after `/s/` in its shared link). Only its public pages show, with their comments. Empty shows an empty showcase. |
 | `SHOWCASE_PAGES` | (empty) | Comma-separated page ids for `/showcase`, in order, from any project. Wins over `SHOWCASE_COLLECTION`. Pages that are gone or not public are skipped. |
 | `LIMIT_VERSION_BYTES` | `26214400` (25 MB) | Max bytes per published version. |

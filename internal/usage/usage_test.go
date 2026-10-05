@@ -12,10 +12,23 @@ import (
 
 type fakeViews struct {
 	store.TenantStore
-	mu    sync.Mutex
-	got   []store.ViewCount
-	fail  bool
-	calls int
+	mu     sync.Mutex
+	got    []store.ViewCount
+	hours  []store.ViewHour
+	facets []store.ViewFacet
+	fail   bool
+	calls  int
+}
+
+func (f *fakeViews) AddViewDetails(_ context.Context, h []store.ViewHour, fc []store.ViewFacet) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.fail {
+		return errors.New("db down")
+	}
+	f.hours = append(f.hours, h...)
+	f.facets = append(f.facets, fc...)
+	return nil
 }
 
 func (f *fakeViews) AddViews(_ context.Context, v []store.ViewCount) error {

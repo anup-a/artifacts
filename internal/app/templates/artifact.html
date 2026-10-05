@@ -94,13 +94,46 @@
     {{end}}
   </section>
 
+  {{with .Data.Views}}
+  <section class="card" id="views">
+    <div class="views-head">
+      <div class="card-head">
+        <h2>Views</h2>
+        <span class="muted">{{num .AllTime}} all time · bots and your own previews are not counted</span>
+      </div>
+      <nav class="seg" aria-label="Range">{{range .Ranges}}<a href="/app/artifacts/{{$a.ID}}?range={{.}}#views"{{if eq . $.Data.Views.Range}} class="is-on" aria-current="true"{{end}}>{{.}}</a>{{end}}</nav>
+    </div>
+    <div class="views-totals">
+      <div><span class="stat-value">{{num .Views}}</span><span class="stat-sub">views</span></div>
+      <div><span class="stat-value">{{num .Unique}}</span><span class="stat-sub">visitors{{if ne .Range "24h"}}, counted per day{{end}}</span></div>
+    </div>
+    {{if .Empty}}
+    <p class="card-empty">No views {{if eq .Range "all"}}yet{{else}}in this range{{end}}. Share the link and they show up here within a minute.</p>
+    {{else}}
+    <svg class="views-chart" viewBox="0 0 600 96" preserveAspectRatio="none" role="img" aria-label="Views per {{if .Hourly}}hour{{else}}day{{end}}, {{.From}} to {{.To}}">
+      {{range .Bars}}<rect x="{{printf "%.2f" .X}}" y="{{printf "%.2f" .Y}}" width="{{printf "%.2f" .W}}" height="{{printf "%.2f" .H}}" rx="1"><title>{{.Title}}</title></rect>{{end}}
+      <line x1="0" y1="95.5" x2="600" y2="95.5"></line>
+    </svg>
+    <div class="views-axis"><span>{{.From}}</span><span>{{.To}}</span></div>
+    {{if .HasLists}}
+    <div class="views-lists">
+      {{if .Referrers}}<div><h3>Referrers</h3><ul>{{range .Referrers}}<li><span class="truncate">{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
+      {{if .Countries}}<div><h3>Countries</h3><ul>{{range .Countries}}<li><span>{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
+      {{if .Paths}}<div><h3>Pages</h3><ul>{{range .Paths}}<li><span class="truncate mono">{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
+      {{if .Devices}}<div><h3>Devices</h3><ul>{{range .Devices}}<li><span>{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
+    </div>
+    {{end}}
+    {{end}}
+  </section>
+  {{end}}
+
   <section class="card preview-card">
     <div class="card-head">
       <h2>Preview</h2>
       <span class="muted">Current version, as viewers see it</span>
     </div>
     <div class="preview-frame">
-      <iframe src="{{.Data.URL}}" title="Preview of {{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" sandbox="allow-scripts allow-forms allow-popups" loading="lazy" referrerpolicy="no-referrer"></iframe>
+      <iframe src="{{.Data.PreviewURL}}" title="Preview of {{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" sandbox="allow-scripts allow-forms allow-popups" loading="lazy" referrerpolicy="no-referrer"></iframe>
     </div>
   </section>
 

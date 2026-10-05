@@ -29,9 +29,12 @@ type Handler struct {
 	// APIOrigin hosts the dashboard, which previews published pages in an
 	// iframe. It is the only origin besides the share origin allowed to frame.
 	APIOrigin string
-	// OnView, when set, is called once per page view of an artifact's current
-	// index.html (200 or 304). Pinned versions and assets do not count.
-	OnView func(artifactID string)
+	// OnView, when set, is called once per request that served an HTML page
+	// of an artifact's current version (200 or 304) to anyone but the owner
+	// in the dashboard. Gates, pinned versions and assets never reach it.
+	// path is the file within the version, such as "index.html"; the hook
+	// decides whether the request is a person (see usage.Counter.Record).
+	OnView func(r *http.Request, artifactID, path string)
 	// Gate renders the page that asks a viewer for an artifact's share code.
 	// Nil leaves code-shared artifacts reachable only by the one-click link.
 	Gate func(w http.ResponseWriter, r *http.Request, g GateView)
@@ -224,8 +227,8 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		etag = etag[:len(etag)-1] + "-by" + `"`
 	}
 	w.Header().Set("ETag", etag)
-	if !pinnedReq && p == "index.html" && h.OnView != nil {
-		h.OnView(id)
+	if !pinnedReq && isHTML && !isPrivateViewer(r) && h.OnView != nil {
+		h.OnView(r, id, p)
 	}
 	h.artifactCacheHeaders(w, r)
 	if r.Header.Get("If-None-Match") == etag {

@@ -50,6 +50,8 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("GET /api/artifacts/{id}/diff", s.withAuth(s.diffVersions))
 	mux.HandleFunc("POST /api/artifacts/{id}/share-code", s.withAuth(s.setShareCode))
 	mux.HandleFunc("POST /api/artifacts/{id}/expiry", s.withAuth(s.setExpiry))
+	mux.HandleFunc("GET /api/artifacts/{id}/analytics", s.withAuth(s.artifactAnalytics))
+	mux.HandleFunc("GET /api/analytics", s.withAuth(s.accountAnalytics))
 	mux.HandleFunc("POST /c/{id}/comments", noStore(s.viewerCreateThread))
 	mux.HandleFunc("GET /c/{id}/comments", noStore(s.viewerList))
 	mux.HandleFunc("GET /c/{id}/meta", noStore(s.viewerMeta))

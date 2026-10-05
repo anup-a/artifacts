@@ -11,6 +11,7 @@ import { whoami, portalLink } from "./commands/account.js";
 import { hooks } from "./commands/hooks.js";
 import { brief } from "./commands/brief.js";
 import { version, diff } from "./commands/artifacts.js";
+import { analytics } from "./commands/analytics.js";
 
 // needsConfig is false for login, which builds its own config from its flags.
 const COMMANDS = {
@@ -35,6 +36,7 @@ const COMMANDS = {
   mark: { run: mark, needsConfig: true },
   hooks: { run: hooks, needsConfig: false },
   brief: { run: brief, needsConfig: true },
+  analytics: { run: analytics, needsConfig: true },
 };
 
 const help = (api) => `byagent - publish a page, share the URL, read the comments on it
@@ -67,6 +69,7 @@ Usage:
   byagent delete <id>
   byagent hooks install|uninstall claude|codex [--scope user|project]
   byagent brief [push [--private|--public] [--project <name>]]
+  byagent analytics [<id>] [--range 24h|7d|30d|90d|all]
 
 A .md file (or a directory whose index is index.md / README.md) is rendered to
 a styled page on the way in; its first H1 becomes the title unless --title is
@@ -153,6 +156,13 @@ into the collection, tagged brief, updating the same page every time; a new
 brief starts private. An unchanged file is not sent again. Briefs are for the
 next agent or person to pick the work up: push one when the work changes
 state (started, blocked, handed off, done), not after every turn.
+analytics shows how many people viewed a page (with an id) or every page in
+the workspace (without) over --range (default 30d): views, unique visitors,
+a daily series (hourly for 24h), and the top referrers, countries, paths
+and devices; the workspace report adds the top pages. Bots, link previews,
+HEAD requests, assets and the dashboard preview are not counted. Visitors
+are counted per page per day from a hash that changes daily and is never
+stored, so a range's visitors add up the days. No cookies are used.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.

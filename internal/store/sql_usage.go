@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+// notDeleted skips views buffered for a page that was deleted, and erased,
+// before the flush. It takes the artifact id as its one argument.
+const notDeleted = `NOT EXISTS (SELECT 1 FROM artifacts WHERE id=? AND deleted_at IS NOT NULL)`
+
 // AddViews commits an entire flush together, so a failed batch can be retried.
 func (s *sqlStore) AddViews(ctx context.Context, views []ViewCount) error {
 	if len(views) == 0 {
@@ -16,8 +20,8 @@ func (s *sqlStore) AddViews(ctx context.Context, views []ViewCount) error {
 	}
 	defer tx.Rollback()
 	for _, v := range views {
-		if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO artifact_views(artifact_id,day,count) VALUES (?,?,?)
-			ON CONFLICT (artifact_id,day) DO UPDATE SET count=artifact_views.count+excluded.count`), v.ArtifactID, v.Day, v.Count); err != nil {
+		if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO artifact_views(artifact_id,day,count,visitors) SELECT ?,?,?,? WHERE `+notDeleted+`
+			ON CONFLICT (artifact_id,day) DO UPDATE SET count=artifact_views.count+excluded.count, visitors=artifact_views.visitors+excluded.visitors`), v.ArtifactID, v.Day, v.Count, v.Visitors, v.ArtifactID); err != nil {
 			return err
 		}
 	}

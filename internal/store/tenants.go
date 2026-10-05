@@ -43,6 +43,76 @@ type ArtifactFilter struct {
 type ViewCount struct {
 	ArtifactID, Day string
 	Count           int64
+	// Visitors is how many of the views came from a visitor not seen on
+	// that page earlier the same day.
+	Visitors int64
+}
+
+// ViewHour is one hour's views of a page, Hour as "2006-01-02T15" in UTC.
+type ViewHour struct {
+	ArtifactID, Hour string
+	Views, Visitors  int64
+}
+
+// Facet kinds: what a view is broken down by.
+const (
+	FacetReferrer = "referrer"
+	FacetCountry  = "country"
+	FacetPath     = "path"
+	FacetDevice   = "device"
+)
+
+// FacetOther collects the views of values past a day's cap.
+const FacetOther = "(other)"
+
+// FacetCap is how many distinct values one page keeps per day and kind
+// before the rest are folded into FacetOther.
+const FacetCap = 50
+
+// ViewFacet counts one day's views of a page with one value of a facet.
+type ViewFacet struct {
+	ArtifactID, Day, Kind, Value string
+	Views                        int64
+}
+
+// AnalyticsQuery selects the views a report covers: one page, or every live
+// page of a tenant when ArtifactID is empty. Days are "2006-01-02" and hours
+// "2006-01-02T15", From inclusive and To exclusive. Hourly reads the series
+// and totals from the hour rows; facets always come from day rows.
+type AnalyticsQuery struct {
+	TenantID, ArtifactID string
+	FromDay, ToDay       string
+	FromHour, ToHour     string
+	Hourly               bool
+	// Top caps each ranked list.
+	Top int
+}
+
+type AnalyticsPoint struct {
+	Bucket          string
+	Views, Visitors int64
+}
+
+type FacetCount struct {
+	ArtifactID, Value string
+	Views             int64
+}
+
+type PageViews struct {
+	ArtifactID, Title, Visibility string
+	Views, Visitors               int64
+}
+
+// Analytics is a report. Series holds only buckets with views, in order;
+// callers fill the gaps.
+type Analytics struct {
+	AllTimeViews                         int64
+	FirstDay                             string
+	Views, Visitors                      int64
+	Series                               []AnalyticsPoint
+	Referrers, Countries, Paths, Devices []FacetCount
+	// Pages ranks a tenant's pages; empty for a one-page report.
+	Pages []PageViews
 }
 type MonthUsage struct {
 	Month                                            time.Time
@@ -63,6 +133,14 @@ type TenantStore interface {
 	EndUserByID(context.Context, string, string) (EndUser, error)
 	EndUsers(context.Context, string) ([]EndUser, error)
 	AddViews(context.Context, []ViewCount) error
+	// AddViewDetails adds hour rows and facet rows in one transaction,
+	// folding facet values past FacetCap into FacetOther.
+	AddViewDetails(context.Context, []ViewHour, []ViewFacet) error
+	// PruneViewHours drops hour rows before the given "2006-01-02T15".
+	PruneViewHours(context.Context, string) error
+	Analytics(context.Context, AnalyticsQuery) (Analytics, error)
+	// ViewTotals sums views per page since a day, for the page list.
+	ViewTotals(ctx context.Context, ids []string, fromDay string) (map[string]int64, error)
 	Usage(context.Context, string, time.Time) (MonthUsage, error)
 	DeleteExpiredCredentials(context.Context, time.Time) error
 }

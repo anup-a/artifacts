@@ -28,7 +28,7 @@ var sitePages = map[string][]string{
 		"International transfers", "Retention and deletion", "Your rights", "Children", "Contact",
 		"byagent is operated by Anup Aglawe", "Controller for account and site data", "Processor for page content and reader comments",
 		"Legal basis", "6(1)(b)", "6(1)(f)",
-		"We do not store reader IP addresses", "One total per page per day",
+		"We do not store reader IP addresses", "how many different visitors", "changes every UTC day and is never written down",
 		"Google Analytics", "There is no cookie banner today", "does not run on published pages",
 		"cdnjs.cloudflare.com", "cdn.jsdelivr.net", "Google Fonts",
 		"artifacts_session", "artifact_unlock_", "_ga",
@@ -60,7 +60,7 @@ var sitePages = map[string][]string{
 		"No SOC 2", "One region and one machine", "shares the byagent.dev origin with every other public page",
 	},
 	"/subprocessors": {
-		"Subprocessors", "Last updated 4 October 2026",
+		"Subprocessors", "Last updated 5 October 2026",
 		"Fly.io", "Hosting: compute and storage", "Singapore region",
 		"Resend", "Delivering sign-in emails",
 		"GitHub", "only if you choose GitHub",
@@ -129,7 +129,7 @@ func TestPoliciesCarryDateVersionAndSummary(t *testing.T) {
 	e := siteEnv(t)
 	for _, path := range []string{"/privacy", "/terms", "/security", "/subprocessors", "/acceptable-use"} {
 		body := e.getHost("share.test", path).Body
-		for _, want := range []string{"Effective 4 October 2026", "Version v1.2", `class="lp-summary"`, "In short"} {
+		for _, want := range []string{"Effective 5 October 2026", "Version v1.3", `class="lp-summary"`, "In short"} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s: missing %q", path, want)
 			}
