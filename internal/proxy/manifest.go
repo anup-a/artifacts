@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -42,6 +43,8 @@ const (
 	// the work of redacting them from the answer.
 	MaxVarsPerRoute = 4
 	maxBodyRules    = 20
+	// maxAllowedFields bounds a route's allow_only list.
+	maxAllowedFields = 64
 	// MaxLimitPerHour is the most an owner may write in limit_per_hour; the
 	// server's own per-page limit still applies on top.
 	MaxLimitPerHour = 1_000_000
@@ -72,10 +75,14 @@ type Route struct {
 // BodyRules constrain top-level fields of a JSON request body. Pin sets a
 // field to a fixed value whatever the caller sent ("model": the one the owner
 // pays for). Max caps a number, and sets it when the caller left it out
-// ("max_tokens": 1024).
+// ("max_tokens": 1024). Without AllowOnly every other field passes as the
+// caller sent it ("n", "max_completion_tokens", "tools"...). AllowOnly, when
+// present (even empty), is strict mode: a body with a top-level field that is
+// not pinned, capped or listed is refused.
 type BodyRules struct {
-	Pin map[string]json.RawMessage `json:"pin"`
-	Max map[string]float64         `json:"max"`
+	Pin       map[string]json.RawMessage `json:"pin"`
+	Max       map[string]float64         `json:"max"`
+	AllowOnly []string                   `json:"allow_only"`
 }
 
 // Manifest is a parsed .byagent/proxy.json.
@@ -236,11 +243,19 @@ func parseRoute(name string, body json.RawMessage, reserved []string) (Route, er
 }
 
 func checkBodyRules(b *BodyRules) error {
-	if len(b.Pin)+len(b.Max) == 0 {
-		return errors.New(`give "pin" and/or "max", for example {"pin": {"model": "x"}, "max": {"max_tokens": 1024}}`)
+	if len(b.Pin)+len(b.Max) == 0 && b.AllowOnly == nil {
+		return errors.New(`give "pin", "max" and/or "allow_only", for example {"pin": {"model": "x"}, "max": {"max_tokens": 1024}, "allow_only": ["messages"]}`)
 	}
 	if len(b.Pin)+len(b.Max) > maxBodyRules {
 		return fmt.Errorf("more than %d rules", maxBodyRules)
+	}
+	if len(b.AllowOnly) > maxAllowedFields {
+		return fmt.Errorf("allow_only lists more than %d fields", maxAllowedFields)
+	}
+	for _, k := range b.AllowOnly {
+		if k == "" || len(k) > 128 {
+			return errors.New("field names are 1 to 128 characters")
+		}
 	}
 	for k, v := range b.Pin {
 		if k == "" || len(k) > 128 {
@@ -438,12 +453,26 @@ func CleanSub(escaped string) (string, bool) {
 }
 
 // ApplyBody enforces a route's body rules on a request body. The body must be
-// a JSON object; pinned fields are set, capped numbers are lowered (or set
-// when absent). It returns the body to send.
+// a JSON object; in strict mode (AllowOnly set) it may hold only pinned,
+// capped and listed fields; pinned fields are set, capped numbers are lowered
+// (or set when absent). It returns the body to send.
 func (b *BodyRules) ApplyBody(raw []byte) ([]byte, error) {
 	var obj map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &obj); err != nil || obj == nil {
 		return nil, errors.New("the request body must be a JSON object")
+	}
+	if b.AllowOnly != nil {
+		for k := range obj {
+			if _, ok := b.Pin[k]; ok {
+				continue
+			}
+			if _, ok := b.Max[k]; ok {
+				continue
+			}
+			if !slices.Contains(b.AllowOnly, k) {
+				return nil, fmt.Errorf("field %q is not allowed by this route", truncate(k, 64))
+			}
+		}
 	}
 	for k, v := range b.Pin {
 		obj[k] = v
@@ -471,4 +500,12 @@ func Expand(tmpl string, vals map[string]string) string {
 	return varRefRe.ReplaceAllStringFunc(tmpl, func(m string) string {
 		return vals[varRefRe.FindStringSubmatch(m)[1]]
 	})
+}
+
+// truncate shortens s to at most n bytes for an error message.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
