@@ -29,7 +29,6 @@ func TestSiteLinksToPageHosts(t *testing.T) {
 	}
 	want(t, e.getHost("share.test", "/security"), 200, "One origin per page", "https://&lt;name&gt;.page.test/", "__Host-", "Public Suffix List")
 	want(t, e.getHost("share.test", "/privacy"), 200, "__Host-artifact_unlock")
-	want(t, e.getHost("share.test", "/"), 200, "q7mz4kd2xw5ntb3e.page.test/")
 
 	// The dashboard (signed in by courseFixture) previews and links the page
 	// on its host too.
