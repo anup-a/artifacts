@@ -39,8 +39,7 @@ func (h *Handler) claimPage(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
 	v, err := h.load(r.Context(), w, r)
 	if errors.Is(err, auth.ErrNoSession) {
-		http.SetCookie(w, &http.Cookie{Name: claimCookie, Value: code, Path: "/app", MaxAge: 3600,
-			HttpOnly: true, Secure: auth.SecureOrigin(h.Cfg.APIOrigin), SameSite: http.SameSiteLaxMode})
+		h.setAppCookie(w, claimCookie, code, 3600)
 		http.Redirect(w, r, "/app/login", http.StatusFound)
 		return
 	}
@@ -81,12 +80,33 @@ func (h *Handler) claim(w http.ResponseWriter, r *http.Request, v *viewer) {
 
 // resumeClaim sends someone who just signed in back to the claim link they
 // opened signed out. It reports whether it redirected.
-func resumeClaim(w http.ResponseWriter, r *http.Request) bool {
-	c, err := r.Cookie(claimCookie)
-	if err != nil || c.Value == "" || len(c.Value) > 256 {
+func (h *Handler) resumeClaim(w http.ResponseWriter, r *http.Request) bool {
+	v := h.appCookie(r, claimCookie)
+	if v == "" || len(v) > 256 {
 		return false
 	}
-	http.SetCookie(w, &http.Cookie{Name: claimCookie, Value: "", Path: "/app", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode})
-	http.Redirect(w, r, "/app/claim/"+c.Value, http.StatusFound)
+	h.setAppCookie(w, claimCookie, "", -1)
+	http.Redirect(w, r, "/app/claim/"+v, http.StatusFound)
 	return true
+}
+
+// setAppCookie writes one of the dashboard's short-lived cookies on the
+// account origin: __Host- prefixed, Secure, Path=/ and host-only over https
+// (auth.HostCookie), so a page on a sibling host cannot plant one. maxAge -1
+// clears it.
+func (h *Handler) setAppCookie(w http.ResponseWriter, base, value string, maxAge int) {
+	secure := auth.SecureOrigin(h.Cfg.APIOrigin)
+	name, path := auth.HostCookie(base, secure)
+	http.SetCookie(w, &http.Cookie{Name: name, Value: value, Path: path, MaxAge: maxAge,
+		HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode})
+}
+
+// appCookie reads one of them, "" when absent.
+func (h *Handler) appCookie(r *http.Request, base string) string {
+	name, _ := auth.HostCookie(base, auth.SecureOrigin(h.Cfg.APIOrigin))
+	c, err := r.Cookie(name)
+	if err != nil {
+		return ""
+	}
+	return c.Value
 }

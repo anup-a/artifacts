@@ -32,11 +32,11 @@ func (s *server) accessView(a store.Artifact) map[string]any {
 	}
 	switch {
 	case a.Visibility != "private" || a.AccessMode != "":
-		out["share_url"] = s.artifactURL(a.ID)
+		out["share_url"] = s.pages().Page(a.ID, a.Slug)
 	case a.ShareCode != "":
 		// The code is a credential: like getArtifact, only this single read
 		// by id carries it.
-		out["share_url"] = serve.ShareURL(s.Cfg.ShareOrigin, a.ID, a.ShareCode)
+		out["share_url"] = s.pages().Share(a.ID, a.Slug, a.ShareCode)
 		out["share_code"] = a.ShareCode
 		out["share_code_expires_at"] = a.ShareCodeExpiresAt
 	}
@@ -249,7 +249,7 @@ func (s *server) sendInvites(w http.ResponseWriter, r *http.Request) {
 			failed = append(failed, inviteFailure{Email: email, Error: "rate_limited"})
 			continue
 		}
-		if err := s.Mail.SendMail(r.Context(), email, "A page was shared with you on byagent", inviteText(s.artifactURL(a.ID))); err != nil {
+		if err := s.Mail.SendMail(r.Context(), email, "A page was shared with you on byagent", inviteText(s.pages().Page(a.ID, a.Slug))); err != nil {
 			failed = append(failed, inviteFailure{Email: email, Error: "send_failed"})
 			continue
 		}

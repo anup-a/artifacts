@@ -33,7 +33,7 @@ func TestOwnerPreviewOfAPublicPagesOldVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := "preview00001"
-	a.ID, a.TenantID, a.CurrentVersion = id, tenant.ID, 0
+	a.ID, a.Slug, a.TenantID, a.CurrentVersion = id, "", tenant.ID, 0
 	if err := st.CreateArtifact(ctx, a); err != nil {
 		t.Fatal(err)
 	}

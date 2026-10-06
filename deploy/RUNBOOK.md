@@ -93,6 +93,139 @@ Fly serves) and starts them on the box. Check counts and a page:
 - The box's disk is not encrypted at rest. Keep the public security page in
   line with that.
 
+## Page hosts ({slug}.byagent.dev)
+
+`CONTENT_DOMAIN=byagent.dev` gives every page its own origin,
+`https://<slug>.byagent.dev/`, so one page's script cannot read another page
+or act with its visitors' unlocks (README: "One origin per page"). The slug
+is 16 lower-case base32 characters. Only a name that is exactly one such
+label is a page host: `byagent.dev`, `www`, `app`, `domains` and every other
+name keep their normal routes, so no new domain is needed. It needs a
+wildcard DNS record and a wildcard certificate. Until `CONTENT_DOMAIN` is set
+the server ignores all of it, so do the DNS and certificate first, check
+them, and only then turn it on.
+
+Because page hosts are same-site with byagent.dev and app.byagent.dev, the
+server also:
+
+- issues the dashboard's cookies host-only with the `__Host-` prefix
+  (`__Host-artifacts_session`: Secure, `Path=/`, no `Domain`), so a page
+  cannot set, shadow or read them. Sessions under the old name
+  (`artifacts_session` at `/app`) that existed before the deploy are moved
+  to the new one on their next request; nobody is signed out.
+- refuses (403) any state-changing request to byagent's own hosts whose
+  `Origin` is a page host, and requires every write on a page host to carry
+  that page's own `Origin`.
+
+Nothing in the server sets `Domain=byagent.dev`, and nothing may: a cookie
+with that attribute would be sent to every page host.
+
+The setting is read at start-up. Unsetting it is the rollback: pages go back
+to `byagent.dev/a/<id>/` at once. Browsers keep the 308 from `/a/<id>/` to the
+page host for up to an hour (`Cache-Control: max-age=3600`), and links
+already handed out as `https://<slug>.byagent.dev/` stop finding their page
+(the host falls through to byagent's own routes). Roll back only for a real
+fault, and leave the DNS and certificate in place. The cookie rename is not
+rolled back by it and does not need to be.
+
+### DNS (Cloudflare zone `byagent.dev`)
+
+Add one wildcard record, `*`, pointing where `byagent.dev` points (next two
+sections). Specific records keep priority over the wildcard in DNS, so
+`app`, `domains` (the custom-domain CNAME target), `_acme-challenge` and any
+other existing name are untouched; the wildcard only answers names that have
+no record of their own. Do not add records for names under it that should
+be pages.
+
+### While on Fly
+
+```
+fly certs add "*.byagent.dev" --app artifacts-share
+fly certs setup "*.byagent.dev" --app artifacts-share   # prints the exact records
+fly ips list --app artifacts-share
+```
+
+In the `byagent.dev` zone, with the same proxy status as the existing
+`byagent.dev` records (DNS only, grey cloud, when Fly terminates TLS):
+
+| Type | Name | Value |
+| --- | --- | --- |
+| `A` | `*` | the app's shared IPv4 (same as byagent.dev) |
+| `AAAA` | `*` | the app's IPv6 |
+| `CNAME` | `_acme-challenge` | the target `fly certs add "*.byagent.dev"` prints, `byagent.dev.<id>.flydns.net` |
+
+A wildcard certificate can only be issued over DNS-01, which is what the
+`_acme-challenge` CNAME is for: it lets Fly answer Let's Encrypt's challenge
+for the zone. Leave it in place, renewals use it. Wait for
+`fly certs check "*.byagent.dev"` to say Issued, then check from outside:
+
+```
+dig +short abcdefghijklmnop.byagent.dev A @1.1.1.1   # Fly's IPv4
+curl -sI https://app.byagent.dev/healthz | head -1    # still 200: specific records win
+```
+
+Turn it on, without a redeploy of new code:
+
+```
+fly secrets set CONTENT_DOMAIN=byagent.dev --app artifacts-share
+```
+
+That restarts the machine (a few seconds). Rollback: `fly secrets unset
+CONTENT_DOMAIN --app artifacts-share`.
+
+### On the VPS (Cloudflare Tunnel)
+
+Cloudflare's free Universal SSL covers `byagent.dev` and `*.byagent.dev`
+(one level, which is all page hosts use), so the edge needs nothing more.
+
+1. Delete the Fly wildcard records above (`A`/`AAAA` for `*`; the
+   `_acme-challenge` CNAME can go once Fly no longer serves the zone).
+2. Zero Trust > Networks > Tunnels > `byagent` > Public hostnames, add
+   `*.byagent.dev` (subdomain `*`) to `http://artifacts:8080`, below the
+   existing specific hostnames. Check that a proxied `CNAME *` to
+   `<tunnel-id>.cfargotunnel.com` exists and add it if the dashboard did not.
+   If the tunnel is ever moved to a local `config.yml`, the same thing reads
+   (specific names first; cloudflared matches rules in order):
+
+   ```yaml
+   ingress:
+     - hostname: byagent.dev
+       service: http://artifacts:8080
+     - hostname: app.byagent.dev
+       service: http://artifacts:8080
+     - hostname: "*.byagent.dev"
+       service: http://artifacts:8080
+     - service: http_status:404
+   ```
+3. `/opt/artifacts/.env`: `CONTENT_DOMAIN=byagent.dev`, then
+   `docker compose up -d` in `/opt/artifacts`. Rollback: empty it and
+   `docker compose up -d`.
+4. Check: `curl -sI https://<slug>.byagent.dev/` (any page's slug, from the
+   API's `url`) answers 200 with a `cf-ray` header;
+   `curl -sI https://byagent.dev/a/<id>/` answers 308 to it;
+   `curl -sI https://app.byagent.dev/app/login` still answers 200.
+
+Cache rules: none are needed, and none may key on host alone. Pages answer
+`Cache-Control: no-cache` so visibility changes take effect, and the 308s
+that carry a share code are `no-store`.
+
+### After it is on
+
+- Publish a page and open it: the URL is `https://<slug>.byagent.dev/`.
+  Leave a comment on it. Open an old `byagent.dev/a/<id>/?k=<code>` link for
+  a private page: it lands on the page host, unlocked.
+- Sign in to the dashboard and check the browser holds
+  `__Host-artifacts_session` on app.byagent.dev only.
+
+### Optional, later: a domain of its own
+
+The server also supports page hosts on a separate registrable domain
+(`CONTENT_DOMAIN=byagent.page`): its apex redirects to byagent.dev and
+other names under it answer 404. Listing such a domain on the Public Suffix
+List would make each page host a site of its own, so SameSite would separate
+pages too. Not planned; the draft request is kept in
+[docs/psl-byagent-page.md](../docs/psl-byagent-page.md) for if it ever is.
+
 ## Validation deployment (Fly)
 
 The cheapest way to put the product in front of real users: one Fly machine,
@@ -112,7 +245,9 @@ Pages live on the apex so a share URL stays short: `byagent.dev/a/<id>/`.
 Because published HTML runs on the parent of the API host, a page that sets a
 cookie scoped to `.byagent.dev` would have it sent to `app.byagent.dev`.
 Dashboard cookies must therefore stay host-only (no `Domain` attribute), which
-is what the server issues today.
+is what the server issues (`__Host-` over https). With `CONTENT_DOMAIN` set
+(see Page hosts above) no page content runs on byagent.dev itself any more:
+`/a/<id>/` only redirects to the page's own host, `<slug>.byagent.dev`.
 
 First time:
 

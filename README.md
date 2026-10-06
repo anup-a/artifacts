@@ -86,8 +86,68 @@ cookie, and stop working when `KEY_SIGNING_SECRET` is rotated.
 
 The web app and portals live on the API origin. Use separate API and share
 origins for web-enabled deployments: published HTML must never share an
-origin with an authenticated dashboard. Sessions use an HttpOnly cookie
-scoped to `/app`, with Secure enabled on HTTPS.
+origin with an authenticated dashboard. Sessions use an HttpOnly,
+SameSite=Lax cookie. Over HTTPS it is `__Host-artifacts_session` (Secure,
+`Path=/`, no `Domain`), so no other host, page hosts under the same domain
+included, can set or overwrite it; the old name (`artifacts_session` at
+`/app`) is still read for sessions that existed before the rename, for one
+release. Over plain http it is `artifacts_session` at `/app`.
+
+### One origin per page (`CONTENT_DOMAIN`)
+
+Without it, every public page is served from the share origin at
+`/a/<id>/`, so one page's script runs in the same origin as every other page:
+it can fetch a page the visitor unlocked, post comments as that visitor, and
+set cookies for the share origin's domain. Set `CONTENT_DOMAIN` and every
+page gets its own origin instead, like GitHub Pages. byagent.dev sets it to
+its own share host, `CONTENT_DOMAIN=byagent.dev`, so pages live at
+`https://<slug>.byagent.dev/`. The slug is 16 random lower-case base32
+characters, unrelated to the id (ids are case-sensitive and DNS is not).
+
+Two layouts work:
+
+- **The share host itself** (`byagent.dev`). Only a name that is exactly one
+  slug label (`<16 base32 chars>.byagent.dev`) is a page host. The apex,
+  `www`, `app`, `domains` and every other name keep their normal routes.
+  Page hosts are same-site with byagent.dev and app.byagent.dev, so the app's
+  own cookies are `__Host-` (host-only, a page cannot plant or read them) and
+  any state-changing request to byagent's own hosts whose `Origin` is a page
+  host is refused with 403.
+- **A domain of its own** (`byagent.page`). It must not overlap the share or
+  API host. Its apex (and `www.`) redirects to the share origin and any other
+  name under it answers 404. Listing it on the Public Suffix List later would
+  make each page host its own site ([draft request](docs/psl-byagent-page.md)).
+
+- A page host serves that page and nothing else: the page at `/`, pinned
+  versions at `/v/<n>/`, the cover at `/_cover.svg`, the share-code form at
+  `/_unlock`, the comment runtime at `/_rt/comments.js` and the page's own
+  comment routes at `/c/<its id>/`. A route naming another page's id answers
+  404, and the API, dashboard and agent pages are not there. `/_proxy/` is
+  the page's proxy routes (same-origin only).
+- `/a/<id>/...` on the share origin 308-redirects to the page host with the
+  sub-path and query kept, so old links and share links (`?k=`) keep working;
+  the code then unlocks on the page host. A private page nobody outside the
+  workspace can open is not redirected (it answers 404 as before). The legacy
+  `/c/<id>/` routes stay on the share origin for old runtimes.
+- Cookies on a page host are host-only: `__Host-artifact_unlock` (Secure,
+  `Path=/`, no `Domain`), HttpOnly, SameSite=Lax. Over plain http (local work)
+  the name drops the prefix.
+- Every page host is same-site with the others (and, under byagent.dev, with
+  byagent's own hosts), so SameSite does not stop one page posting to
+  another with its cookies. Every state-changing request on a page host must
+  carry that page's own `Origin`, or, when `Origin` is absent or `null`,
+  `Sec-Fetch-Site: same-origin`; anything else is refused with 403.
+- Every link the server makes (API `url`, `share_url`, `cover_url`, version
+  `url`, analytics, dashboard, showcase, collections, `og:url`/`og:image`)
+  comes from one helper, `internal/pageurl`. The owner API also accepts a
+  page's slug wherever it takes an id.
+
+Leave it unset and nothing changes: pages stay under `/a/<id>/`. For local
+work, `CONTENT_DOMAIN=http://localhost:8080` (pages at `<slug>.localhost`, the
+byagent.dev layout) or `CONTENT_DOMAIN=http://page.localhost:8080` (a domain
+of its own) next to `PUBLIC_SHARE_ORIGIN=http://localhost:8080` works without
+DNS, since browsers resolve every `*.localhost` name to the machine. DNS, certificates and the
+tunnel for production are in [deploy/RUNBOOK.md](deploy/RUNBOOK.md).
 
 Usage shows publishes, retained version storage, page views, and open comments
 for the current and previous calendar months in UTC. Views count current-page
@@ -188,7 +248,8 @@ returns `share_code` and `share_url` while one is set, and `byagent get <id>`
 prints both. List responses never include it.
 
 There are two ways in, both opening the same artifact and nothing else. The
-link `https://<share origin>/a/<id>/?k=123456` verifies the code, moves it into
+link `https://<share origin>/a/<id>/?k=123456` (with `CONTENT_DOMAIN`,
+`https://<slug>.<content domain>/?k=123456`) verifies the code, moves it into
 a cookie scoped to that artifact, and redirects to the clean URL, so the code
 leaves the address bar and the browser history. Or send the code by itself: the
 artifact's address shows a page asking for it. A viewer who has neither sees
@@ -316,7 +377,7 @@ take no auth; the artifact id is the capability.
 | `POST` | `/c/:id/comments/:thread/seen` | Viewer beacon. `{version, anchor_status}` → 204. Records where the runtime re-anchored the thread; ignored unless `version` is the current one. |
 | `GET` | `/c/:id/comments?status=open\|all&version=n` | What the runtime renders: open threads with raw anchors. The server never resolves anchors; the runtime does. |
 | `GET` | `/c/:id/meta` | Viewer. `{current_version, versions:[n]}` so the runtime can render a version switcher. |
-| `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`, which is served with `og:title`, `og:image` (the cover URL) and `twitter:card` meta tags injected. |
+| `GET` | `/a/:id/*` | Current version. `/a/:id/v/:n/*` pins a version. Directory paths resolve to `index.html`, which is served with `og:title`, `og:image` (the cover URL), `og:url` and `twitter:card` meta tags injected. With `CONTENT_DOMAIN` set these 308 to the page's own host, where the same paths sit at the root (`/`, `/v/:n/`, `/_cover.svg`, `/_unlock`, `/_access/...`). |
 | `POST` | `/a/:id/_unlock` | Gate form: `code` for a share code, or `password` on a password page. 303 to the page with the unlock cookie, or the gate again. |
 | `POST` | `/a/:id/_access/email`, `/a/:id/_access/code` | Restricted gate: ask for a code by `email`, then send `email` and `code`. |
 | `GET`/`POST` | `/a/:id/_access/link?t=` | The mailed link. GET shows a button (so mail scanners do not spend it); the POST spends it and sets the cookie. |
@@ -517,6 +578,7 @@ it and fails if the checked-in copy is stale.
 | `EMAIL_FROM` | (empty) | Sender for delivered email, for example `artifacts <login@example.com>`. |
 | `PUBLIC_SHARE_ORIGIN` | `http://localhost:8080` | Origin used for generated artifact/comment links and CORS. |
 | `PUBLIC_API_ORIGIN` | `http://localhost:8080` | Origin for API links, `/app/*`, `/p/*`, and the GitHub callback. Keep separate from the share origin when enabling web sign-in. |
+| `CONTENT_DOMAIN` | (empty) | Gives every page its own origin, `https://<slug>.<CONTENT_DOMAIN>/` (see [One origin per page](#one-origin-per-page-content_domain)). Either the share host itself (`byagent.dev`: only exact `<slug>.byagent.dev` names are pages) or a domain that does not overlap the share or API host (`byagent.page`). A bare domain takes the share origin's scheme; an origin (`http://page.localhost:8080`) sets scheme and port. Empty keeps pages under `/a/<id>/`. |
 | `TRUST_PROXY_HEADERS` | `false` | Bucket per-IP rate limits by `CF-Connecting-IP` / `X-Forwarded-For` instead of the peer address. Set `true` **only** when the server is reachable exclusively through a proxy that overwrites those headers (the managed box behind Cloudflare does). Leaving it on for a directly-reachable server lets anyone bypass IP rate limits by varying the header. Page analytics also read the visitor address and `CF-IPCountry` from these headers only when it is `true`. |
 | `SHOWCASE_COLLECTION` | (empty) | Share slug of the collection `/showcase` lists (the part after `/s/` in its shared link). Only its public pages show, with their comments. Empty shows an empty showcase. |
 | `SHOWCASE_PAGES` | (empty) | Comma-separated page ids for `/showcase`, in order, from any project. Wins over `SHOWCASE_COLLECTION`. Pages that are gone or not public are skipped. |

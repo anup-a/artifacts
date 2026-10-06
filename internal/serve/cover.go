@@ -18,11 +18,6 @@ import (
 // coverPath is the file name under /a/{id}/ that serves the cover image.
 const coverPath = "_cover.svg"
 
-// CoverURL is the absolute cover address for an artifact on the share origin.
-func CoverURL(shareOrigin, id string) string {
-	return shareOrigin + "/a/" + id + "/" + coverPath
-}
-
 // shareHost is the origin without its scheme, for the cover footer.
 func shareHost(origin string) string {
 	if i := strings.Index(origin, "://"); i >= 0 {

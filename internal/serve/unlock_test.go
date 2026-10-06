@@ -109,7 +109,7 @@ func TestShareCodeOpensByLinkAndByForm(t *testing.T) {
 			paths[c.Path] = true
 		}
 	}
-	for _, want := range unlockCookiePaths(id) {
+	for _, want := range []string{"/a/" + id + "/", "/c/" + id + "/"} {
 		if !paths[want] {
 			t.Fatalf("no unlock cookie for %s, got %v", want, paths)
 		}
@@ -274,7 +274,7 @@ func TestShareCodeDoesNotReachOtherArtifacts(t *testing.T) {
 		t.Fatal(err)
 	}
 	sibling := a
-	sibling.ID = "siblingaaaaa"
+	sibling.ID, sibling.Slug = "siblingaaaaa", ""
 	sibling.CurrentVersion = 0
 	if err := h.Store.CreateArtifact(ctx, sibling); err != nil {
 		t.Fatal(err)

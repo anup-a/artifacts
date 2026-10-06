@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/anup-a/artifacts/internal/pageurl"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -74,9 +75,12 @@ func (d artifactsData) ChipURL(project string) string {
 	return artifactsData{EndUser: d.EndUser, Query: d.Query, Project: project}.PageURL("")
 }
 
-func (h *Handler) shareURL(id string) string {
-	return h.Cfg.ShareOrigin + "/a/" + id + "/"
-}
+// pages builds page addresses: the one helper every link to a published
+// page goes through, so the dashboard agrees with the API and the page.
+func (h *Handler) pages() pageurl.Builder { return pageurl.New(h.Cfg) }
+
+// shareURL is a page's public address.
+func (h *Handler) shareURL(a store.Artifact) string { return h.pages().Page(a.ID, a.Slug) }
 
 // artifactURL keeps private pages on the account origin, where the owner's
 // browser session is available even when public sharing uses another origin.
@@ -84,7 +88,7 @@ func (h *Handler) artifactURL(a store.Artifact) string {
 	if a.Visibility == "private" {
 		return h.Cfg.APIOrigin + "/app/view/" + a.ID + "/"
 	}
-	return h.shareURL(a.ID)
+	return h.shareURL(a)
 }
 
 func (h *Handler) artifactCoverURL(a store.Artifact) string {

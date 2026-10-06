@@ -104,7 +104,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/login/email/verify", h.public(h.emailVerify))
 
 	mux.HandleFunc("GET /app/{$}", h.private(func(w http.ResponseWriter, r *http.Request, _ *viewer) {
-		if resumeClaim(w, r) || resumeConnect(w, r) {
+		if h.resumeClaim(w, r) || h.resumeConnect(w, r) {
 			return
 		}
 		http.Redirect(w, r, "/app/artifacts", http.StatusFound)
@@ -173,11 +173,18 @@ const csp = "default-src 'self'; style-src 'self'; script-src 'self'; frame-ance
 // can show the covers served next to it. When Google Analytics is configured,
 // script-src / connect-src / img-src also allow the GA4 hosts; when the ID is
 // empty the header matches today's policy exactly.
+//
+// With page hosts on (CONTENT_DOMAIN) the previews and covers come from
+// there instead, so every page host is allowed too (https://*.byagent.dev).
 func (h *Handler) csp() string {
-	if h.Cfg.GoogleAnalyticsID == "" {
-		return csp + "; img-src 'self' data: " + h.Cfg.ShareOrigin + "; frame-src 'self' " + h.Cfg.ShareOrigin
+	pages := h.Cfg.ShareOrigin
+	if src := h.pages().Source(); src != "" {
+		pages += " " + src
 	}
-	return "default-src 'self'; style-src 'self'; script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com; frame-ancestors 'none'; img-src 'self' data: " + h.Cfg.ShareOrigin + " https://www.google-analytics.com; frame-src 'self' " + h.Cfg.ShareOrigin + "; connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com"
+	if h.Cfg.GoogleAnalyticsID == "" {
+		return csp + "; img-src 'self' data: " + pages + "; frame-src 'self' " + pages
+	}
+	return "default-src 'self'; style-src 'self'; script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com; frame-ancestors 'none'; img-src 'self' data: " + pages + " https://www.google-analytics.com; frame-src 'self' " + pages + "; connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com"
 }
 
 // headers adds the browser hardening headers to every app response.
@@ -258,7 +265,9 @@ func (h *Handler) GateArtifactAccess(w http.ResponseWriter, r *http.Request, g s
 	case "email":
 		title = "Shared with specific people"
 	}
-	p := page{Title: title, Path: r.URL.Path, CSS: h.static.cssURL, JS: h.static.jsURL, Now: h.Now(), Data: g}
+	// On a page's own host the stylesheet and script come from the share
+	// origin; g.AssetOrigin is empty everywhere else.
+	p := page{Title: title, Path: r.URL.Path, CSS: g.AssetOrigin + h.static.cssURL, JS: g.AssetOrigin + h.static.jsURL, Now: h.Now(), Data: g}
 	var buf bytes.Buffer
 	if err := pages["gate"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
 		http.Error(w, "This artifact needs a code.", status)

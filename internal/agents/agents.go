@@ -17,6 +17,7 @@ import (
 	"text/template"
 
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/pageurl"
 )
 
 //go:embed content/*.md content/*.txt content/*.html
@@ -48,7 +49,12 @@ type Entrypoint struct {
 
 // data is what every template sees. Origins carry no trailing slash.
 type data struct {
-	Share, API  string
+	Share, API string
+	// PageForm is how a published page's address looks on this server
+	// (pageurl.Builder.Form), and PerPage whether pages have hosts of
+	// their own, in which case the id is not in the address.
+	PageForm    string
+	PerPage     bool
 	Tasks       []Task
 	Entrypoints []Entrypoint
 	Limits      config.Limits
@@ -105,7 +111,8 @@ type Handler struct {
 func (h *Handler) Register(mux *http.ServeMux) {
 	share := strings.TrimRight(h.Cfg.ShareOrigin, "/")
 	api := strings.TrimRight(h.Cfg.APIOrigin, "/")
-	h.d = data{Share: share, API: api, Tasks: tasks, Guides: guides, Entrypoints: entrypoints(api), Limits: h.Cfg.Limits, SignIn: h.Cfg.WebEnabled()}
+	pages := pageurl.New(h.Cfg)
+	h.d = data{Share: share, API: api, PageForm: pages.Form(), PerPage: pages.PerPage(), Tasks: tasks, Guides: guides, Entrypoints: entrypoints(api), Limits: h.Cfg.Limits, SignIn: h.Cfg.WebEnabled()}
 	h.md = template.Must(template.New("").ParseFS(contentFS, "content/*.md", "content/*.txt"))
 	h.html = htmltemplate.Must(htmltemplate.New("").ParseFS(contentFS, "content/*.html"))
 

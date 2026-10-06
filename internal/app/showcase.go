@@ -113,7 +113,7 @@ func (h *Handler) showcaseFrom(r *http.Request, list []store.Artifact) ([]showca
 		if a.Visibility != "public" {
 			continue
 		}
-		it := showcaseItem{Artifact: a, URL: h.shareURL(a.ID), CoverURL: h.shareURL(a.ID) + "_cover.svg"}
+		it := showcaseItem{Artifact: a, URL: h.shareURL(a), CoverURL: h.pages().Cover(a.ID, a.Slug)}
 		if a.CommentsEnabled {
 			if it.Threads, it.Total, err = h.showcaseThreads(r, a.ID); err != nil {
 				return nil, err
