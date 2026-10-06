@@ -253,8 +253,11 @@ func TestForwardCapsRequestBodies(t *testing.T) {
 
 func TestForwardTimesOut(t *testing.T) {
 	p, _ := upstream(t, func(w http.ResponseWriter, r *http.Request) {
+		// Stay silent past the deadline: returning the moment the request is
+		// cancelled can race an empty 200 back ahead of the cancellation.
 		select {
 		case <-r.Context().Done():
+			time.Sleep(500 * time.Millisecond)
 		case <-time.After(5 * time.Second):
 		}
 	})
