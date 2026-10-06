@@ -204,7 +204,7 @@ form { margin: 0; }
 .filter-bar .link { margin-left: 6px; }
 
 /* ---- Controls ---------------------------------------------------- */
-input[type=text], input[type=email], input[type=search], textarea, select {
+input[type=text], input[type=email], input[type=search], input[type=password], textarea, select {
   font: inherit; font-size: 13.5px; color: var(--fg); background: var(--panel);
   border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 7px 10px; min-width: 0; width: 100%;
   transition: border-color .12s, box-shadow .12s;
