@@ -847,45 +847,6 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-theme-btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
 .lp-theme-btn .ic { width: 14px; height: 14px; vertical-align: 0; }
 
-/* The hero is one centred column: the screenshot below it is the wide thing
-   on this page, and two wide things fight each other. */
-.lp-hero { max-width: 880px; margin: 0 auto; padding: 96px 0 44px; text-align: center; }
-.lp-h1 { font-size: clamp(38px, 4.6vw, 58px); font-weight: 600; letter-spacing: -0.042em; line-height: 1.04; margin: 0 0 18px; }
-.lp-h1-dim {
-  background: linear-gradient(180deg, light-dark(#6d6d80, #8f8fa0), light-dark(#9c9cae, #4a4a55));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-}
-.lp-tagline { margin: 0 0 16px; font-size: 21px; font-weight: 500; letter-spacing: -0.02em; color: var(--accent); }
-.lp-lead { font-size: 17.5px; line-height: 1.62; color: var(--fg-2); margin: 0 auto 26px; max-width: 56ch; }
-.lp-under { font-size: 13px; margin: 12px 0 0; }
-.lp-under b { font-weight: 600; color: var(--fg); }
-/* The agents it works with, as plain names: no logos we were not given. */
-.lp-works {
-  list-style: none; padding: 0; margin: 22px 0 0;
-  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px;
-  font-size: 13px; color: var(--fg-2);
-}
-.lp-works li { padding: 4px 11px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel); }
-.lp-works .lp-works-label { padding: 0 4px 0 0; border: 0; background: none; color: var(--muted); }
-
-/* The screenshot carries the product, so it stands on the glow and is lit
-   along its top edge, the way a window is lit from above. */
-.lp-shot { margin: 8px 0 0; }
-.lp-shot-stage { position: relative; }
-.lp-shot-stage::after {
-  content: ""; position: absolute; inset: auto 8% -30px; height: 60px;
-  background: radial-gradient(50% 100% at 50% 0%,
-    light-dark(rgba(91,61,245,.16), rgba(167,139,250,.22)), transparent 70%);
-  filter: blur(14px); pointer-events: none;
-}
-.lp-shot img {
-  display: block; height: auto;
-  background: var(--panel-2);
-  border: 1px solid var(--line-strong); border-radius: 14px;
-  box-shadow:
-    0 1px 0 var(--lp-edge) inset,
-    0 40px 80px -30px light-dark(rgba(20,20,45,.28), rgba(0,0,0,.9));
-}
 .lp-shot-main { width: 100%; }
 /* The thread sits over the shelf's corner and hangs off its edge, so the one
    figure says both halves of the claim: where the work is, and what came back. */
@@ -894,17 +855,8 @@ textarea { resize: vertical; line-height: 1.45; }
   border-radius: 12px;
   box-shadow: 0 24px 60px -18px light-dark(rgba(20,20,45,.34), rgba(0,0,0,.95));
 }
-.lp-shot figcaption { margin-top: 48px; text-align: center; font-size: 13px; color: var(--muted); }
 
-/* One still per theme. A <picture> answers only to the system setting, so the
-   control on this page could never reach it; CSS shows the matching one and
-   the other stays lazy, which keeps the browser from fetching it at all. */
-.lp-shot .is-dark { display: none; }
-:root[data-theme="dark"] .lp-shot .is-light { display: none; }
-:root[data-theme="dark"] .lp-shot .is-dark { display: block; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .lp-shot .is-light { display: none; }
-  :root:not([data-theme="light"]) .lp-shot .is-dark { display: block; }
 }
 
 /* Code tokens. Near-monochrome on purpose: one hue for a value you would
@@ -920,11 +872,6 @@ textarea { resize: vertical; line-height: 1.45; }
 /* Numbered, because the two sections are steps in an order: what the loop
    is, then how to start it. */
 .lp-section { padding: 52px 0 0; margin-top: 52px; border-top: 1px solid var(--line); counter-increment: lp-sec; }
-.lp-eyebrow {
-  margin: 0 0 10px; font-size: 11px; font-weight: 600;
-  letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent);
-}
-.lp-eyebrow::before { content: "0" counter(lp-sec) " / "; color: var(--faint); font-variant-numeric: tabular-nums; }
 .lp-h2 { font-size: 30px; font-weight: 600; letter-spacing: -0.03em; margin: 0 0 12px; }
 
 .lp-sub { font-size: 16px; line-height: 1.6; color: var(--fg-2); margin: 0; max-width: 60ch; }
@@ -960,6 +907,13 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-prompt-copy.is-copied .lp-copy-ic { display: none; }
 .lp-prompt-copy.is-copied .lp-copied-ic { display: inline-flex; }
 .lp-prompt-copy .menu-item-text { flex: none; overflow: visible; }
+/* The same line from the site bar, on every public page. */
+.lp-bar-copy { gap: 7px; }
+.lp-bar-copy .lp-copy-ic, .lp-bar-copy .lp-copied-ic { display: inline-flex; }
+.lp-bar-copy .lp-copied-ic, .lp-bar-copy.is-copied .lp-copy-ic { display: none; }
+.lp-bar-copy.is-copied .lp-copied-ic { display: inline-flex; }
+.lp-bar-copy .menu-item-text { flex: none; overflow: visible; }
+@media (max-width: 720px) { .lp-bar-copy { display: none; } }
 
 /* The loop diagram. Hairlines and radii match the cards so it reads as part
    of the interface; the only colour is the accent, on the hub and on the two
@@ -967,109 +921,13 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-chart { margin: 36px 0 8px; }
 .lp-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .lp-chart text { font: 12.5px var(--font); fill: var(--fg-2); dominant-baseline: central; }
-.lp-hub-glow { fill: light-dark(rgba(91,61,245,.16), rgba(167,139,250,.22)); }
-.lp-stop-accent { stop-color: var(--accent); }
-.lp-stop-accent.is-faint { stop-color: var(--line-strong); }
-
-.lp-agent rect, .lp-node rect { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1; }
-.lp-agent text { font-size: 13px; fill: var(--fg); }
-.lp-agent .is-claude { fill: #d97757; }
-.lp-agent .is-codex { fill: var(--fg); }
-.lp-agent .is-cron { fill: var(--ok); }
-.lp-node text { text-anchor: middle; }
-.lp-node .lp-node-title { font-size: 15px; font-weight: 600; fill: var(--fg); letter-spacing: -0.01em; }
-.lp-node .lp-node-sub { font-size: 11.5px; fill: var(--muted); }
-/* Memory is the agent's own, so it is only outlined: there, but not held here. */
-.lp-node.is-memory rect { fill: none; stroke-dasharray: 4 4; }
-.lp-node.is-memory text:first-of-type { fill: var(--fg-2); }
-.lp-plus { text-anchor: middle; fill: var(--faint) !important; font-size: 14px !important; }
-.lp-node.is-hub rect { fill: light-dark(#fbfaff, #14111d); stroke: url(#lp-hub-edge); stroke-width: 1.5; }
-.lp-node.is-hub .lp-node-title { font-size: 19px; }
-.lp-hub-mark { color: var(--accent); }
-.lp-hub-mark use { color: var(--accent); }
-
-.lp-chart-flow { stroke: light-dark(#c6c6d2, #34343e); stroke-width: 1.5; stroke-linecap: round; }
-.lp-chart-return { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 6; stroke-linecap: round; opacity: .85; }
-.lp-arrow-head { fill: none; stroke: light-dark(#c6c6d2, #34343e); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.lp-arrow-head.is-return { stroke: var(--accent); }
-
-.lp-chart-tags rect { fill: var(--bg); stroke: var(--line-strong); stroke-width: 1; }
-.lp-chart-tags text { text-anchor: middle; font-size: 11px; fill: var(--muted); letter-spacing: 0.02em; }
-.lp-chart-tags .is-return rect { stroke: light-dark(rgba(91,61,245,.35), rgba(167,139,250,.4)); }
-.lp-chart-tags .is-return text { fill: var(--accent); }
-
-.lp-chart-dots circle { fill: var(--accent); filter: drop-shadow(0 0 4px var(--accent)); }
 
 /* The dashes drift the way the work travels, slowly enough to read as flow
    rather than as a loading state. */
 @keyframes lp-flow { to { stroke-dashoffset: -22; } }
-.lp-chart-return path { animation: lp-flow 1.6s linear infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .lp-chart-return path { animation: none; }
-  .lp-chart-dots { display: none; }
 }
 
-/* The loop, told in three steps. A hairline runs through the numbers so the
-   row reads as one sequence rather than three cards that happen to align. */
-.lp-steps {
-  position: relative; list-style: none; padding: 0; margin: 40px 0 0;
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px;
-}
-.lp-steps::before {
-  content: ""; position: absolute; top: 13px; left: 14px; right: 14px; height: 1px;
-  background: linear-gradient(90deg, var(--accent), var(--line-strong) 60%, var(--accent));
-  opacity: .5;
-}
-/* Subgrid, so the three drawings start on one line and end on one line
-   whatever length the sentence above each of them runs to. */
-.lp-step { position: relative; display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; min-width: 0; }
-.lp-step-head { display: flex; align-items: center; gap: 12px; width: fit-content; margin-bottom: 12px; padding-right: 14px; background: var(--bg); }
-.lp-step-head h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
-.lp-step-n {
-  display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--bg); border: 1px solid var(--accent); color: var(--accent);
-  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
-}
-.lp-step > p { margin: 0 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--fg-2); }
-
-/* The drawings. Same hairline, radius and surface as the product shot, so
-   they read as small views of the product rather than illustrations. */
-.lp-mock {
-  min-height: 176px; padding: 16px;
-  border: 1px solid var(--line-strong); border-radius: 12px; background: var(--lp-surface);
-  box-shadow: 0 1px 0 var(--lp-edge) inset, 0 18px 40px -26px light-dark(rgba(20,20,45,.22), rgba(0,0,0,.9));
-  font-size: 12.5px; line-height: 1.5; color: var(--fg-2);
-}
-.lp-mock b { color: var(--fg); font-weight: 600; }
-.lp-term { display: flex; flex-direction: column; gap: 9px; font-family: var(--mono); font-size: 12px; }
-.lp-term-ask { color: var(--fg); padding-bottom: 9px; border-bottom: 1px dashed var(--line-strong); }
-.lp-term-caret { color: var(--accent); margin-right: 4px; }
-.lp-term-line { display: flex; align-items: center; gap: 9px; min-width: 0; }
-.lp-term-dot {
-  display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 8px; height: 8px; border-radius: 50%; background: var(--faint);
-}
-.lp-term-dot.is-accent { background: var(--accent); }
-.lp-term-dot.is-ok { width: 14px; height: 14px; margin: 0 -3px; background: var(--ok); color: #fff; }
-.lp-term-dot .ic { width: 10px; height: 10px; vertical-align: 0; }
-.lp-term-link {
-  display: flex; align-items: center; gap: 7px; align-self: flex-start; max-width: 100%;
-  margin-top: 2px; padding: 5px 10px; border-radius: 999px;
-  background: light-dark(rgba(91,61,245,.08), rgba(167,139,250,.12)); color: var(--accent);
-}
-.lp-term-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lp-term-link .ic { width: 13px; height: 13px; vertical-align: 0; }
-.lp-term-quote { margin-left: 17px; padding-left: 10px; border-left: 2px solid var(--accent); color: var(--fg); font-family: var(--font); font-style: italic; }
-
-.lp-page-h { font-size: 15px; font-weight: 600; color: var(--fg); letter-spacing: -0.01em; margin-bottom: 10px; }
-.lp-page-p { margin-bottom: 10px; color: var(--fg-2); }
-.lp-page-bar { display: block; height: 7px; margin-bottom: 6px; border-radius: 4px; background: var(--line); }
-.lp-page-bar.is-short { width: 62%; }
-.lp-page mark {
-  color: var(--fg); background: light-dark(rgba(255,196,0,.28), rgba(255,196,0,.22));
-  border-bottom: 2px solid light-dark(#e0a800, #f5c542); padding: 0 1px;
-}
 .lp-note {
   display: flex; gap: 9px; align-items: flex-start; margin-left: 18px; padding: 9px 11px;
   border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel);
@@ -1118,52 +976,7 @@ textarea { resize: vertical; line-height: 1.45; }
 .sc-empty { margin: 24px 0 0; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .sc-cover img { transition: none; } }
 
-/* Before and after: the same work, scattered and then shelved. The "before"
-   drawing is greyed and slightly tilted, a desk rather than a product. */
-.lp-ba { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 32px; }
-.lp-ba-col { min-width: 0; }
-.lp-ba-label { margin: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.lp-ba-label.is-after { color: var(--accent); }
-.lp-mock.is-before { background: var(--panel-2); color: var(--muted); }
-.lp-mock.is-before .lp-term-line span:last-child { text-decoration: line-through; text-decoration-color: var(--faint); }
-.lp-ba-paste {
-  padding: 6px 10px; border-radius: 8px; border: 1px dashed var(--line-strong);
-  color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.lp-ba-chat { padding: 8px 10px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); font-family: var(--font); color: var(--fg-2); }
-.lp-ba-chat b { margin-right: 6px; color: var(--muted); }
-.lp-ba-notes { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 8px; font-size: 14px; line-height: 1.5; color: var(--fg-2); }
-.lp-ba-notes li { position: relative; padding-left: 20px; }
-.lp-ba-notes li::before { content: "×"; position: absolute; left: 2px; top: -1px; color: var(--faint); font-weight: 600; }
-.lp-ba-notes.is-after li::before { content: "✓"; color: var(--ok); }
-
-/* Two columns: a drawing or a sample on the left, what it means on the right. */
-.lp-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; align-items: start; margin-top: 32px; }
-.lp-code { margin: 0; overflow-x: auto; font: 12px/1.6 var(--mono); color: var(--fg-2); white-space: pre; }
-.lp-code code { font: inherit; color: inherit; background: none; border: 0; padding: 0; }
-.lp-term-ask.is-next { margin-top: 6px; padding-top: 9px; border-top: 1px dashed var(--line-strong); }
 .lp-section code { font-size: 12.5px; }
-
-.lp-seq { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
-.lp-seq li { display: flex; gap: 14px; font-size: 14.5px; line-height: 1.6; color: var(--fg-2); }
-.lp-seq b { color: var(--fg); font-weight: 600; }
-.lp-seq li > div { min-width: 0; }
-/* Commands never break at a hyphen: a flag split over two lines reads as two
-   flags. Short ones stay inline; the long ones sit on their own line. */
-.lp-seq code, .lp-points code { white-space: nowrap; }
-.lp-cmd { display: block; width: fit-content; max-width: 100%; margin-top: 8px; overflow-x: auto; }
-
-.lp-points { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; font-size: 14.5px; line-height: 1.6; color: var(--fg-2); }
-.lp-points b { color: var(--fg); font-weight: 600; }
-.lp-points.is-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 28px; }
-
-.lp-cards { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.lp-card {
-  padding: 18px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--lp-surface);
-  box-shadow: 0 1px 0 var(--lp-edge) inset;
-}
-.lp-card h3 { margin: 14px 0 6px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
-.lp-card p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--fg-2); }
 
 /* Questions as <details>: readable without script, one answer open at a time
    is the reader's choice, not ours. */
@@ -1177,13 +990,6 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-faq summary::after { content: "+"; flex: none; font-size: 18px; font-weight: 400; color: var(--muted); }
 .lp-faq details[open] summary::after { content: "−"; }
 .lp-faq details p { margin: 0 0 18px; padding: 0 2px; font-size: 14.5px; line-height: 1.65; color: var(--fg-2); max-width: 68ch; }
-
-.lp-trait-ic {
-  display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 30px; height: 30px; border-radius: 8px;
-  background: light-dark(rgba(91,61,245,.08), rgba(167,139,250,.12)); color: var(--accent);
-}
-.lp-trait-ic .ic { vertical-align: 0; }
 
 /* The close repeats the one action, centred, with what the agent learns
    from it laid out above. */
@@ -1286,18 +1092,10 @@ textarea { resize: vertical; line-height: 1.45; }
 /* ---- Responsive -------------------------------------------------- */
 @media (max-width: 860px) {
   .lp-steps, .lp-checks { grid-template-columns: 1fr; }
-  /* minmax(0, 1fr), not 1fr: a bare 1fr track grows to the JSON sample's
-     longest line and pushes the whole page sideways. */
-  .lp-ba, .lp-split, .lp-points.is-row { grid-template-columns: minmax(0, 1fr); }
-  .lp-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lp-tabs .lp-tab:not(:first-child) { display: none; }
   .lp-foot-cols { margin-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; }
-  .lp-tagline { font-size: 18px; }
   .lp-doc { padding-top: 32px; }
-  .lp-steps { gap: 36px; }
-  .lp-steps::before { display: none; }
-  .lp-mock { min-height: 0; }
   .lp-prompt { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
   .lp-prompt-copy { justify-content: center; }
   /* Below this the drawing's labels would shrink past reading, so it keeps
@@ -1306,10 +1104,7 @@ textarea { resize: vertical; line-height: 1.45; }
   .lp-chart svg { width: 820px; }
   /* No room to overhang on a phone: the thread drops below the shelf. */
   .lp-shot-inset { position: static; width: 100%; margin-top: 12px; right: auto; bottom: auto; }
-  .lp-shot figcaption { margin-top: 12px; }
-  .lp-h1 { font-size: 32px; }
   .lp-h2 { font-size: 21px; }
-  .lp-hero { padding: 48px 0 28px; }
   .lp-bar { gap: 10px; }
   .lp-section { padding-top: 32px; margin-top: 32px; }
   /* minmax(0, 1fr): a bare 1fr grows to the nav row's full width, and the
@@ -1338,7 +1133,6 @@ textarea { resize: vertical; line-height: 1.45; }
   .auth-stage-lead { font-size: 28px; }
 }
 @media (max-width: 560px) {
-  .lp-cards { grid-template-columns: 1fr; }
   .sc-grid { grid-template-columns: minmax(0, 1fr); }
   .lp-tabs { margin-left: 0; }
   .lp-summary { padding: 16px 18px; }

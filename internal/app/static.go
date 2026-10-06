@@ -5,9 +5,10 @@ import (
 	"embed"
 	"encoding/hex"
 	"net/http"
+	"strings"
 )
 
-//go:embed static/app.css static/app.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/dashboard-light.webp static/dashboard-dark.webp static/thread-light.webp static/thread-dark.webp
+//go:embed static/app.css static/app.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/landing.css static/landing.js static/dashboard-light.webp static/dashboard-dark.webp static/covers/*.webp
 var staticFS embed.FS
 
 type asset struct {
@@ -24,13 +25,14 @@ type statics struct {
 	files         map[string]asset
 	cssURL        string
 	jsURL         string
-	themeJSURL    string // resolves the landing page's theme before first paint
-	gaJSURL       string // starts GA4; a file because the CSP forbids inline script
-	shotURL       string // landing page dashboard screenshot
-	shotDarkURL   string // the same view for a reader on a dark theme
-	threadURL     string // a comment thread, inset over the dashboard
-	threadDarkURL string
-	icons         map[string]asset // the mark, by its fixed path
+	themeJSURL    string            // resolves the landing page's theme before first paint
+	gaJSURL       string            // starts GA4; a file because the CSP forbids inline script
+	landingCSSURL string            // the landing page's own styles, loaded on that page only
+	landingJSURL  string            // its shelf, scroll effects and feature demos
+	shotURL       string            // landing page dashboard screenshot
+	shotDarkURL   string            // the same view for a reader on a dark theme
+	coverURLs     map[string]string // page covers on the landing page, by name
+	icons         map[string]asset  // the mark, by its fixed path
 }
 
 // cardFile is the landing page's 1200 x 630 link preview card. It sits at a
@@ -58,8 +60,17 @@ func newStatics() *statics {
 	s.gaJSURL = s.add("ga", ".js", "text/javascript; charset=utf-8")
 	s.shotURL = s.add("dashboard-light", ".webp", "image/webp")
 	s.shotDarkURL = s.add("dashboard-dark", ".webp", "image/webp")
-	s.threadURL = s.add("thread-light", ".webp", "image/webp")
-	s.threadDarkURL = s.add("thread-dark", ".webp", "image/webp")
+	s.landingCSSURL = s.add("landing", ".css", "text/css; charset=utf-8")
+	s.landingJSURL = s.add("landing", ".js", "text/javascript; charset=utf-8")
+	s.coverURLs = map[string]string{}
+	covers, err := staticFS.ReadDir("static/covers")
+	if err != nil {
+		panic(err) // embedded, so only a build mistake
+	}
+	for _, c := range covers {
+		name := strings.TrimSuffix(c.Name(), ".webp")
+		s.coverURLs[name] = s.addAs("static/covers/"+c.Name(), "cover-"+name, ".webp", "image/webp")
+	}
 	s.icons = map[string]asset{}
 	for name, ct := range iconFiles {
 		body, err := staticFS.ReadFile("static/" + name)
@@ -72,7 +83,13 @@ func newStatics() *statics {
 }
 
 func (s *statics) add(base, ext, contentType string) string {
-	body, err := staticFS.ReadFile("static/" + base + ext)
+	return s.addAs("static/"+base+ext, base, ext, contentType)
+}
+
+// addAs serves the embedded file at path under a hashed name built from base,
+// for files in a subdirectory: the static route takes one path segment.
+func (s *statics) addAs(path, base, ext, contentType string) string {
+	body, err := staticFS.ReadFile(path)
 	if err != nil {
 		panic(err) // embedded, so only a build mistake
 	}
