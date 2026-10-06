@@ -10,6 +10,8 @@ import (
 type settingsData struct {
 	Identities []store.Identity
 	Error      string
+	// Domains is the Custom domains card, nil when the server has none.
+	Domains *settingsDomains
 }
 
 func (h *Handler) settings(w http.ResponseWriter, r *http.Request, v *viewer) {
@@ -22,7 +24,12 @@ func (h *Handler) renderSettings(w http.ResponseWriter, r *http.Request, status 
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, r, status, "settings", "Settings", v, settingsData{Identities: idents, Error: msg})
+	sd, err := h.settingsDomains(r.Context(), v.Tenant.ID, "")
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	h.render(w, r, status, "settings", "Settings", v, settingsData{Identities: idents, Error: msg, Domains: sd})
 }
 
 func (h *Handler) renameTenant(w http.ResponseWriter, r *http.Request, v *viewer) {

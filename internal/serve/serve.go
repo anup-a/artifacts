@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -58,9 +59,13 @@ type Handler struct {
 	// Pages builds page addresses. With a content domain set, /a/{id}/ on
 	// the share origin only redirects to the page's own host, and ServePage
 	// answers there.
-	Pages       pageurl.Builder
-	mailSync    bool // tests: send in the request instead of after it
-	access      *accessGuards
+	Pages    pageurl.Builder
+	mailSync bool // tests: send in the request instead of after it
+	access   *accessGuards
+	// Primary, when set, returns the custom-domain base an artifact's
+	// share-origin addresses permanently redirect to (its primary domain),
+	// or "" to serve them here.
+	Primary     func(ctx context.Context, artifactID string) string
 	unlock      *unlockGuard
 	runtimeETag string
 	runtimeRev  string // short content hash, cache-busts the injected script URL
@@ -160,8 +165,8 @@ func (h *Handler) securityHeaders(w http.ResponseWriter, r *http.Request) {
 	if isPrivateViewer(r) {
 		policy = strings.Replace(policy, "connect-src 'self' "+h.ShareOrigin, "connect-src 'none'", 1) + "; sandbox allow-scripts; form-action 'none'; base-uri 'none'"
 	}
-	if OnPageHost(r) {
-		// A page on its own host talks to its own host: the comment routes
+	if OnPageHost(r) || OnMount(r) {
+		// A page on its own host (or a custom domain) talks to its own host: the comment routes
 		// are there, and nothing on the share origin is the page's to call.
 		// The share-code gate standing in front of it loads its stylesheet,
 		// script and icon from the share origin.
@@ -192,7 +197,7 @@ func (h *Handler) frameAncestors() string {
 // serve resolves the file for (id, version, path) and streams it. version 0 = current.
 func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, version int, p string) {
 	a, err := h.Store.Artifact(r.Context(), id)
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || err == nil && foreignToMount(r, a) {
 		h.refuse(w, r)
 		return
 	}
@@ -314,14 +319,16 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 	if meta {
 		origin := h.pageOrigin(r)
 		body = InjectMetaURL(body, coverTitle(a), origin+PageBase(r, id)+coverPath, origin+PageBase(r, id))
+		// The byagent mark belongs on byagent's own addresses; a page on
+		// its owner's domain keeps whatever icon that domain has.
 		if OnPageHost(r) {
 			body = InjectIconHref(body, h.ShareOrigin+"/favicon.svg")
-		} else {
+		} else if !OnMount(r) {
 			body = InjectIcon(body)
 		}
 	}
 	if inject {
-		if OnPageHost(r) {
+		if OnPageHost(r) || OnMount(r) {
 			body = InjectBase(body, id, version, h.runtimeRev, PageBase(r, id))
 		} else {
 			body = Inject(body, id, version, h.runtimeRev)

@@ -10,6 +10,7 @@ import (
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/domains"
 	"github.com/anup-a/artifacts/internal/proxy"
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/serve"
@@ -60,6 +61,12 @@ type Deps struct {
 	// production one when variables are on; tests swap in one that may
 	// reach a local upstream.
 	Proxy *proxy.Proxy
+	// Domains runs custom domains. Nil when DOMAINS_PROVIDER is unset: the
+	// domain routes answer 404 and no Host is treated as a custom domain.
+	Domains *domains.Service
+	// DomainLimiter meters POST /api/domains per workspace. NewHandler
+	// defaults it to 20 an hour.
+	DomainLimiter *ratelimit.Limiter
 }
 
 type server struct {

@@ -21,6 +21,66 @@
   </dl>
 </section>
 
+{{with .Data.Domains}}
+<section class="card" id="domains">
+  <div class="card-head">
+    <h2>Custom domains</h2>
+    <span class="muted">Serve pages from a domain you own, like docs.example.com. Up to {{.Max}} per workspace.</span>
+  </div>
+  {{if .Error}}<p class="alert">{{template "icon" "alert"}}{{.Error}}</p>{{end}}
+  <form method="post" action="/app/settings/domains" class="field-row">
+    <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+    <label class="field">
+      <span class="field-label">Domain</span>
+      <input type="text" name="domain" required maxlength="253" placeholder="docs.example.com" autocomplete="off" spellcheck="false">
+    </label>
+    <button type="submit" class="btn primary">Add domain</button>
+  </form>
+  {{range .Domains}}
+  <div class="setting-row domain-row" id="domain-{{.Domain}}">
+    <div class="setting-text">
+      <strong><a class="link" href="{{.URL}}" target="_blank" rel="noopener">{{.Domain}}</a></strong>
+      {{if eq .Status "active"}}<span class="badge ok">Active</span>{{else if eq .Status "error"}}<span class="badge">Needs attention</span>{{else}}<span class="badge">Pending</span>{{end}}
+      {{with .Verification}}<p class="muted">{{.Message}}</p>{{end}}
+      {{if ne .Status "active"}}
+      <table class="table flush">
+        <thead><tr><th>Type</th><th>Host</th><th>Value</th></tr></thead>
+        <tbody>
+        {{range .DNSInstructions}}
+        <tr><td><span class="badge mono">{{.Type}}</span></td><td><code>{{.Host}}</code></td><td><span class="chip"><code>{{.Value}}</code><button type="button" class="chip-copy" data-copy-text="{{.Value}}" title="Copy value" aria-label="Copy value">{{template "icon" "copy"}}</button></span></td></tr>
+        {{end}}
+        </tbody>
+      </table>
+      {{end}}
+      {{if .Mounts}}
+      <p class="muted">Serving: {{range $i, $m := .Mounts}}{{if $i}}, {{end}}<a class="link" href="/app/artifacts/{{$m.ArtifactID}}#domains">{{$m.Path}}</a>{{if $m.Primary}} (primary){{end}}{{end}}</p>
+      {{else}}
+      <p class="muted">No pages yet. Open a page and choose this domain under Domains.</p>
+      {{end}}
+    </div>
+    <div class="switch-form">
+      {{if ne .Status "active"}}
+      <form method="post" action="/app/settings/domains/{{.Domain}}/check">
+        <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+        <button type="submit" class="btn small">Check now</button>
+      </form>
+      {{end}}
+      <details class="confirm">
+        <summary class="btn small danger">{{template "icon" "trash"}} Remove</summary>
+        <form method="post" action="/app/settings/domains/{{.Domain}}/delete" class="confirm-body">
+          <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+          <p>Pages stop being served on {{.Domain}}. Their byagent links keep working.</p>
+          <button type="submit" class="btn small danger solid">Remove domain</button>
+        </form>
+      </details>
+    </div>
+  </div>
+  {{else}}
+  <p class="card-empty">No custom domains yet. Add one, then create the two DNS records it shows: a CNAME to {{.Target}} and a TXT record that proves the domain is yours.</p>
+  {{end}}
+</section>
+{{end}}
+
 {{if not .Viewer.Integrator}}
 <section class="card">
   <div class="card-head">

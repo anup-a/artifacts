@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -29,6 +30,8 @@ type Limits struct {
 	// per page across every address.
 	ProxyPerIPHour   int
 	ProxyPerPageHour int
+	// DomainsPerTenant caps the custom domains one workspace may connect.
+	DomainsPerTenant int
 }
 
 type Config struct {
@@ -104,6 +107,29 @@ type Config struct {
 	// host then; the apex and every other name keep their normal routes.
 	ContentShared bool
 	Limits        Limits
+	// Domains configures custom domains. Provider empty turns them off.
+	Domains Domains
+}
+
+// Domains is how custom domains get their certificates and DNS records.
+type Domains struct {
+	// Provider is cloudflare (Cloudflare for SaaS custom hostnames), fly
+	// (certificates on the Fly app), manual (the operator adds certificates
+	// by hand) or none (TLS handled outside byagent). DOMAINS_PROVIDER.
+	Provider string
+	// Target is the hostname customers CNAME to. DOMAINS_CNAME_TARGET.
+	Target string
+	// ApexIPs are addresses an apex domain points A/AAAA records at, when
+	// the edge has fixed ones (Fly does). DOMAINS_APEX_IPS, comma separated.
+	ApexIPs []string
+	// Resolver is the DNS server ownership TXT records are read from,
+	// host:port, or "system". DOMAINS_DNS_RESOLVER, default 1.1.1.1:53.
+	Resolver string
+	// CloudflareToken needs Zone > SSL and Certificates > Edit on the zone.
+	CloudflareToken  string
+	CloudflareZoneID string
+	FlyToken         string
+	FlyApp           string
 }
 
 // VariablesEnabled reports whether account variables and proxy routes run.
@@ -152,6 +178,26 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		ShowcasePages:     splitList(getenv("SHOWCASE_PAGES")),
 		VariablesKey:      getenv("VARIABLES_KEY"),
 		VariablesOff:      getenv("VARIABLES") == "off",
+		Domains: Domains{
+			Provider: getenv("DOMAINS_PROVIDER"), Target: strings.TrimSuffix(strings.ToLower(getenv("DOMAINS_CNAME_TARGET")), "."),
+			Resolver:        get("DOMAINS_DNS_RESOLVER", "1.1.1.1:53"),
+			CloudflareToken: getenv("CLOUDFLARE_API_TOKEN"), CloudflareZoneID: getenv("CLOUDFLARE_ZONE_ID"),
+			FlyToken: getenv("FLY_API_TOKEN"), FlyApp: getenv("FLY_APP_NAME"),
+		},
+	}
+	for _, ip := range strings.Split(getenv("DOMAINS_APEX_IPS"), ",") {
+		if ip = strings.TrimSpace(ip); ip != "" {
+			if net.ParseIP(ip) == nil {
+				return c, fmt.Errorf("DOMAINS_APEX_IPS has %q, which is not an IP address", ip)
+			}
+			c.Domains.ApexIPs = append(c.Domains.ApexIPs, ip)
+		}
+	}
+	if c.Domains.Provider == "fly" && c.Domains.Target == "" && c.Domains.FlyApp != "" {
+		c.Domains.Target = c.Domains.FlyApp + ".fly.dev"
+	}
+	if err := c.Domains.validate(); err != nil {
+		return c, err
 	}
 	var err error
 	if c.ContentScheme, c.ContentDomain, c.ContentShared, err = contentDomain(getenv("CONTENT_DOMAIN"), c.ShareOrigin, c.APIOrigin); err != nil {
@@ -211,7 +257,7 @@ func limitsFromEnv(getenv func(string) string) (Limits, error) {
 	l := Limits{VersionBytes: 26214400, Files: 500, VersionsKept: 20, PublishPerMin: 10,
 		ArtifactsPerTenant: 200, CommentBytes: 2048, CommentsPerMin: 20, AnchorBytes: 4096,
 		AccessMailPerWorkspaceDay: 200, AccessMailPerDay: 2000,
-		ProxyPerIPHour: 100, ProxyPerPageHour: 1000}
+		ProxyPerIPHour: 100, ProxyPerPageHour: 1000, DomainsPerTenant: 5}
 	set := func(k string, dst *int) error {
 		v := getenv(k)
 		if v == "" {
@@ -237,6 +283,7 @@ func limitsFromEnv(getenv func(string) string) (Limits, error) {
 		"LIMIT_COMMENT_BYTES":   &l.CommentBytes, "LIMIT_COMMENTS_PER_MIN": &l.CommentsPerMin,
 		"LIMIT_ANCHOR_BYTES":                  &l.AnchorBytes,
 		"LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY": &l.AccessMailPerWorkspaceDay, "LIMIT_ACCESS_MAIL_PER_DAY": &l.AccessMailPerDay,
+		"LIMIT_DOMAINS_PER_TENANT": &l.DomainsPerTenant,
 	} {
 		if err := set(k, dst); err != nil {
 			return l, err
@@ -348,4 +395,26 @@ func lastLabels(host string, n int) string {
 		parts = parts[len(parts)-n:]
 	}
 	return strings.Join(parts, ".")
+}
+
+func (d Domains) validate() error {
+	switch d.Provider {
+	case "":
+		return nil
+	case "none", "manual":
+	case "cloudflare":
+		if d.CloudflareToken == "" || d.CloudflareZoneID == "" {
+			return errors.New("DOMAINS_PROVIDER=cloudflare requires CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID")
+		}
+	case "fly":
+		if d.FlyToken == "" || d.FlyApp == "" {
+			return errors.New("DOMAINS_PROVIDER=fly requires FLY_API_TOKEN and FLY_APP_NAME")
+		}
+	default:
+		return errors.New("DOMAINS_PROVIDER must be cloudflare, fly, manual or none, or unset to turn custom domains off")
+	}
+	if d.Target == "" {
+		return errors.New("DOMAINS_PROVIDER requires DOMAINS_CNAME_TARGET, the hostname customers point a CNAME at")
+	}
+	return nil
 }

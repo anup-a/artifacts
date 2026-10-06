@@ -14,6 +14,7 @@ import (
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/domains"
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
@@ -36,6 +37,8 @@ type Handler struct {
 	ConnectLimiter *ratelimit.Limiter
 	// AccessLimiter meters the Access card's saves per user: 30 a minute.
 	AccessLimiter *ratelimit.Limiter
+	// Domains runs custom domains; nil hides them from the dashboard.
+	Domains *domains.Service
 
 	static *statics
 	// sealer encrypts account variables; nil while they are off.
@@ -150,6 +153,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/settings/variables/{name}/delete", h.private(h.deleteVariable))
 	mux.HandleFunc("POST /app/switch-tenant", h.private(h.switchTenant))
 	mux.HandleFunc("POST /app/logout", h.private(h.logout))
+	h.registerDomains(mux)
 	mux.HandleFunc("/app/", h.headers(func(w http.ResponseWriter, r *http.Request) {
 		h.renderError(w, r, 404, "That page does not exist.")
 	}))

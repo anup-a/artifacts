@@ -87,6 +87,20 @@ A folder with a `.byagent.json` (`{"collection": "<name>"}`) is a project: every
 - **No folder here** (a fresh clone with `.byagent.json` only, another machine, a cloud agent): `byagent brief --json` reads the pushed copy back, and `byagent brief --project "<name>" --json` works from anywhere.
 - **Keep it low-key.** Do not narrate routine brief pushes; mention them in your wrap-up only when the work changed state, and give the brief URL whenever the user asks. Do not publish BRIEF.md with `byagent publish` (the hook skips it). `brief push` prints `brief unchanged` when there is nothing new; that is fine.
 
+## Custom domains
+
+Only when the user asks to put a page on a domain they own (a guest key cannot). Never buy a domain; byagent does not sell them.
+
+```
+byagent domain add docs.example.com --page <id> --json          # root of the domain
+byagent domain add docs.example.com --page <id> --path /guide --json
+byagent domain docs.example.com --json                          # status, DNS records, pages
+```
+
+`domain add` returns `dns_instructions`: a CNAME (an ALIAS at an apex) that routes the hostname to byagent, and a TXT record at `_byagent.<host>` that proves the user owns it. Give the user both records exactly as listed; you cannot add them yourself. Nothing is served on the domain until the TXT record is seen. Poll `byagent domain <host> --json` until `status` is `active`, a few minutes apart; `verification.state: action_required` means the records do not match. Repeating `domain add` is safe and keeps the same records. Do not remove and re-add a pending domain.
+
+A page keeps its visibility, share code and comments on the domain. `byagent domain primary <id> <host> --json` makes the page's byagent.dev link redirect there (active domains only); `--off` stops it. `byagent domain unmount <host> --path /guide` stops serving one page, `byagent domain rm <host>` disconnects the domain. `byagent domains --json` lists them.
+
 ## Markdown pages
 
 Start with a single `# Title` (it becomes the page title and the browser tab; 2–4 specific words). Use `##` / `###` for sections; three or more produce the sticky contents list. GFM tables, `- [ ]` task lists, fenced code with a language tag, and relative image paths all render. Put images next to the file and publish the **directory** so they ship. Do not embed raw HTML for layout; if you need it, the page belongs in the HTML lane. Republish the same file or directory to update in place.

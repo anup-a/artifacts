@@ -161,6 +161,65 @@
     </form>
   </section>
 
+  {{with .Data.Domains}}
+  <section class="card" id="domains">
+    <div class="card-head">
+      <h2>Domains</h2>
+      <span class="muted">Serve this page on a domain you own</span>
+    </div>
+    {{if .Error}}<p class="alert">{{template "icon" "alert"}}{{.Error}}</p>{{end}}
+    {{if .Mounts}}
+    <table class="table flush">
+      <thead><tr><th>Address</th><th></th><th class="actions"></th></tr></thead>
+      <tbody>
+      {{range .Mounts}}
+      <tr>
+        <td><a class="link" href="{{.URL}}" target="_blank" rel="noopener">{{.URL}}</a></td>
+        <td>{{if .Primary}}<span class="badge ok">Primary</span>{{else if not .Active}}<span class="badge">Domain pending</span>{{end}}</td>
+        <td class="actions">
+          <form method="post" action="/app/artifacts/{{$a.ID}}/primary-domain">
+            <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+            {{if .Primary}}
+            <input type="hidden" name="mount" value="">
+            <button type="submit" class="btn small">Stop redirecting</button>
+            {{else if .Active}}
+            <input type="hidden" name="mount" value="{{.Key}}">
+            <button type="submit" class="btn small" title="byagent.dev links to this page will redirect here">Make primary</button>
+            {{end}}
+          </form>
+          <form method="post" action="/app/artifacts/{{$a.ID}}/domains/remove">
+            <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+            <input type="hidden" name="mount" value="{{.Key}}">
+            <button type="submit" class="btn small">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{end}}
+    {{if .Domains}}
+    <form method="post" action="/app/artifacts/{{$a.ID}}/domains" class="field-row">
+      <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+      <label class="field">
+        <span class="field-label">Domain</span>
+        <select name="domain" aria-label="Domain">
+          {{range .Domains}}<option value="{{.Hostname}}">{{.Hostname}}{{if ne .Status "active"}} (pending){{end}}</option>{{end}}
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Path</span>
+        <input type="text" name="path" value="/" maxlength="200" placeholder="/ or /docs" autocomplete="off" spellcheck="false">
+      </label>
+      <button type="submit" class="btn">Serve here</button>
+    </form>
+    <p class="card-note muted">A primary domain makes this page's byagent.dev link redirect to it. Visibility, share codes and comments work the same on every address.</p>
+    {{else}}
+    <p class="card-empty">No custom domains in this workspace. Add one in <a class="link" href="/app/settings#domains">Settings</a>.</p>
+    {{end}}
+  </section>
+  {{end}}
+
   <section class="card preview-card">
     <div class="card-head">
       <h2>Preview</h2>

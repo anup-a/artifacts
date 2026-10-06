@@ -14,6 +14,7 @@ import { version, diff } from "./commands/artifacts.js";
 import { analytics } from "./commands/analytics.js";
 import { access } from "./commands/access.js";
 import { vars } from "./commands/vars.js";
+import { domains, domain } from "./commands/domains.js";
 
 // needsConfig is false for login, which builds its own config from its flags.
 const COMMANDS = {
@@ -41,6 +42,8 @@ const COMMANDS = {
   brief: { run: brief, needsConfig: true },
   analytics: { run: analytics, needsConfig: true },
   vars: { run: vars, needsConfig: true },
+  domains: { run: domains, needsConfig: true },
+  domain: { run: domain, needsConfig: true },
 };
 
 const help = (api) => `byagent - publish a page, share the URL, read the comments on it
@@ -83,6 +86,12 @@ Usage:
   byagent vars
   byagent vars set NAME --upstream <host> [--upstream <host>]... [--from-env VAR]
   byagent vars rm NAME
+  byagent domains
+  byagent domain add <host> [--page <id>] [--path /x] [--primary]
+  byagent domain <host>
+  byagent domain rm <host>
+  byagent domain unmount <host> [--path /x]
+  byagent domain primary <id> <host> [--path /x] | --off
 
 A .md file (or a directory whose index is index.md / README.md) is rendered to
 a styled page on the way in; its first H1 becomes the title unless --title is
@@ -203,6 +212,15 @@ typed hidden at a prompt), or from --from-env VAR; never from an argument.
 A page declares routes in .byagent/proxy.json and calls _proxy/<route>; the
 server adds the key and forwards the call. vars lists names and hosts only;
 values are never shown again. vars rm deletes one.
+domain add connects a hostname you own to the workspace and prints two DNS
+records: a CNAME that routes it to byagent and a TXT record at _byagent.<host>
+that proves it is yours. Nothing is served until the TXT record is seen;
+byagent domain <host> checks again and shows the status. --page serves a page
+at --path on it (default /, the root); several pages can share a domain at
+different paths. A page keeps its visibility, share code and comments there.
+domain primary makes the page's byagent.dev link 308-redirect to the domain
+(active domains only); --off stops that. domain rm disconnects the domain.
+No account (guest key), no custom domains.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.

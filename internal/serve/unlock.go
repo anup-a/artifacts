@@ -158,7 +158,7 @@ func (h *Handler) tryUnlock(w http.ResponseWriter, r *http.Request, a store.Arti
 func (h *Handler) submitCode(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	a, err := h.Store.Artifact(r.Context(), id)
-	if err != nil || a.DeletedAt != nil || (a.ShareCode == "" && a.AccessMode != AccessPassword) {
+	if err != nil || a.DeletedAt != nil || (a.ShareCode == "" && a.AccessMode != AccessPassword) || foreignToMount(r, a) {
 		h.refuse(w, r)
 		return
 	}
@@ -194,8 +194,8 @@ func (h *Handler) renderGate(w http.ResponseWriter, r *http.Request, g GateView)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	g.Base = PageBase(r, g.ArtifactID)
 	g.Action = g.Base + unlockPath
-	if OnPageHost(r) {
-		// The page host's paths are the page's; the gate's own stylesheet
+	if OnPageHost(r) || OnMount(r) {
+		// The page host's (or custom domain's) paths are the page's; the gate's own stylesheet
 		// and script come from the share origin.
 		g.AssetOrigin = h.ShareOrigin
 	}

@@ -16,8 +16,9 @@ import (
 // host-only, so not even a sibling host could plant one. Plain http (local
 // work on *.localhost) cannot use the prefix, so the bare name is used there.
 //
-// On the share origin, where pages share one host, the cookie is named per
-// page and scoped to that page's two paths instead (cookiePaths).
+// On the share origin, where pages share one host, and on a custom domain,
+// where several pages may be mounted, the cookie is named per page and
+// scoped to that page's two paths instead (cookiePaths).
 //
 // Every cookie is HttpOnly and SameSite=Lax. Lax does not separate one page
 // host from another (they are same-site until the content domain is on the
@@ -41,10 +42,7 @@ func pageHostSecure(r *http.Request) bool {
 	if r.TLS != nil {
 		return true
 	}
-	if p, ok := pageHostFrom(r); ok {
-		return strings.HasPrefix(p.Origin, "https://")
-	}
-	return false
+	return strings.HasPrefix(ownOrigin(r), "https://")
 }
 
 // cookiePaths are the places a page answers its visitor: the whole host on
@@ -58,13 +56,15 @@ func cookiePaths(r *http.Request, id string) []string {
 	if OnPageHost(r) {
 		return []string{"/"}
 	}
-	return []string{"/a/" + id + "/", "/c/" + id + "/"}
+	// On the share origin and on a custom domain (whose mount holds the
+	// page at its base) the page and its comment routes.
+	return []string{PageBase(r, id), "/c/" + id + "/"}
 }
 
 // setPageCookie writes one visitor cookie for page id.
 func (h *Handler) setPageCookie(w http.ResponseWriter, r *http.Request, base, id, value string, maxAge int) {
 	secure := r.TLS != nil || strings.HasPrefix(h.ShareOrigin, "https://")
-	if OnPageHost(r) {
+	if OnPageHost(r) || OnMount(r) {
 		secure = pageHostSecure(r)
 	}
 	for _, path := range cookiePaths(r, id) {
@@ -82,7 +82,7 @@ func (h *Handler) setPageCookie(w http.ResponseWriter, r *http.Request, base, id
 
 // clearPageCookie drops a visitor cookie that no longer opens anything.
 func (h *Handler) clearPageCookie(w http.ResponseWriter, r *http.Request, base, id string) {
-	secure := OnPageHost(r) && pageHostSecure(r)
+	secure := (OnPageHost(r) || OnMount(r)) && pageHostSecure(r)
 	for _, path := range cookiePaths(r, id) {
 		http.SetCookie(w, &http.Cookie{
 			Name: pageCookieName(r, base, id), Value: "", Path: path,

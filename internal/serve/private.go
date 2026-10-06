@@ -58,7 +58,7 @@ func (h *Handler) publicArtifact(next http.HandlerFunc) http.HandlerFunc {
 			apierr.Write(w, r, apierr.NotFound("artifact"))
 			return
 		}
-		if h.redirectToPageHost(w, r) {
+		if h.redirectToPrimary(w, r) || h.redirectToPageHost(w, r) {
 			return
 		}
 		next(w, r)
@@ -147,4 +147,36 @@ func (h *Handler) artifactCacheHeaders(w http.ResponseWriter, r *http.Request) {
 		// pinned versions and covers, so no shared cache can bypass authorization.
 		w.Header().Set("Cache-Control", "no-cache")
 	}
+}
+
+// redirectToPrimary sends a share-origin address of an artifact with a
+// primary custom domain there, path and query kept, with a 308 so a form
+// post to _unlock is replayed as a post. Only what a person navigates to is
+// redirected: a page pulled into a frame (the dashboard preview), a cover
+// shown as an image, or a fetch keep loading from the share origin, where
+// the dashboard's CSP and existing embeds expect them. Requests without
+// Sec-Fetch-Dest (curl, crawlers, link unfurlers) are redirected.
+func (h *Handler) redirectToPrimary(w http.ResponseWriter, r *http.Request) bool {
+	if h.Primary == nil {
+		return false
+	}
+	if dest := r.Header.Get("Sec-Fetch-Dest"); dest != "" && dest != "document" {
+		return false
+	}
+	id := r.PathValue("id")
+	base := h.Primary(r.Context(), id)
+	if base == "" {
+		return false
+	}
+	target := base + strings.TrimPrefix(r.URL.EscapedPath(), "/a/"+id+"/")
+	if r.URL.RawQuery != "" {
+		target += "?" + r.URL.RawQuery
+	}
+	w.Header().Set("Location", target)
+	// Permanent redirects are cached without end unless told otherwise;
+	// an hour lets an owner who turns the primary domain off be believed.
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(http.StatusPermanentRedirect)
+	return true
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/anup-a/artifacts/internal/app"
 	"github.com/anup-a/artifacts/internal/blob"
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/domains"
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/snapshot"
 	"github.com/anup-a/artifacts/internal/store"
@@ -26,6 +27,7 @@ const (
 	viewFlushEvery    = 30 * time.Second
 	shutdownTimeout   = 10 * time.Second
 	portalLinksPerMin = 60
+	domainCheckEvery  = time.Minute
 )
 
 // dotenvKeys are the settings a server move must carry over. Anything that
@@ -41,6 +43,10 @@ var dotenvKeys = []string{
 	"LIMIT_COMMENT_BYTES", "LIMIT_COMMENTS_PER_MIN", "LIMIT_ANCHOR_BYTES",
 	"LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY", "LIMIT_ACCESS_MAIL_PER_DAY",
 	"VARIABLES_KEY", "VARIABLES", "LIMIT_PROXY_PER_IP_PER_HOUR", "LIMIT_PROXY_PER_PAGE_PER_HOUR",
+	// Custom domains. DOMAINS_PROVIDER and FLY_* are left out on purpose:
+	// they describe the old host's edge, and the new one sets its own.
+	"DOMAINS_CNAME_TARGET", "DOMAINS_APEX_IPS", "DOMAINS_DNS_RESOLVER",
+	"CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ZONE_ID", "LIMIT_DOMAINS_PER_TENANT",
 }
 
 func main() {
@@ -93,6 +99,9 @@ func main() {
 	views := usage.New(st)
 	views.TrustProxy, views.Now = cfg.TrustProxyHeaders, now
 	webApp := app.New(st, cfg, now)
+	// Nil when DOMAINS_PROVIDER is unset, which turns custom domains off.
+	doms := domains.New(cfg, st, now)
+	webApp.Domains = doms
 	deps := api.Deps{
 		Cfg: cfg, Store: st, Blobs: bl, Now: now,
 		PublishLimiter: ratelimit.New(cfg.Limits.PublishPerMin),
@@ -104,6 +113,7 @@ func main() {
 		WebDeny:        webApp.DenyArtifactAccess,
 		WebGate:        webApp.GateArtifactAccess,
 		WebGuide:       webApp.GuidePage,
+		Domains:        doms,
 	}
 	h, err := api.NewHandler(deps)
 	if err != nil {
@@ -111,6 +121,9 @@ func main() {
 		os.Exit(1)
 	}
 	go api.RunGC(ctx, deps, time.Hour)
+	if doms != nil {
+		go doms.Run(ctx, domainCheckEvery, func() bool { return cfg.ReadOnly })
+	}
 	flushed := make(chan struct{})
 	go func() {
 		views.Run(ctx, viewFlushEvery)

@@ -53,7 +53,7 @@ func (h *Handler) cover(w http.ResponseWriter, r *http.Request) {
 	h.securityHeaders(w, r)
 	id := r.PathValue("id")
 	a, err := h.Store.Artifact(r.Context(), id)
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || err == nil && foreignToMount(r, a) {
 		h.refuse(w, r)
 		return
 	}

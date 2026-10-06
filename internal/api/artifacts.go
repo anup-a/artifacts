@@ -52,6 +52,10 @@ func (s *server) getArtifact(w http.ResponseWriter, r *http.Request) {
 		v["share_url"] = s.pages().Share(a.ID, a.Slug, a.ShareCode)
 		v["share_code_expires_at"] = a.ShareCodeExpiresAt
 	}
+	if err := s.artifactDomains(r, a, v); err != nil {
+		apierr.Write(w, r, apierr.Internal(err))
+		return
+	}
 	apierr.WriteJSON(w, 200, v)
 }
 

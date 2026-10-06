@@ -874,3 +874,10 @@ test("vars set refuses a value given as an argument before calling anything", as
   assert.ok(!errs.join("").includes("sk-123"));
   assert.match(JSON.parse(errs[0]).error.message, /stdin/);
 });
+
+test("parseArgs treats --primary as a switch", () => {
+  const a = parseArgs(["domain", "add", "docs.example.com", "--page", "ar_1", "--primary", "--path", "/x"]);
+  assert.deepEqual(a.positional, ["add", "docs.example.com"]);
+  assert.equal(a.flags.primary, true);
+  assert.equal(a.flags.path, "/x");
+});
