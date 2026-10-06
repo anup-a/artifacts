@@ -15,6 +15,9 @@
     <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
   </div>
   <a class="btn lp-cta" href="{{.AppURL}}">Dashboard</a>
+  <button type="button" class="btn primary lp-bar-copy" data-copy-text="{{template "lp-prompt-line" .}}" aria-label="Copy the prompt for your agent">
+    <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">Copy prompt</span>
+  </button>
 </header>
 {{end}}
 
@@ -65,11 +68,13 @@
      shelf back, so restating any of it here would be duplication. The label
      sits in its own span so the copied state does not wipe the icons.
      The link is shown without its scheme to keep the line short; what is
-     copied is the full URL. */}}
+     copied is the full URL. It is for all of the person's projects, not one
+     repo: the skill tells the agent how to set itself up that way. */}}
+{{define "lp-prompt-line"}}Set up byagent for all my projects: read {{.SkillURL}} and follow it.{{end}}
 {{define "lp-prompt"}}
 <div class="lp-prompt">
-  <p class="lp-prompt-text">Set up byagent for this project: read <span class="lp-prompt-url">{{.ShareHost}}/skill.md</span> and follow it.</p>
-  <button type="button" class="btn primary lp-prompt-copy" data-copy-text="Set up byagent for this project: read {{.SkillURL}} and follow it." aria-label="Copy the prompt">
+  <p class="lp-prompt-text">Set up byagent for all my projects: read <span class="lp-prompt-url">{{.ShareHost}}/skill.md</span> and follow it.</p>
+  <button type="button" class="btn primary lp-prompt-copy" data-copy-text="{{template "lp-prompt-line" .}}" aria-label="Copy the prompt">
     <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">Copy</span>
   </button>
 </div>

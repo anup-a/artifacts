@@ -16,24 +16,26 @@ import (
 // landingData is the handful of facts the page cannot hardcode: where this
 // deployment's dashboard and published links actually live.
 type landingData struct {
-	siteData             // the bar and footer every public page shares
-	APIOrigin     string // what to pass to `byagent login --api`
-	APIHost       string // the same without the scheme, for prose
-	KeysURL       string // where a key is created
-	ShareHost     string // host published links are served from
-	ExampleID     string // a plausible artifact id for the samples
-	ExampleURL    string // what a published link looks like here
-	CanonicalURL  string // the share origin's root, what search engines index
-	CardURL       string // the 1200 x 630 link preview card, absolute
-	ShotURL       string // the dashboard screenshot, content-hashed
-	ShotDarkURL   string // the same view in the dark theme
-	ThreadURL     string // a comment thread, inset over the screenshot
-	ThreadDarkURL string
-	SignIn        bool // a sign-in provider is configured
-	Guest         bool // publishing without an account is on
-	Limits        config.Limits
-	FAQ           []faq
-	FAQJSON       template.JS // the same questions as a FAQPage data block
+	siteData                       // the bar and footer every public page shares
+	APIOrigin    string            // what to pass to `byagent login --api`
+	APIHost      string            // the same without the scheme, for prose
+	KeysURL      string            // where a key is created
+	ShareHost    string            // host published links are served from
+	ExampleID    string            // a plausible artifact id for the samples
+	ExampleURL   string            // what a published link looks like here
+	CanonicalURL string            // the share origin's root, what search engines index
+	CardURL      string            // the 1200 x 630 link preview card, absolute
+	ShotURL      string            // the dashboard screenshot, content-hashed
+	ShotDarkURL  string            // the same view in the dark theme
+	LandingCSS   string            // the page's own stylesheet
+	LandingJS    string            // and its script
+	Covers       map[string]string // page covers by name, for the pop-outs and the shelf demo
+	CoversJSON   string            // the same map for the shelf demo in landing.js
+	SignIn       bool              // a sign-in provider is configured
+	Guest        bool              // publishing without an account is on
+	Limits       config.Limits
+	FAQ          []faq
+	FAQJSON      template.JS // the same questions as a FAQPage data block
 }
 
 // faq is one question at the foot of the landing page. The page shows the
@@ -46,13 +48,24 @@ type faq struct {
 
 func landingFAQ(l config.Limits) []faq {
 	return []faq{
+		{"What is the shelf?", `Your workspace on byagent. Every page your agents publish lands there with its own link, filed by project. You browse it in the dashboard, and agents list and search it with the CLI.`},
+		{"Which agents work?", `Any agent that can run a shell command: Claude Code, Codex, Cursor, Hermes, OpenClaw, or your own script. It uses the byagent CLI from npm.`},
+		{"Do the people I share with need an account?", `No. Anyone with the link can read the page and leave a comment under a name they type.`},
+		{"Can I keep pages private?", `Yes. A private page is visible to signed-in members of your workspace, and to anyone you give its six-digit share code. You can rotate or withdraw the code at any time.`},
+		{"Is it free?", template.HTML(fmt.Sprintf(`Yes. There is no paid plan and no card. A workspace holds up to %d pages of up to %d MB each, and your first pages work without an account for 24 hours. The rest of the limits are on the <a class="link" href="/pricing">pricing page</a>.`, l.ArtifactsPerTenant, l.VersionBytes/(1<<20)))},
+		{"What happens when my agent publishes again?", template.HTML(fmt.Sprintf(`The link stays the same and the version number goes up. The last %d versions are kept, and any of them can be rolled back to.`, l.VersionsKept))},
 		{"Does byagent train AI on my pages?", `No. We do not use your pages or the comments on them to train AI models, and we do not sell them. See <a class="link" href="/privacy">Privacy</a>.`},
 		{"Where is my data stored?", `On one server at Fly.io in its Singapore region. The database and the published files sit on a volume that is encrypted at rest, and every connection uses TLS. See <a class="link" href="/security">Security</a>.`},
-		{"Who can see a page?", `A public page: anyone with its link. A private page: signed-in members of your workspace, and anyone you give its six-digit share code to. You can rotate or withdraw the code at any time.`},
 		{"What happens when I delete a page?", `It is gone for good, with no email needed. The page goes offline at once, and its title, labels, versions, comments and view counts are erased straight away. Its files leave storage within a day, and backups age out after 5 days.`},
-		{"Is it free?", template.HTML(fmt.Sprintf(`Yes. There is no paid plan and no card. A workspace holds up to %d pages of up to %d MB each. The rest of the limits are on the <a class="link" href="/pricing">pricing page</a>.`, l.ArtifactsPerTenant, l.VersionBytes/(1<<20)))},
-		{"Which agents work?", `Any agent that can run a shell command: Claude Code, Codex, Cursor and others. It uses the byagent CLI from npm.`},
+		{"I'm an agent. What should I do first?", `Read <a class="link" href="/skill.md">skill.md</a> and follow it. To try it without a key, run <code>npx byagent publish ./page.html</code>.`},
 	}
+}
+
+// coversJSON hands the cover URLs to the shelf demo, which draws its cards
+// in the browser. The names are fixed file names, so this cannot fail.
+func coversJSON(m map[string]string) string {
+	b, _ := json.Marshal(m)
+	return string(b)
 }
 
 var htmlTag = regexp.MustCompile(`<[^>]+>`)
@@ -132,23 +145,25 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 	}
 	qs := landingFAQ(h.Cfg.Limits)
 	h.render(w, r, 200, "landing", "byagent", nil, landingData{
-		siteData:      h.site(),
-		APIOrigin:     h.Cfg.APIOrigin,
-		APIHost:       apiHost,
-		KeysURL:       h.Cfg.APIOrigin + "/app/keys",
-		ShareHost:     originHost(h.Cfg.ShareOrigin),
-		ExampleID:     exampleID,
-		ExampleURL:    h.Cfg.ShareOrigin + "/a/" + exampleID + "/",
-		CanonicalURL:  h.Cfg.ShareOrigin + "/",
-		CardURL:       h.Cfg.ShareOrigin + "/" + cardFile,
-		ShotURL:       h.static.shotURL,
-		ShotDarkURL:   h.static.shotDarkURL,
-		ThreadURL:     h.static.threadURL,
-		ThreadDarkURL: h.static.threadDarkURL,
-		SignIn:        h.Cfg.WebEnabled(),
-		Guest:         h.Cfg.GuestPublish,
-		Limits:        h.Cfg.Limits,
-		FAQ:           qs,
-		FAQJSON:       faqJSON(qs),
+		siteData:     h.site(),
+		APIOrigin:    h.Cfg.APIOrigin,
+		APIHost:      apiHost,
+		KeysURL:      h.Cfg.APIOrigin + "/app/keys",
+		ShareHost:    originHost(h.Cfg.ShareOrigin),
+		ExampleID:    exampleID,
+		ExampleURL:   h.Cfg.ShareOrigin + "/a/" + exampleID + "/",
+		CanonicalURL: h.Cfg.ShareOrigin + "/",
+		CardURL:      h.Cfg.ShareOrigin + "/" + cardFile,
+		ShotURL:      h.static.shotURL,
+		ShotDarkURL:  h.static.shotDarkURL,
+		LandingCSS:   h.static.landingCSSURL,
+		LandingJS:    h.static.landingJSURL,
+		Covers:       h.static.coverURLs,
+		CoversJSON:   coversJSON(h.static.coverURLs),
+		SignIn:       h.Cfg.WebEnabled(),
+		Guest:        h.Cfg.GuestPublish,
+		Limits:       h.Cfg.Limits,
+		FAQ:          qs,
+		FAQJSON:      faqJSON(qs),
 	})
 }

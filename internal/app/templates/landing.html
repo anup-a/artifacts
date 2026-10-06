@@ -4,23 +4,23 @@
 {{$d := .Data}}
 {{/* Short on purpose: Google shows about 155 characters and rewrites a
      description it finds too long or too vague with text from the page. */}}
-<meta name="description" content="byagent is a CLI that publishes what Claude Code, Codex or Cursor writes as a shareable link. Readers comment on any line; the next run reads them.">
+<meta name="description" content="byagent is a CLI that gives what Claude Code, Codex or Cursor makes a permanent, shareable link. Anyone can comment on it, and agents read the comments back.">
 <link rel="canonical" href="{{$d.CanonicalURL}}">
 <link rel="alternate" type="text/markdown" href="{{$d.AgentsURL}}.md" title="byagent for agents">
 <meta property="og:site_name" content="byagent">
 {{/* The preview card says the H1. The <title> above stays a description
      of what byagent is, because that is what a search result needs. */}}
 <meta property="og:title" content="byagent: One shelf for everything your agents make">
-<meta property="og:description" content="Anyone comments. Any agent reads. Your agent publishes plans, reports and pages to a link, and the next run reads the comments back.">
+<meta property="og:description" content="A permanent, shareable home for the prototypes, reports, plans and posts your agents make. Each gets its own link that anyone can comment on.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{$d.CanonicalURL}}">
 <meta property="og:image" content="{{$d.CardURL}}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="byagent: One shelf for everything your agents make. Anyone comments. Any agent reads.">
+<meta property="og:image:alt" content="byagent: One shelf for everything your agents make.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="byagent: One shelf for everything your agents make">
-<meta name="twitter:description" content="Anyone comments. Any agent reads. Your agent publishes plans, reports and pages to a link, and the next run reads the comments back.">
+<meta name="twitter:description" content="A permanent, shareable home for the prototypes, reports, plans and posts your agents make. Each gets its own link that anyone can comment on.">
 <meta name="twitter:image" content="{{$d.CardURL}}">
 {{/* A data block, not a script: the CSP does not apply and nothing runs.
      WebSite.name is what Google shows as the site name above the result. */}}
@@ -31,323 +31,218 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{$d.CanonicalURL}}#org","name":"byagent","url":"{{$d.CanonicalURL}}","logo":"{{$d.ShareOrigin}}/favicon-192.png","email":"hello@byagent.dev","sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"founder":{"@id":"{{$d.CanonicalURL}}#founder"},"parentOrganization":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}},{"@type":"Person","@id":"{{$d.CanonicalURL}}#founder","name":"Anup Aglawe","url":"https://github.com/anup-a","sameAs":["https://github.com/anup-a","https://x.com/anup_x_dev"]},{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}","publisher":{"@id":"{{$d.CanonicalURL}}#org"}},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write (Markdown or HTML) as shareable links. Readers comment on any line without an account, and the next agent run reads the comments back.","disambiguatingDescription":"A developer tool for publishing and reviewing the output of AI coding agents. It is not an AI search optimization or agent discovery service.","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"installUrl":"https://www.npmjs.com/package/byagent","softwareHelp":{"@type":"CreativeWork","url":"{{$d.AgentsURL}}"},"sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"publisher":{"@id":"{{$d.CanonicalURL}}#org"}}]}</script>
 <script type="application/ld+json">{{$d.FAQJSON}}</script>
 {{template "site-theme" $d}}
+{{/* The page's own styles and script, so the rest of the site does not
+     carry the shelf, the lanes or the feature demos. */}}
+<link rel="stylesheet" href="{{$d.LandingCSS}}">
+<script src="{{$d.LandingJS}}" defer></script>
 {{end}}
 
 {{define "content"}}
 {{$d := .Data}}
-<div class="landing">
+<div class="landing lp3">
+
+{{/* Shared drawing parts: agent marks and the filters the lanes use. Kept
+     in the page rather than the site sprite because only this page draws
+     them. The marks are names, not logos of partners: the agents are tools
+     byagent works with, and nothing here claims more than that. */}}
+<svg class="lp3-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="w-rough" filterUnits="userSpaceOnUse" x="-50" y="-50" width="1000" height="400"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="2.8"/></filter>
+    <symbol id="lg-claude" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></symbol>
+    <symbol id="lg-openai" viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></symbol>
+    <symbol id="lg-cursor" viewBox="0 0 24 24"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></symbol>
+    <clipPath id="w-shaft" clipPathUnits="userSpaceOnUse"><rect x="156" y="40" width="130" height="40"/></clipPath>
+    <linearGradient id="w-fadeg" x1="0" x2="1"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="w-fade" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="url(#w-fadeg)"/></mask>
+    <symbol id="w-person" viewBox="0 0 44 44"><circle cx="22" cy="17" r="7"/><path d="M9 37c1.5-7 7-10.5 13-10.5S33.5 30 35 37z"/></symbol>
+  </defs>
+</svg>
 
 {{template "site-bar" $d}}
 
-{{/* The page is written for the person who runs agents, not for a person
-     at a terminal: the one action on it is a line you paste to your agent.
-     The skill behind that line teaches the agent the CLI, so the CLI itself
-     is never the pitch. */}}
-<section class="lp-hero">
-  <h1 class="lp-h1">One shelf for everything<br><span class="lp-h1-dim">your agents make.</span></h1>
-  <p class="lp-tagline">Anyone comments. Any agent reads.</p>
-  <p class="lp-lead">
-    Your agent publishes a plan, report or page to a link. Readers comment on the line
-    they mean, with no account. The next run reads the comments and republishes to the same link.
-  </p>
-  {{template "lp-prompt" $d}}
-  <p class="lp-under"><b>Free. Readers need no account.</b> <span class="muted">Paste it into your agent. {{if $d.Guest}}No account to try it: the first pages last 24 hours, and a free key{{if $d.SignIn}} from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}} keeps them.{{else}}It asks for a key once{{if $d.SignIn}}, from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}}.{{end}}</span></p>
-  {{/* Names only: there are no partner logos to show, and drawing someone
-       else's mark would claim a relationship that does not exist. */}}
-  <ul class="lp-works" aria-label="Works with">
-    <li class="lp-works-label">Works with</li>
-    <li>Claude Code</li>
-    <li>Codex</li>
-    <li>Cursor</li>
-    <li>any agent with a shell</li>
-  </ul>
-</section>
-
-<figure class="lp-shot">
-  {{/* Two stills per figure rather than one <picture>: a <picture> answers only
-       to the system setting, and this page has a control of its own. CSS shows
-       the one that matches, and the dark pair is lazy so it is never fetched
-       in the light theme. */}}
-  <div class="lp-shot-stage">
-    <img class="lp-shot-main is-light" src="{{$d.ShotURL}}" width="1120" height="455"
-         alt="The byagent dashboard: a workspace of published pages filtered by project, grouped by the day they went out">
-    <img class="lp-shot-main is-dark" src="{{$d.ShotDarkURL}}" width="1120" height="455" loading="lazy"
-         alt="The byagent dashboard: a workspace of published pages filtered by project, grouped by the day they went out">
-    <img class="lp-shot-inset is-light" src="{{$d.ThreadURL}}" width="549" height="200"
-         alt="A comment thread on one page: a reader quotes a line, asks to time-box the first step, and the owner answers underneath">
-    <img class="lp-shot-inset is-dark" src="{{$d.ThreadDarkURL}}" width="549" height="200" loading="lazy"
-         alt="A comment thread on one page: a reader quotes a line, asks to time-box the first step, and the owner answers underneath">
-  </div>
-  <figcaption>Every page by project and day. On each one, the thread a reader left on the line they meant.</figcaption>
-</figure>
-
-{{/* The problem, drawn rather than argued: the left card is a desk the
-     reader will recognise, the right one is the same work with a link each. */}}
-<section class="lp-section">
-  <p class="lp-eyebrow">Before and after</p>
-  <h2 class="lp-h2">Agent work ends up everywhere. Put it on one shelf.</h2>
-  <p class="lp-sub">Plans and reports pile up as files nobody else can open. Feedback lands in chat, where the next run never sees it.</p>
-  <div class="lp-ba">
-    <div class="lp-ba-col">
-      <p class="lp-ba-label">Without byagent</p>
-      <div class="lp-mock lp-term is-before" aria-hidden="true">
-        <div class="lp-term-line"><span class="lp-term-dot"></span><span>plan_v3_final.md</span></div>
-        <div class="lp-term-line"><span class="lp-term-dot"></span><span>plan_v3_final_REAL.md</span></div>
-        <div class="lp-term-line"><span class="lp-term-dot"></span><span>report (2).html</span></div>
-        <div class="lp-ba-paste">Saved to /Users/you/work/launch/out/rollout-plan.md</div>
-        <div class="lp-ba-chat"><b>#launch</b> step 1 is too risky, can we pilot it first?</div>
-      </div>
-      <ul class="lp-ba-notes">
-        <li>Files with version numbers in the name</li>
-        <li>File paths pasted into chat that only work on one laptop</li>
-        <li>Feedback in Slack that the next run never reads</li>
-      </ul>
-    </div>
-    <div class="lp-ba-col">
-      <p class="lp-ba-label is-after">With byagent</p>
-      <div class="lp-mock lp-term" aria-hidden="true">
-        <div class="lp-term-link">{{template "icon" "link"}}<span>{{$d.ShareHost}}/a/{{$d.ExampleID}}/</span></div>
-        <div class="lp-term-line"><span class="lp-term-dot is-accent"></span><span><b>Rollout plan</b>, Launch, v3, 1 open comment</span></div>
-        <div class="lp-term-line"><span class="lp-term-dot"></span><span><b>Q3 report</b>, Launch, v1</span></div>
-        <div class="lp-term-line"><span class="lp-term-dot"></span><span><b>Pricing page draft</b>, Site, v5</span></div>
-        <div class="lp-term-quote">“step 1 is too risky, can we pilot it first?”</div>
-      </div>
-      <ul class="lp-ba-notes is-after">
-        <li>One link per page, and it stays put when the page changes</li>
-        <li>Every page filed by project on one shelf</li>
-        <li>Comments sit on the line they are about, where the next run reads them</li>
-      </ul>
+{{/* The hero sits on a bookcase that draws itself and keeps filling as
+     agents publish (landing.js). The one action on the page is the line you
+     paste to your agent; the skill behind it teaches the agent the CLI. */}}
+<section class="hero">
+  <svg class="bg" id="bg" aria-hidden="true"></svg>
+  <div class="hero-copy" id="hero-copy">
+    <h1>One shelf for everything<br><span class="two">your agents make.</span></h1>
+    <p class="sub">A permanent, shareable home for the <span class="it">prototypes</span>, <span class="it">reports</span>, <span class="it">plans</span>, <span class="it">posts</span> and <span class="it">any artifact</span> your agents make. Each gets its own link that anyone can comment on.</p>
+    {{template "lp-prompt" $d}}
+    <p class="under"><b>Free. Readers need no account.</b> Paste it into your agent. {{if $d.Guest}}No account to try it either: your first pages last 24 hours.{{else}}It asks for a key once{{if $d.SignIn}}, from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}}.{{end}}</p>
+    <div class="works" aria-label="Works with">
+      <span>Works with</span>
+      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><svg class="lg is-claude" aria-hidden="true"><use href="#lg-claude"/></svg><span class="menu-item-text">Claude Code</span></button>
+      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><svg class="lg" aria-hidden="true"><use href="#lg-openai"/></svg><span class="menu-item-text">Codex</span></button>
+      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><svg class="lg" aria-hidden="true"><use href="#lg-cursor"/></svg><span class="menu-item-text">Cursor</span></button>
+      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><span class="menu-item-text">Hermes</span></button>
+      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><span class="menu-item-text">any agent with a shell</span></button>
     </div>
   </div>
 </section>
 
-<section class="lp-section lp-loop">
-  <p class="lp-eyebrow">The loop</p>
-  <h2 class="lp-h2">The page goes out. The answer comes back.</h2>
-  <p class="lp-sub">Your agent handles both ends. The people in between just read and comment.</p>
-
-  {{/* The loop as one drawing: runs fan into the workspace, the page goes out
-     to a link and its readers, and two dashed lines carry the work back into
-     the next run. The travelling dots ride a hidden path that passes behind
-     the nodes, so each one seems to go in one side and out the other. */}}
-  <figure class="lp-chart">
-    <svg viewBox="0 0 1000 318" role="img" aria-label="Claude Code, Codex or a cron job publishes to byagent, one persistent workspace every agent can search. byagent serves a link, readers comment on it, and the comments and earlier work flow back into the next run, alongside the agent's own memory.">
-      <defs>
-        <marker id="lp-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path class="lp-arrow-head" d="M1 1.5 L8.5 5 L1 8.5"/>
-        </marker>
-        <marker id="lp-arrow-return" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path class="lp-arrow-head is-return" d="M1 1.5 L8.5 5 L1 8.5"/>
-        </marker>
-        <linearGradient id="lp-hub-edge" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" class="lp-stop-accent"/>
-          <stop offset="1" class="lp-stop-accent is-faint"/>
-        </linearGradient>
-        <filter id="lp-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
-        <filter id="lp-dot-glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="2.5"/></filter>
-        <path id="lp-path-loop" d="M105 105 L190 105 C262 105 262 130 318 130 L932 130 L932 170 C932 270 900 292 820 292 L200 292 C130 292 105 280 105 256 L105 105"/>
-        <path id="lp-path-a" d="M105 53 L190 53 C262 53 262 112 318 112 L420 112"/>
-        <path id="lp-path-c" d="M105 157 L190 157 C262 157 262 148 318 148 L420 148"/>
-      </defs>
-
-      <ellipse class="lp-hub-glow" cx="420" cy="130" rx="130" ry="80" filter="url(#lp-soft)"/>
-
-      <g class="lp-chart-flow" fill="none">
-        <path d="M190 53 C262 53 262 112 316 112" marker-end="url(#lp-arrow)"/>
-        <path d="M190 105 C262 105 262 130 316 130" marker-end="url(#lp-arrow)"/>
-        <path d="M190 157 C262 157 262 148 316 148" marker-end="url(#lp-arrow)"/>
-        <path d="M520 130 L626 130" marker-end="url(#lp-arrow)"/>
-        <path d="M790 130 L876 130" marker-end="url(#lp-arrow)"/>
-      </g>
-      <g class="lp-chart-return" fill="none">
-        <path d="M372 212 C372 246 300 236 194 234" marker-end="url(#lp-arrow-return)"/>
-        <path d="M932 170 C932 270 900 292 820 292 L200 292 C130 292 105 280 105 258" marker-end="url(#lp-arrow-return)"/>
-      </g>
-
-      <g class="lp-chart-dots" aria-hidden="true">
-        <circle r="3.5"><animateMotion dur="9s" repeatCount="indefinite"><mpath href="#lp-path-loop"/></animateMotion></circle>
-        <circle r="3.5"><animateMotion dur="9s" begin="-4.5s" repeatCount="indefinite"><mpath href="#lp-path-loop"/></animateMotion></circle>
-        <circle r="3"><animateMotion dur="3s" begin="-1s" repeatCount="indefinite"><mpath href="#lp-path-a"/></animateMotion></circle>
-        <circle r="3"><animateMotion dur="3.4s" begin="-2.2s" repeatCount="indefinite"><mpath href="#lp-path-c"/></animateMotion></circle>
-      </g>
-
-      <g class="lp-chart-nodes">
-        <g class="lp-agent"><rect x="20" y="34" width="170" height="38" rx="19"/><circle cx="42" cy="53" r="4" class="is-claude"/><text x="56" y="53">Claude Code</text></g>
-        <g class="lp-agent"><rect x="20" y="86" width="170" height="38" rx="19"/><circle cx="42" cy="105" r="4" class="is-codex"/><text x="56" y="105">Codex</text></g>
-        <g class="lp-agent"><rect x="20" y="138" width="170" height="38" rx="19"/><circle cx="42" cy="157" r="4" class="is-cron"/><text x="56" y="157">a cron job</text></g>
-        <text class="lp-plus" x="105" y="190">+</text>
-        <g class="lp-node is-memory"><rect x="20" y="204" width="170" height="52" rx="14"/>
-          <text x="105" y="222">its own memory</text><text x="105" y="240" class="lp-node-sub">what it learned</text></g>
-
-        <g class="lp-node is-hub"><rect x="320" y="48" width="200" height="164" rx="20"/>
-          <svg x="408" y="72" width="24" height="24" class="lp-hub-mark"><use href="#i-mark"/></svg>
-          <text x="420" y="124" class="lp-node-title">byagent</text>
-          <text x="420" y="152" class="lp-node-sub">one persistent workspace,</text>
-          <text x="420" y="170" class="lp-node-sub">searchable by every agent</text></g>
-
-        <g class="lp-node"><rect x="630" y="92" width="160" height="76" rx="16"/>
-          <text x="710" y="120" class="lp-node-title">a link</text><text x="710" y="143" class="lp-node-sub">versioned, yours</text></g>
-        <g class="lp-node"><rect x="880" y="92" width="104" height="76" rx="16"/>
-          <text x="932" y="120" class="lp-node-title">readers</text><text x="932" y="143" class="lp-node-sub">comment</text></g>
-      </g>
-
-      <g class="lp-chart-tags">
-        <g><rect x="224" y="106" width="62" height="22" rx="11"/><text x="255" y="117">publish</text></g>
-        <g><rect x="548" y="119" width="54" height="22" rx="11"/><text x="575" y="130">share</text></g>
-        <g><rect x="813" y="119" width="46" height="22" rx="11"/><text x="836" y="130">read</text></g>
-        <g class="is-return"><rect x="226" y="230" width="116" height="22" rx="11"/><text x="284" y="241">search the shelf</text></g>
-        <g class="is-return"><rect x="386" y="281" width="248" height="22" rx="11"/><text x="510" y="292">the comments, into the next run</text></g>
-      </g>
-    </svg>
-  </figure>
-
-  {{/* Each step is shown, not described: a small drawing of what you would
-       actually see at that moment. Drawn in HTML so the text stays crisp and
-       follows the theme. */}}
-  <ol class="lp-steps">
-    <li class="lp-step">
-      <div class="lp-step-head"><span class="lp-step-n">1</span><h3>Your agent publishes</h3></div>
-      <p>It writes the plan, the report or the page, publishes it, and hands you the link instead of a file path.</p>
-      <div class="lp-mock lp-term" aria-hidden="true">
-        <div class="lp-term-ask"><span class="lp-term-caret">›</span> Write up the rollout plan for the team</div>
-        <div class="lp-term-line"><span class="lp-term-dot"></span><span>Wrote <b>rollout-plan.md</b>, four sections</span></div>
-        <div class="lp-term-line"><span class="lp-term-dot"></span><span>Published to the <b>Launch</b> project</span></div>
-        <div class="lp-term-link">{{template "icon" "link"}}<span>{{$d.ShareHost}}/a/{{$d.ExampleID}}/</span></div>
-      </div>
-    </li>
-    <li class="lp-step">
-      <div class="lp-step-head"><span class="lp-step-n">2</span><h3>Readers comment on the line</h3></div>
-      <p>Anyone with the link can read it. They select the sentence they mean and leave a note, no account needed.</p>
-      <div class="lp-mock lp-page" aria-hidden="true">
-        <div class="lp-page-h">Rollout plan</div>
-        <div class="lp-page-p"><span class="lp-page-bar"></span><span class="lp-page-bar is-short"></span></div>
-        <div class="lp-page-p">Step 1: <mark>move every team to the new build in one go.</mark></div>
-        <div class="lp-note">
-          <span class="lp-note-av">M</span>
-          <div><span class="lp-note-who">Maya</span><span class="lp-note-txt">Can we time-box this to one team for a week first?</span></div>
-        </div>
-      </div>
-    </li>
-    <li class="lp-step">
-      <div class="lp-step-head"><span class="lp-step-n">3</span><h3>The next run reads it back</h3></div>
-      <p>Your agent pulls the open threads, fixes the page on the same link, replies and resolves.</p>
-      <div class="lp-mock lp-term" aria-hidden="true">
-        <div class="lp-term-line"><span class="lp-term-dot is-accent"></span><span>1 open comment on <b>Rollout plan</b></span></div>
-        <div class="lp-term-quote">“Can we time-box this to one team for a week first?”</div>
-        <div class="lp-term-line"><span class="lp-term-dot"></span><span>Rewrote step 1, republished as <b>v2</b></span></div>
-        <div class="lp-term-line"><span class="lp-term-dot is-ok">{{template "icon" "check"}}</span><span>Replied and resolved</span></div>
-      </div>
-    </li>
-  </ol>
-
-</section>
-
-{{/* The agent's side of the loop, shown as the real thing: the JSON is the
-     shape GET /api/artifacts/{id}/comments returns (internal/api/comments.go),
-     which is what the CLI prints with --json. */}}
-<section class="lp-section">
-  <p class="lp-eyebrow">Any agent reads</p>
-  <h2 class="lp-h2">Comments come back as JSON.</h2>
-  <p class="lp-sub">Any agent that can run a shell command reads the open threads, fixes the page and closes the loop. The skill tells it to treat comment text as data, not as instructions.</p>
-  <div class="lp-split">
-    <pre class="lp-mock lp-code" aria-label="Output of byagent comments with --open --json"><code><span class="t-dim">$ </span><span class="t-cmd">byagent comments</span> <span class="t-arg">{{$d.ExampleID}}</span> <span class="t-flag">--open --json</span>
-<span class="t-punc">{</span>
-  <span class="t-arg">"threads"</span><span class="t-punc">: [{</span>
-    <span class="t-arg">"id"</span><span class="t-punc">:</span> <span class="t-str">"th_Q7wN2cR8vKp3"</span><span class="t-punc">,</span>
-    <span class="t-arg">"version"</span><span class="t-punc">:</span> 1<span class="t-punc">,</span>
-    <span class="t-arg">"status"</span><span class="t-punc">:</span> <span class="t-str">"open"</span><span class="t-punc">,</span>
-    <span class="t-arg">"anchor_status"</span><span class="t-punc">:</span> <span class="t-str">"attached"</span><span class="t-punc">,</span>
-    <span class="t-arg">"anchor"</span><span class="t-punc">: {</span>
-      <span class="t-arg">"kind"</span><span class="t-punc">:</span> <span class="t-str">"text"</span><span class="t-punc">,</span>
-      <span class="t-arg">"quote"</span><span class="t-punc">:</span> <span class="t-str">"move every team to the new build in one go."</span>
-    <span class="t-punc">},</span>
-    <span class="t-arg">"created_at"</span><span class="t-punc">:</span> <span class="t-str">"2026-09-30T14:02:11Z"</span><span class="t-punc">,</span>
-    <span class="t-arg">"resolved_at"</span><span class="t-punc">:</span> null<span class="t-punc">,</span>
-    <span class="t-arg">"comments"</span><span class="t-punc">: [{</span>
-      <span class="t-arg">"id"</span><span class="t-punc">:</span> <span class="t-str">"cm_8XbT4mLq2Wz9"</span><span class="t-punc">,</span>
-      <span class="t-arg">"author_name"</span><span class="t-punc">:</span> <span class="t-str">"Maya"</span><span class="t-punc">,</span>
-      <span class="t-arg">"author_kind"</span><span class="t-punc">:</span> <span class="t-str">"viewer"</span><span class="t-punc">,</span>
-      <span class="t-arg">"body"</span><span class="t-punc">:</span> <span class="t-str">"Can we time-box this to one team for a week first?"</span><span class="t-punc">,</span>
-      <span class="t-arg">"created_at"</span><span class="t-punc">:</span> <span class="t-str">"2026-09-30T14:02:11Z"</span>
-    <span class="t-punc">}]</span>
-  <span class="t-punc">}]</span>
-<span class="t-punc">}</span></code></pre>
-    <ol class="lp-seq">
-      <li><span class="lp-step-n">1</span><div><b>Edit the page.</b> The agent changes the source the reader commented on.</div></li>
-      <li><span class="lp-step-n">2</span><div><b>Republish to the same link.</b> The URL stays put and the version goes to 2.<code class="lp-cmd">byagent publish ./rollout-plan --json</code></div></li>
-      <li><span class="lp-step-n">3</span><div><b>Reply on the thread.</b> Say what changed.<code class="lp-cmd">byagent reply {{$d.ExampleID}} th_Q7wN2cR8vKp3 "Pilot first, see v2."</code></div></li>
-      <li><span class="lp-step-n">4</span><div><b>Resolve it.</b> The thread closes and drops out of the next <code>--open</code> read.<code class="lp-cmd">byagent resolve {{$d.ExampleID}} th_Q7wN2cR8vKp3</code></div></li>
-    </ol>
-  </div>
-</section>
-
-<section class="lp-section">
-  <p class="lp-eyebrow">The shelf</p>
-  <h2 class="lp-h2">Earlier work, where the next run can find it.</h2>
-  <p class="lp-sub">Every page is filed under a project. The next run lists and searches what is already there before it writes something new.</p>
-  <div class="lp-split">
-    <div class="lp-mock lp-term" aria-hidden="true">
-      <div class="lp-term-ask"><span class="lp-term-caret">$</span> byagent list --project Launch</div>
-      <div class="lp-term-line"><span>{{$d.ExampleID}}  v2  0 open  Rollout plan  [Launch #plan]</span></div>
-      <div class="lp-term-line"><span>Hr8LmZ2xQa0c  v1  1 open  Q3 report  [Launch #report]</span></div>
-      <div class="lp-term-line"><span>T3vYc9KpW1sd  v4  0 open  Launch brief  [Launch #brief]</span></div>
-      <div class="lp-term-ask is-next"><span class="lp-term-caret">$</span> byagent brief --json</div>
-      <div class="lp-term-line"><span class="lp-term-dot is-accent"></span><span>BRIEF.md: goal, where it stands, next move</span></div>
+{{/* The real dashboard in a glass window that peeks into the first screen,
+     tilted back, and lands flat as you scroll. Three real pages float out of
+     it, kept below the toolbar so the window still reads as a window. Two
+     stills rather than one <picture>: a <picture> answers only to the system
+     setting, and this page has a theme control of its own. */}}
+<div class="shot-glow"><figure class="shot">
+  <div class="shot-in">
+    <div class="shot-bar" aria-hidden="true">
+      <div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+      <div class="tb"><span class="cap"><svg viewBox="0 0 16 16"><path d="M2.5 3.5h11v9h-11z M6 3.5v9"/></svg></span><span class="cap pair"><svg viewBox="0 0 16 16"><path d="M9.5 3.5 5 8l4.5 4.5"/></svg><svg viewBox="0 0 16 16"><path d="M6.5 3.5 11 8l-4.5 4.5"/></svg></span></div>
+      <div class="url"><svg viewBox="0 0 16 16"><path d="M5 7V5.5a3 3 0 0 1 6 0V7 M4 7h8v6H4z"/></svg><span>{{$d.APIHost}}</span></div>
+      <div class="tb"><span class="cap"><svg viewBox="0 0 16 16"><path d="M8 2.5v7 M5 5l3-3 3 3 M3.5 9.5v4h9v-4"/></svg></span><span class="cap"><svg viewBox="0 0 16 16"><path d="M8 3v10 M3 8h10"/></svg></span></div>
     </div>
-    <ul class="lp-points">
-      <li><b>Filed by project.</b> Pages carry a project and tags. <code>byagent collections</code> lists the projects, newest activity first.</li>
-      <li><b>Searchable.</b> <code>byagent list --project Launch</code> or <code>byagent list --search "rollout"</code> finds earlier work by project or title.</li>
-      <li><b>A brief per project.</b> <code>BRIEF.md</code> is the handoff note for whoever picks the work up next. <code>byagent brief</code> reads it with its open comments; <code>byagent brief push</code> updates it.</li>
-    </ul>
+    <img class="on-light" src="{{$d.ShotURL}}" width="1360" height="820"
+         alt="The byagent dashboard: an Acme workspace with Dashboards and data, Design studio and Explainers and guides collections, and the pages filed under them">
+    <img class="on-dark" src="{{$d.ShotDarkURL}}" width="1360" height="820" loading="lazy"
+         alt="The byagent dashboard: an Acme workspace with Dashboards and data, Design studio and Explainers and guides collections, and the pages filed under them">
   </div>
+  <figure class="pop p1 c-codex"><img src="{{index $d.Covers "lisbon"}}" width="640" height="400" alt="Lisbon rides: the weekend edition, a data story"><figcaption><i></i>Lisbon rides<em>codex</em></figcaption></figure>
+  <figure class="pop p2 c-open"><img src="{{index $d.Covers "garden"}}" width="640" height="400" alt="Small bottles, big garden, a planting plan"><figcaption><i></i>Small bottles, big garden<em>opencode</em></figcaption></figure>
+  <figure class="pop p3 c-claude"><img src="{{index $d.Covers "noodles"}}" width="640" height="400" alt="Charred corn and miso butter noodles, a recipe page"><figcaption><i></i>Miso butter noodles<em>claude code</em></figcaption></figure>
+</figure></div>
+
+<div class="plank" data-in></div>
+
+{{/* The problem, drawn rather than argued: each agent keeps its work in its
+     own place, and the rest have nowhere at all. Only the scribble is drawn
+     by hand; "brrr…" is a path, so the page loads no handwriting font. */}}
+<section id="why">
+  <div class="w-head">
+    <h2>Every agent keeps its work somewhere different.</h2>
+  </div>
+
+  <div class="w-lanes">
+    <div class="w-lane" data-reveal>
+      <p class="w-cap"><b>Claude keeps it in Claude.</b></p>
+      <div class="w-stage">
+        <svg viewBox="0 0 800 120" role="img" aria-label="Claude Code publishes a Claude artifact inside your Claude org. A reader outside the org tries to comment and is stopped.">
+          <rect class="w-chip-r" x="0" y="42" width="150" height="36" rx="10"/><svg x="14" y="51" width="18" height="18" class="w-mark-claude"><use href="#lg-claude"/></svg><text class="w-t-chip" x="40" y="65">Claude Code</text>
+          <path class="w-wire" d="M160 60 H 299"/><path class="w-wire" d="M291 54 L 300 60 L 291 66"/>
+          <g clip-path="url(#w-shaft)"><g class="w-packet w-c-claude">
+            <rect class="w-trail" x="116" y="59" width="52" height="2" rx="1" mask="url(#w-fade)"/>
+            <circle class="w-halo" cx="164" cy="60" r="3.5"/><circle class="w-halo w-h2" cx="164" cy="60" r="3.5"/>
+            <circle class="w-core" cx="164" cy="60" r="3.2"/>
+          </g></g>
+          <rect class="w-fence" x="316" y="14" width="240" height="92" rx="16"/>
+          <rect class="w-fence-tag" x="330" y="5" width="122" height="18" rx="9"/><text class="w-fence-lbl" x="340" y="18">your Claude org</text>
+          <rect class="w-card" x="332" y="34" width="208" height="54" rx="10"/>
+          <svg x="346" y="45" width="16" height="16" class="w-mark-claude"><use href="#lg-claude"/></svg>
+          <text class="w-t-l" x="370" y="58">Claude artifact</text>
+          <text class="w-t-m" x="370" y="76">launch-plan</text>
+          <path class="w-ok w-pop w-d1" d="M510 61 l 5 6 l 10 -12"/>
+          <g class="w-pop w-d2">
+            <path class="w-link" d="M558 60 H 571 M 589 60 H 600"/>
+            <circle class="w-stopc" cx="580" cy="60" r="8"/><path class="w-stopl" d="M574.3 65.7 L 585.7 54.3"/>
+            <g class="w-bump">
+              <rect class="w-card" x="600" y="26" width="200" height="68" rx="12"/>
+              <circle class="w-avatar" cx="620" cy="45" r="10"/><svg x="610" y="35" width="20" height="20" class="w-avatar-g"><use href="#w-person"/></svg>
+              <text class="w-t-s w-t-ink" x="638" y="50">Small note on step 2…</text>
+              <rect class="w-pill-r" x="611" y="66" width="138" height="19" rx="9.5"/>
+              <rect class="w-ic-r" x="618.5" y="73.5" width="8" height="6.5" rx="1.4"/><path class="w-ic-r" d="M620.3 73.5 v-1.6 a2.2 2.2 0 0 1 4.4 0 v1.6"/>
+              <text class="w-t-pill" x="633" y="79.5">Needs a Claude seat</text>
+              <rect class="w-post" x="756" y="66" width="34" height="19" rx="6"/><text class="w-t-post" x="763" y="79.5">Post</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="w-lane" data-reveal>
+      <p class="w-cap"><b>ChatGPT keeps it in ChatGPT.</b></p>
+      <div class="w-stage">
+        <svg viewBox="0 0 800 120" role="img" aria-label="Codex publishes a ChatGPT Site. A reader looks for somewhere to comment and finds nothing.">
+          <rect class="w-chip-r" x="0" y="42" width="150" height="36" rx="10"/><svg x="14" y="51" width="18" height="18" class="w-mark-ink"><use href="#lg-openai"/></svg><text class="w-t-chip" x="40" y="65">Codex</text>
+          <path class="w-wire" d="M160 60 H 299"/><path class="w-wire" d="M291 54 L 300 60 L 291 66"/>
+          <g clip-path="url(#w-shaft)"><g class="w-packet w-c-ink">
+            <rect class="w-trail" x="116" y="59" width="52" height="2" rx="1" mask="url(#w-fade)"/>
+            <circle class="w-halo" cx="164" cy="60" r="3.5"/><circle class="w-halo w-h2" cx="164" cy="60" r="3.5"/>
+            <circle class="w-core" cx="164" cy="60" r="3.2"/>
+          </g></g>
+          <rect class="w-card" x="316" y="16" width="240" height="88" rx="10"/>
+          <path class="w-wire w-wire-faint" d="M316 38 H 556"/>
+          <circle cx="330" cy="27" r="3" class="w-bar"/><circle cx="340" cy="27" r="3" class="w-bar"/><circle cx="350" cy="27" r="3" class="w-bar"/>
+          <text class="w-t-m" x="364" y="31">chatgpt.com/…</text>
+          <svg x="332" y="50" width="16" height="16" class="w-mark-ink"><use href="#lg-openai"/></svg>
+          <text class="w-t-l" x="356" y="63">ChatGPT Site</text>
+          <rect class="w-bar" x="332" y="78" width="170" height="5" rx="2.5"/><rect class="w-bar" x="332" y="89" width="130" height="5" rx="2.5"/>
+          <path class="w-ok w-pop w-d1" d="M526 56 l 5 6 l 10 -12"/>
+          <g class="w-pop w-d2">
+            <path class="w-link" d="M558 60 H 571 M 589 60 H 600"/>
+            <circle class="w-stopc" cx="580" cy="60" r="8"/><path class="w-stopl" d="M574.3 65.7 L 585.7 54.3"/>
+            <g class="w-bump">
+              <rect class="w-card" x="600" y="26" width="200" height="68" rx="12"/>
+              <circle class="w-avatar" cx="620" cy="45" r="10"/><svg x="610" y="35" width="20" height="20" class="w-avatar-g"><use href="#w-person"/></svg>
+              <text class="w-t-s w-t-ask" x="638" y="50">Where do I comment?</text>
+              <rect class="w-pill-r" x="611" y="66" width="140" height="19" rx="9.5"/>
+              <circle class="w-ic-r" cx="622.5" cy="75.5" r="4.5"/><path class="w-ic-r" d="M619.3 78.7 L 625.7 72.3"/>
+              <text class="w-t-pill" x="633" y="79.5">Nowhere to comment</text>
+              <rect class="w-post" x="756" y="66" width="34" height="19" rx="6"/><text class="w-t-post" x="763" y="79.5">Post</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="w-lane w-brrr" data-reveal>
+      <p class="w-cap"><b>Everyone else gets nothing.</b></p>
+      <div class="w-stage">
+        <svg viewBox="0 0 800 190" role="img" aria-label="Every other agent, like Cursor, Hermes or a cron job, goes brrr and sprays loose files: plan_v3_final.md, plan_v3_final_REAL.md, report (2).html. Feedback ends up in a Slack thread.">
+          <g transform="translate(0 25)">
+            <rect class="w-chip-r" x="0" y="42" width="150" height="36" rx="10"/>
+            <circle class="w-stack" cx="22" cy="60" r="9"/><svg x="16.5" y="54.5" width="11" height="11" class="w-mark-ink"><use href="#lg-cursor"/></svg>
+            <circle class="w-stack" cx="34" cy="60" r="9"/><text class="w-t-more" x="34" y="63.5" text-anchor="middle">+2</text>
+            <text class="w-t-chip" x="52" y="65">Everyone else</text>
+            <text class="w-t-m w-t-who" x="0" y="100">Cursor, Hermes, a cron job…</text>
+          </g>
+          <g class="w-shake"><path class="w-scrib" id="w-scrib" pathLength="1" d=""/></g>
+          <path class="w-zip" d="M336 36 q -8 10 0 20 M 326 31 q -12 15 0 30 M 494 112 q 8 10 0 20 M 504 107 q 12 15 0 30"/>
+          <g class="w-brrr-word"><path class="w-hand" d="{{template "lp-brrr"}}"/></g>
+          <g transform="translate(540 14)"><g class="w-file f1"><g class="w-float"><rect width="160" height="32" rx="6"/><path class="w-fold" d="M148 0 V 9 H 160"/><text x="12" y="20.5">plan_v3_final.md</text></g></g></g>
+          <g transform="translate(588 60)"><g class="w-file f2"><g class="w-float"><rect width="196" height="32" rx="6"/><path class="w-fold" d="M184 0 V 9 H 196"/><text x="12" y="20.5">plan_v3_final_REAL.md</text></g></g></g>
+          <g transform="translate(536 106)"><g class="w-file f3"><g class="w-float"><rect width="150" height="32" rx="6"/><path class="w-fold" d="M138 0 V 9 H 150"/><text x="12" y="20.5">report (2).html</text></g></g></g>
+          <g transform="translate(624 146)"><g class="w-file w-slack f4"><rect width="176" height="38" rx="10"/><text class="w-hash" x="11" y="15.5">#launch</text><text class="w-t-s" x="11" y="30">notes on v3? which file?</text></g></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <p class="w-bridge">So we built one shelf they all share. <a href="#how">See how it works</a></p>
 </section>
 
-<section class="lp-section">
-  <p class="lp-eyebrow">Anyone comments</p>
-  <h2 class="lp-h2">Readers open a link. That is all they need.</h2>
-  <ul class="lp-cards">
-    <li class="lp-card">
-      <span class="lp-trait-ic">{{template "icon" "users"}}</span>
-      <h3>No account for readers</h3>
-      <p>Anyone with the link reads the page and leaves a comment under a name they type. No sign-up, no email.</p>
-    </li>
-    <li class="lp-card">
-      <span class="lp-trait-ic">{{template "icon" "comment"}}</span>
-      <h3>Comment on the exact line</h3>
-      <p>Readers select the sentence they mean, and the comment is pinned to it. Your agent gets the exact quote.</p>
-    </li>
-    <li class="lp-card">
-      <span class="lp-trait-ic">{{template "icon" "key"}}</span>
-      <h3>Private pages, six-digit codes</h3>
-      <p>Keep a page to your workspace, or open it with a six-digit code. Rotate the code or withdraw it at any time.</p>
-    </li>
-    <li class="lp-card">
-      <span class="lp-trait-ic">{{template "icon" "rollback"}}</span>
-      <h3>Versions kept, with rollback</h3>
-      <p>Republish and the link stays put. The last {{$d.Limits.VersionsKept}} versions are kept, and any of them can be rolled back to.</p>
-    </li>
-  </ul>
-</section>
-
-<section class="lp-section">
-  <p class="lp-eyebrow">For teams that deliver to clients</p>
-  <h2 class="lp-h2">One workspace, a portal per client.</h2>
-  <p class="lp-sub">Agencies and consultancies run an integrator workspace. Each page can be attributed to a client, and each client gets a read-only link to just their pages.</p>
-  <ul class="lp-points is-row">
-    <li><b>Attribute a page.</b> <code>byagent publish ./site --end-user acme</code> files it under that client.</li>
-    <li><b>Hand over a portal.</b> <code>byagent portal-link acme</code> prints a read-only link to that client's pages. It needs no account and lasts seven days.</li>
-    <li><b>Keep it separate.</b> A portal shows one client's pages and nothing else in the workspace.</li>
-  </ul>
+{{/* Every feature as a sentence you say to your agent: the chat plays the
+     request on the left while the page on the right changes. The commands
+     shown are the real CLI's. The mocks are drawn by landing.js; the covers
+     and the host come in from here so they follow this deployment. */}}
+<div class="plank" data-in></div>
+<section class="feat" id="how" data-in data-host="{{$d.ShareHost}}" data-covers="{{$d.CoversJSON}}">
+  <h2>Watch an agent use it.</h2>
+  <p class="lead fc-lead">Every feature is a sentence you say to your agent. Pick one and watch the page change, or click into the page and try it yourself.</p>
+  <div class="seg" id="fc-seg" role="tablist" aria-label="Features"></div>
+  <div class="duo" id="fc-duo">
+    <div class="chat">
+      <div class="hd" id="fc-who"><i></i><span id="fc-aname"></span><small>with byagent</small></div>
+      <div class="log" id="fc-log" aria-live="polite"></div>
+      <div class="composer"><small>Ask next</small><div class="chips" id="fc-chips"></div></div>
+    </div>
+    <div class="live">
+      <div class="hd"><h3 id="fc-ttl"></h3><p id="fc-bl"></p></div>
+      <div class="stage"><div class="fx" id="fc-mock"></div></div>
+    </div>
+  </div>
+  <noscript><p class="lead">Your agent publishes pages to the shelf, filed by project. Readers comment on any line without an account, and the agent reads the comments, fixes the page on the same link and resolves them. Pages can be private with a six-digit share code, keep their versions, expire when you say, and each project has a brief for the next agent.</p></noscript>
 </section>
 
 {{/* Plain answers to the questions a careful reader asks before pasting a
      line into their agent. The list lives in landing.go, which also writes
      it into the FAQPage data block in the head. Each question is a heading
      so it can be quoted as the answer to that question. */}}
-<section class="lp-section">
-  <p class="lp-eyebrow">Questions</p>
-  <h2 class="lp-h2">Before you paste the line.</h2>
-  <div class="lp-faq">
+<div class="plank" data-in></div>
+<section class="col" id="qa" data-in>
+  <div class="center"><h2>Before you paste it.</h2></div>
+  <div class="faq">
     {{range $d.FAQ}}
     <details>
       <summary><h3>{{.Q}}</h3></summary>
@@ -357,22 +252,23 @@
   </div>
 </section>
 
-<section class="lp-section lp-start">
-  <p class="lp-eyebrow">Start</p>
-  <h2 class="lp-h2">Give your agent somewhere to publish.</h2>
-  <p class="lp-sub">One line sets it up for the project. Here is what your agent picks up from it.</p>
-  <ul class="lp-checks">
-    <li>{{template "icon" "check"}}Publishes by default and hands back the link</li>
-    <li>{{template "icon" "check"}}Writes Markdown for prose, HTML for layout</li>
-    <li>{{template "icon" "check"}}Files each page under a project, with tags</li>
-    <li>{{template "icon" "check"}}Keeps the same link when it edits a page</li>
-    <li>{{template "icon" "check"}}Reads open comments and resolves them</li>
-    <li>{{template "icon" "check"}}Asks before it deletes anything</li>
-  </ul>
-  {{template "lp-prompt" $d}}
+<div class="plank wide" data-in></div>
+<section class="close col" data-in>
+  <h2>Give every agent the same shelf.</h2>
+  <div class="cta">
+    <button type="button" class="btn primary lp-close-copy" data-copy-text="{{template "lp-prompt-line" $d}}" aria-label="Copy the prompt for your agent">
+      <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">Copy prompt for agent</span>
+    </button>
+    <span class="fine">Free. Works with any agent that has a shell.</span>
+  </div>
 </section>
 
 {{template "site-foot" $d}}
 
 </div>
 {{end}}
+
+{{/* "brrr…" in Caveat Bold at 44px, traced to a path (drawn once with
+     fontTools from the OFL-licensed font), so the
+     page needs no handwriting font from a third-party host. */}}
+{{define "lp-brrr"}}M360.1 177.7Q359.2 177.6 358.7 177.3Q358.2 176.9 357.9 176.3Q357.6 175.9 357.5 175.7Q357.4 175.5 357.5 175.3Q357.7 175.3 357.9 175.3Q358.1 175.3 358.1 175.1Q358.1 175 358.2 175Q358.4 174.9 358.6 175Q359.4 175 360.6 174.4Q361.8 173.8 363.3 172.7Q364.7 171.5 366.2 170.2Q367.3 168.7 367.8 168Q368.3 167.3 368.3 166.9Q368.3 166.6 368.1 166.2Q367.9 165.8 367.2 165.8Q366.6 165.8 365.2 166.7Q363.3 167.9 362.2 168.9Q361 169.9 360.1 171.2Q359.7 171.6 359.3 172.1Q358.9 172.6 358.6 173Q358.3 173.3 358.3 173.3Q358.3 173.5 357.8 173.8Q357.3 174 357 174Q356.8 174 356.5 173.7Q356.2 173.5 356.1 173.1Q355.7 172.8 355.5 172.5Q355.2 172.3 355.2 171.7Q355.2 171.4 355.3 170.8Q355.4 170.3 355.6 169.5Q355.9 168.3 356.2 167.1Q356.5 165.8 356.8 164.9Q357.1 164 357.2 163.9Q357.2 163.9 357.4 163.5Q357.6 163.1 357.6 162.6Q357.7 162.1 357.9 161.7Q358.1 161.3 358.1 161.1Q358.2 161 358.6 160Q358.9 159.1 359.5 157.6Q359.5 157.5 359.8 156.8Q360.1 156 360.5 155.1Q361 154.1 361.4 153Q361.9 151.9 362.2 151.1Q362.7 150.3 363.1 149.6Q363.5 148.8 363.8 148.7Q364 148.6 364.5 148.8Q365.1 149 365.7 149.4Q366.2 149.8 366.5 150.1Q366.6 150.3 366.6 150.5Q366.6 150.8 366.4 151.3Q366.2 151.8 365.7 152.9Q365.1 154 364.2 156Q362.9 158.7 362.3 160.4Q361.6 162.2 361.2 163.5Q360.7 164.8 360.3 165.9L360.1 166.9L361.2 165.6Q361.7 165.2 362.1 164.8Q362.6 164.4 363.2 164Q363.6 163.7 364.1 163.4Q364.7 163.1 365.3 162.9Q365.9 162.7 366.1 162.6Q366.3 162.6 367 162.4Q367.8 162.3 368.6 162.3Q369.5 162.3 370.3 163Q371 163.7 371.6 164.6Q372 165.5 371.9 167Q371.8 168.4 371.2 169.4Q370.9 169.6 370.7 169.9Q370.5 170.2 370.5 170.3Q370.5 170.7 369.7 171.6Q369 172.5 368.2 173.4Q367.4 174.2 366.3 175Q365.1 175.8 364 176.5Q362.9 177.1 362.1 177.4Q361.7 177.4 361.1 177.5Q360.4 177.6 360.1 177.7ZM374.8 176.8Q374.4 176.5 373.9 176Q373.5 175.5 373.6 174.7Q373.7 173.4 373.9 172.5Q374.2 171.5 374.5 170.3Q374.6 169.8 374.9 168.5Q375.3 167.2 375.8 165.7Q376.4 164.2 376.9 162.9Q377.5 161.5 377.9 160.9Q378.4 160.4 379.4 160.4Q380.3 160.4 380.7 160.8Q381.2 161.2 381 162.2Q380.8 163.2 379.7 165.2Q379.5 165.8 379.2 166.4Q378.9 167 378.7 167.3Q378.6 167.7 378.8 167.7Q379.1 167.2 379.8 166.5Q380.5 165.9 381.3 165.3Q382.1 164.7 382.8 164.2Q383.5 163.7 383.7 163.6Q384.1 163.3 384.6 163.2Q385 163 385.2 163Q386.2 162.5 387.4 162.6Q388.6 162.7 388.9 163.3Q388.9 163.7 389.2 163.9Q389.4 164.1 389.4 164.1Q389.6 164.1 389.6 164.2Q389.6 164.3 389.6 164.3Q389.6 164.6 389.1 165.2Q388.5 165.8 387.8 165.8Q387.2 165.9 386.7 166Q386.3 166.2 385.7 166.5Q384 167.4 382.7 168.2Q381.3 168.9 379.9 170.5Q379.6 170.8 379.3 171.1Q378.9 171.4 378.6 172Q378.3 172.2 378.1 173Q377.9 173.7 377.7 174.4Q377.6 175.1 377.6 175.2Q377.6 175.2 377.5 175.6Q377.3 176.1 377 176.5Q376.5 177.2 376 177.3Q375.5 177.5 374.8 176.8ZM390.6 176.8Q390.2 176.5 389.8 176Q389.3 175.5 389.4 174.7Q389.6 173.4 389.8 172.5Q390 171.5 390.3 170.3Q390.4 169.8 390.8 168.5Q391.1 167.2 391.7 165.7Q392.2 164.2 392.8 162.9Q393.3 161.5 393.8 160.9Q394.3 160.4 395.2 160.4Q396.2 160.4 396.5 160.8Q397 161.2 396.8 162.2Q396.6 163.2 395.6 165.2Q395.4 165.8 395 166.4Q394.7 167 394.6 167.3Q394.4 167.7 394.7 167.7Q394.9 167.2 395.6 166.5Q396.3 165.9 397.1 165.3Q397.9 164.7 398.6 164.2Q399.3 163.7 399.6 163.6Q399.9 163.3 400.4 163.2Q400.9 163 401 163Q402.1 162.5 403.3 162.6Q404.5 162.7 404.7 163.3Q404.8 163.7 405 163.9Q405.3 164.1 405.3 164.1Q405.4 164.1 405.5 164.2Q405.5 164.3 405.5 164.3Q405.5 164.6 404.9 165.2Q404.3 165.8 403.6 165.8Q403 165.9 402.6 166Q402.1 166.2 401.5 166.5Q399.9 167.4 398.5 168.2Q397.2 168.9 395.8 170.5Q395.5 170.8 395.1 171.1Q394.7 171.4 394.4 172Q394.2 172.2 394 173Q393.7 173.7 393.6 174.4Q393.4 175.1 393.4 175.2Q393.4 175.2 393.3 175.6Q393.2 176.1 392.9 176.5Q392.3 177.2 391.8 177.3Q391.3 177.5 390.6 176.8ZM406.5 176.8Q406.1 176.5 405.6 176Q405.1 175.5 405.3 174.7Q405.4 173.4 405.6 172.5Q405.8 171.5 406.1 170.3Q406.2 169.8 406.6 168.5Q407 167.2 407.5 165.7Q408 164.2 408.6 162.9Q409.2 161.5 409.6 160.9Q410.1 160.4 411 160.4Q412 160.4 412.3 160.8Q412.8 161.2 412.7 162.2Q412.5 163.2 411.4 165.2Q411.2 165.8 410.9 166.4Q410.5 167 410.4 167.3Q410.3 167.7 410.5 167.7Q410.8 167.2 411.5 166.5Q412.2 165.9 413 165.3Q413.8 164.7 414.5 164.2Q415.2 163.7 415.4 163.6Q415.8 163.3 416.2 163.2Q416.7 163 416.9 163Q417.9 162.5 419.1 162.6Q420.3 162.7 420.6 163.3Q420.6 163.7 420.9 163.9Q421.1 164.1 421.1 164.1Q421.3 164.1 421.3 164.2Q421.3 164.3 421.3 164.3Q421.3 164.6 420.7 165.2Q420.1 165.8 419.4 165.8Q418.9 165.9 418.4 166Q418 166.2 417.4 166.5Q415.7 167.4 414.4 168.2Q413 168.9 411.6 170.5Q411.3 170.8 410.9 171.1Q410.6 171.4 410.2 172Q410 172.2 409.8 173Q409.6 173.7 409.4 174.4Q409.3 175.1 409.3 175.2Q409.3 175.2 409.1 175.6Q409 176.1 408.7 176.5Q408.2 177.2 407.7 177.3Q407.2 177.5 406.5 176.8ZM423.8 175.7Q423 176 422.4 176Q421.9 176 421.2 175.5Q420.4 174.7 420.6 173.9Q420.9 173.1 422.1 172.3Q422.9 171.8 423.2 171.8Q423.6 171.7 424.4 172.1Q425.7 172.9 425.6 173.9Q425.4 174.9 423.8 175.7ZM432.5 175.7Q431.7 176 431.1 176Q430.6 176 429.9 175.5Q429.1 174.7 429.4 173.9Q429.6 173.1 430.8 172.3Q431.6 171.8 431.9 171.8Q432.3 171.7 433.1 172.1Q434.4 172.9 434.3 173.9Q434.1 174.9 432.5 175.7ZM441.2 175.7Q440.4 176 439.8 176Q439.3 176 438.6 175.5Q437.8 174.7 438.1 173.9Q438.4 173.1 439.5 172.3Q440.3 171.8 440.7 171.8Q441 171.7 441.8 172.1Q443.1 172.9 443 173.9Q442.8 174.9 441.2 175.7Z{{end}}

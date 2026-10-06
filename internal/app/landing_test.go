@@ -36,42 +36,32 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		t.Fatalf("content type %q", ct)
 	}
 	for _, want := range []string{
-		"Paste it into your agent",     // the one action on the page
-		"Copy the prompt",              // and the button that takes it
+		"One shelf for everything",            // the positioning
+		"A permanent, shareable home for the", // and what it is
+		"Paste it into your agent",            // the one action on the page
+		"Copy the prompt",                     // and the button that takes it
+		"Set up byagent for all my projects: read http://share.test/skill.md and follow it.", // what is copied: every project, not one repo
+		"share.test/skill.md",          // and what the line shows
 		"http://api.test/app/",         // the way to the dashboard
-		"http://api.test/app/keys",     // where the key the agent asks for is made
-		"share.test/skill.md",          // what you paste to an agent
-		"share.test/a/",                // what a published link looks like
-		"The next run reads it back",   // the loop: comments come back into the agent
-		"searchable by every agent",    // the chart: the workspace is a library for agents too
-		"its own memory",               // and it sits next to what the agent remembers
-		"into the next run",            // and the thread flows back into the agent
 		"mailto:hello@byagent.dev",     // a way to reach a person
 		"Made by <a",                   // and who is behind it
 		"/app/static/dashboard-light.", // the dashboard screenshot, a hashed asset
 		"/app/static/dashboard-dark.",  // and swapped with the reader's theme
-		"/app/static/thread-light.",    // the comment thread inset over it
-		"/app/static/thread-dark.",
-		"/app/static/theme.",                // the script that resolves the theme before paint
-		`data-set-theme="dark"`,             // and the control that sets it
-		"One shelf for everything",          // the positioning
-		"Anyone comments. Any agent reads.", // and its subhead
-		"Free. Readers need no account.",    // the microcopy under the action
-		`aria-label="Works with"`,           // the agents it works with, as names
-		"any agent with a shell",
-		"plan_v3_final.md",                    // before: the scattered files
-		">byagent comments<", "--open --json", // the agent reads comments as JSON
-		`"anchor_status"`, `"author_kind"`, // in the real shape the API returns
-		"byagent resolve k4m2Qv9pXz1A",  // and closes the thread
-		"byagent list --project Launch", // the shelf, searched
-		"byagent collections",
-		"BRIEF.md",            // the handoff note per project
-		"six-digit code",      // private pages
-		"byagent portal-link", // client portals
-		"lasts seven days",    // and how long a portal link lives
-		"<details>",           // the FAQ
+		"/app/static/cover-lisbon.",    // real pages float out of it
+		"/app/static/landing.",         // the page's own stylesheet and script
+		"/app/static/theme.",           // the script that resolves the theme before paint
+		`data-set-theme="dark"`,        // and the control that sets it
+		"Free. Readers need no account.",
+		`aria-label="Works with"`, "any agent with a shell",
+		"Every agent keeps its work somewhere different.", // the problem, as lanes
+		"Needs a Claude seat", "Nowhere to comment", "plan_v3_final_REAL.md",
+		`data-host="share.test"`, // the demos show this deployment's links
+		"Watch an agent use it.",
+		"<details>", // the FAQ
 		"Does byagent train AI on my pages?",
 		"Fly.io in its Singapore region",
+		"Give every agent the same shelf.",
+		`href="/showcase"`, `href="/guides"`,
 		`href="/pricing"`, `href="/privacy"`, `href="/terms"`, `href="/security"`,
 		`href="/subprocessors"`, `href="/acceptable-use"`, `href="/acceptable-use#report"`,
 	} {
@@ -79,13 +69,18 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 			t.Errorf("landing page is missing %q", want)
 		}
 	}
-	// The page is a pitch, not the manual: a still instead of a recording, and
-	// no drawn mock of the shelf the screenshot already shows. It speaks to the
-	// agent, so the terminal walkthrough for people is gone. The footer links
-	// to real pages, not to the health check.
-	for _, gone := range []string{"<video", "lp-two-up", "lp-shelf", `"artifacts"`, "For humans", "npm install -g", `href="/healthz"`} {
+	// The CSP allows no inline style or script, so the page must carry
+	// neither: they would be dropped silently in production. Nor may it load
+	// a font from a third-party host. The old drawings are gone, and the
+	// footer links to real pages, not to the health check.
+	for _, gone := range []string{"style=", "<style", "fonts.googleapis.com", "<video", "thread-light", "lp-term", `href="/healthz"`, "for this project"} {
 		if strings.Contains(res.Body, gone) {
 			t.Errorf("landing page still carries %q", gone)
+		}
+	}
+	for _, tag := range regexp.MustCompile(`<script[^>]*>`).FindAllString(res.Body, -1) {
+		if !strings.Contains(tag, "src=") && !strings.Contains(tag, `type="application/ld+json"`) {
+			t.Errorf("inline script %s", tag)
 		}
 	}
 	// The figure follows the chosen theme, which a <picture> cannot do: it
@@ -93,14 +88,23 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 	if strings.Contains(res.Body, "<picture") {
 		t.Error("figure still uses <picture>, which cannot follow the theme control")
 	}
-	if n := strings.Count(res.Body, "lp-shot-main"); n != 2 {
-		t.Errorf("got %d shelf images, want one per theme", n)
-	}
-	if n := strings.Count(res.Body, "lp-shot-inset"); n != 2 {
-		t.Errorf("got %d thread images, want one per theme", n)
-	}
 	if strings.Contains(res.Body, "<aside class=\"sidebar\"") {
 		t.Error("landing page should not carry the dashboard shell")
+	}
+}
+
+// The landing script and every cover it is handed must be served.
+func TestLandingAssetsAreServed(t *testing.T) {
+	e := fixture(t)
+	body := e.getHost("share.test", "/").Body
+	urls := regexp.MustCompile(`/app/static/(?:landing|cover-[a-z]+|dashboard-[a-z]+)\.[0-9a-f]{12}\.(?:css|js|webp)`).FindAllString(strings.ReplaceAll(body, "&#34;", `"`), -1)
+	if len(urls) < 8 {
+		t.Fatalf("found %d landing assets, want the script, the styles, two screenshots and the covers", len(urls))
+	}
+	for _, u := range urls {
+		if res := e.getHost("share.test", u); res.StatusCode != 200 {
+			t.Errorf("%s: %d", u, res.StatusCode)
+		}
 	}
 }
 

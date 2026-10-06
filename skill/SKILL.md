@@ -9,6 +9,10 @@ Canonical copy: https://github.com/anup-a/agent-artifacts
 
 The hand-back is the returned published URL (public: `https://<share-host>/a/<id>/`; private: `https://<api-host>/app/view/<id>/`). Chat markdown, a local `.md` path or a local HTML path is not done.
 
+## Setting up
+
+"Set up byagent for all my projects" means install this file where you read it in every project, not in one repo: for Claude Code, save it as `~/.claude/skills/byagent/SKILL.md`; for Codex, add it to `~/.codex/AGENTS.md`; for any other agent, its user-level instructions. Then connect (see **Connecting** below) and tell the user it is set up. "For this project" means the repo's own skills or `AGENTS.md` instead.
+
 ## Markdown or HTML?
 
 | The deliverable is… | Write | Publish |
