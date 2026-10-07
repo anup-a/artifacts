@@ -63,7 +63,7 @@ func TestAnalyticsScriptIsServed(t *testing.T) {
 	if res.StatusCode != 200 || !strings.Contains(res.Header.Get("Content-Type"), "javascript") {
 		t.Fatalf("ga.js: got %d %q", res.StatusCode, res.Header.Get("Content-Type"))
 	}
-	for _, want := range []string{"data-ga-id", `gtag("config", id)`} {
+	for _, want := range []string{"data-ga-id", `gtag("config", id)`, `"copy_prompt"`, "data-ga-copy", "data-ga-where"} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("ga.js is missing %q", want)
 		}

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"regexp"
@@ -36,10 +37,11 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		t.Fatalf("content type %q", ct)
 	}
 	for _, want := range []string{
-		"One shelf for everything",            // the positioning
-		"A permanent, shareable home for the", // and what it is
-		"Paste it into your agent",            // the one action on the page
-		"Copy the prompt",                     // and the button that takes it
+		"A shareable link</span> <span class=\"nw\">for everything</span>", // the job, not a metaphor
+		"your agents make.",
+		"whichever agent made them", // one place, across agents
+		"Paste it into your agent",  // the one action on the page
+		"Copy the prompt",           // and the button that takes it
 		"Set up byagent for all my projects: read http://share.test/skill.md and follow it.", // what is copied: every project, not one repo
 		"share.test/skill.md",          // and what the line shows
 		"http://api.test/app/",         // the way to the dashboard
@@ -60,7 +62,9 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"<details>", // the FAQ
 		"Does byagent train AI on my pages?",
 		"Fly.io in its Singapore region",
-		"Give every agent the same shelf.",
+		"Give every agent one place to publish.",
+		"Try it on your next task.",                                 // the prompt again after the demo, with no showcase set
+		"A reader outside your Claude org needs a seat to comment.", // each lane in words, for phones
 		`href="/showcase"`, `href="/guides"`,
 		`href="/pricing"`, `href="/privacy"`, `href="/terms"`, `href="/security"`,
 		`href="/subprocessors"`, `href="/acceptable-use"`, `href="/acceptable-use#report"`,
@@ -73,7 +77,7 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 	// neither: they would be dropped silently in production. Nor may it load
 	// a font from a third-party host. The old drawings are gone, and the
 	// footer links to real pages, not to the health check.
-	for _, gone := range []string{"style=", "<style", "fonts.googleapis.com", "<video", "thread-light", "lp-term", `href="/healthz"`, "for this project"} {
+	for _, gone := range []string{"style=", "<style", "fonts.googleapis.com", "<video", "thread-light", "lp-term", `href="/healthz"`, "for this project", "One shelf", "the same shelf", "What is the shelf?"} {
 		if strings.Contains(res.Body, gone) {
 			t.Errorf("landing page still carries %q", gone)
 		}
@@ -90,6 +94,48 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 	}
 	if strings.Contains(res.Body, "<aside class=\"sidebar\"") {
 		t.Error("landing page should not carry the dashboard shell")
+	}
+	// The agent names are labels. They used to be buttons that silently
+	// copied the prompt, which nothing on them said.
+	works := res.Body[strings.Index(res.Body, `aria-label="Works with"`):]
+	works = works[:strings.Index(works, "</ul>")]
+	if strings.Contains(works, "<button") || strings.Contains(works, "data-copy") {
+		t.Error("the works-with names still copy the prompt")
+	}
+	// Every button that copies the prompt is counted, and says where it sits.
+	copies := strings.Count(res.Body, "data-ga-copy")
+	if copies != 4 { // bar, hero, after the demo, close
+		t.Errorf("%d buttons carry data-ga-copy, want 4", copies)
+	}
+	for _, where := range []string{"bar", "hero", "try", "close"} {
+		if !strings.Contains(res.Body, `data-ga-where="`+where+`"`) {
+			t.Errorf("no data-ga-where=%q", where)
+		}
+	}
+	// On a phone the theme control lives in the footer, so there are two.
+	if n := strings.Count(res.Body, "data-theme-picker"); n != 2 {
+		t.Errorf("%d theme pickers, want the bar's and the footer's", n)
+	}
+}
+
+// With a showcase configured, the landing page shows its first public pages
+// after the demo, without their threads, and links to the rest.
+func TestLandingShowsShowcasePages(t *testing.T) {
+	e := courseFixture(t)
+	if err := e.st.SetVisibility(context.Background(), "course000002", "private"); err != nil {
+		t.Fatal(err)
+	}
+	e.h.Cfg.ShowcasePages = []string{"course000002", "solo00000001", "travel000001", "course000001", "nope00000000"}
+	e.thread("travel000001", "th_real", "Can the seat legend sit under the map?")
+	res := e.getHost("share.test", "/")
+	want(t, res, 200, "Real pages agents published.", "Landing pitch", "Seat map", "Yours next.", `href="/showcase">See the whole showcase`)
+	for _, leak := range []string{"Lesson one", "Can the seat legend", "Try it on your next task."} {
+		if strings.Contains(res.Body, leak) {
+			t.Errorf("landing shows %q", leak)
+		}
+	}
+	if n := strings.Count(res.Body, `class="sc-card"`); n != 3 {
+		t.Errorf("%d showcase cards, want 3", n)
 	}
 }
 
@@ -148,7 +194,7 @@ func TestLandingRendersWithoutSignIn(t *testing.T) {
 	}
 }
 
-// Google showed "one shelf for everything your agents make", its own pick of
+// Google showed "one shelf for everything your agents make" (the old hero), its own pick of
 // hero text for the snippet, and a globe for the icon. The head now says what
 // byagent is, short enough to be used as written, with a raster icon.
 func TestLandingHeadIsWrittenForSearch(t *testing.T) {

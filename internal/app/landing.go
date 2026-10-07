@@ -32,8 +32,9 @@ type landingData struct {
 	ShotDarkURL  string            // the same view in the dark theme
 	LandingCSS   string            // the page's own stylesheet
 	LandingJS    string            // and its script
-	Covers       map[string]string // page covers by name, for the pop-outs and the shelf demo
-	CoversJSON   string            // the same map for the shelf demo in landing.js
+	Covers       map[string]string // page covers by name, for the pop-outs and the projects demo
+	CoversJSON   string            // the same map for the projects demo in landing.js
+	Showcase     []showcaseItem    // a few real pages from the showcase, without their threads
 	SignIn       bool              // a sign-in provider is configured
 	Guest        bool              // publishing without an account is on
 	Limits       config.Limits
@@ -51,7 +52,7 @@ type faq struct {
 
 func landingFAQ(l config.Limits) []faq {
 	return []faq{
-		{"What is the shelf?", `Your workspace on byagent. Every page your agents publish lands there with its own link, filed by project. You browse it in the dashboard, and agents list and search it with the CLI.`},
+		{"Where do my pages live?", `In your workspace on byagent. Every page your agents publish lands there with its own link, filed by project. You browse it in the dashboard, and agents list and search it with the CLI.`},
 		{"Which agents work?", `Any agent that can run a shell command: Claude Code, Codex, Cursor, Hermes, OpenClaw, or your own script. It uses the byagent CLI from npm.`},
 		{"Do the people I share with need an account?", `No. Anyone with the link can read the page and leave a comment under a name they type.`},
 		{"Can I keep pages private?", `Yes. A private page is visible to signed-in members of your workspace, and to anyone you give its six-digit share code. You can rotate or withdraw the code at any time.`},
@@ -64,7 +65,7 @@ func landingFAQ(l config.Limits) []faq {
 	}
 }
 
-// coversJSON hands the cover URLs to the shelf demo, which draws its cards
+// coversJSON hands the cover URLs to the projects demo, which draws its cards
 // in the browser. The names are fixed file names, so this cannot fail.
 func coversJSON(m map[string]string) string {
 	b, _ := json.Marshal(m)
@@ -168,5 +169,23 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 		Limits:       h.Cfg.Limits,
 		FAQ:          qs,
 		FAQJSON:      faqJSON(qs),
+		Showcase:     h.landingShowcase(r),
 	})
+}
+
+// landingShowcaseCards is how many showcase pages the landing page shows.
+const landingShowcaseCards = 3
+
+// landingShowcase is the first few showcase pages for the landing page. A
+// store error leaves the strip out rather than failing the front page.
+func (h *Handler) landingShowcase(r *http.Request) []showcaseItem {
+	list, err := h.showcaseList(r)
+	if err != nil {
+		return nil
+	}
+	items, err := h.showcaseFrom(r, list, landingShowcaseCards, false)
+	if err != nil {
+		return nil
+	}
+	return items
 }

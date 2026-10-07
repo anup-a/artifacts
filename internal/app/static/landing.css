@@ -59,17 +59,16 @@
 .lp3 .hero-copy { position: relative; z-index: 2; max-width: 980px; }
 .lp3 .hero h1 { margin: 0; font: 700 clamp(34px, 4.3vw, 56px)/1.05 var(--sans); letter-spacing: -.045em; color: var(--ink); }
 .lp3 .hero h1 .two { background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 62%, transparent), color-mix(in srgb, var(--ink) 38%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.lp3 .sub { margin: 22px auto 0; max-width: 40em; font-size: 19px; line-height: 1.55; color: var(--ink-2); }
+/* On a phone each line wraps once, between phrases, never leaving one word. */
+.lp3 .hero h1 .nw { white-space: nowrap; }
+.lp3 .sub { margin: 22px auto 0; max-width: 40em; font-size: 19px; line-height: 1.55; color: var(--ink-2); text-wrap: pretty; }
 .lp3 .sub .it { color: var(--ink); font-weight: 500; padding: 0 5px; margin: 0 -1px; border-radius: 6px; background: color-mix(in srgb, var(--ink) 8%, transparent); white-space: nowrap; }
 .lp3 .hero .lp-prompt { margin: 60px auto 0; max-width: 728px; text-align: left; background: var(--panel); }
 .lp3 .under { margin: 14px auto 0; max-width: 728px; font-size: 13.5px; color: var(--muted); }
 .lp3 .under b { color: var(--ink); font-weight: 600; }
-.lp3 .works { margin: 44px auto 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
-.lp3 .works > span { font-size: 13.5px; color: var(--muted); margin-right: 6px; }
-.lp3 .works button { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--line-strong); border-radius: 999px; background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--ink-2); font: 13.5px var(--sans); cursor: pointer; transition: border-color .15s, color .15s; }
-.lp3 .works button:hover { border-color: var(--ink); color: var(--ink); }
-.lp3 .works button.is-copied { color: var(--ink) !important; border-color: var(--ink-2); }
-.lp3 .works .menu-item-text { overflow: visible; }
+.lp3 .works { margin: 44px auto 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+.lp3 .works li { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-2); font: 13.5px var(--sans); }
+.lp3 .works li.works-k { padding: 0; border: 0; color: var(--muted); margin-right: 6px; }
 .lp3 .lg { width: 15px; height: 15px; fill: currentColor; margin-right: 7px; flex: none; }
 .lp3 .lg.is-claude { color: var(--claude); }
 
@@ -152,6 +151,9 @@
 .lp3 #why .w-lane { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 28px; align-items: center; padding: 6px 0; }
 .lp3 #why .w-cap { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
 .lp3 #why .w-cap b { display: block; color: var(--ink-2); font-weight: 500; }
+/* The drawings' labels shrink past reading on a phone, so each lane says
+   its point in a line of text there. The drawing stays for its motion. */
+.lp3 #why .w-note { display: none; }
 .lp3 #why .w-stage svg { display: block; width: 100%; height: auto; overflow: visible; }
 .lp3 #why .w-stage text { font-family: var(--sans); fill: var(--ink); }
 .lp3 #why .w-chip-r { fill: var(--panel); stroke: var(--line-strong); }
@@ -235,6 +237,11 @@
 .lp3 #why .w-bridge { margin: 44px auto 0; text-align: center; font-size: 17px; color: var(--ink-2); }
 .lp3 #why .w-bridge a { color: var(--accent); margin-left: 6px; }
 @media (max-width: 900px) { .lp3 #why .w-lane { grid-template-columns: 1fr; gap: 20px; padding: 28px 20px; } }
+@media (max-width: 600px) {
+  .lp3 #why .w-lane { gap: 12px; padding: 22px 4px; }
+  .lp3 #why .w-cap b { font-size: 15px; color: var(--ink); font-weight: 600; }
+  .lp3 #why .w-note { display: block; margin-top: 4px; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
+}
 
 /* ---- How: watch an agent use it (chat on the left, the page on the right) */
 .lp3 section.feat { max-width: 1140px; margin: 0 auto; padding: 64px 24px 0; text-align: center; }
@@ -393,6 +400,22 @@
   .lp3 .fx-two, .lp3 .fx-two.v { grid-template-columns: 1fr; }
 }
 
+/* ---- Try: real pages, then the prompt again -------------------------- */
+.lp3 section.try { max-width: 1140px; margin: 0 auto; padding: 64px 24px 0; text-align: center; }
+.lp3 .try .lead { margin: 12px auto 0; }
+.lp3 .try-grid { margin-top: 32px; text-align: left; }
+.lp3 .try-grid .sc-body { padding: 14px 16px; gap: 6px; }
+.lp3 .try-grid .sc-title { font-size: 15px; }
+.lp3 .try-more { margin: 18px 0 0; font-size: 14px; }
+.lp3 .try-k { margin: 44px auto 14px; font-size: 15px; color: var(--ink-2); }
+/* A phone stacks them as rows, the cover as a thumbnail, so three pages
+   take about one screen rather than three. */
+@media (max-width: 860px) {
+  .lp3 .try-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .lp3 .try-grid .sc-card { display: grid; grid-template-columns: 128px minmax(0, 1fr); align-items: center; }
+  .lp3 .try-grid .sc-cover { height: 100%; border-bottom: 0; border-right: 1px solid var(--line); }
+}
+
 /* ---- Questions and the close ----------------------------------------- */
 .lp3 .faq { margin-top: 40px; text-align: left; }
 .lp3 .faq details { border-top: 1px solid var(--line); }
@@ -415,10 +438,6 @@
 /* ---- Footer ---------------------------------------------------------- */
 .lp3 .lp-foot { max-width: 1140px; margin: 100px auto 0; padding: 40px 24px 0; }
 
-@media (max-width: 720px) {
-  .lp3 .lp-tabs, .lp3 .lp-cta { display: none; }
-  .lp3 .lp-theme { margin-left: auto; }
-}
 @media (prefers-reduced-motion: reduce) {
   .lp3 *, .lp3 *::before, .lp3 *::after { transition: none !important; animation: none !important; }
   .js-in .lp3 [data-in] { opacity: 1; transform: none; }

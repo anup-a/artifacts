@@ -309,6 +309,10 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, e)
 		return
 	}
+	if n == 0 {
+		_, isGuest := guestFrom(r.Context())
+		funnel("first_publish", "tenant", k.TenantID, "guest", isGuest)
+	}
 	apierr.WriteJSON(w, 201, withProxy(s.publishResponse(a, v), routes))
 }
 
