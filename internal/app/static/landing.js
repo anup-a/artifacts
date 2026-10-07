@@ -437,6 +437,10 @@
   function pick(k, autoplay) {
     token++; busy = false; key = k; state[k] = F[k].init();
     seg.querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.k === k); b.setAttribute("aria-selected", b.dataset.k === k); });
+    // On a narrow screen the tab row scrolls; centre the chosen tab in it
+    // without moving the page, which scrollIntoView would also do.
+    const on = seg.querySelector("button.on");
+    if (on && seg.scrollWidth > seg.clientWidth) seg.scrollTo({ left: on.offsetLeft - seg.offsetLeft - (seg.clientWidth - on.offsetWidth) / 2, behavior: "smooth" });
     document.getElementById("fc-aname").textContent = F[k].agent.replace(/\b\w/g, c => c.toUpperCase());
     document.getElementById("fc-who").style.setProperty("--dot", DOT[F[k].agent]);
     document.getElementById("fc-ttl").textContent = F[k].title; mock.replaceChildren(); mock.classList.remove("swap"); void mock.offsetWidth; mock.classList.add("swap"); document.getElementById("fc-bl").textContent = F[k].blurb;
@@ -444,6 +448,14 @@
     redraw(); if (autoplay) ask(0);
   }
   TABS.forEach(k => seg.append(h("button", { type: "button", role: "tab", "data-k": k, on: { click: () => pick(k, true) } }, F[k].label)));
-  pick(key, false);
+  // Fade an edge of the tab row only while there are tabs past it.
+  const fade = () => {
+    const more = seg.scrollWidth - seg.clientWidth - seg.scrollLeft;
+    seg.style.setProperty("--fl", seg.scrollLeft > 1 ? "28px" : "0px");
+    seg.style.setProperty("--fr", more > 1 ? "28px" : "0px");
+  };
+  seg.addEventListener("scroll", fade, { passive: true });
+  addEventListener("resize", fade);
+  pick(key, false); fade();
   new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { ask(0); o.disconnect(); } }, { threshold: .4 }).observe(document.getElementById("fc-duo"));
 })();
