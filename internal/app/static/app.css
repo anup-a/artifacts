@@ -276,6 +276,9 @@ textarea { resize: vertical; line-height: 1.45; }
 .setting-text strong { display: block; font-weight: 500; color: var(--fg); margin-bottom: 2px; }
 .setting-text p { font-size: 13px; }
 .switch-form { display: inline-flex; align-items: center; gap: 10px; flex: none; }
+/* A select beside a .btn.small takes the button's size, not the full form
+   control's, so the two line up top and bottom. */
+.switch-form select { width: auto; height: 28px; padding: 0 6px 0 9px; font-size: 12.5px; font-weight: 500; line-height: 1; }
 .switch-state { font-size: 12.5px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 22px; text-align: right; }
 .switch {
   position: relative; width: 36px; height: 20px; padding: 0; flex: none;
