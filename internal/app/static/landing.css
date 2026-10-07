@@ -248,8 +248,13 @@
 
 /* ---- How: watch an agent use it (chat on the left, the page on the right) */
 .lp3 section.feat { max-width: 1140px; margin: 0 auto; padding: 64px 24px 0; text-align: center; }
-.lp3 #how .seg { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 5px; margin: 28px auto 0; width: max-content; max-width: 100%; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel); }
-.lp3 #how .seg button { border: 0; background: none; padding: 7px 15px; border-radius: 999px; font: 13.5px var(--sans); color: var(--muted); cursor: pointer; transition: color .15s, background .15s; }
+/* One row, always: wrapped, the sixth tab sat alone on a second line inside
+   the pill. Where the row does not fit, it scrolls sideways instead, and
+   landing.js keeps the chosen tab in view. */
+.lp3 #how .seg { position: relative; display: flex; gap: 4px; padding: 5px; margin: 28px auto 0; width: max-content; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel); }
+.lp3 #how .seg::-webkit-scrollbar { display: none; }
+.lp3 #how .seg button { flex: none; white-space: nowrap; border: 0; background: none; padding: 7px 15px; border-radius: 999px; font: 13.5px var(--sans); color: var(--muted); cursor: pointer; transition: color .15s, background .15s; }
+@media (max-width: 640px) { .lp3 #how .seg button { padding: 7px 12px; } }
 .lp3 #how .seg button:hover { color: var(--ink); }
 .lp3 #how .seg button.on { background: var(--ink); color: var(--bg); }
 .lp3 #how .duo { display: grid; grid-template-columns: 400px minmax(0, 1fr); height: 620px; margin-top: 22px; border-radius: 24px; overflow: hidden; border: 1px solid var(--line-strong); background: var(--deep); box-shadow: 0 60px 120px -60px rgba(0,0,0,.9); text-align: left; }
