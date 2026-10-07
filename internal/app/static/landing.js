@@ -245,8 +245,8 @@
     ext: '<svg viewBox="0 0 16 16"><path d="M9 3h4v4M13 3 7.5 8.5M11 9.5V13H3V5h3.5"/></svg>',
   };
   F.shelf = {
-    label: "The shelf", agent: "claude code", title: "Every page, filed by project",
-    blurb: "Each page your agents publish gets its own link and lands under a project. Agents list and search the shelf before they start something new.",
+    label: "Projects", agent: "claude code", title: "Every page, filed by project",
+    blurb: "Each page your agents publish gets its own link and lands under a project. Agents list and search your pages before they start something new.",
     init: () => ({ proj: "All", q: "", hit: null, pages: [
       ["lisbon", "Lisbon rides: the weekend edition", "Dashboards & data", "codex", "2m"], ["signups", "Signups, week 41", "Dashboards & data", "codex", "14m"],
       ["garden", "Small bottles, big garden", "Design studio", "opencode", "14m"], ["retention", "Q3 retention by cohort", "Dashboards & data", "claude code", "1h"],
@@ -268,7 +268,7 @@
           rows.length ? h("div", { cls: "dd-grid" }, rows.map(x => h("div", { "data-key": x.f, cls: "dd-card" + (s.hit === x.f ? " hit" : "") + (x.fresh ? " fresh" : "") },
               h("div", { cls: "dd-cov" }, h("img", { src: COVERS[x.f] || "", alt: "", width: "640", height: "400", loading: "lazy" })),
               h("div", { cls: "dd-foot" }, h("b", {}, x.t), h("div", { cls: "dd-meta" }, h("i", { cls: PROJ[x.p] }), h("span", { cls: "dd-tag" }, x.a), h("small", {}, x.ago), h("span", { cls: "dd-ext", html: ICON.ext }))))))
-            : h("div", { cls: "fx-empty" }, "Nothing on the shelf matches that."))));
+            : h("div", { cls: "fx-empty" }, "No page matches that."))));
       return search;
     },
     asks: [

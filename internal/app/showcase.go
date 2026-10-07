@@ -51,28 +51,34 @@ func (h *Handler) showcase(w http.ResponseWriter, r *http.Request) {
 	site := h.site()
 	site.Here = "/showcase"
 	d := showcaseData{siteData: site, Path: "/showcase", ShareHost: originHost(h.Cfg.ShareOrigin)}
-	if ids := h.Cfg.ShowcasePages; len(ids) > 0 {
-		items, err := h.showcasePicked(r, ids)
-		if err != nil {
-			h.fail(w, r, err)
-			return
-		}
-		d.Items = items
-	} else if slug := h.Cfg.ShowcaseSlug; slug != "" {
-		items, err := h.showcaseItems(r, slug)
-		if err != nil {
-			h.fail(w, r, err)
-			return
-		}
-		d.Items = items
+	list, err := h.showcaseList(r)
+	if err == nil {
+		d.Items, err = h.showcaseFrom(r, list, showcaseLimit, true)
+	}
+	if err != nil {
+		h.fail(w, r, err)
+		return
 	}
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	h.render(w, r, 200, "showcase", "Showcase", nil, d)
 }
 
+// showcaseList is the curated pages in showcase order: the ones
+// SHOWCASE_PAGES names, or else the shared SHOWCASE_COLLECTION. Neither set
+// is an empty showcase.
+func (h *Handler) showcaseList(r *http.Request) ([]store.Artifact, error) {
+	if ids := h.Cfg.ShowcasePages; len(ids) > 0 {
+		return h.showcasePicked(r, ids)
+	}
+	if slug := h.Cfg.ShowcaseSlug; slug != "" {
+		return h.showcaseItems(r, slug)
+	}
+	return nil, nil
+}
+
 // showcasePicked loads the pages SHOWCASE_PAGES names, in that order,
-// skipping any that are gone or no longer public.
-func (h *Handler) showcasePicked(r *http.Request, ids []string) ([]showcaseItem, error) {
+// skipping any that are gone.
+func (h *Handler) showcasePicked(r *http.Request, ids []string) ([]store.Artifact, error) {
 	var list []store.Artifact
 	for _, id := range ids {
 		a, err := h.Store.Artifact(r.Context(), id)
@@ -84,10 +90,10 @@ func (h *Handler) showcasePicked(r *http.Request, ids []string) ([]showcaseItem,
 		}
 		list = append(list, a)
 	}
-	return h.showcaseFrom(r, list)
+	return list, nil
 }
 
-func (h *Handler) showcaseItems(r *http.Request, slug string) ([]showcaseItem, error) {
+func (h *Handler) showcaseItems(r *http.Request, slug string) ([]store.Artifact, error) {
 	ctx := r.Context()
 	meta, err := h.Store.CollectionByShareSlug(ctx, slug)
 	if errors.Is(err, store.ErrNotFound) {
@@ -101,10 +107,12 @@ func (h *Handler) showcaseItems(r *http.Request, slug string) ([]showcaseItem, e
 	if err != nil {
 		return nil, err
 	}
-	return h.showcaseFrom(r, store.CourseOrder(list, meta.Positions))
+	return store.CourseOrder(list, meta.Positions), nil
 }
 
-func (h *Handler) showcaseFrom(r *http.Request, list []store.Artifact) ([]showcaseItem, error) {
+// showcaseFrom turns the list into cards, public pages only, up to limit.
+// The landing page asks without threads, which saves a query per page.
+func (h *Handler) showcaseFrom(r *http.Request, list []store.Artifact, limit int, threads bool) ([]showcaseItem, error) {
 	var (
 		items []showcaseItem
 		err   error
@@ -114,13 +122,13 @@ func (h *Handler) showcaseFrom(r *http.Request, list []store.Artifact) ([]showca
 			continue
 		}
 		it := showcaseItem{Artifact: a, URL: h.shareURL(a), CoverURL: h.pages().Cover(a.ID, a.Slug)}
-		if a.CommentsEnabled {
+		if threads && a.CommentsEnabled {
 			if it.Threads, it.Total, err = h.showcaseThreads(r, a.ID); err != nil {
 				return nil, err
 			}
 		}
 		items = append(items, it)
-		if len(items) == showcaseLimit {
+		if len(items) == limit {
 			break
 		}
 	}

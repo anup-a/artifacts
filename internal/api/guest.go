@@ -72,6 +72,7 @@ func (s *server) createGuest(w http.ResponseWriter, r *http.Request) {
 	out := s.guestFields(guestInfo{TenantID: k.TenantID, ExpiresAt: guest.ExpiresAt(now)})
 	out["token"], out["api"] = plain, s.Cfg.APIOrigin
 	out["limits"] = map[string]any{"artifacts": guest.Artifacts, "version_bytes": guest.VersionBytes, "files": guest.Files}
+	funnel("guest_key", "tenant", k.TenantID)
 	apierr.WriteJSON(w, 201, out)
 }
 

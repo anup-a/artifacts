@@ -143,6 +143,7 @@ func (s *server) issueKey(w http.ResponseWriter, r *http.Request, hash string, b
 		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
+	funnel("agent_connected", "tenant", t.ID, "device", byDevice)
 	apierr.WriteJSON(w, 201, map[string]any{
 		"status":    "approved",
 		"token":     plain,

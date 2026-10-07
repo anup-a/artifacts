@@ -45,22 +45,25 @@
     if (stored() === "auto") apply("auto");
   });
 
+  // A page can carry more than one picker (the public pages have one in the
+  // bar and one in the footer for phones), and they all show the same choice.
   document.addEventListener("DOMContentLoaded", function () {
-    var picker = document.querySelector("[data-theme-picker]");
-    if (!picker) return;
-    mark(picker, stored());
-    picker.addEventListener("click", function (event) {
-      var button = event.target.closest("[data-set-theme]");
-      if (!button) return;
-      var choice = button.getAttribute("data-set-theme");
-      if (!CHOICES[choice]) return;
-      try {
-        localStorage.setItem(KEY, choice);
-      } catch (e) {
-        // Not storable: the page still switches for this visit.
-      }
-      apply(choice);
-      mark(picker, choice);
-    });
+    var pickers = document.querySelectorAll("[data-theme-picker]");
+    for (var i = 0; i < pickers.length; i++) {
+      mark(pickers[i], stored());
+      pickers[i].addEventListener("click", function (event) {
+        var button = event.target.closest("[data-set-theme]");
+        if (!button) return;
+        var choice = button.getAttribute("data-set-theme");
+        if (!CHOICES[choice]) return;
+        try {
+          localStorage.setItem(KEY, choice);
+        } catch (e) {
+          // Not storable: the page still switches for this visit.
+        }
+        apply(choice);
+        for (var j = 0; j < pickers.length; j++) mark(pickers[j], choice);
+      });
+    }
   });
 })();

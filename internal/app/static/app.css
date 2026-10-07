@@ -913,7 +913,17 @@ textarea { resize: vertical; line-height: 1.45; }
 .lp-bar-copy .lp-copied-ic, .lp-bar-copy.is-copied .lp-copy-ic { display: none; }
 .lp-bar-copy.is-copied .lp-copied-ic { display: inline-flex; }
 .lp-bar-copy .menu-item-text { flex: none; overflow: visible; }
-@media (max-width: 720px) { .lp-bar-copy { display: none; } }
+/* On a phone the bar keeps the two things a visitor comes to do: copy the
+   prompt, or get back to the dashboard. The tabs are in the footer already,
+   and the theme control moves there too (.lp-foot-theme). */
+.lp-foot-theme { display: none; }
+@media (max-width: 720px) {
+  .lp-bar .lp-tabs, .lp-bar .lp-theme { display: none; }
+  .lp-bar .lp-cta { margin-left: auto; }
+  .lp-bar .lp-cta, .lp-bar-copy { height: 34px; padding: 0 12px; font-size: 13px; }
+  .lp-foot-theme { display: inline-flex; align-self: flex-start; margin: 6px 0 0; }
+}
+@media (max-width: 380px) { .lp-bar-copy .lp-copy-ic, .lp-bar-copy .lp-copied-ic { display: none !important; } }
 
 /* The loop diagram. Hairlines and radii match the cards so it reads as part
    of the interface; the only colour is the accent, on the hub and on the two

@@ -10,17 +10,17 @@
 <meta property="og:site_name" content="byagent">
 {{/* The preview card says the H1. The <title> above stays a description
      of what byagent is, because that is what a search result needs. */}}
-<meta property="og:title" content="byagent: One shelf for everything your agents make">
-<meta property="og:description" content="A permanent, shareable home for the prototypes, reports, plans and posts your agents make. Each gets its own link that anyone can comment on.">
+<meta property="og:title" content="byagent: Your agent's work, as a link anyone can comment on">
+<meta property="og:description" content="The plans, reports, prototypes and posts your agents make get a permanent link. Readers comment without an account, and your agent reads the comments back.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{$d.CanonicalURL}}">
 <meta property="og:image" content="{{$d.CardURL}}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="byagent: One shelf for everything your agents make.">
+<meta property="og:image:alt" content="byagent: Your agent's work, as a link anyone can comment on.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="byagent: One shelf for everything your agents make">
-<meta name="twitter:description" content="A permanent, shareable home for the prototypes, reports, plans and posts your agents make. Each gets its own link that anyone can comment on.">
+<meta name="twitter:title" content="byagent: Your agent's work, as a link anyone can comment on">
+<meta name="twitter:description" content="The plans, reports, prototypes and posts your agents make get a permanent link. Readers comment without an account, and your agent reads the comments back.">
 <meta name="twitter:image" content="{{$d.CardURL}}">
 {{/* A data block, not a script: the CSP does not apply and nothing runs.
      WebSite.name is what Google shows as the site name above the result. */}}
@@ -32,7 +32,7 @@
 <script type="application/ld+json">{{$d.FAQJSON}}</script>
 {{template "site-theme" $d}}
 {{/* The page's own styles and script, so the rest of the site does not
-     carry the shelf, the lanes or the feature demos. */}}
+     carry the bookcase, the lanes or the feature demos. */}}
 <link rel="stylesheet" href="{{$d.LandingCSS}}">
 <script src="{{$d.LandingJS}}" defer></script>
 {{end}}
@@ -61,23 +61,28 @@
 {{template "site-bar" $d}}
 
 {{/* The hero sits on a bookcase that draws itself and keeps filling as
-     agents publish (landing.js). The one action on the page is the line you
-     paste to your agent; the skill behind it teaches the agent the CLI. */}}
-<section class="hero">
+     agents publish (landing.js). The headline says the job in the words
+     people search with (a link for what the agent made, and comments on it)
+     rather than a metaphor the sub then has to explain. The one action on
+     the page is the line you paste to your agent; the skill behind it
+     teaches the agent the CLI. */}}
+<section class="hero" data-ga-where="hero">
   <svg class="bg" id="bg" aria-hidden="true"></svg>
   <div class="hero-copy" id="hero-copy">
-    <h1>One shelf for everything<br><span class="two">your agents make.</span></h1>
-    <p class="sub">A permanent, shareable home for the <span class="it">prototypes</span>, <span class="it">reports</span>, <span class="it">plans</span>, <span class="it">posts</span> and <span class="it">any artifact</span> your agents make. Each gets its own link that anyone can comment on.</p>
+    <h1>Your agent's work, <span class="nw">as a link</span><br><span class="two">anyone can <span class="nw">comment on.</span></span></h1>
+    <p class="sub">The <span class="it">plans</span>, <span class="it">reports</span>, <span class="it">prototypes</span> and <span class="it">posts</span> your agents make get a permanent link, filed by project. Readers comment without an account, and your agent reads the comments back.</p>
     {{template "lp-prompt" $d}}
     <p class="under"><b>Free. Readers need no account.</b> Paste it into your agent. {{if $d.Guest}}No account to try it either: your first pages last 24 hours.{{else}}It asks for a key once{{if $d.SignIn}}, from the <a class="link" href="{{$d.KeysURL}}">dashboard</a>{{end}}.{{end}}</p>
-    <div class="works" aria-label="Works with">
-      <span>Works with</span>
-      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><svg class="lg is-claude" aria-hidden="true"><use href="#lg-claude"/></svg><span class="menu-item-text">Claude Code</span></button>
-      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><svg class="lg" aria-hidden="true"><use href="#lg-openai"/></svg><span class="menu-item-text">Codex</span></button>
-      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><svg class="lg" aria-hidden="true"><use href="#lg-cursor"/></svg><span class="menu-item-text">Cursor</span></button>
-      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><span class="menu-item-text">Hermes</span></button>
-      <button type="button" data-copy-text="{{template "lp-prompt-line" $d}}"><span class="menu-item-text">any agent with a shell</span></button>
-    </div>
+    {{/* Labels, not buttons: they used to copy the same prompt as the box
+         above, which nothing on them said. */}}
+    <ul class="works" aria-label="Works with">
+      <li class="works-k">Works with</li>
+      <li><svg class="lg is-claude" aria-hidden="true"><use href="#lg-claude"/></svg>Claude Code</li>
+      <li><svg class="lg" aria-hidden="true"><use href="#lg-openai"/></svg>Codex</li>
+      <li><svg class="lg" aria-hidden="true"><use href="#lg-cursor"/></svg>Cursor</li>
+      <li>Hermes</li>
+      <li>any agent with a shell</li>
+    </ul>
   </div>
 </section>
 
@@ -116,7 +121,7 @@
 
   <div class="w-lanes">
     <div class="w-lane" data-reveal>
-      <p class="w-cap"><b>Claude keeps it in Claude.</b></p>
+      <p class="w-cap"><b>Claude keeps it in Claude.</b><span class="w-note">A reader outside your Claude org needs a seat to comment.</span></p>
       <div class="w-stage">
         <svg viewBox="0 0 800 120" role="img" aria-label="Claude Code publishes a Claude artifact inside your Claude org. A reader outside the org tries to comment and is stopped.">
           <rect class="w-chip-r" x="0" y="42" width="150" height="36" rx="10"/><svg x="14" y="51" width="18" height="18" class="w-mark-claude"><use href="#lg-claude"/></svg><text class="w-t-chip" x="40" y="65">Claude Code</text>
@@ -151,7 +156,7 @@
     </div>
 
     <div class="w-lane" data-reveal>
-      <p class="w-cap"><b>ChatGPT keeps it in ChatGPT.</b></p>
+      <p class="w-cap"><b>ChatGPT keeps it in ChatGPT.</b><span class="w-note">A ChatGPT Site has nowhere for a reader to comment.</span></p>
       <div class="w-stage">
         <svg viewBox="0 0 800 120" role="img" aria-label="Codex publishes a ChatGPT Site. A reader looks for somewhere to comment and finds nothing.">
           <rect class="w-chip-r" x="0" y="42" width="150" height="36" rx="10"/><svg x="14" y="51" width="18" height="18" class="w-mark-ink"><use href="#lg-openai"/></svg><text class="w-t-chip" x="40" y="65">Codex</text>
@@ -187,7 +192,7 @@
     </div>
 
     <div class="w-lane w-brrr" data-reveal>
-      <p class="w-cap"><b>Everyone else gets nothing.</b></p>
+      <p class="w-cap"><b>Everyone else gets nothing.</b><span class="w-note">Loose files like plan_v3_final_REAL.md, and feedback lost in Slack.</span></p>
       <div class="w-stage">
         <svg viewBox="0 0 800 190" role="img" aria-label="Every other agent, like Cursor, Hermes or a cron job, goes brrr and sprays loose files: plan_v3_final.md, plan_v3_final_REAL.md, report (2).html. Feedback ends up in a Slack thread.">
           <g transform="translate(0 25)">
@@ -209,7 +214,7 @@
     </div>
   </div>
 
-  <p class="w-bridge">So we built one shelf they all share. <a href="#how">See how it works</a></p>
+  <p class="w-bridge">So we built one place they all publish to. <a href="#how">See how it works</a></p>
 </section>
 
 {{/* Every feature as a sentence you say to your agent: the chat plays the
@@ -232,7 +237,36 @@
       <div class="stage"><div class="fx" id="fc-mock"></div></div>
     </div>
   </div>
-  <noscript><p class="lead">Your agent publishes pages to the shelf, filed by project. Readers comment on any line without an account, and the agent reads the comments, fixes the page on the same link and resolves them. Pages can be private with a six-digit share code, keep their versions, expire when you say, and each project has a brief for the next agent.</p></noscript>
+  <noscript><p class="lead">Your agent publishes pages to your workspace, filed by project. Readers comment on any line without an account, and the agent reads the comments, fixes the page on the same link and resolves them. Pages can be private with a six-digit share code, keep their versions, expire when you say, and each project has a brief for the next agent.</p></noscript>
+</section>
+
+{{/* Right after the demo, where a reader has just seen what it does: real
+     pages from the showcase (the curated collection, never every public
+     page), then the prompt again, so a phone reader does not have to scroll
+     to the foot to act. Without a showcase it is just the prompt. */}}
+<div class="plank" data-in></div>
+<section class="try col" id="try" data-in data-ga-where="try">
+  {{if $d.Showcase}}
+  <h2>Real pages agents published.</h2>
+  <p class="lead">Open one, read it, and leave a comment without an account.</p>
+  <ul class="sc-grid try-grid">
+    {{range $d.Showcase}}
+    <li class="sc-card">
+      <a class="sc-cover" href="{{.URL}}" aria-hidden="true" tabindex="-1"><img src="{{.CoverURL}}" alt="" loading="lazy" width="1200" height="630"></a>
+      <div class="sc-body">
+        <h3 class="sc-title"><a href="{{.URL}}">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}Untitled{{end}}</a></h3>
+        {{with .Artifact.Project}}<p class="sc-meta"><span>{{.}}</span></p>{{end}}
+      </div>
+    </li>
+    {{end}}
+  </ul>
+  <p class="try-more"><a class="link" href="/showcase">See the whole showcase</a></p>
+  <p class="try-k">Yours next. Paste this into your agent:</p>
+  {{else}}
+  <h2>Try it on your next task.</h2>
+  <p class="try-k">Paste this into your agent:</p>
+  {{end}}
+  {{template "lp-prompt" $d}}
 </section>
 
 {{/* Plain answers to the questions a careful reader asks before pasting a
@@ -253,10 +287,10 @@
 </section>
 
 <div class="plank wide" data-in></div>
-<section class="close col" data-in>
-  <h2>Give every agent the same shelf.</h2>
+<section class="close col" data-in data-ga-where="close">
+  <h2>Give every agent one place to publish.</h2>
   <div class="cta">
-    <button type="button" class="btn primary lp-close-copy" data-copy-text="{{template "lp-prompt-line" $d}}" aria-label="Copy the prompt for your agent">
+    <button type="button" class="btn primary lp-close-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" $d}}" aria-label="Copy the prompt for your agent">
       <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">Copy prompt for agent</span>
     </button>
     <span class="fine">Free. Works with any agent that has a shell.</span>
