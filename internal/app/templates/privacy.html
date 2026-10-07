@@ -24,7 +24,7 @@
       <li>byagent is operated by Anup Aglawe, an individual based in India. Write to <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>.</li>
       <li>We keep what the service needs: your account email and name, the pages you publish, and the comments readers leave on them.</li>
       <li>Readers need no account. A comment stores the name the reader types, the text, the line it is on and the time. We do not store reader IP addresses.</li>
-      <li>Google Analytics runs on our own site pages and the dashboard. It never runs on published pages.</li>
+      <li>Google Analytics runs on our own site pages and the dashboard, and only if you accept it in the cookie banner. It never runs on published pages.</li>
       <li>We do not sell personal data, and we do not use your pages or comments to train AI models.</li>
       <li>Everything is stored on Fly.io in Singapore.</li>
     </ul>
@@ -118,10 +118,17 @@
           </tr>
           <tr>
             <td>Analytics on byagent.dev and the dashboard</td>
-            <td>Google Analytics 4: pages visited, referrer, device and browser details, approximate location, and cookie identifiers.</td>
+            <td>Google Analytics 4, only if you accept it in the cookie banner: pages visited, referrer, device and browser details, approximate location, and cookie identifiers. Until you accept, Google's script is not loaded and Google receives nothing.</td>
             <td>Understand how people find and use the site.</td>
-            <td>Legitimate interests, 6(1)(f)</td>
+            <td>Consent, 6(1)(a). Withdraw it at any time with “Cookie settings” below or in the site footer.</td>
             <td>Held by Google for the retention period set in our Analytics account, at most 14 months.</td>
+          </tr>
+          <tr>
+            <td>Prompt copy counts</td>
+            <td>When someone presses a button that copies the setup prompt, our server logs one line saying which button it was (for example “hero”). No cookie is read or set, and the line holds no IP address, browser details or anything else about the visitor.</td>
+            <td>See which parts of the site lead people to try byagent.</td>
+            <td>Legitimate interests, 6(1)(f)</td>
+            <td>As long as our application logs are kept.</td>
           </tr>
           <tr>
             <td>Rate limiting</td>
@@ -141,7 +148,7 @@
       </table>
     </div>
     <h3>Where Google Analytics runs</h3>
-    <p>On byagent.dev: the home page, pricing, the guides, these policy pages and shared collection pages. On app.byagent.dev: sign-in, the dashboard and client portal pages. It does not run on published pages ({{if $d.ContentDomain}}on {{$d.ContentDomain}}{{else}}under byagent.dev/a/{{end}}), on the page that asks for a share code, or on the pages written for agents under /agents. There is no cookie banner today, so this section is how we tell you.</p>
+    <p>On byagent.dev: the home page, pricing, the guides, these policy pages and shared collection pages. On app.byagent.dev: sign-in, the dashboard and client portal pages. It does not run on published pages ({{if $d.ContentDomain}}on {{$d.ContentDomain}}{{else}}under byagent.dev/a/{{end}}), on the page that asks for a share code, or on the pages written for agents under /agents. Wherever it runs, a banner asks first. Decline, or ignore the banner, and it never loads. <button type="button" class="link" data-consent-open>Cookie settings</button> lets you change your answer; declining also removes any Google Analytics cookies already set.</p>
     <h3>What published pages load</h3>
     <p>A published page is HTML its owner wrote. Its policy lets it load scripts from cdnjs.cloudflare.com and cdn.jsdelivr.net, fonts from Google Fonts, and images from any HTTPS address. When a page does that, your browser requests those files from those providers directly, and they see your IP address as with any website. We do not control what a page owner loads.</p>
     <h3>IP addresses and logs</h3>
@@ -156,7 +163,8 @@
         <tbody>
           <tr><td><code>__Host-artifacts_session</code></td><td>app.byagent.dev only</td><td>Keeps you signed in. HttpOnly and host-only, never sent to published pages.</td><td>30 days without use</td></tr>
           {{if $d.ContentDomain}}<tr><td><code>__Host-artifact_unlock</code></td><td>That one page's own host on {{$d.ContentDomain}}</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>{{else}}<tr><td><code>artifact_unlock_&lt;page&gt;</code></td><td>byagent.dev, one page only</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>{{end}}
-          <tr><td><code>_ga</code>, <code>_ga_&lt;id&gt;</code></td><td>The pages listed under “Where Google Analytics runs”</td><td>Set by Google Analytics to tell visits apart.</td><td>Set by Google, up to 2 years</td></tr>
+          <tr><td><code>byagent_consent</code></td><td>byagent.dev and app.byagent.dev</td><td>Remembers whether you accepted or declined Google Analytics, so the banner does not ask again.</td><td>6 months</td></tr>
+          <tr><td><code>_ga</code>, <code>_ga_&lt;id&gt;</code></td><td>The pages listed under “Where Google Analytics runs”, only after you accept</td><td>Set by Google Analytics to tell visits apart.</td><td>Set by Google, up to 2 years</td></tr>
         </tbody>
       </table>
     </div>

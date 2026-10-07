@@ -27,6 +27,9 @@ type siteData struct {
 	PageForm      string
 	ContentDomain string
 	ContentShared bool
+	// AnalyticsOn: GA is configured, so the footer offers "Cookie settings"
+	// to change the choice made in the consent banner.
+	AnalyticsOn bool
 }
 
 func (h *Handler) site() siteData {
@@ -39,14 +42,15 @@ func (h *Handler) site() siteData {
 		PageForm:      h.pages().Form(),
 		ContentDomain: pageurl.Hostname(h.Cfg.ContentDomain),
 		ContentShared: h.Cfg.ContentShared,
+		AnalyticsOn:   h.Cfg.GoogleAnalyticsID != "",
 	}
 }
 
 // Policy versions. Bump the version and the date together whenever the text
 // of a policy changes in substance, and say what changed in the PR.
 const (
-	policyEffective = "5 October 2026"
-	policyVersion   = "v1.4"
+	policyEffective = "7 October 2026"
+	policyVersion   = "v1.5"
 )
 
 // docData is one policy or pricing page.

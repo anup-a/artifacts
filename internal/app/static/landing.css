@@ -109,7 +109,10 @@
 .lp3 .cap.pair { gap: 10px; padding: 0 12px; }
 .lp3 .url { justify-self: center; width: min(420px, 100%); gap: 7px; font: 500 13px var(--sans); }
 .lp3 .url svg { width: 12px; height: 12px; color: var(--muted); }
-.lp3 .shot-in > img { display: block; width: 100%; height: auto; filter: brightness(.72) saturate(.9); }
+/* Dimmed in dark mode only, so the floating pages lift off it; in light mode
+   the dim turned the white dashboard a muddy gray. */
+.lp3 .shot-in > img { display: block; width: 100%; height: auto; }
+:root[data-theme="dark"] .lp3 .shot-in > img { filter: brightness(.72) saturate(.9); }
 .lp3 .shot .on-dark { display: none; }
 :root[data-theme="dark"] .lp3 .shot .on-dark { display: block; }
 :root[data-theme="dark"] .lp3 .shot .on-light { display: none; }
@@ -245,8 +248,18 @@
 
 /* ---- How: watch an agent use it (chat on the left, the page on the right) */
 .lp3 section.feat { max-width: 1140px; margin: 0 auto; padding: 64px 24px 0; text-align: center; }
-.lp3 #how .seg { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 5px; margin: 28px auto 0; width: max-content; max-width: 100%; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel); }
-.lp3 #how .seg button { border: 0; background: none; padding: 7px 15px; border-radius: 999px; font: 13.5px var(--sans); color: var(--muted); cursor: pointer; transition: color .15s, background .15s; }
+/* One row, always. Where the six tabs do not fit, the row scrolls inside the
+   pill and fades out at whichever edge has more tabs past it, so nothing
+   ends in a hard cut. The pill (border, background) is the outer element and
+   the fade a mask on the inner scroller, so the border never fades.
+   landing.js sets --fl / --fr from the scroll position. */
+.lp3 #how .seg-pill { margin: 28px auto 0; width: max-content; max-width: 100%; padding: 5px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel); }
+.lp3 #how .seg { --fl: 0px; --fr: 0px; display: flex; gap: 4px; padding: 0; border: 0; background: none; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; border-radius: 999px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent); }
+.lp3 #how .seg::-webkit-scrollbar { display: none; }
+.lp3 #how .seg button { flex: none; white-space: nowrap; border: 0; background: none; padding: 7px 15px; border-radius: 999px; font: 13.5px var(--sans); color: var(--muted); cursor: pointer; transition: color .15s, background .15s; }
+@media (max-width: 640px) { .lp3 #how .seg button { padding: 7px 12px; } }
 .lp3 #how .seg button:hover { color: var(--ink); }
 .lp3 #how .seg button.on { background: var(--ink); color: var(--bg); }
 .lp3 #how .duo { display: grid; grid-template-columns: 400px minmax(0, 1fr); height: 620px; margin-top: 22px; border-radius: 24px; overflow: hidden; border: 1px solid var(--line-strong); background: var(--deep); box-shadow: 0 60px 120px -60px rgba(0,0,0,.9); text-align: left; }
@@ -257,7 +270,7 @@
 .lp3 #how .ag-claude { --dot: var(--a-claude); } .lp3 #how .ag-codex { --dot: var(--a-codex); } .lp3 #how .ag-cursor { --dot: var(--a-cursor); } .lp3 #how .ag-hermes { --dot: var(--a-hermes); }
 .lp3 #how .log { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 18px; overflow-y: auto; scroll-behavior: smooth; }
 .lp3 #how .m { max-width: 90%; padding: 9px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; animation: lp3-in .3s ease; }
-.lp3 #how .me { align-self: flex-end; background: color-mix(in srgb, var(--accent) 18%, var(--panel)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); color: var(--ink); border-bottom-right-radius: 4px; }
+.lp3 #how .me { align-self: flex-end; background: light-dark(var(--ink), #2b2e3a); color: light-dark(#fff, var(--ink)); border-bottom-right-radius: 4px; }
 .lp3 #how .ag { align-self: flex-start; background: var(--soft); color: var(--ink); border-bottom-left-radius: 4px; }
 .lp3 #how .tool { align-self: flex-start; display: flex; gap: 7px; font: 11.5px/1.5 var(--mono); color: var(--muted); animation: lp3-in .3s ease; }
 .lp3 #how .tool b { color: var(--green); font-weight: 400; }
