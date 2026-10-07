@@ -37,11 +37,11 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		t.Fatalf("content type %q", ct)
 	}
 	for _, want := range []string{
-		"Your agent's work, <span class=\"nw\">as a link</span>", // the job, in the words people search with
-		"anyone can <span class=\"nw\">comment on.</span>",       // and what makes it more than a host
-		"your agent reads the comments back",                     // the loop
-		"Paste it into your agent",                               // the one action on the page
-		"Copy the prompt",                                        // and the button that takes it
+		"A shareable link</span> <span class=\"nw\">for everything</span>", // the job, not a metaphor
+		"your agents make.",
+		"whichever agent made them", // one place, across agents
+		"Paste it into your agent",  // the one action on the page
+		"Copy the prompt",           // and the button that takes it
 		"Set up byagent for all my projects: read http://share.test/skill.md and follow it.", // what is copied: every project, not one repo
 		"share.test/skill.md",          // and what the line shows
 		"http://api.test/app/",         // the way to the dashboard
