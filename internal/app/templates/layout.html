@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {{if .AnalyticsID}}
 {{/* The CSP allows no inline script, so GA4 is started from a file that
-     reads the ID off its own tag. It runs before gtag.js arrives, which
-     then picks up the queued commands. */}}
+     reads the ID off its own tag. That file asks for consent first and
+     only then loads gtag.js. */}}
 <script src="{{.GAJS}}" data-ga-id="{{.AnalyticsID}}"></script>
-<script async src="https://www.googletagmanager.com/gtag/js?id={{.AnalyticsID}}"></script>
 {{end}}
 <title>{{block "title" .}}{{.Title}} · byagent{{end}}</title>
 <link rel="icon" href="/favicon.ico" sizes="48x48">

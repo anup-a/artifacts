@@ -101,7 +101,8 @@ body {
   font-feature-settings: "cv11", "ss01";
 }
 a { color: inherit; text-decoration: none; }
-a.link { color: var(--accent); }
+a.link, button.link { color: var(--accent); }
+button.link { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
 a.link:hover { text-decoration: underline; }
 code {
   font: 12px/1.4 var(--mono); color: var(--fg-2);
@@ -1297,3 +1298,17 @@ a.deck:hover .deck-card-2 { transform: translate(-24px, -18px) rotate(-8.5deg) s
 .views-lists .mono { font-family: var(--mono); font-size: 12.5px; }
 .artifacts-table th.c-views { width: 88px; }
 @media (max-width: 720px) { .artifacts-table .c-views { display: none; } }
+
+/* Cookie choice. ga.js adds it to every page that has GA until the visitor
+   accepts or declines; GA does not load before a yes. Both buttons are the
+   same size, so declining is as easy as accepting. */
+.consent { position: fixed; z-index: 100; left: 16px; bottom: 16px; max-width: 380px; padding: 14px 16px;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line-strong); border-radius: 12px;
+  box-shadow: 0 12px 32px -12px rgba(0,0,0,.28); font-size: 13.5px; line-height: 1.5; }
+.consent p { margin: 0 0 12px; color: var(--fg-2); }
+.consent a { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
+.consent-row { display: flex; gap: 8px; justify-content: flex-end; }
+.consent-row .btn { min-width: 84px; }
+.lp-foot-col button.lp-foot-link { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.lp-foot-col button.lp-foot-link:hover { color: var(--fg); }
+@media (max-width: 560px) { .consent { left: 12px; right: 12px; bottom: 12px; max-width: none; } }

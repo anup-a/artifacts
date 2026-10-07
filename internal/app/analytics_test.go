@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net/http"
 	"regexp"
 	"strings"
 	"testing"
@@ -38,8 +39,10 @@ func TestAnalyticsStartsFromAFile(t *testing.T) {
 		if !regexp.MustCompile(`<script src="/app/static/ga\.[0-9a-f]+\.js" data-ga-id="G-TEST123"></script>`).MatchString(res.Body) {
 			t.Errorf("%s: no ga.js tag carrying the measurement ID", path)
 		}
-		if !strings.Contains(res.Body, "googletagmanager.com/gtag/js?id=G-TEST123") {
-			t.Errorf("%s: gtag.js is not loaded", path)
+		// gtag.js sets cookies, so ga.js loads it only after the visitor
+		// accepts. A tag in the page would load it before anyone was asked.
+		if strings.Contains(res.Body, "googletagmanager.com") {
+			t.Errorf("%s: gtag.js is loaded before consent", path)
 		}
 		if got := inlineScripts(res.Body); len(got) > 0 {
 			t.Errorf("%s: inline script the CSP will block: %q", path, got)
@@ -63,7 +66,8 @@ func TestAnalyticsScriptIsServed(t *testing.T) {
 	if res.StatusCode != 200 || !strings.Contains(res.Header.Get("Content-Type"), "javascript") {
 		t.Fatalf("ga.js: got %d %q", res.StatusCode, res.Header.Get("Content-Type"))
 	}
-	for _, want := range []string{"data-ga-id", `gtag("config", id)`, `"copy_prompt"`, "data-ga-copy", "data-ga-where"} {
+	for _, want := range []string{"data-ga-id", `gtag("config", id)`, `"copy_prompt"`, "data-ga-copy", "data-ga-where",
+		"byagent_consent", `if (c === "yes") start()`, "data-consent-open", `sendBeacon("/e/copy`} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("ga.js is missing %q", want)
 		}
@@ -75,5 +79,38 @@ func TestNoAnalyticsWithoutAnID(t *testing.T) {
 	body := e.getHost("share.test", "/").Body
 	if strings.Contains(body, "googletagmanager") || strings.Contains(body, "data-ga-id") {
 		t.Error("analytics loaded with no measurement ID configured")
+	}
+}
+
+// The copy beacon is counted without consent, so it must stay a bare 204:
+// no cookie set, whatever spot it names.
+func TestCopyBeaconSetsNoCookie(t *testing.T) {
+	e := fixture(t)
+	for _, at := range []string{"hero", "nonsense"} {
+		req, _ := http.NewRequest("POST", e.srv.URL+"/e/copy?at="+at, nil)
+		req.Host = "share.test"
+		res, err := e.cl.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusNoContent {
+			t.Errorf("%s: got %d, want 204", at, res.StatusCode)
+		}
+		if c := res.Header.Values("Set-Cookie"); len(c) > 0 {
+			t.Errorf("%s: beacon set a cookie: %q", at, c)
+		}
+	}
+}
+
+// "Cookie settings" reopens the banner, so it is offered only where GA is on.
+func TestCookieSettingsOnlyWithAnalytics(t *testing.T) {
+	cfg := baseConfig(t.TempDir())
+	cfg.GoogleAnalyticsID = "G-TEST123"
+	if body := newEnv(t, cfg, nil).getHost("share.test", "/").Body; !strings.Contains(body, "data-consent-open") {
+		t.Error("no Cookie settings link with GA configured")
+	}
+	if body := fixture(t).getHost("share.test", "/").Body; strings.Contains(body, "data-consent-open") {
+		t.Error("Cookie settings link shown with no GA to consent to")
 	}
 }
