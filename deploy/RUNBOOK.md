@@ -296,12 +296,15 @@ Notes:
 - A hostname Cloudflare moves (CNAME taken away) shows `error` in the API;
   byagent asks Cloudflare to look again about hourly, so a fixed record
   recovers without anyone deleting and re-adding the domain.
-- Leave `DOMAINS_PROVIDER` unset on the Fly app until the move. The `fly`
-  provider works (`FLY_API_TOKEN`, `FLY_APP_NAME=artifacts-share`, and
-  `DOMAINS_APEX_IPS` from `fly ips list`), but every customer would have to
-  re-point their CNAME from `artifacts-share.fly.dev` to `domains.byagent.dev`
-  at the cutover. If it was on, the server registers those domains with
-  Cloudflare by itself after the switch; only the customers' DNS has to change.
+- On Fly (current production), custom domains run on the `fly` provider:
+  `DOMAINS_PROVIDER=fly`, `FLY_APP_NAME=artifacts-share`, `FLY_API_TOKEN`
+  (`fly tokens create deploy -a artifacts-share`), `DOMAINS_APEX_IPS` from
+  `fly ips list`, and `DOMAINS_CNAME_TARGET=domains.byagent.dev`. That name
+  resolves to Fly through the `*.byagent.dev` records, so customers CNAME to
+  the same target they will use after the move. At the cutover, point
+  `domains.byagent.dev` at the tunnel, switch to `DOMAINS_PROVIDER=cloudflare`
+  and the server registers the existing domains with Cloudflare by itself; no
+  customer has to change their DNS.
 
 ## Validation deployment (Fly)
 
