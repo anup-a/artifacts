@@ -437,10 +437,6 @@
   function pick(k, autoplay) {
     token++; busy = false; key = k; state[k] = F[k].init();
     seg.querySelectorAll("button").forEach(b => { b.classList.toggle("on", b.dataset.k === k); b.setAttribute("aria-selected", b.dataset.k === k); });
-    // On a narrow screen the tab row scrolls; centre the chosen tab in it
-    // without moving the page, which scrollIntoView would also do.
-    const on = seg.querySelector("button.on");
-    if (on && seg.scrollWidth > seg.clientWidth) seg.scrollTo({ left: on.offsetLeft - (seg.clientWidth - on.offsetWidth) / 2, behavior: "smooth" });
     document.getElementById("fc-aname").textContent = F[k].agent.replace(/\b\w/g, c => c.toUpperCase());
     document.getElementById("fc-who").style.setProperty("--dot", DOT[F[k].agent]);
     document.getElementById("fc-ttl").textContent = F[k].title; mock.replaceChildren(); mock.classList.remove("swap"); void mock.offsetWidth; mock.classList.add("swap"); document.getElementById("fc-bl").textContent = F[k].blurb;
