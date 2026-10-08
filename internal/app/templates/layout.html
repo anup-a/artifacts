@@ -6,8 +6,9 @@
 {{if .AnalyticsID}}
 {{/* The CSP allows no inline script, so GA4 is started from a file that
      reads the ID off its own tag. That file asks for consent first and
-     only then loads gtag.js. */}}
-<script src="{{.GAJS}}" data-ga-id="{{.AnalyticsID}}"></script>
+     only then loads gtag.js. Deferred, so it does not hold up the first
+     paint; the consent bar it adds can wait for the page. */}}
+<script src="{{.GAJS}}" data-ga-id="{{.AnalyticsID}}" defer></script>
 {{end}}
 <title>{{block "title" .}}{{.Title}} · byagent{{end}}</title>
 <link rel="icon" href="/favicon.ico" sizes="48x48">

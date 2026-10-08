@@ -6,9 +6,13 @@ import (
 	"encoding/hex"
 	"net/http"
 	"strings"
+
+	"github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/css"
+	"github.com/tdewolff/minify/v2/js"
 )
 
-//go:embed static/app.css static/app.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/landing.css static/landing.js static/dashboard-light.webp static/dashboard-dark.webp static/covers/*.webp
+//go:embed static/app.css static/app.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/landing.css static/landing.js static/dashboard-light*.webp static/dashboard-dark*.webp static/covers/*.webp
 var staticFS embed.FS
 
 type asset struct {
@@ -29,8 +33,10 @@ type statics struct {
 	gaJSURL       string            // starts GA4; a file because the CSP forbids inline script
 	landingCSSURL string            // the landing page's own styles, loaded on that page only
 	landingJSURL  string            // its shelf, scroll effects and feature demos
-	shotURL       string            // landing page dashboard screenshot
+	shotURL       string            // landing page dashboard screenshot, 1360 wide
 	shotDarkURL   string            // the same view for a reader on a dark theme
+	shotSet       string            // the screenshot at every width, for srcset
+	shotDarkSet   string            // and the dark one
 	coverURLs     map[string]string // page covers on the landing page, by name
 	icons         map[string]asset  // the mark, by its fixed path
 }
@@ -58,8 +64,8 @@ func newStatics() *statics {
 	s.jsURL = s.add("app", ".js", "text/javascript; charset=utf-8")
 	s.themeJSURL = s.add("theme", ".js", "text/javascript; charset=utf-8")
 	s.gaJSURL = s.add("ga", ".js", "text/javascript; charset=utf-8")
-	s.shotURL = s.add("dashboard-light", ".webp", "image/webp")
-	s.shotDarkURL = s.add("dashboard-dark", ".webp", "image/webp")
+	s.shotURL, s.shotSet = s.addWidths("dashboard-light")
+	s.shotDarkURL, s.shotDarkSet = s.addWidths("dashboard-dark")
 	s.landingCSSURL = s.add("landing", ".css", "text/css; charset=utf-8")
 	s.landingJSURL = s.add("landing", ".js", "text/javascript; charset=utf-8")
 	s.coverURLs = map[string]string{}
@@ -86,6 +92,24 @@ func (s *statics) add(base, ext, contentType string) string {
 	return s.addAs("static/"+base+ext, base, ext, contentType)
 }
 
+// shotWidths are the widths a screenshot is saved at below base.webp, which
+// is 2720 (twice the 1360 layout width), so a phone does not download the
+// retina desktop file. Each is base-<width>.webp.
+var shotWidths = []string{"720", "1080", "1360"}
+
+// addWidths serves a screenshot at every width and returns the 1360 file for
+// src and the srcset that lists them all.
+func (s *statics) addWidths(base string) (src, srcset string) {
+	for _, w := range shotWidths {
+		u := s.add(base+"-"+w, ".webp", "image/webp")
+		if w == "1360" {
+			src = u
+		}
+		srcset += u + " " + w + "w, "
+	}
+	return src, srcset + s.add(base, ".webp", "image/webp") + " 2720w"
+}
+
 // addAs serves the embedded file at path under a hashed name built from base,
 // for files in a subdirectory: the static route takes one path segment.
 func (s *statics) addAs(path, base, ext, contentType string) string {
@@ -93,10 +117,35 @@ func (s *statics) addAs(path, base, ext, contentType string) string {
 	if err != nil {
 		panic(err) // embedded, so only a build mistake
 	}
+	body = minified(body, contentType)
 	sum := sha256.Sum256(body)
 	name := base + "." + hex.EncodeToString(sum[:])[:12] + ext
 	s.files[name] = asset{body: body, contentType: contentType}
 	return "/app/static/" + name
+}
+
+// minifier strips the comments and whitespace from the stylesheets and
+// scripts. The source files keep their comments; only what is served loses
+// them, so there is no build step and nothing generated to commit.
+var minifier = func() *minify.M {
+	m := minify.New()
+	m.AddFunc("text/css", css.Minify)
+	m.AddFunc("text/javascript", js.Minify)
+	return m
+}()
+
+// minified is body minified for its content type, or body itself for a type
+// the minifier does not know (images) or a file it cannot parse.
+func minified(body []byte, contentType string) []byte {
+	mt, _, _ := strings.Cut(contentType, ";")
+	if mt != "text/css" && mt != "text/javascript" {
+		return body
+	}
+	out, err := minifier.Bytes(mt, body)
+	if err != nil {
+		return body
+	}
+	return out
 }
 
 func (s *statics) serve(w http.ResponseWriter, r *http.Request) {
