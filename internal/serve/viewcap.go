@@ -32,7 +32,7 @@ import (
 //
 // A capability names one artifact, the version the viewer opened (0 for
 // whatever is current, as on /app/view/{id}/; n for /app/view/{id}/v/{n}/),
-// the workspace that owned it when it was minted, and an expiry an hour out.
+// the workspace that owned it when it was minted, and an expiry a day out.
 // It is signed with the server's key, so it cannot be made for another
 // artifact or version, and a page moved to another workspace stops honouring
 // it. It opens files and nothing else: no cover, no other artifact, no API.
@@ -43,10 +43,10 @@ import (
 // anyway, so it is checked against the session instead, and a stranger who
 // is handed the address is refused just as on /app/view/{id}/. A navigation
 // on a lapsed capability with a valid session gets a fresh one, so a reload
-// or a link clicked an hour later still works for the owner.
+// or a link clicked a day later still works for the owner.
 const (
 	viewCapSegment = "~cap"
-	viewCapTTL     = time.Hour
+	viewCapTTL     = 24 * time.Hour
 )
 
 type viewCapKey struct{}
