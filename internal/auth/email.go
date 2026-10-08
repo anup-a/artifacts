@@ -37,7 +37,7 @@ type ResendSender struct {
 }
 
 func (s ResendSender) SendMagicLink(ctx context.Context, to, url string) error {
-	return s.send(ctx, to, "Sign in to Artifacts", "Open this link to sign in. It works once and expires in 15 minutes.\n\n"+url+"\n\nIf you did not ask for this, ignore this email.\n")
+	return s.send(ctx, to, "Sign in to byagent", "Open this link to sign in. It works once and expires in 15 minutes.\n\n"+url+"\n\nIf you did not ask for this, ignore this email.\n")
 }
 
 func (s ResendSender) send(ctx context.Context, to, subject, text string) error {

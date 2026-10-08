@@ -1,6 +1,6 @@
 {
   "name": "byagent",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Publish what Claude Code, Codex or Cursor writes as a shareable link. Readers comment on any line; your agent reads the comments back.",
   "license": "MIT",
   "type": "module",
