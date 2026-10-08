@@ -267,3 +267,24 @@ func TestCSPAllowsCDNStylesheets(t *testing.T) {
 		}
 	}
 }
+
+func TestPublishedPagesAreNoindexOutsideCustomDomains(t *testing.T) {
+	srv, _, id := fixture(t)
+	for _, path := range []string{"/a/" + id + "/", "/a/" + id + "/v/1/s/a.css", "/a/" + id + "/" + coverPath, "/a/nope/"} {
+		res, _ := get(t, srv.URL+path, nil)
+		if got := res.Header.Get("X-Robots-Tag"); got != "noindex" {
+			t.Fatalf("%s: X-Robots-Tag %q", path, got)
+		}
+	}
+
+	h, id, tenant := mountHandler(t)
+	w := httptest.NewRecorder()
+	h.ServePage(w, WithPageHost(httptest.NewRequest("GET", "http://p1.share.test/", nil), PageHost{Origin: "http://p1.share.test", ArtifactID: id}))
+	if w.Code != 200 || w.Header().Get("X-Robots-Tag") != "noindex" {
+		t.Fatalf("page host: %d X-Robots-Tag %q", w.Code, w.Header().Get("X-Robots-Tag"))
+	}
+	m := Mount{Scheme: "https", Host: "docs.example.com", Base: "/", ArtifactID: id, TenantID: tenant}
+	if w := serveMount(h, m, "GET", ""); w.Code != 200 || w.Header().Get("X-Robots-Tag") != "" {
+		t.Fatalf("custom domain: %d X-Robots-Tag %q", w.Code, w.Header().Get("X-Robots-Tag"))
+	}
+}
