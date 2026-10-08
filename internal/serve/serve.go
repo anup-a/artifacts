@@ -118,6 +118,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	h.registerRoutes(mux)
 	if h.Sessions != nil {
 		mux.HandleFunc("GET /app/view/{id}/"+coverPath, h.privateArtifact(h.cover))
+		mux.HandleFunc("GET /app/view/{id}/"+viewCapSegment+"/{cap}/{path...}", h.capArtifact)
 		mux.HandleFunc("GET /app/view/{id}/v/{version}/{path...}", h.privateArtifact(h.pinned))
 		mux.HandleFunc("GET /app/view/{id}/{path...}", h.privateArtifact(h.current))
 	}
@@ -231,6 +232,10 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		return
 	}
 	pinnedReq := version > 0
+	// What the address asked for, before index.html is filled in and the
+	// current version looked up: a private page moves under a capability
+	// with exactly these.
+	addrVersion, rest := version, p
 	if version == 0 {
 		version = a.CurrentVersion
 	}
@@ -258,6 +263,13 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		return
 	}
 	isHTML := strings.HasPrefix(f.ContentType, "text/html")
+	// A private page is only ever rendered under a capability, which is what
+	// lets its own images, styles and scripts load (see viewcap.go). Other
+	// files opened with the session alone are served where they are.
+	if isHTML && isPrivateViewer(r) && !onViewCap(r) && h.mintsViewCaps() {
+		h.redirectToViewCap(w, r, a, addrVersion, rest)
+		return
+	}
 	// HTML gets the runtime injected only while comments are on, so the ETag
 	// carries that state too: flipping the switch must not be masked by a
 	// cached copy of the other variant.

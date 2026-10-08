@@ -236,7 +236,12 @@ path. Open the URL while signed in to the owning workspace. Other workspaces,
 anonymous visitors, end-user portals, and public `/a/` and `/c/` routes cannot
 retrieve private content, including pinned versions, assets, covers, or viewer
 comments. Private viewing requires separate app and share origins. The browser
-viewer is sandboxed and has no viewer comment panel; owners can still manage
+viewer is sandboxed and has no viewer comment panel. Because a sandboxed page's
+own requests carry no session cookie, opening a private HTML page redirects to
+`/app/view/<id>/~cap/<capability>/`: a signed, one-hour capability for that
+artifact and version, under which the page's relative images, styles and
+scripts load. Navigating to a capability address still needs the session;
+owners can still manage
 comments through the dashboard and authenticated API. API keys publish and manage
 private artifacts but do not authenticate the browser viewer.
 
