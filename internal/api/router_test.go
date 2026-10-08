@@ -133,3 +133,30 @@ func TestHSTSOnlyForHTTPSOrigin(t *testing.T) {
 		}
 	}
 }
+
+// www.<share host> is one more copy of the site; it redirects to the share
+// origin with the path kept, so search engines index one copy.
+func TestWWWRedirectsToShareOrigin(t *testing.T) {
+	srv, _, _ := newTestServerWith(t, false, func(d *Deps) { d.Cfg.ShareOrigin = "https://share.test" })
+	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	for method, code := range map[string]int{"GET": 301, "POST": 308} {
+		req, _ := http.NewRequest(method, srv.URL+"/guides/codex?x=1", nil)
+		req.Host = "www.share.test"
+		res, err := noFollow.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != code || res.Header.Get("Location") != "https://share.test/guides/codex?x=1" {
+			t.Errorf("%s www: %d %q, want %d to the share origin", method, res.StatusCode, res.Header.Get("Location"), code)
+		}
+	}
+	res, err := http.Get(srv.URL + "/healthz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != 200 {
+		t.Errorf("own host: %d, want 200", res.StatusCode)
+	}
+}

@@ -73,6 +73,7 @@ func (h *Handler) guideBySlug(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "template error", 500)
 			return
 		}
+		canonical(w, h.d.Share+"/guides/"+g.Slug)
 		write(w, "text/markdown", body)
 		return
 	}
