@@ -14,6 +14,7 @@ import (
 
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/artifacts/internal/i18n"
 	"github.com/anup-a/artifacts/internal/ids"
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/store"
@@ -367,7 +368,7 @@ func TestFormatHelpers(t *testing.T) {
 	}
 	nums := map[int64]string{0: "0", 999: "999", 1000: "1,000", 1234567: "1,234,567", -4321: "-4,321"}
 	for n, s := range nums {
-		if got := formatNumber(n); got != s {
+		if got := i18n.Number("en", n); got != s {
 			t.Errorf("num(%d) = %q, want %q", n, got, s)
 		}
 	}

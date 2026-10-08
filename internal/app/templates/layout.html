@@ -1,8 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{.Lang}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The scripts' messages in this language: data, not code, so the CSP
+     does not apply. Empty in English, where the scripts need none. */}}
+{{if .JSMessages}}<script type="application/json" id="i18n-messages">{{.JSMessages}}</script>{{end}}
+<script src="{{.I18nJS}}"></script>
 {{if .AnalyticsID}}
 {{/* The CSP allows no inline script, so GA4 is started from a file that
      reads the ID off its own tag. That file asks for consent first and
@@ -20,7 +24,7 @@
 <script src="{{.JS}}" defer></script>
 </head>
 <body>
-<a class="skip-link" href="#main">Skip to content</a>
+<a class="skip-link" href="#main">{{t "Skip to content"}}</a>
 {{template "sprite"}}
 {{if .Viewer}}
 <div class="shell">
@@ -29,13 +33,13 @@
 
     {{if gt (len .Viewer.Tenants) 1}}
     <details class="switcher">
-      <summary class="ws" aria-label="Switch workspace">
+      <summary class="ws" aria-label="{{t "Switch workspace"}}">
         <span class="ws-avatar">{{printf "%.1s" .Viewer.Tenant.Name}}</span>
         <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{.Viewer.Tenant.Kind}}</span></span>
         {{template "icon" "chevrons"}}
       </summary>
       <div class="menu ws-menu" role="menu">
-        <div class="menu-label">Workspaces</div>
+        <div class="menu-label">{{t "Workspaces"}}</div>
         {{range .Viewer.Tenants}}
         <form method="post" action="/app/switch-tenant">
           <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
@@ -49,7 +53,7 @@
         </form>
         {{end}}
         <div class="menu-sep"></div>
-        <a class="menu-item" href="/app/settings" role="menuitem">{{template "icon" "settings"}}<span class="menu-item-text">Workspace settings</span></a>
+        <a class="menu-item" href="/app/settings" role="menuitem">{{template "icon" "settings"}}<span class="menu-item-text">{{t "Workspace settings"}}</span></a>
       </div>
     </details>
     {{else}}
@@ -59,22 +63,23 @@
     </div>
     {{end}}
 
-    <nav class="nav" aria-label="Main">
-      <a href="/app/artifacts"{{if eq .Section "artifacts"}} class="active" aria-current="page"{{end}}>{{template "icon" "artifacts"}}<span>Artifacts</span></a>
-      <a href="/app/collections"{{if eq .Section "collections"}} class="active" aria-current="page"{{end}}>{{template "icon" "collections"}}<span>Collections</span></a>
-      {{if .Viewer.Integrator}}<a href="/app/end-users"{{if eq .Section "end-users"}} class="active" aria-current="page"{{end}}>{{template "icon" "users"}}<span>End users</span></a>{{end}}
-      <a href="/app/connect"{{if eq .Section "connect"}} class="active" aria-current="page"{{end}}>{{template "icon" "link"}}<span>Connect agent</span></a>
-      <a href="/app/keys"{{if eq .Section "keys"}} class="active" aria-current="page"{{end}}>{{template "icon" "key"}}<span>API keys</span></a>
-      <a href="/app/usage"{{if eq .Section "usage"}} class="active" aria-current="page"{{end}}>{{template "icon" "usage"}}<span>Usage</span></a>
-      <a href="/app/settings"{{if eq .Section "settings"}} class="active" aria-current="page"{{end}}>{{template "icon" "settings"}}<span>Settings</span></a>
+    <nav class="nav" aria-label="{{t "Main"}}">
+      <a href="/app/artifacts"{{if eq .Section "artifacts"}} class="active" aria-current="page"{{end}}>{{template "icon" "artifacts"}}<span>{{t "Artifacts"}}</span></a>
+      <a href="/app/collections"{{if eq .Section "collections"}} class="active" aria-current="page"{{end}}>{{template "icon" "collections"}}<span>{{t "Collections"}}</span></a>
+      {{if .Viewer.Integrator}}<a href="/app/end-users"{{if eq .Section "end-users"}} class="active" aria-current="page"{{end}}>{{template "icon" "users"}}<span>{{t "End users"}}</span></a>{{end}}
+      <a href="/app/connect"{{if eq .Section "connect"}} class="active" aria-current="page"{{end}}>{{template "icon" "link"}}<span>{{t "Connect agent"}}</span></a>
+      <a href="/app/keys"{{if eq .Section "keys"}} class="active" aria-current="page"{{end}}>{{template "icon" "key"}}<span>{{t "API keys"}}</span></a>
+      <a href="/app/usage"{{if eq .Section "usage"}} class="active" aria-current="page"{{end}}>{{template "icon" "usage"}}<span>{{t "Usage"}}</span></a>
+      <a href="/app/settings"{{if eq .Section "settings"}} class="active" aria-current="page"{{end}}>{{template "icon" "settings"}}<span>{{t "Settings"}}</span></a>
     </nav>
 
     <div class="sidebar-theme">
-      <span class="sidebar-theme-label">Theme</span>
-      <div class="lp-theme" role="group" aria-label="Theme" data-theme-picker>
-        <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
-        <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
-        <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
+      <span class="sidebar-theme-label">{{t "Theme"}}</span>
+      {{template "lang-picker" .LangLinks}}
+      <div class="lp-theme" role="group" aria-label="{{t "Theme"}}" data-theme-picker>
+        <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="{{t "Match system"}}" aria-label="{{t "Match system"}}">{{template "icon" "monitor"}}</button>
+        <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="{{t "Light"}}" aria-label="{{t "Light"}}">{{template "icon" "sun"}}</button>
+        <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="{{t "Dark"}}" aria-label="{{t "Dark"}}">{{template "icon" "moon"}}</button>
       </div>
     </div>
     <div class="sidebar-foot">
@@ -82,7 +87,7 @@
       <span class="user-email" title="{{.Viewer.User.Email}}">{{.Viewer.User.Email}}</span>
       <form method="post" action="/app/logout">
         <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-        <button type="submit" class="icon-btn" title="Sign out" aria-label="Sign out">{{template "icon" "logout"}}</button>
+        <button type="submit" class="icon-btn" title="{{t "Sign out"}}" aria-label="{{t "Sign out"}}">{{template "icon" "logout"}}</button>
       </form>
     </div>
   </aside>

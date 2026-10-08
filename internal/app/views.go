@@ -1,10 +1,10 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/anup-a/artifacts/internal/i18n"
 	"github.com/anup-a/artifacts/internal/store"
 	"github.com/anup-a/artifacts/internal/usage"
 )
@@ -63,12 +63,13 @@ func (h *Handler) viewsPanel(r *http.Request, a store.Artifact) (viewsPanel, err
 	series := win.Series(rep)
 	p := viewsPanel{Range: rng, Ranges: usage.Ranges, Hourly: win.Hourly, Views: rep.Views, Unique: rep.Visitors, AllTime: rep.AllTimeViews,
 		Referrers: rep.Referrers, Countries: rep.Countries, Paths: rep.Paths, Devices: rep.Devices}
-	p.Bars, p.From, p.To = chart(series, win.Hourly)
+	p.Bars, p.From, p.To = chart(series, win.Hourly, i18n.Lang(r))
 	return p, nil
 }
 
-// chart turns a series into bars scaled to the busiest bucket.
-func chart(series []usage.Point, hourly bool) ([]chartBar, string, string) {
+// chart turns a series into bars scaled to the busiest bucket, labelled in
+// lang.
+func chart(series []usage.Point, hourly bool, lang string) ([]chartBar, string, string) {
 	if len(series) == 0 {
 		return nil, "", ""
 	}
@@ -86,11 +87,11 @@ func chart(series []usage.Point, hourly bool) ([]chartBar, string, string) {
 	label := func(bucket string) string {
 		if hourly {
 			if t, err := time.Parse(time.RFC3339, bucket); err == nil {
-				return t.Format("Jan 2, 15:00") + " UTC"
+				return i18n.T(lang, "%s, %s UTC", i18n.Day(lang, t), t.Format("15:00"))
 			}
 		}
 		if t, err := time.Parse(time.DateOnly, bucket); err == nil {
-			return t.Format("Jan 2")
+			return i18n.Day(lang, t)
 		}
 		return bucket
 	}
@@ -104,16 +105,9 @@ func chart(series []usage.Point, hourly bool) ([]chartBar, string, string) {
 			}
 		}
 		bars = append(bars, chartBar{X: float64(i)*slot + gap/2, Y: chartH - hgt, W: slot - gap, H: hgt,
-			Title: fmt.Sprintf("%s: %s %s, %s %s", label(p.Bucket), formatNumber(p.Views), pluralWord(p.Views, "view", "views"), formatNumber(p.Visitors), pluralWord(p.Visitors, "visitor", "visitors"))})
+			Title: label(p.Bucket) + ": " + i18n.N(lang, int(p.Views), "%s view", "%s views") + ", " + i18n.N(lang, int(p.Visitors), "%s visitor", "%s visitors")})
 	}
 	return bars, label(series[0].Bucket), label(series[len(series)-1].Bucket)
-}
-
-func pluralWord(n int64, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 // listViews is each listed page's views over the last listViewsDays, for

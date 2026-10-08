@@ -141,15 +141,18 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 	// The page is the same for everyone, so it may sit in a shared cache;
 	// this overrides the no-store the app headers set for signed-in pages.
 	// It varies by Accept: an agent asking for Markdown gets the agents page.
-	w.Header().Set("Cache-Control", "public, max-age=300")
-	w.Header().Set("Vary", "Accept")
+	// And by language, which may come from the cookie or Accept-Language.
+	publicCache(w, r)
+	w.Header().Set("Vary", "Accept, Accept-Language, Cookie")
 	if wantsMarkdown(r) {
 		http.Redirect(w, r, "/agents.md", http.StatusSeeOther)
 		return
 	}
 	qs := landingFAQ(h.Cfg.Limits)
+	site := h.site(r)
+	site.Translated = true
 	h.render(w, r, 200, "landing", "byagent", nil, landingData{
-		siteData:     h.site(),
+		siteData:     site,
 		APIOrigin:    h.Cfg.APIOrigin,
 		APIHost:      apiHost,
 		KeysURL:      h.Cfg.APIOrigin + "/app/keys",

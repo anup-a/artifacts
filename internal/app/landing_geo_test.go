@@ -113,7 +113,7 @@ func TestLandingMarkdownForAgents(t *testing.T) {
 		}
 		io.Copy(io.Discard, res.Body)
 		res.Body.Close()
-		if res.StatusCode != want || res.Header.Get("Vary") != "Accept" {
+		if res.StatusCode != want || res.Header.Get("Vary") != "Accept, Accept-Language, Cookie" {
 			t.Errorf("Accept %q: %d, Vary %q", accept, res.StatusCode, res.Header.Get("Vary"))
 		}
 		if want == http.StatusSeeOther && res.Header.Get("Location") != "/agents.md" {

@@ -5,7 +5,8 @@
 {{/* Short on purpose: Google shows about 155 characters and rewrites a
      description it finds too long or too vague with text from the page. */}}
 <meta name="description" content="byagent is a CLI that gives what Claude Code, Codex or Cursor makes a permanent, shareable link. Anyone can comment on it, and agents read the comments back.">
-<link rel="canonical" href="{{$d.CanonicalURL}}">
+<link rel="canonical" href="{{$d.Canonical}}">
+{{template "lang-alternates" $d.LangLinks}}
 <link rel="alternate" type="text/markdown" href="{{$d.AgentsURL}}.md" title="byagent for agents">
 <meta property="og:site_name" content="byagent">
 {{/* The preview card says the H1. The <title> above stays a description
@@ -13,7 +14,7 @@
 <meta property="og:title" content="byagent: A shareable link for everything your agents make">
 <meta property="og:description" content="Plans, reports, prototypes and posts each get a permanent link, filed by project in one place, whichever agent made them.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{$d.CanonicalURL}}">
+<meta property="og:url" content="{{$d.Canonical}}">
 <meta property="og:image" content="{{$d.CardURL}}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">

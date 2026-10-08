@@ -5,9 +5,10 @@
 {{define "doc-meta"}}<p class="lp-doc-meta">Effective {{.Effective}} <span aria-hidden="true">·</span> Version {{.Version}}</p>{{end}}
 
 {{define "doc-head"}}
-<link rel="canonical" href="{{.ShareOrigin}}{{.Path}}">
+<link rel="canonical" href="{{.Canonical}}">
 <meta property="og:site_name" content="byagent">
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{.ShareOrigin}}{{.Path}}">
+<meta property="og:url" content="{{.Canonical}}">
+{{if .Translated}}{{template "lang-alternates" .LangLinks}}{{end}}
 {{template "site-theme" .}}
 {{end}}

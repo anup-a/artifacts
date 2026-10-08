@@ -163,6 +163,7 @@
         <tbody>
           <tr><td><code>__Host-artifacts_session</code></td><td>app.byagent.dev only</td><td>Keeps you signed in. HttpOnly and host-only, never sent to published pages.</td><td>30 days without use</td></tr>
           {{if $d.ContentDomain}}<tr><td><code>__Host-artifact_unlock</code></td><td>That one page's own host on {{$d.ContentDomain}}</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>{{else}}<tr><td><code>artifact_unlock_&lt;page&gt;</code></td><td>byagent.dev, one page only</td><td>Remembers that you entered that page's share code. Holds a signed value, not the code.</td><td>14 days</td></tr>{{end}}
+          <tr><td><code>lang</code></td><td>byagent.dev and app.byagent.dev, only after you pick a language</td><td>Remembers the language you picked, so the next page is in it too. Holds only the language code, such as <code>zh-CN</code>.</td><td>1 year</td></tr>
           <tr><td><code>byagent_consent</code></td><td>byagent.dev and app.byagent.dev</td><td>Remembers whether you accepted or declined Google Analytics, so the banner does not ask again.</td><td>6 months</td></tr>
           <tr><td><code>_ga</code>, <code>_ga_&lt;id&gt;</code></td><td>The pages listed under “Where Google Analytics runs”, only after you accept</td><td>Set by Google Analytics to tell visits apart.</td><td>Set by Google, up to 2 years</td></tr>
         </tbody>

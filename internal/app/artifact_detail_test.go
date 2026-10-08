@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/anup-a/artifacts/internal/i18n"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -260,11 +261,11 @@ func TestRelativeTime(t *testing.T) {
 		26 * time.Hour: "1d ago", 12 * 24 * time.Hour: "12d ago", 45 * 24 * time.Hour: "Aug 2, 2026", -2 * time.Hour: "in 2h",
 	}
 	for d, s := range cases {
-		if got := relativeTime(now.Add(-d), now); got != s {
+		if got := i18n.Ago("en", now.Add(-d), now); got != s {
 			t.Errorf("ago(-%v) = %q, want %q", d, got, s)
 		}
 	}
-	if relativeTime(time.Time{}, now) != "" {
+	if i18n.Ago("en", time.Time{}, now) != "" {
 		t.Fatal("zero time")
 	}
 	if q := anchorQuote(`{"kind":"element","css":"#chart"}`); q != "#chart" {
