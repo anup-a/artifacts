@@ -53,7 +53,15 @@ func TestViewHookSkipsGateAndPrivateViewer(t *testing.T) {
 	}
 	req := httptest.NewRequest("GET", "http://app.test/app/view/"+id+"/", nil)
 	req = req.WithContext(context.WithValue(req.Context(), privateViewerKey{}, a.TenantID))
+	// Opened with the session alone, the page moves under a capability;
+	// rendered there, it is served. Neither is a view.
 	w := httptest.NewRecorder()
+	h.serve(w, req, id, 0, "")
+	if w.Code != 303 || len(seen) != 1 {
+		t.Fatalf("owner preview counted: %d %v", w.Code, seen)
+	}
+	req = req.WithContext(context.WithValue(req.Context(), viewCapKey{}, true))
+	w = httptest.NewRecorder()
 	h.serve(w, req, id, 0, "")
 	if w.Code != 200 || len(seen) != 1 {
 		t.Fatalf("owner preview counted: %d %v", w.Code, seen)
