@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // Canvas size, the Open Graph image ratio.
@@ -135,7 +136,9 @@ const (
 	footerY      = Height - 64
 	accentWidth  = 160
 	accentHeight = 6
-	fontStack    = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+	// The CJK faces come after the Latin ones, so Latin titles look as they
+	// always did and Chinese, Japanese and Korean ones get a real face.
+	fontStack = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'PingFang SC', 'Hiragino Sans', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
 )
 
 // Render draws the cover for a card.
@@ -209,48 +212,142 @@ func drawText(b *strings.Builder, title, project, foot, accent string) {
 	b.WriteString(`<rect` + barClass + ` x="` + f(Width-textX-accentWidth) + `" y="` + f(footerY-accentHeight-2) + `" width="` + f(accentWidth) + `" height="` + f(accentHeight) + `" rx="3" fill="` + accent + `"/>`)
 }
 
-// clampTitle wraps on spaces into at most maxLines lines of maxLineChars
-// runes, breaking over-long words and ending a truncated title with an
-// ellipsis.
+// clampTitle wraps a title into at most maxLines lines no wider than
+// maxLineChars Latin characters, breaking over-long words and ending a
+// truncated title with an ellipsis. Latin text wraps on spaces. Chinese,
+// Japanese and Korean have no spaces to wrap on and each character is about
+// wideWidth Latin ones across, so they wrap between any two characters,
+// keeping closing punctuation off the start of a line.
 func clampTitle(title string) []string {
-	var words []string
+	const limit = maxLineChars * narrowWidth
+	var toks []token
 	for _, w := range strings.Fields(title) {
-		for r := []rune(w); len(r) > maxLineChars; r = r[maxLineChars:] {
-			words = append(words, string(r[:maxLineChars]))
-			w = string(r[maxLineChars:])
-		}
-		if w != "" {
-			words = append(words, w)
+		for i, t := range splitWord(w) {
+			t.space = i == 0
+			toks = append(toks, t)
 		}
 	}
 	var lines []string
-	cur := ""
-	for _, w := range words {
+	var cur strings.Builder
+	curW := 0
+	for _, t := range toks {
+		sep := 0
+		if t.space {
+			sep = narrowWidth
+		}
 		switch {
-		case cur == "":
-			cur = w
-		case len([]rune(cur))+1+len([]rune(w)) <= maxLineChars:
-			cur += " " + w
+		case curW == 0:
+			cur.WriteString(t.text)
+			curW = t.width
+		case curW+sep+t.width <= limit:
+			if t.space {
+				cur.WriteByte(' ')
+			}
+			cur.WriteString(t.text)
+			curW += sep + t.width
 		default:
-			lines = append(lines, cur)
-			cur = w
+			lines = append(lines, cur.String())
+			cur.Reset()
+			cur.WriteString(t.text)
+			curW = t.width
 		}
 		if len(lines) == maxLines {
-			rest := []rune(lines[maxLines-1])
-			if len(rest) > maxLineChars-1 {
-				rest = rest[:maxLineChars-1]
-			}
-			lines[maxLines-1] = strings.TrimRight(string(rest), " ") + "…"
+			lines[maxLines-1] = strings.TrimRight(fit(lines[maxLines-1], limit-narrowWidth), " ") + "…"
 			return lines
 		}
 	}
-	if cur != "" {
-		lines = append(lines, cur)
+	if curW > 0 {
+		lines = append(lines, cur.String())
 	}
 	if len(lines) == 0 {
 		lines = []string{""}
 	}
 	return lines
+}
+
+// Widths in tenths of an average Latin character at the title size.
+const (
+	narrowWidth = 10
+	wideWidth   = 16
+)
+
+// token is a piece of a title that stays on one line. space says a space
+// came before it; pieces of one Chinese word join without one.
+type token struct {
+	text  string
+	width int
+	space bool
+}
+
+// splitWord cuts one space-free word into the pieces a line may break
+// between: each wide character on its own, runs of Latin text whole but no
+// longer than a line, punctuation held to its neighbour.
+func splitWord(w string) []token {
+	var out []token
+	var run []rune
+	flush := func() {
+		for len(run) > maxLineChars {
+			out = append(out, token{text: string(run[:maxLineChars]), width: maxLineChars * narrowWidth, space: true})
+			run = run[maxLineChars:]
+		}
+		if len(run) > 0 {
+			out = append(out, token{text: string(run), width: len(run) * narrowWidth})
+			run = nil
+		}
+	}
+	opener := false
+	for _, r := range w {
+		switch {
+		case !wide(r):
+			run = append(run, r)
+		case strings.ContainsRune(closers, r) && (len(out) > 0 || len(run) > 0):
+			flush()
+			out[len(out)-1].text += string(r)
+			out[len(out)-1].width += wideWidth
+		default:
+			flush()
+			if opener {
+				out[len(out)-1].text += string(r)
+				out[len(out)-1].width += wideWidth
+			} else {
+				out = append(out, token{text: string(r), width: wideWidth})
+			}
+			opener = strings.ContainsRune(openers, r)
+			continue
+		}
+		opener = false
+	}
+	flush()
+	return out
+}
+
+// Punctuation that may not end a line (openers) or start one (closers).
+const (
+	openers = "（「『《〈【〔“‘"
+	closers = "，。、；：！？）」』》〉】〕”’…ー々"
+)
+
+// wide reports whether r is a Chinese, Japanese or Korean character or
+// full-width form, which takes about a square of the line.
+func wide(r rune) bool {
+	return unicode.In(r, unicode.Han, unicode.Hiragana, unicode.Katakana, unicode.Hangul) ||
+		(r >= 0x3000 && r <= 0x303f) || (r >= 0xff00 && r <= 0xffef)
+}
+
+// fit cuts s to at most limit tenths wide.
+func fit(s string, limit int) string {
+	w := 0
+	for i, r := range s {
+		n := narrowWidth
+		if wide(r) {
+			n = wideWidth
+		}
+		if w+n > limit {
+			return s[:i]
+		}
+		w += n
+	}
+	return s
 }
 
 // f formats a coordinate with one decimal, enough for a 1200 px canvas and

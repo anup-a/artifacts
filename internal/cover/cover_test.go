@@ -204,6 +204,13 @@ func TestClampTitle(t *testing.T) {
 		{"a very long title that keeps going and going and going and going past three lines", []string{"a very long title that", "keeps going and going and", "going and going past thre…"}},
 		{strings.Repeat("x", 90), []string{strings.Repeat("x", 26), strings.Repeat("x", 26), strings.Repeat("x", 25) + "…"}},
 		{"ünïcödé wörds are counted by rune not byte", []string{"ünïcödé wörds are counted", "by rune not byte"}},
+		// Chinese wraps between characters, 16 to a line at 1.6 Latin widths each.
+		{"第三季度各地区销售收入报告与明年预算规划", []string{"第三季度各地区销售收入报告与明年", "预算规划"}},
+		{"Q3 销售报告", []string{"Q3 销售报告"}},
+		// The comma after the 16th character goes with it, not to the next line.
+		{"一二三四五六七八九十一二三四五六，七八", []string{"一二三四五六七八九十一二三四五", "六，七八"}},
+		{"「byagent」是什么", []string{"「byagent」是什么"}},
+		{strings.Repeat("长", 60), []string{strings.Repeat("长", 16), strings.Repeat("长", 16), strings.Repeat("长", 15) + "…"}},
 	}
 	for _, c := range cases {
 		got := clampTitle(c.in)
@@ -214,8 +221,8 @@ func TestClampTitle(t *testing.T) {
 			t.Errorf("%q: %d lines", c.in, len(got))
 		}
 		for _, line := range got {
-			if n := len([]rune(line)); n > maxLineChars {
-				t.Errorf("%q: line %q has %d runes", c.in, line, n)
+			if fit(line, maxLineChars*narrowWidth) != line {
+				t.Errorf("%q: line %q is wider than a line", c.in, line)
 			}
 		}
 	}
