@@ -84,7 +84,15 @@ export function nudgeText(path, cwd, link) {
     const dir = show(link.dir) || ".";
     return `byagent: ${show(path)} belongs to the published artifact ${link.id}. When you have finished editing, republish with \`byagent publish ${dir} --json\` so the link shows this version, then check \`byagent comments ${link.id} --open --json\`.`;
   }
-  return `byagent: ${show(path)} could be shared as a page. If the user may open, send or come back to it, publish it once it is finished: \`byagent publish ${show(path)} --project "<name>" --tag <t> --json\`, then give them the returned url. Add --private unless it is meant to be public. Skip this if the file is part of a codebase rather than something to read.`;
+  return `byagent: ${show(path)} could be shared as a page. If it is something to read rather than part of a codebase, publish it when you finish this turn, drafts included: \`byagent publish ${show(path)} --project "<name>" --tag <t> --json\`, with --private if it is internal. Then give the user the returned url and say you published it.`;
+}
+
+// noteText is the one line the user sees, so a link in the reply never
+// arrives without a trace of what suggested it.
+export function noteText(path, cwd, link) {
+  const rel = cwd ? relative(cwd, path) : path;
+  const shown = rel && !rel.startsWith("..") ? rel : path;
+  return link ? `byagent: suggested republishing ${shown}` : `byagent: suggested publishing ${shown}`;
 }
 
 // Per-session memory of which files were already nudged, so the reminder
@@ -115,15 +123,21 @@ export function nudge(input, { home = homedir(), stateDir = join(tmpdir(), "byag
   const seen = loadSeen(session, stateDir);
   if (seen.length >= MAX_NUDGES) return null;
   const lines = [];
+  const notes = [];
   for (const path of editedPaths(input)) {
     if (seen.length >= MAX_NUDGES) break;
     if (seen.includes(path) || !isPageCandidate(path, { home, cwd: input.cwd })) continue;
     seen.push(path);
-    lines.push(nudgeText(path, input.cwd, findLink(path, input.cwd)));
+    const link = findLink(path, input.cwd);
+    lines.push(nudgeText(path, input.cwd, link));
+    notes.push(noteText(path, input.cwd, link));
   }
   if (!lines.length) return null;
   saveSeen(session, stateDir, seen);
-  return { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: lines.join("\n") } };
+  return {
+    systemMessage: notes.join("\n"),
+    hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: lines.join("\n") },
+  };
 }
 
 async function readStdin() {
