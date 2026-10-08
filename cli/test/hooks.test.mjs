@@ -58,12 +58,15 @@ test("nudge speaks once per file, points bound files at a republish, and stays q
   const first = nudge(write("plan.md"), { home: "/nohome", stateDir });
   assert.match(context(first), /plan\.md could be shared/);
   assert.match(context(first), /byagent publish plan\.md --project/);
+  assert.match(context(first), /drafts included/);
+  assert.equal(first.systemMessage, "byagent: suggested publishing plan.md");
   assert.equal(first.hookSpecificOutput.hookEventName, "PostToolUse");
   assert.equal(nudge(write("plan.md"), { home: "/nohome", stateDir }), null);
 
   const bound = nudge(write("site/index.html"), { home: "/nohome", stateDir });
   assert.match(context(bound), /published artifact ar_9/);
   assert.match(context(bound), /byagent publish site --json/);
+  assert.equal(bound.systemMessage, "byagent: suggested republishing site/index.html");
 
   assert.equal(nudge(write("main.go"), { home: "/nohome", stateDir }), null);
 });

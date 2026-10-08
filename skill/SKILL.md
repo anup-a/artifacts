@@ -64,6 +64,10 @@ pages run in a sandbox without viewer commenting; owner comment management still
 works through the dashboard and CLI. Switching to public also exposes retained
 versions. Switching to private cannot revoke already downloaded copies.
 
+To open a private page yourself in a browser that is not signed in to byagent (a
+headless or shared preview), run `byagent share <id> --expires 1d --json` and open
+its one-click link; `byagent share <id> --off` withdraws it.
+
 **Who can open a page.** `byagent access <id> --json` shows it: `mode` is `anyone_with_link`, `password` or `restricted`, and `share_url` is the link to hand out. Readers never need an account, and readers who get in can comment.
 
 - "Put a password on this page": `printf '%s' "$PASSWORD" | byagent access <id> --password --json`, or `byagent publish ./site --password` the first time. The password is read from stdin, never from argv; do not put it in a command line, a file or the page. Give the user `share_url` and tell them to send the password separately. Setting a new password signs every visitor out.
@@ -75,7 +79,7 @@ These need a signed-in account's key, not a guest key. They keep out people who 
 
 ## Publish nudges
 
-Hooks are opt-in: only run `byagent hooks install claude` (or `codex`) when the user asks for it. Once installed, a line starting `byagent:` can appear after you write a `.html` or `.md` file. It is a reminder, not a command: publish the page, or republish the directory it names, once the page is finished, following the rules above. Ignore it for files that belong to a codebase.
+Hooks are opt-in: only run `byagent hooks install claude` (or `codex`) when the user asks for it. Once installed, a line starting `byagent:` can appear after you write a `.html` or `.md` file. It is a reminder, not a command: publish the page, or republish the directory it names, at the end of the turn, drafts included, following the rules above. Ignore it for files that belong to a codebase.
 
 ## Briefs
 
