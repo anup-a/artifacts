@@ -13,6 +13,7 @@ import (
 	"github.com/anup-a/artifacts/internal/ids"
 	"github.com/anup-a/artifacts/internal/pageurl"
 	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/artifacts/internal/telemetry"
 )
 
 // artifactViewURL is where the owner sends people to a page: its public
@@ -242,6 +243,8 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 
 func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 	k, _ := KeyFrom(r.Context())
+	_, guest := guestFrom(r.Context())
+	telemetry.MarkPublish(r.Context(), guest)
 	if ok, retry := s.PublishLimiter.Allow(fmt.Sprint("key:", k.ID)); !ok {
 		apierr.Write(w, r, apierr.RateLimited(retry))
 		return
@@ -329,6 +332,8 @@ func (s *server) publishResponse(a store.Artifact, version int) map[string]any {
 
 func (s *server) updateArtifact(w http.ResponseWriter, r *http.Request) {
 	k, _ := KeyFrom(r.Context())
+	_, guest := guestFrom(r.Context())
+	telemetry.MarkPublish(r.Context(), guest)
 	if ok, retry := s.PublishLimiter.Allow(fmt.Sprint("key:", k.ID)); !ok {
 		apierr.Write(w, r, apierr.RateLimited(retry))
 		return

@@ -10,6 +10,7 @@ import (
 	"github.com/anup-a/artifacts/internal/pageurl"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/artifacts/internal/telemetry"
 )
 
 // hostKind is what a request's Host asks for.
@@ -97,6 +98,7 @@ func (s *server) hosts(next http.Handler, sh *serve.Handler) http.Handler {
 	pm.HandleFunc("POST /c/{id}/comments/{thread}/reply", thisPage(noStore(s.viewerReply)))
 	pm.HandleFunc("POST /c/{id}/comments/{thread}/seen", thisPage(noStore(s.viewerSeen)))
 	pm.HandleFunc("/", sh.ServePage)
+	pages, custom := telemetry.Routed(pm), telemetry.Routed(cm)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t, err := s.resolveHost(r)
 		if err != nil {
@@ -124,7 +126,7 @@ func (s *server) hosts(next http.Handler, sh *serve.Handler) http.Handler {
 				apierr.Write(w, r, apierr.Forbidden("requests to a page must come from the page itself"))
 				return
 			}
-			pm.ServeHTTP(w, r)
+			pages.ServeHTTP(w, r)
 		case hostCustom:
 			// A custom domain is same-site with whatever its owner runs on
 			// the parent domain, so every write there must come from the
@@ -134,7 +136,8 @@ func (s *server) hosts(next http.Handler, sh *serve.Handler) http.Handler {
 				apierr.Write(w, r, apierr.Forbidden("requests to a page must come from the page itself"))
 				return
 			}
-			cm.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), siteKey{}, t.site)))
+			telemetry.SetHostKind(r.Context(), telemetry.HostCustomDomain)
+			custom.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), siteKey{}, t.site)))
 		default:
 			w.Header().Set("Cache-Control", "no-store")
 			apierr.Write(w, r, apierr.NotFound("page"))

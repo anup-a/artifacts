@@ -14,6 +14,7 @@ import (
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/artifacts/internal/telemetry"
 )
 
 func NewHandler(d Deps) (http.Handler, error) {
@@ -120,7 +121,7 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
-	return requestID(hsts(d.Cfg.ShareOrigin, agents.LogCrawlers(wwwToApex(d.Cfg.ShareOrigin, readOnly(d.Cfg.ReadOnly, s.hosts(mux, sh)))))), nil
+	return requestID(hsts(d.Cfg.ShareOrigin, agents.LogCrawlers(wwwToApex(d.Cfg.ShareOrigin, readOnly(d.Cfg.ReadOnly, s.hosts(telemetry.Routed(mux), sh)))))), nil
 }
 
 // wwwToApex sends www.<share host> to the share origin, path kept, so
