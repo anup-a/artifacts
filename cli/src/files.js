@@ -44,8 +44,8 @@ function isMarkdown(path) {
   return MARKDOWN_EXTS.has(extname(path).toLowerCase());
 }
 
-function renderedIndex(abs, body, title) {
-  const { html, title: pageTitle } = renderMarkdown(body.toString("utf8"), { title, fallbackTitle: basename(abs, extname(abs)) });
+function renderedIndex(abs, body, title, lang) {
+  const { html, title: pageTitle } = renderMarkdown(body.toString("utf8"), { title, lang, fallbackTitle: basename(abs, extname(abs)) });
   const buf = Buffer.from(html, "utf8");
   return { file: { path: "index.html", abs, body: buf, sha256: sha256(buf), size: buf.length }, title: pageTitle };
 }
@@ -57,8 +57,9 @@ function renderedIndex(abs, body, title) {
 // files kept as assets so relative images and links still resolve. `title`
 // is the --title flag; the result's title is what the page ended up with.
 // `source` names a path to ship a single .md file's own text under, next to
-// the rendered page, so it can be read back as Markdown.
-export function collectFiles(target, { title, source } = {}) {
+// the rendered page, so it can be read back as Markdown. `lang` is the --lang
+// flag: the rendered page's language when detection from its text is wrong.
+export function collectFiles(target, { title, source, lang } = {}) {
   let st;
   try {
     st = statSync(target);
@@ -71,12 +72,12 @@ export function collectFiles(target, { title, source } = {}) {
     if (files.some((f) => f.path === "index.html")) return { files, dir: target, title };
     const md = MARKDOWN_INDEX.map((name) => files.find((f) => f.path === name)).find(Boolean);
     if (!md) return { files, dir: target, title };
-    const rendered = renderedIndex(md.abs, md.body, title);
+    const rendered = renderedIndex(md.abs, md.body, title, lang);
     return { files: [rendered.file, ...files], dir: target, title: rendered.title };
   }
   const body = readFileSync(target);
   if (isMarkdown(target)) {
-    const rendered = renderedIndex(target, body, title);
+    const rendered = renderedIndex(target, body, title, lang);
     const files = [rendered.file];
     if (source) files.push({ path: source, abs: target, body, sha256: sha256(body), size: body.length });
     return { dir: null, files, title: rendered.title };

@@ -1,20 +1,36 @@
 // Small presentational helpers shared by the panel rows.
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import { LANG } from "./i18n.js";
 
-/** "now", "20m", "2h", "3d", then a short date once it is more than a week old. */
-export function relativeTime(iso, now = Date.now()) {
+/**
+ * English stays compact: "now", "20m", "2h", "3d". Other languages get the
+ * browser's short relative format ("20分钟前", "vor 20 Min."). Past a week,
+ * a short date in the reader's language ("Jul 1", "7月1日"), with the year
+ * instead of the day once it is not this year.
+ */
+export function relativeTime(iso, now = Date.now(), lang = LANG) {
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return "";
   const s = Math.max(0, Math.round((now - t) / 1000));
-  if (s < 60) return "now";
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  if (s < 7 * 86400) return `${Math.floor(s / 86400)}d`;
+  if (s < 7 * 86400) {
+    const [n, unit] =
+      s < 60 ? [0, "second"] : s < 3600 ? [Math.floor(s / 60), "minute"] : s < 86400 ? [Math.floor(s / 3600), "hour"] : [Math.floor(s / 86400), "day"];
+    if (lang !== "en") {
+      try {
+        return new Intl.RelativeTimeFormat(lang, { style: "short", numeric: "auto" }).format(-n, unit);
+      } catch {
+        /* no Intl.RelativeTimeFormat: fall through to the compact English */
+      }
+    }
+    return n ? `${n}${unit[0]}` : "now";
+  }
   const d = new Date(t);
-  const n = new Date(now);
-  if (d.getUTCFullYear() === n.getUTCFullYear()) return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
-  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  const sameYear = d.getUTCFullYear() === new Date(now).getUTCFullYear();
+  try {
+    return d.toLocaleDateString(lang, { month: "short", timeZone: "UTC", ...(sameYear ? { day: "numeric" } : { year: "numeric" }) });
+  } catch {
+    return d.toISOString().slice(0, 10);
+  }
 }
 
 /** Index into the six-colour avatar palette, derived from the author name. */

@@ -58,6 +58,7 @@ Usage:
                   [--private|--public]
                   [--comments|--no-comments] [--project <name>] [--tag <t>]...
                   [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
+                  [--lang <tag>]
                   [--agent <name>] [--model <name>] [--expires <when>]
                   [--password]
   byagent get <id>
@@ -95,7 +96,8 @@ Usage:
 
 A .md file (or a directory whose index is index.md / README.md) is rendered to
 a styled page on the way in; its first H1 becomes the title unless --title is
-given, and images or links relative to it keep working.
+given, and images or links relative to it keep working. Its language (Chinese,
+Japanese, Korean or English) is detected from the text; --lang zh-CN overrides.
 Every command takes --json and then prints exactly one JSON object.
 Config comes from ARTIFACTS_TOKEN / ARTIFACTS_API, else ~/.artifacts/config.json.
 Connecting an agent never needs a key in the chat. login --code takes the

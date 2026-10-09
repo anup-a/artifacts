@@ -6,8 +6,9 @@ import { readFileSync } from "node:fs";
 
 // Spec section 7 said 25 KB; the 2026-09 panel redesign (segmented filters,
 // threaded replies, inline icons) needed the extra headroom, and suggested
-// edits (2026-10) took it from 32 KB to 36 KB.
-const LIMIT = 36864;
+// edits (2026-10) took it from 32 KB to 36 KB. The built-in translations for
+// nine languages (src/i18n.js, 2026-10) add about 15 KB, 6 KB gzipped.
+const LIMIT = 53248;
 
 const result = await build({
   entryPoints: ["src/index.js"],
@@ -17,6 +18,10 @@ const result = await build({
   target: ["es2020"],
   outfile: "dist/comments.js",
   legalComments: "none",
+  // Keep the translations as UTF-8 rather than \uXXXX escapes, which double
+  // the size of every CJK character. The runtime is served as
+  // text/javascript; charset=utf-8, so the page's own encoding never applies.
+  charset: "utf8",
 });
 
 if (result.errors.length) process.exit(1);

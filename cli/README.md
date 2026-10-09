@@ -51,11 +51,11 @@ byagent publish ./notes.md --project "Personal" --tag notes --json
 
 - A directory is uploaded as is (`.git`, `node_modules` and `.artifacts.json` are skipped) and served from its `index.html`.
 - A single `.html` file becomes `index.html`.
-- A `.md` file, or a directory whose index is `index.md` / `README.md`, is rendered to a styled page: light and dark themes, heading anchors, a sticky table of contents, GitHub-flavoured tables and task lists, highlighted code fences. The first H1 is the title unless `--title` is given. Images referenced relative to the file ship with it when you publish the directory.
+- A `.md` file, or a directory whose index is `index.md` / `README.md`, is rendered to a styled page: light and dark themes, heading anchors, a sticky table of contents, GitHub-flavoured tables and task lists, highlighted code fences. The first H1 is the title unless `--title` is given. The page's language (Chinese, Japanese, Korean or English) is detected from the text and sets its fonts and contents label; `--lang zh-CN` overrides it. Images referenced relative to the file ship with it when you publish the directory.
 - The directory's `.artifacts.json` remembers the artifact id, project and tags, so publishing the same directory again updates the same URL.
 - A `.byagent.json` at a project root, `{"collection": "Puzzled"}`, makes that collection the default `--project` for every publish below it. The nearest one wins, so a monorepo can give each app its own. It holds no key, so commit it.
 
-Flags: `--private | --public`, `--comments | --no-comments`, `--project <name>`, `--tag <t>` (repeatable), `--cover <image>`, `--cover-style dots|grid|lines|wash|rings|plain`, `--end-user <id>`, `--id <id>`.
+Flags: `--private | --public`, `--comments | --no-comments`, `--project <name>`, `--tag <t>` (repeatable), `--cover <image>`, `--cover-style dots|grid|lines|wash|rings|plain`, `--end-user <id>`, `--id <id>`, `--lang <tag>` (Markdown only).
 
 ## Agent hooks
 
