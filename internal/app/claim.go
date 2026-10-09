@@ -23,10 +23,10 @@ type claimData struct {
 // guestToClaim resolves a claim code to a guest workspace that can still be
 // claimed, or explains why not.
 func (h *Handler) guestToClaim(r *http.Request, code string) (store.Tenant, string) {
-	const gone = "This guest link has expired or was already claimed. Guest pages last 24 hours."
+	gone := tr(r, "This guest link has expired or was already claimed. Guest pages last 24 hours.")
 	id, err := guest.VerifyClaim(h.Cfg.KeySecret, code)
 	if err != nil {
-		return store.Tenant{}, "This claim link is not valid."
+		return store.Tenant{}, tr(r, "This claim link is not valid.")
 	}
 	t, err := h.Store.Tenant(r.Context(), id)
 	if err != nil || t.Plan != guest.Plan || !h.Now().Before(guest.ExpiresAt(t.CreatedAt)) {
@@ -57,7 +57,7 @@ func (h *Handler) claimPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, r, 200, "claim", "Keep your guest pages", v, claimData{Code: code, Pages: rows, ExpiresAt: guest.ExpiresAt(t.CreatedAt)})
+	h.render(w, r, 200, "claim", tr(r, "Keep your guest pages"), v, claimData{Code: code, Pages: rows, ExpiresAt: guest.ExpiresAt(t.CreatedAt)})
 }
 
 func (h *Handler) claim(w http.ResponseWriter, r *http.Request, v *viewer) {
@@ -68,7 +68,7 @@ func (h *Handler) claim(w http.ResponseWriter, r *http.Request, v *viewer) {
 	}
 	_, err := h.Store.ClaimGuest(r.Context(), t.ID, v.Tenant.ID, h.Now())
 	if errors.Is(err, store.ErrNotFound) {
-		h.renderError(w, r, http.StatusGone, "This guest link has expired or was already claimed. Guest pages last 24 hours.")
+		h.renderError(w, r, http.StatusGone, tr(r, "This guest link has expired or was already claimed. Guest pages last 24 hours."))
 		return
 	}
 	if err != nil {

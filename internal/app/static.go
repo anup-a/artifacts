@@ -4,15 +4,19 @@ import (
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
+	"encoding/json"
+	"html/template"
 	"net/http"
 	"strings"
 
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/js"
+
+	"github.com/anup-a/artifacts/internal/i18n"
 )
 
-//go:embed static/app.css static/app.js static/theme.js static/ga.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/landing.css static/landing.js static/dashboard-light*.webp static/dashboard-dark*.webp static/covers/*.webp
+//go:embed static/app.css static/app.js static/theme.js static/ga.js static/i18n.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/landing.css static/landing.js static/dashboard-light*.webp static/dashboard-dark*.webp static/covers/*.webp
 var staticFS embed.FS
 
 type asset struct {
@@ -31,6 +35,7 @@ type statics struct {
 	jsURL         string
 	themeJSURL    string            // resolves the landing page's theme before first paint
 	gaJSURL       string            // starts GA4; a file because the CSP forbids inline script
+	i18nJSURL     string            // t() and tn() for the other scripts
 	landingCSSURL string            // the landing page's own styles, loaded on that page only
 	landingJSURL  string            // its shelf, scroll effects and feature demos
 	shotURL       string            // landing page dashboard screenshot, 1360 wide
@@ -39,7 +44,13 @@ type statics struct {
 	shotDarkSet   string            // and the dark one
 	coverURLs     map[string]string // page covers on the landing page, by name
 	icons         map[string]asset  // the mark, by its fixed path
+	// jsMessages are each language's translations of the messages the
+	// scripts pass to t(), as the JSON block the layout puts on the page.
+	jsMessages map[string]template.JS
 }
+
+// scripts are the files whose t("…") messages are handed to the page.
+var scripts = []string{"static/app.js", "static/landing.js", "static/ga.js"}
 
 // cardFile is the landing page's 1200 x 630 link preview card. It sits at a
 // fixed root path like the icons rather than under /app/static: robots.txt
@@ -64,6 +75,7 @@ func newStatics() *statics {
 	s.jsURL = s.add("app", ".js", "text/javascript; charset=utf-8")
 	s.themeJSURL = s.add("theme", ".js", "text/javascript; charset=utf-8")
 	s.gaJSURL = s.add("ga", ".js", "text/javascript; charset=utf-8")
+	s.i18nJSURL = s.add("i18n", ".js", "text/javascript; charset=utf-8")
 	s.shotURL, s.shotSet = s.addWidths("dashboard-light")
 	s.shotDarkURL, s.shotDarkSet = s.addWidths("dashboard-dark")
 	s.landingCSSURL = s.add("landing", ".css", "text/css; charset=utf-8")
@@ -76,6 +88,22 @@ func newStatics() *statics {
 	for _, c := range covers {
 		name := strings.TrimSuffix(c.Name(), ".webp")
 		s.coverURLs[name] = s.addAs("static/covers/"+c.Name(), "cover-"+name, ".webp", "image/webp")
+	}
+	var msgs []string
+	for _, name := range scripts {
+		b, err := staticFS.ReadFile(name)
+		if err != nil {
+			panic(err) // embedded, so only a build mistake
+		}
+		msgs = append(msgs, i18n.FromJS(string(b))...)
+	}
+	s.jsMessages = map[string]template.JS{}
+	for _, l := range i18n.Locales[1:] {
+		b, err := json.Marshal(i18n.Messages(l.Code, msgs))
+		if err != nil {
+			panic(err)
+		}
+		s.jsMessages[l.Code] = template.JS(b)
 	}
 	s.icons = map[string]asset{}
 	for name, ct := range iconFiles {

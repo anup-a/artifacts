@@ -15,6 +15,7 @@ import (
 	"github.com/anup-a/artifacts/internal/auth"
 	"github.com/anup-a/artifacts/internal/config"
 	"github.com/anup-a/artifacts/internal/domains"
+	"github.com/anup-a/artifacts/internal/i18n"
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/serve"
 	"github.com/anup-a/artifacts/internal/store"
@@ -156,7 +157,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/logout", h.private(h.logout))
 	h.registerDomains(mux)
 	mux.HandleFunc("/app/", h.headers(func(w http.ResponseWriter, r *http.Request) {
-		h.renderError(w, r, 404, "That page does not exist.")
+		h.renderError(w, r, 404, tr(r, "That page does not exist."))
 	}))
 }
 
@@ -201,8 +202,22 @@ func (h *Handler) headers(next http.HandlerFunc) http.HandlerFunc {
 		hd.Set("Referrer-Policy", "same-origin")
 		hd.Set("X-Content-Type-Options", "nosniff")
 		hd.Set("Cache-Control", "no-store")
+		hd.Add("Vary", "Accept-Language, Cookie")
+		i18n.Remember(w, r)
 		next(w, r)
 	}
+}
+
+// publicCache lets a shared cache keep a page that is the same for everyone
+// who asks for it in the same language. A language that came from the
+// cookie or Accept-Language rather than the address is kept private, since a
+// cache that ignores Vary would hand it to the next visitor.
+func publicCache(w http.ResponseWriter, r *http.Request) {
+	if lang, fromURL := i18n.FromRequest(r); fromURL || lang == i18n.Default {
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		return
+	}
+	w.Header().Set("Cache-Control", "private, max-age=300")
 }
 
 // public serves sign-in routes: no session, but a 503 page when no provider
@@ -210,7 +225,7 @@ func (h *Handler) headers(next http.HandlerFunc) http.HandlerFunc {
 func (h *Handler) public(next http.HandlerFunc) http.HandlerFunc {
 	return h.headers(func(w http.ResponseWriter, r *http.Request) {
 		if !h.Cfg.WebEnabled() {
-			h.renderError(w, r, 503, "Sign-in is not configured on this server.")
+			h.renderError(w, r, 503, tr(r, "Sign-in is not configured on this server."))
 			return
 		}
 		next(w, r)
@@ -230,8 +245,8 @@ func (h *Handler) DenyArtifactAccess(w http.ResponseWriter, r *http.Request) {
 	h.headers(func(w http.ResponseWriter, r *http.Request) {
 		d := errorData{
 			Status:    http.StatusNotFound,
-			Title:     "No access",
-			Message:   "You do not have access to this artifact. It may be private to another workspace, or it may no longer exist.",
+			Title:     tr(r, "No access"),
+			Message:   tr(r, "You do not have access to this artifact. It may be private to another workspace, or it may no longer exist."),
 			RequestID: apierr.RequestID(r.Context()),
 			SignIn:    h.Cfg.WebEnabled(),
 		}
@@ -263,19 +278,20 @@ func (h *Handler) GateArtifactAccess(w http.ResponseWriter, r *http.Request, g s
 	} else if g.Wrong || g.Expired {
 		status = http.StatusForbidden
 	}
-	title := "Enter the code"
+	title := tr(r, "Enter the code")
 	switch g.Kind {
 	case "password":
-		title = "Enter the password"
+		title = tr(r, "Enter the password")
 	case "email":
-		title = "Shared with specific people"
+		title = tr(r, "Shared with specific people")
 	}
 	// On a page's own host the stylesheet and script come from the share
 	// origin; g.AssetOrigin is empty everywhere else.
-	p := page{Title: title, Path: r.URL.Path, CSS: g.AssetOrigin + h.static.cssURL, JS: g.AssetOrigin + h.static.jsURL, Now: h.Now(), Data: g}
+	p := h.newPage(r, title, g)
+	p.CSS, p.JS, p.I18nJS, p.AnalyticsID = g.AssetOrigin+h.static.cssURL, g.AssetOrigin+h.static.jsURL, g.AssetOrigin+h.static.i18nJSURL, ""
 	var buf bytes.Buffer
-	if err := pages["gate"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
-		http.Error(w, "This artifact needs a code.", status)
+	if err := pages[p.Lang]["gate"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
+		http.Error(w, tr(r, "This artifact needs a code."), status)
 		return
 	}
 	hd.Set("Content-Type", "text/html; charset=utf-8")
@@ -297,11 +313,11 @@ func (h *Handler) private(next func(http.ResponseWriter, *http.Request, *viewer)
 		}
 		if r.Method == "POST" {
 			if err := r.ParseForm(); err != nil {
-				h.renderError(w, r, 400, "The form could not be read.")
+				h.renderError(w, r, 400, tr(r, "The form could not be read."))
 				return
 			}
 			if !auth.CheckCSRF(v.Session.ID, r.PostForm.Get("csrf")) {
-				h.renderError(w, r, 403, "The form has expired. Go back, reload the page and try again.")
+				h.renderError(w, r, 403, tr(r, "The form has expired. Go back, reload the page and try again."))
 				return
 			}
 		}

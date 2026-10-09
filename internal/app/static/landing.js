@@ -188,6 +188,9 @@
   "use strict";
   const how = document.getElementById("how");
   if (!how) return;
+  // The demo speaks the page's language: every line a person reads goes
+  // through t(). Agent names, CLI commands and hosts stay as they are.
+  const { t, tn } = window.byagentI18n;
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const HOST = how.dataset.host || "byagent.dev";
   let COVERS = {};
@@ -237,176 +240,190 @@
   const code6 = () => String(Math.floor(100000 + Math.random() * 900000));
 
   const F = {};
+  // A project name in a CLI line, quoted only when it needs to be, so the
+  // command shows the same name the mock does in every language.
+  const arg = s => /^[\w.-]+$/.test(s) ? s : '"' + s + '"';
+  // A compact age, as the dashboard's cards show it.
+  const AGO = { m: n => t("%dm", n), h: n => t("%dh", n), d: n => t("%dd", n) };
 
   // ---- 1. The shelf: a compact copy of the real byagent dashboard ----
   // Project dots are classes, not inline colours: the CSP allows no style attributes.
-  const PROJ = { "Dashboards & data": "pj-data", "Design studio": "pj-design", "Explainers & guides": "pj-guides" };
+  const P_DATA = t("Dashboards & data"), P_DESIGN = t("Design studio"), P_GUIDES = t("Explainers & guides");
+  const PROJ = { [P_DATA]: "pj-data", [P_DESIGN]: "pj-design", [P_GUIDES]: "pj-guides" };
+  const LISBON = t("Lisbon rides"), MOOD = t("Studio moodboard");
+  // The search term is the first word of the short title, so the search
+  // finds the page in every language: "lisbon" in English.
+  const LISBON_Q = LISBON.split(/\s+/)[0].toLowerCase();
   const ICON = {
     ext: '<svg viewBox="0 0 16 16"><path d="M9 3h4v4M13 3 7.5 8.5M11 9.5V13H3V5h3.5"/></svg>',
   };
   F.shelf = {
-    label: "Projects", agent: "claude code", title: "Every page, filed by project",
-    blurb: "Each page your agents publish gets its own link and lands under a project. Agents list and search your pages before they start something new.",
+    label: t("Projects"), agent: "claude code", title: t("Every page, filed by project"),
+    blurb: t("Each page your agents publish gets its own link and lands under a project. Agents list and search your pages before they start something new."),
     init: () => ({ proj: "All", q: "", hit: null, pages: [
-      ["lisbon", "Lisbon rides: the weekend edition", "Dashboards & data", "codex", "2m"], ["signups", "Signups, week 41", "Dashboards & data", "codex", "14m"],
-      ["garden", "Small bottles, big garden", "Design studio", "opencode", "14m"], ["retention", "Q3 retention by cohort", "Dashboards & data", "claude code", "1h"],
-      ["kyoto", "Five days in Kyoto", "Explainers & guides", "claude code", "2h"], ["noodles", "Charred corn & miso butter noodles", "Explainers & guides", "claude code", "3h"],
-      ["coffee", "Coffee prices, 2015 to 2026", "Dashboards & data", "opencode", "5h"], ["nimbus", "Nimbus 2.0 release notes", "Explainers & guides", "codex", "1d"], ["orbits", "Orbits are just falling sideways", "Explainers & guides", "claude code", "2d"],
-    ].map(([f, t, p, a, ago]) => ({ f, t, p, a, ago })) }),
+      ["lisbon", t("Lisbon rides: the weekend edition"), P_DATA, "codex", AGO.m(2)], ["signups", t("Signups, week 41"), P_DATA, "codex", AGO.m(14)],
+      ["garden", t("Small bottles, big garden"), P_DESIGN, "opencode", AGO.m(14)], ["retention", t("Q3 retention by cohort"), P_DATA, "claude code", AGO.h(1)],
+      ["kyoto", t("Five days in Kyoto"), P_GUIDES, "claude code", AGO.h(2)], ["noodles", t("Charred corn & miso butter noodles"), P_GUIDES, "claude code", AGO.h(3)],
+      ["coffee", t("Coffee prices, 2015 to 2026"), P_DATA, "opencode", AGO.h(5)], ["nimbus", t("Nimbus 2.0 release notes"), P_GUIDES, "codex", AGO.d(1)], ["orbits", t("Orbits are just falling sideways"), P_GUIDES, "claude code", AGO.d(2)],
+    ].map(([f, title, p, a, ago]) => ({ f, t: title, p, a, ago })) }),
     render(el, s, redraw) {
       const q = s.q.trim().toLowerCase();
       const rows = s.pages.filter(x => (s.proj === "All" || x.p === s.proj) && (!q || x.t.toLowerCase().includes(q)));
-      const search = h("input", { cls: "fx-search", placeholder: "Search titles…", value: s.q, "aria-label": "Search titles",
+      const search = h("input", { cls: "fx-search", placeholder: t("Search titles…"), value: s.q, "aria-label": t("Search titles"),
         on: { input: e => { s.q = e.target.value; s.hit = null; redraw(true); } } });
       const col = p => h("button", { type: "button", "data-key": p, cls: "dd-col" + (s.proj === p ? " on" : ""), on: { click: () => { s.proj = p; s.hit = null; redraw(); } } },
-        p === "All" ? h("i", { cls: "all" }) : h("i", { cls: PROJ[p] }), h("span", {}, p === "All" ? "All pages" : p),
+        p === "All" ? h("i", { cls: "all" }) : h("i", { cls: PROJ[p] }), h("span", {}, p === "All" ? t("All pages") : p),
         h("em", {}, String(p === "All" ? s.pages.length : s.pages.filter(x => x.p === p).length)));
       put(el, h("div", { cls: "dd" },
-        h("aside", { cls: "dd-side" }, h("div", { cls: "dd-h" }, "Collections"), ["All", ...Object.keys(PROJ)].map(col)),
+        h("aside", { cls: "dd-side" }, h("div", { cls: "dd-h" }, t("Collections")), ["All", ...Object.keys(PROJ)].map(col)),
         h("div", { cls: "dd-main" },
-          h("div", { cls: "dd-top" }, h("b", {}, s.proj === "All" ? "All pages" : s.proj), search),
+          h("div", { cls: "dd-top" }, h("b", {}, s.proj === "All" ? t("All pages") : s.proj), search),
           rows.length ? h("div", { cls: "dd-grid" }, rows.map(x => h("div", { "data-key": x.f, cls: "dd-card" + (s.hit === x.f ? " hit" : "") + (x.fresh ? " fresh" : "") },
               h("div", { cls: "dd-cov" }, h("img", { src: COVERS[x.f] || "", alt: "", width: "640", height: "400", loading: "lazy" })),
               h("div", { cls: "dd-foot" }, h("b", {}, x.t), h("div", { cls: "dd-meta" }, h("i", { cls: PROJ[x.p] }), h("span", { cls: "dd-tag" }, x.a), h("small", {}, x.ago), h("span", { cls: "dd-ext", html: ICON.ext }))))))
-            : h("div", { cls: "fx-empty" }, "No page matches that."))));
+            : h("div", { cls: "fx-empty" }, t("No page matches that.")))));
       return search;
     },
     asks: [
-      { q: "What's in Dashboards & data?", cli: ['byagent list --project "Dashboards & data"'], run: s => { s.proj = "Dashboards & data"; s.q = ""; s.hit = null; const n = s.pages.filter(x => x.p === s.proj); return `${n.length} pages: ` + n.map(x => x.t.split(":")[0]).join(", ") + "."; } },
-      { q: "Find the Lisbon rides page", cli: ['byagent list --search "lisbon"'], run: s => { s.proj = "All"; s.q = "lisbon"; s.hit = "lisbon"; return "Found it: Lisbon rides, by codex, in Dashboards & data. " + HOST + "/a/zMzQTdMFg9ng/"; } },
-      { q: "File the moodboard under Design studio", cli: ['byagent publish ./moodboard --project "Design studio"'], run: s => {
-          if (!s.pages.some(x => x.f === "moodboard")) s.pages.unshift({ f: "moodboard", t: "Studio moodboard, autumn", p: "Design studio", a: "claude code", ago: "now", fresh: true });
-          s.proj = "Design studio"; s.q = ""; s.hit = "moodboard"; return "Published Studio moodboard and filed it under Design studio. " + HOST + "/a/Az5naoIGGjHk/"; } },
+      { q: t("What's in %s?", P_DATA), cli: ["byagent list --project " + arg(P_DATA)], run: s => { s.proj = P_DATA; s.q = ""; s.hit = null; const n = s.pages.filter(x => x.p === s.proj); return tn(n.length, "%s page: %s.", "%s pages: %s.", n.map(x => x.t.split(/[:：]/)[0]).join(", ")); } },
+      { q: t("Find the %s page", LISBON), cli: ['byagent list --search "' + LISBON_Q + '"'], run: s => { s.proj = "All"; s.q = LISBON_Q; s.hit = "lisbon"; return t("Found it: %s, by %s, in %s. %s", LISBON, "codex", P_DATA, HOST + "/a/zMzQTdMFg9ng/"); } },
+      { q: t("File the moodboard under %s", P_DESIGN), cli: ["byagent publish ./moodboard --project " + arg(P_DESIGN)], run: s => {
+          if (!s.pages.some(x => x.f === "moodboard")) s.pages.unshift({ f: "moodboard", t: t("Studio moodboard, autumn"), p: P_DESIGN, a: "claude code", ago: t("now"), fresh: true });
+          s.proj = P_DESIGN; s.q = ""; s.hit = "moodboard"; return t("Published %s and filed it under %s. %s", MOOD, P_DESIGN, HOST + "/a/Az5naoIGGjHk/"); } },
     ],
   };
 
   // ---- 2. Comments ----
-  const LINES = ["Goal: every team on the new build by month end.", "Step 1: move every team to the new build in one go.", "Step 2: watch error rates for 48 hours before the next wave."];
-  const FIXED = "Step 1: pilot with one team for a week, then roll out to the rest.";
+  const LINES = [t("Goal: every team on the new build by month end."), t("Step 1: move every team to the new build in one go."), t("Step 2: watch error rates for 48 hours before the next wave.")];
+  const FIXED = t("Step 1: pilot with one team for a week, then roll out to the rest.");
+  const ROLLOUT = t("Rollout plan"), GOOD_CALL = t("Good call, piloting first.");
   F.notes = {
-    label: "Comments", agent: "codex", title: "Anyone comments on the line they mean",
-    blurb: "Readers select a sentence and leave a note under a name they type. No account, no seat. Your agent reads the notes, fixes the page and resolves them.",
-    init: () => ({ v: 1, fixed: false, draft: null, notes: [{ who: "Maya", s: 1, txt: "Can we pilot one team for a week first?", open: true, replies: [] }] }),
+    label: t("Comments"), agent: "codex", title: t("Anyone comments on the line they mean"),
+    blurb: t("Readers select a sentence and leave a note under a name they type. No account, no seat. Your agent reads the notes, fixes the page and resolves them."),
+    init: () => ({ v: 1, fixed: false, draft: null, notes: [{ who: "Maya", s: 1, txt: t("Can we pilot one team for a week first?"), open: true, replies: [] }] }),
     render(el, s, redraw) {
       put(el, h("div", { cls: "fx-page" },
         h("div", { cls: "fx-url" }, h("span", {}, HOST + "/a/k4m2Qv9pXz1A/"), h("span", { cls: "fx-pill" + (s.v > 1 ? " ok" : "") }, "v" + s.v)),
-        h("h4", {}, "Rollout plan"),
-        LINES.map((t, i) => {
-          const txt = i === 1 && s.fixed ? FIXED : t, open = s.notes.some(n => n.s === i && n.open);
-          return h("p", { cls: "fx-line" + (open ? " noted" : "") + (i === 1 && s.fixed ? " fixed" : ""), title: "Click to leave a note", on: { click: () => { s.draft = i; redraw(); } } }, txt);
+        h("h4", {}, ROLLOUT),
+        LINES.map((line, i) => {
+          const txt = i === 1 && s.fixed ? FIXED : line, open = s.notes.some(n => n.s === i && n.open);
+          return h("p", { cls: "fx-line" + (open ? " noted" : "") + (i === 1 && s.fixed ? " fixed" : ""), title: t("Click to leave a note"), on: { click: () => { s.draft = i; redraw(); } } }, txt);
         }),
         s.draft != null ? h("div", { cls: "fx-compose" },
-          h("input", { cls: "fx-in sm", value: "You", "aria-label": "Your name" }),
-          h("input", { cls: "fx-in", value: "Add a rollback step here?", "aria-label": "Your note" }),
-          h("button", { type: "button", cls: "fx-btn", on: { click: e => { const [n, t] = e.target.closest(".fx-compose").querySelectorAll("input"); s.notes.push({ who: n.value || "Someone", s: s.draft, txt: t.value, open: true, replies: [] }); s.draft = null; redraw(); } } }, "Post"),
-          h("small", {}, "no account")) : h("small", { cls: "fx-hint" }, "Click any line to leave a note, no account.")),
+          h("input", { cls: "fx-in sm", value: t("You"), "aria-label": t("Your name") }),
+          h("input", { cls: "fx-in", value: t("Add a rollback step here?"), "aria-label": t("Your note") }),
+          h("button", { type: "button", cls: "fx-btn", on: { click: e => { const [name, note] = e.target.closest(".fx-compose").querySelectorAll("input"); s.notes.push({ who: name.value || t("Someone"), s: s.draft, txt: note.value, open: true, replies: [] }); s.draft = null; redraw(); } } }, t("Post")),
+          h("small", {}, t("no account"))) : h("small", { cls: "fx-hint" }, t("Click any line to leave a note, no account."))),
         h("div", { cls: "fx-notes" }, s.notes.map((n, k) => h("div", { "data-key": "n" + k, cls: "fx-bub" + (n.open ? "" : " done") },
-          h("div", {}, h("b", {}, n.who), h("em", {}, n.open ? "no account · open" : "resolved")), h("div", {}, n.txt),
+          h("div", {}, h("b", {}, n.who), h("em", {}, n.open ? t("no account · open") : t("resolved"))), h("div", {}, n.txt),
           n.replies.map(r => h("div", { cls: "fx-reply" }, h("b", {}, r[0]), " ", r[1]))))));
     },
     asks: [
-      { q: "Read the open notes and fix them", cli: ["byagent comments k4m2Qv9pXz1A --open --json", "byagent publish ./rollout-plan", "byagent resolve k4m2Qv9pXz1A th_…"], run: s => {
-          const open = s.notes.filter(n => n.open); if (!open.length) return "No open notes left.";
+      { q: t("Read the open notes and fix them"), cli: ["byagent comments k4m2Qv9pXz1A --open --json", "byagent publish ./rollout-plan", "byagent resolve k4m2Qv9pXz1A th_…"], run: s => {
+          const open = s.notes.filter(n => n.open); if (!open.length) return t("No open notes left.");
           if (open.some(n => n.s === 1) && !s.fixed) { s.fixed = true; s.v++; }
-          open.forEach(n => { n.open = false; n.replies.push(["codex", n.s === 1 ? `Done in v${s.v}: one team first.` : "Fixed, see the latest version."]); });
-          return `Fixed ${open.length} note${open.length > 1 ? "s" : ""}, republished as v${s.v} on the same link, and resolved ${open.length > 1 ? "them" : "it"}.`; } },
-      { q: "Reply to Maya and resolve it", cli: ['byagent reply k4m2Qv9pXz1A th_… "Good call, piloting first."', "byagent resolve k4m2Qv9pXz1A th_…"], run: s => {
-          const m = s.notes.find(n => n.who === "Maya"); if (!m.open) return "Maya's note is already resolved.";
-          m.replies.push(["codex", "Good call, piloting first."]); m.open = false; return "Replied to Maya and resolved her note."; } },
-      { q: "What did people say since yesterday?", cli: ["byagent comments k4m2Qv9pXz1A --since 2026-10-04T00:00:00Z"], run: s => {
+          open.forEach(n => { n.open = false; n.replies.push(["codex", n.s === 1 ? t("Done in v%s: one team first.", s.v) : t("Fixed, see the latest version.")]); });
+          return tn(open.length, "Fixed %s note, republished as v%s on the same link, and resolved it.", "Fixed %s notes, republished as v%s on the same link, and resolved them.", s.v); } },
+      { q: t("Reply to Maya and resolve it"), cli: ['byagent reply k4m2Qv9pXz1A th_… "' + GOOD_CALL + '"', "byagent resolve k4m2Qv9pXz1A th_…"], run: s => {
+          const m = s.notes.find(n => n.who === "Maya"); if (!m.open) return t("Maya's note is already resolved.");
+          m.replies.push(["codex", GOOD_CALL]); m.open = false; return t("Replied to Maya and resolved her note."); } },
+      { q: t("What did people say since yesterday?"), cli: ["byagent comments k4m2Qv9pXz1A --since 2026-10-04T00:00:00Z"], run: s => {
           const open = s.notes.filter(n => n.open);
-          return open.length ? open.map(n => `${n.who} on "${LINES[n.s].slice(0, 24)}…": ${n.txt}`).join(" · ") : "Nothing new. Every note is resolved."; } },
+          return open.length ? open.map(n => t('%s on "%s…": %s', n.who, LINES[n.s].slice(0, 24), n.txt)).join(" · ") : t("Nothing new. Every note is resolved."); } },
     ],
   };
 
   // ---- 3. Private pages ----
+  const Q3 = t("Q3 report");
   F.private = {
-    label: "Private pages", agent: "claude code", title: "Public by link, or private with a code",
-    blurb: "A private page is visible to your workspace and to anyone you give its six-digit share code. Rotate the code or withdraw it at any time.",
+    label: t("Private pages"), agent: "claude code", title: t("Public by link, or private with a code"),
+    blurb: t("A private page is visible to your workspace and to anyone you give its six-digit share code. Rotate the code or withdraw it at any time."),
     init: () => ({ access: "public", code: null, typed: "" }),
     render(el, s, redraw) {
       const unlocked = s.access === "public" || (s.code && s.typed === s.code);
       const opt = (k, label, sub) => h("button", { type: "button", cls: "fx-opt" + (s.access === k ? " on" : ""), on: { click: () => { s.access = k; if (k === "public") s.code = null; s.typed = ""; redraw(); } } }, h("i"), label, sub ? h("em", {}, sub) : null);
       put(el, h("div", { cls: "fx-two" },
         h("div", { cls: "fx-card" }, h("div", { cls: "fx-url" }, h("span", {}, HOST + "/a/Hr8LmZ2xQa0c/")),
-          unlocked ? h("div", { cls: "fx-open" }, h("b", {}, "Q3 report"), h("span", { cls: "fx-bar" }), h("span", { cls: "fx-bar s" }), h("span", { cls: "fx-bar" }),
-              h("small", {}, s.access === "public" ? "Anyone with the link can read this." : "Unlocked with the share code."))
+          unlocked ? h("div", { cls: "fx-open" }, h("b", {}, Q3), h("span", { cls: "fx-bar" }), h("span", { cls: "fx-bar s" }), h("span", { cls: "fx-bar" }),
+              h("small", {}, s.access === "public" ? t("Anyone with the link can read this.") : t("Unlocked with the share code.")))
             : h("div", { cls: "fx-lock" }, h("div", { cls: "fx-lock-ic", html: lock }),
-              s.code ? h("input", { cls: "fx-code", inputmode: "numeric", maxlength: "6", placeholder: "••••••", value: s.typed, "aria-label": "Share code",
+              s.code ? h("input", { cls: "fx-code", inputmode: "numeric", maxlength: "6", placeholder: "••••••", value: s.typed, "aria-label": t("Share code"),
                 on: { input: e => { s.typed = e.target.value.replace(/\D/g, ""); if (s.typed.length === 6) redraw(); } } }) : null,
-              h("small", {}, s.code ? (s.typed.length === 6 && s.typed !== s.code ? "That code doesn't match." : "Enter the six-digit code") : "Private. Only your workspace can open it."))),
-        h("div", { cls: "fx-card" }, h("h6", {}, "Access"), opt("public", "Anyone with the link"), opt("private", "Private", "share code"),
+              h("small", {}, s.code ? (s.typed.length === 6 && s.typed !== s.code ? t("That code doesn't match.") : t("Enter the six-digit code")) : t("Private. Only your workspace can open it.")))),
+        h("div", { cls: "fx-card" }, h("h6", {}, t("Access")), opt("public", t("Anyone with the link")), opt("private", t("Private"), t("share code")),
           s.access === "private" ? h("div", { cls: "fx-coderow" },
-            h("span", { cls: "fx-chip" + (s.code ? "" : " off") }, s.code || "no code"),
-            h("button", { type: "button", cls: "fx-link", on: { click: () => { s.code = code6(); s.typed = ""; redraw(); } } }, s.code ? "Rotate" : "Create code"),
-            s.code ? h("button", { type: "button", cls: "fx-link", on: { click: () => { s.code = null; s.typed = ""; redraw(); } } }, "Withdraw") : null) : null)));
+            h("span", { cls: "fx-chip" + (s.code ? "" : " off") }, s.code || t("no code")),
+            h("button", { type: "button", cls: "fx-link", on: { click: () => { s.code = code6(); s.typed = ""; redraw(); } } }, s.code ? t("Rotate") : t("Create code")),
+            s.code ? h("button", { type: "button", cls: "fx-link", on: { click: () => { s.code = null; s.typed = ""; redraw(); } } }, t("Withdraw")) : null) : null)));
     },
     asks: [
-      { q: "Make the Q3 report private", cli: ["byagent publish ./q3-report --id Hr8LmZ2xQa0c --private"], run: s => { s.access = "private"; s.code = null; s.typed = ""; return "Q3 report is private. Only your workspace can open it."; } },
-      { q: "Give me a share code for it", cli: ["byagent share Hr8LmZ2xQa0c"], run: s => { s.access = "private"; s.code = code6(); s.typed = ""; return `Share code ${s.code}. Anyone with the link and this code can open it.`; } },
-      { q: "Withdraw the code", cli: ["byagent share Hr8LmZ2xQa0c --off"], run: s => { if (!s.code) return "There's no code to withdraw."; s.code = null; s.typed = ""; return "Withdrawn. The old code stops working right away."; } },
+      { q: t("Make the Q3 report private"), cli: ["byagent publish ./q3-report --id Hr8LmZ2xQa0c --private"], run: s => { s.access = "private"; s.code = null; s.typed = ""; return t("Q3 report is private. Only your workspace can open it."); } },
+      { q: t("Give me a share code for it"), cli: ["byagent share Hr8LmZ2xQa0c"], run: s => { s.access = "private"; s.code = code6(); s.typed = ""; return t("Share code %s. Anyone with the link and this code can open it.", s.code); } },
+      { q: t("Withdraw the code"), cli: ["byagent share Hr8LmZ2xQa0c --off"], run: s => { if (!s.code) return t("There's no code to withdraw."); s.code = null; s.typed = ""; return t("Withdrawn. The old code stops working right away."); } },
     ],
   };
 
   // ---- 4. Versions ----
   F.versions = {
-    label: "Versions", agent: "codex", title: "Same link, every version",
-    blurb: "Publish again and the link stays put. Each version records the agent that published it, and any recent version can be rolled back to.",
-    init: () => ({ view: 3, live: 3, vs: [[1, "claude code", "Mon 10:02", "move every team to the new build in one go."], [2, "codex", "Tue 09:15", "pilot with one team for a week."], [3, "claude code", "Wed 16:40", "pilot with two teams for a week."]] }),
+    label: t("Versions"), agent: "codex", title: t("Same link, every version"),
+    blurb: t("Publish again and the link stays put. Each version records the agent that published it, and any recent version can be rolled back to."),
+    init: () => ({ view: 3, live: 3, vs: [[1, "claude code", t("Mon %s", "10:02"), LINES[1]], [2, "codex", t("Tue %s", "09:15"), t("Step 1: pilot with one team for a week.")], [3, "claude code", t("Wed %s", "16:40"), t("Step 1: pilot with two teams for a week.")]] }),
     render(el, s, redraw) {
-      const cur = s.live, [v, a, t, step] = s.vs.find(x => x[0] === s.view);
+      const cur = s.live, [v, a, at, step] = s.vs.find(x => x[0] === s.view);
       const rollback = () => { s.live = s.view; redraw(); };
       put(el, h("div", { cls: "fx-two v" },
         h("div", { cls: "fx-vers" }, s.vs.map(([n, ag, when]) => h("button", { type: "button", "data-key": "v" + n, cls: "fx-v" + (s.view === n ? " on" : ""), on: { click: () => { s.view = n; redraw(); } } },
-            h("i", {}, "v" + n), h("span", {}, ag), h("span", { cls: "t" }, when), n === cur ? h("em", {}, "live") : null)),
-          s.view !== cur ? h("button", { type: "button", cls: "fx-btn ghost", on: { click: rollback } }, `Roll back to v${s.view}`) : h("small", { cls: "fx-hint" }, "Click a version to preview it")),
+            h("i", {}, "v" + n), h("span", {}, ag), h("span", { cls: "t" }, when), n === cur ? h("em", {}, t("live")) : null)),
+          s.view !== cur ? h("button", { type: "button", cls: "fx-btn ghost", on: { click: rollback } }, t("Roll back to v%s", s.view)) : h("small", { cls: "fx-hint" }, t("Click a version to preview it"))),
         h("div", { cls: "fx-page sm" }, h("div", { cls: "fx-url" }, h("span", {}, HOST + "/a/k4m2Qv9pXz1A/"), h("span", { cls: "fx-pill" + (v === cur ? " ok" : "") }, "v" + v)),
-          h("h4", {}, "Rollout plan"), h("p", {}, "Step 1: " + step), h("span", { cls: "fx-bar light" }), h("span", { cls: "fx-bar light s" }), h("small", { cls: "fx-by" }, `Published by ${a}, ${t}`))));
+          h("h4", {}, ROLLOUT), h("p", {}, step), h("span", { cls: "fx-bar light" }), h("span", { cls: "fx-bar light s" }), h("small", { cls: "fx-by" }, t("Published by %s, %s", a, at)))));
     },
     asks: [
-      { q: "Show me the versions of the rollout plan", cli: ["byagent versions k4m2Qv9pXz1A"], run: s => { s.view = s.live; return s.vs.map(([n, a, t]) => `v${n} ${a}, ${t}` + (n === s.live ? " (live)" : "")).join(" · "); } },
-      { q: "Roll back to v2", cli: ["byagent rollback k4m2Qv9pXz1A 2"], run: s => { s.live = 2; s.view = 2; return "v2 is live again on the same link. Nothing was re-uploaded, and v3 is still there."; } },
-      { q: "Who published the last version?", cli: ["byagent versions k4m2Qv9pXz1A --json"], run: s => { const [n, a, t] = s.vs[s.vs.length - 1]; s.view = n; return `v${n} was published by ${a}, ${t}.`; } },
+      { q: t("Show me the versions of the rollout plan"), cli: ["byagent versions k4m2Qv9pXz1A"], run: s => { s.view = s.live; return s.vs.map(([n, a, at]) => n === s.live ? t("%s (live)", `v${n} ${a}, ${at}`) : `v${n} ${a}, ${at}`).join(" · "); } },
+      { q: t("Roll back to v%s", 2), cli: ["byagent rollback k4m2Qv9pXz1A 2"], run: s => { s.live = 2; s.view = 2; return t("v2 is live again on the same link. Nothing was re-uploaded, and v3 is still there."); } },
+      { q: t("Who published the last version?"), cli: ["byagent versions k4m2Qv9pXz1A --json"], run: s => { const [n, a, at] = s.vs[s.vs.length - 1]; s.view = n; return t("v%s was published by %s, %s.", n, a, at); } },
     ],
   };
 
   // ---- 5. Expiry ----
-  const ORDER = ["never", "24h", "7d", "30d"], ELABEL = { never: "never expires", "24h": "expires in 24 hours", "7d": "expires in 7 days", "30d": "expires in 30 days" };
+  const ORDER = ["never", "24h", "7d", "30d"], ELABEL = { never: t("never expires"), "24h": t("expires in 24 hours"), "7d": t("expires in 7 days"), "30d": t("expires in 30 days") };
+  const ESHORT = { "24h": t("24 hours"), "7d": t("7 days") };
   F.expiry = {
-    label: "Expiry", agent: "cursor", title: "Pages that clean up after themselves",
-    blurb: "Set a page to expire in a few days, or keep it for good. Guest pages made without an account last 24 hours unless you claim them.",
-    init: () => ({ hit: [], rows: [["Pricing draft", "7d"], ["Rollout plan", "never"], ["Guest page", "24h"], ["Q3 report", "30d"]].map(([t, e]) => ({ t, e })) }),
+    label: t("Expiry"), agent: "cursor", title: t("Pages that clean up after themselves"),
+    blurb: t("Set a page to expire in a few days, or keep it for good. Guest pages made without an account last 24 hours unless you claim them."),
+    init: () => ({ hit: [], rows: [[t("Pricing draft"), "7d"], [ROLLOUT, "never"], [t("Guest page"), "24h"], [Q3, "30d"]].map(([title, e]) => ({ t: title, e })) }),
     render(el, s, redraw) {
       put(el, h("div", { cls: "fx-page" },
-        h("div", { cls: "fx-url" }, h("span", {}, "Acme · expiry"), h("span", { cls: "fx-pill" }, s.rows.length + " pages")),
-        h("h4", {}, "When pages expire"),
+        h("div", { cls: "fx-url" }, h("span", {}, t("%s · expiry", "Acme")), h("span", { cls: "fx-pill" }, tn(s.rows.length, "%s page", "%s pages"))),
+        h("h4", {}, t("When pages expire")),
         h("div", { cls: "fx-table" }, s.rows.map(r => h("div", { "data-key": r.t, cls: "fx-tr" + (s.hit.includes(r.t) ? " hit" : "") }, h("b", {}, r.t),
           h("button", { type: "button", cls: "fx-pill fx-click" + (r.e === "never" ? " ok" : r.e === "30d" ? "" : " warn"), on: { click: () => { r.e = ORDER[(ORDER.indexOf(r.e) + 1) % ORDER.length]; s.hit = [r.t]; redraw(); } } }, ELABEL[r.e])))),
-        h("small", { cls: "fx-hint" }, "Click a badge to change when a page expires")));
+        h("small", { cls: "fx-hint" }, t("Click a badge to change when a page expires"))));
     },
     asks: [
-      { q: "Let the rollout plan expire in 7 days", cli: ["byagent expire k4m2Qv9pXz1A 7d"], run: s => { s.rows.find(r => r.t === "Rollout plan").e = "7d"; s.hit = ["Rollout plan"]; return "Rollout plan now expires in 7 days. The link stops working after that."; } },
-      { q: "Keep the rollout plan for good", cli: ["byagent expire k4m2Qv9pXz1A never"], run: s => { s.rows.find(r => r.t === "Rollout plan").e = "never"; s.hit = ["Rollout plan"]; return "Done. Rollout plan never expires."; } },
-      { q: "Which pages expire this week?", cli: ["byagent list --json"], run: s => { const soon = s.rows.filter(r => r.e === "24h" || r.e === "7d"); s.hit = soon.map(r => r.t); return soon.length ? soon.map(r => `${r.t} (${ELABEL[r.e].replace("expires in ", "")})`).join(", ") : "Nothing expires this week."; } },
+      { q: t("Let the rollout plan expire in 7 days"), cli: ["byagent expire k4m2Qv9pXz1A 7d"], run: s => { s.rows.find(r => r.t === ROLLOUT).e = "7d"; s.hit = [ROLLOUT]; return t("Rollout plan now expires in 7 days. The link stops working after that."); } },
+      { q: t("Keep the rollout plan for good"), cli: ["byagent expire k4m2Qv9pXz1A never"], run: s => { s.rows.find(r => r.t === ROLLOUT).e = "never"; s.hit = [ROLLOUT]; return t("Done. Rollout plan never expires."); } },
+      { q: t("Which pages expire this week?"), cli: ["byagent list --json"], run: s => { const soon = s.rows.filter(r => r.e === "24h" || r.e === "7d"); s.hit = soon.map(r => r.t); return soon.length ? soon.map(r => `${r.t} (${ESHORT[r.e]})`).join(", ") : t("Nothing expires this week."); } },
     ],
   };
 
   // ---- 6. Project brief ----
+  const LAUNCH = t("Launch");
   F.brief = {
-    label: "Project brief", agent: "hermes", title: "A handoff note for the next agent",
-    blurb: "Every project has a BRIEF.md: the goal, where it stands and the next move. The next agent reads it, with its open notes, before it starts.",
-    init: () => ({ v: 3, hit: [], goal: "every team on the new build by month end.", stands: "pilot team on v2 since Tuesday.", next: "roll out to the next two teams.", notes: 2 }),
+    label: t("Project brief"), agent: "hermes", title: t("A handoff note for the next agent"),
+    blurb: t("Every project has a BRIEF.md: the goal, where it stands and the next move. The next agent reads it, with its open notes, before it starts."),
+    init: () => ({ v: 3, hit: [], goal: t("every team on the new build by month end."), stands: t("pilot team on v2 since Tuesday."), next: t("roll out to the next two teams."), notes: 2 }),
     render(el, s) {
       const field = (k, label) => h("p", { cls: "fx-field" + (s.hit.includes(k) ? " hit" : "") }, h("b", {}, label), " ",
         h("span", { contenteditable: "true", spellcheck: "false", on: { input: e => { s[k] = e.target.textContent; } } }, s[k]));
-      put(el, h("div", { cls: "fx-page" }, h("div", { cls: "fx-url" }, h("span", {}, "Launch / BRIEF.md"), h("span", { cls: "fx-pill" }, "v" + s.v)), h("h4", {}, "Launch brief"),
-        field("goal", "Goal"), field("stands", "Where it stands"), field("next", "Next move"),
-        h("div", { cls: "fx-foot" }, h("span", { cls: "fx-pill warn" }, s.notes + " open notes"), h("small", { cls: "fx-hint" }, "Click any line to edit it"))));
+      put(el, h("div", { cls: "fx-page" }, h("div", { cls: "fx-url" }, h("span", {}, LAUNCH + " / BRIEF.md"), h("span", { cls: "fx-pill" }, "v" + s.v)), h("h4", {}, t("%s brief", LAUNCH)),
+        field("goal", t("Goal")), field("stands", t("Where it stands")), field("next", t("Next move")),
+        h("div", { cls: "fx-foot" }, h("span", { cls: "fx-pill warn" }, tn(s.notes, "%s open note", "%s open notes")), h("small", { cls: "fx-hint" }, t("Click any line to edit it")))));
     },
     asks: [
-      { q: "Read the Launch brief before you start", cli: ["byagent brief --project Launch --json"], run: s => { s.hit = ["goal", "stands", "next"]; return `Read BRIEF.md v${s.v} and ${s.notes} open notes. Picking up: ${s.next}`; } },
-      { q: "Update the project brief", cli: ["byagent brief push --project Launch"], run: s => { s.stands = "two teams on v2, error rates flat."; s.v++; s.hit = ["stands"]; return `Updated "Where it stands" and pushed BRIEF.md v${s.v}.`; } },
-      { q: "What's the next move on Launch?", cli: ["byagent brief --project Launch"], run: s => { s.hit = ["next"]; return "Next move: " + s.next; } },
+      { q: t("Read the %s brief before you start", LAUNCH), cli: ["byagent brief --project " + arg(LAUNCH) + " --json"], run: s => { s.hit = ["goal", "stands", "next"]; return t("Read BRIEF.md v%s and %s open notes. Picking up: %s", s.v, s.notes, s.next); } },
+      { q: t("Update the project brief"), cli: ["byagent brief push --project " + arg(LAUNCH)], run: s => { s.stands = t("two teams on v2, error rates flat."); s.v++; s.hit = ["stands"]; return t('Updated "Where it stands" and pushed BRIEF.md v%s.', s.v); } },
+      { q: t("What's the next move on %s?", LAUNCH), cli: ["byagent brief --project " + arg(LAUNCH)], run: s => { s.hit = ["next"]; return t("Next move: %s", s.next); } },
     ],
   };
 
@@ -424,9 +441,9 @@
     [...chips.children].forEach((b, j) => { b.disabled = true; if (j === i) b.classList.add("used"); });
     add(h("div", { cls: "m me" }, a.q)); await wait(450);
     for (const c of a.cli) {
-      const t = add(h("div", { cls: "tool wip" }, h("b", {}, "●"), c)); await wait(560);
+      const row = add(h("div", { cls: "tool wip" }, h("b", {}, "●"), c)); await wait(560);
       if (my !== token) return;
-      t.className = "tool"; t.firstChild.textContent = "✓";
+      row.className = "tool"; row.firstChild.textContent = "✓";
     }
     const dots = add(h("div", { cls: "typing" }, h("i"), h("i"), h("i"))); await wait(520);
     if (my !== token) return;
@@ -458,4 +475,19 @@
   addEventListener("resize", fade);
   pick(key, false); fade();
   new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { ask(0); o.disconnect(); } }, { threshold: .4 }).observe(document.getElementById("fc-duo"));
+})();
+
+// The "why" drawings have fixed-width boxes, and a translated label can be
+// longer than the English one they were drawn around. A [data-fit] label
+// fits the box beside it (the parent's rect of that class, else its first
+// rect): its type shrinks until it does.
+(() => {
+  "use strict";
+  document.querySelectorAll("#why text[data-fit]").forEach(text => {
+    const box = text.parentNode.querySelector(text.dataset.fit ? "rect." + text.dataset.fit : "rect");
+    if (!box) return;
+    const room = box.x.baseVal.value + box.width.baseVal.value - text.x.baseVal[0].value - 8;
+    const len = text.getComputedTextLength();
+    if (len > room) text.style.fontSize = (parseFloat(getComputedStyle(text).fontSize) * room / len).toFixed(2) + "px";
+  });
 })();

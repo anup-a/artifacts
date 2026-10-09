@@ -4,13 +4,14 @@ import { setActive, setShown } from "./highlight.js";
 import { THEME, el, autogrow, snippet } from "./theme.js";
 import { icon } from "./icons.js";
 import { relativeTime, avatarHue, initial } from "./format.js";
+import { t, tn } from "./i18n.js";
 
 const WIDTH = 380;
 
 const STYLE = `
 .launcher{position:fixed;right:20px;bottom:20px;z-index:2147483000;display:flex;gap:8px;
 align-items:center;padding:8px 14px 8px 12px;background:var(--card);border:1px solid var(--line);
-border-radius:999px;box-shadow:var(--shadow);font-size:13px;font-weight:500;
+border-radius:999px;box-shadow:var(--shadow);font-size:13px;font-weight:500;white-space:nowrap;
 transition:transform .12s ease,box-shadow .12s ease}
 .launcher:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg)}
 .launcher[data-open="1"]{display:none}
@@ -34,7 +35,7 @@ select.ver:hover{background:var(--hover)}
 .note{padding:8px 16px;font-size:12px;color:var(--warn);background:var(--warn-soft);border-bottom:1px solid var(--line)}
 .seg{display:flex;gap:2px;margin:12px 16px;padding:3px;background:var(--bg);border:1px solid var(--line);
 border-radius:8px}
-.chip{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:12px;
+.chip{flex:1;min-width:0;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-size:12px;
 border-radius:6px;padding:4px 8px;color:var(--muted);font-weight:500;transition:background .12s ease}
 .chip:hover{color:var(--fg)}
 .chip[aria-selected="true"]{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08),0 0 0 1px var(--line)}
@@ -59,7 +60,8 @@ background:var(--card);transition:border-color .12s ease,box-shadow .12s ease}
 .thread:hover .more{color:var(--accent)}
 .gone{font-size:12px;color:var(--muted);margin-top:8px;font-style:italic}
 .badge{font-size:11px;font-weight:500;border-radius:999px;padding:1px 7px;background:var(--bg);
-border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1.5;cursor:help}
+border:1px solid var(--line);color:var(--muted);white-space:nowrap;line-height:1.5;cursor:help;
+min-width:0;overflow:hidden;text-overflow:ellipsis}
 .badge[data-s="drifted"]{color:var(--warn);border-color:var(--warn-line);background:var(--warn-soft)}
 .badge[data-p="seen"]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 .badge[data-p="working"]{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
@@ -79,11 +81,12 @@ display:inline-flex;align-items:center;justify-content:center;color:var(--muted)
 .reply .send:not(:disabled):hover{background:var(--accent-soft);color:var(--accent)}
 .section{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
 padding:18px 2px 2px;font-weight:600}
-.foot{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;
+.foot{padding:10px 16px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center;
 font-size:12px;color:var(--muted);background:var(--bg)}
 .foot .pick{padding:3px 8px;font-size:12px}
 `;
 
+// English keys; t() translates them where they are shown.
 const BADGE = {
   drifted: ["Moved", "The quoted text changed, so this comment now points at the closest match."],
   orphaned: ["Earlier version", "The quoted text is not on this version of the page."],
@@ -103,12 +106,12 @@ export function mountPanel(shadow, ctx) {
 
   shadow.appendChild(el("style", { text: THEME + STYLE }));
 
-  const launcher = el("button", { class: "launcher", type: "button", "aria-label": "Open comments", onclick: () => toggle() });
+  const launcher = el("button", { class: "launcher", type: "button", "aria-label": t("Open comments"), onclick: () => toggle() });
   const cnt = el("span", { class: "cnt" });
-  const title = el("h2", {}, [document.createTextNode("Comments"), cnt]);
+  const title = el("h2", {}, [document.createTextNode(t("Comments")), cnt]);
   const versionSel = el("select", {
     class: "ver",
-    "aria-label": "Version",
+    "aria-label": t("Version"),
     onchange: (e) => {
       const v = e.target.value;
       const m = location.pathname.match(/^\/a\/([^/]+)\//);
@@ -121,20 +124,20 @@ export function mountPanel(shadow, ctx) {
   const closeBtn = el("button", {
     class: "btn icon ghost close",
     type: "button",
-    title: "Close",
-    "aria-label": "Close comments",
+    title: t("Close"),
+    "aria-label": t("Close comments"),
     onclick: () => close(),
   });
   closeBtn.appendChild(icon("close"));
   const note = el("div", { class: "note" });
-  const seg = el("div", { class: "seg", role: "tablist", "aria-label": "Filter comments" });
+  const seg = el("div", { class: "seg", role: "tablist", "aria-label": t("Filter comments") });
   const list = el("div", { class: "list" });
   const pickBtn = pickButton("pick");
   const foot = el("div", { class: "foot" }, [
-    document.createTextNode("Select text or"),
+    document.createTextNode(t("Select text or")),
     pickBtn,
   ]);
-  const panel = el("div", { class: "panel", "data-open": "0", role: "complementary", "aria-label": "Comments" }, [
+  const panel = el("div", { class: "panel", "data-open": "0", role: "complementary", "aria-label": t("Comments") }, [
     el("header", {}, [title, verWrap, closeBtn]),
     note,
     seg,
@@ -157,7 +160,7 @@ export function mountPanel(shadow, ctx) {
       onclick: () => setPickMode(!api.pickMode),
     });
     b.appendChild(icon("target", 14));
-    b.appendChild(el("span", { text: "Point at an element" }));
+    b.appendChild(el("span", { text: t("Point at an element") }));
     return b;
   }
 
@@ -196,14 +199,14 @@ export function mountPanel(shadow, ctx) {
     for (const b of shadow.querySelectorAll(".pick")) {
       b.setAttribute("data-on", on ? "1" : "0");
       b.setAttribute("aria-pressed", on ? "true" : "false");
-      b.lastChild.textContent = on ? "Click an element to comment" : "Point at an element";
+      b.lastChild.textContent = t(on ? "Click an element to comment" : "Point at an element");
     }
     document.body.style.cursor = on ? "crosshair" : "";
   }
 
   function visibleThreads() {
     if (filter === "all") return state.threads;
-    return state.threads.filter((t) => (t.status || "open") === filter);
+    return state.threads.filter((th) => (th.status || "open") === filter);
   }
 
   function setFilter(f) {
@@ -219,76 +222,85 @@ export function mountPanel(shadow, ctx) {
     return el("span", { class: small ? "av sm" : "av", "data-h": String(avatarHue(name)), text: initial(name) });
   }
 
+  // "Anonymous" is what an unnamed reader is stored as; each viewer reads it
+  // in their own language.
+  function displayName(name) {
+    return !name || name === "Anonymous" ? t("Anonymous") : name;
+  }
+
   function meta(c) {
-    const author = c.author_name || "Anonymous";
+    const author = displayName(c.author_name);
     const parts = [el("span", { class: "name", text: author })];
-    if (c.author_kind === "owner") parts.push(el("span", { class: "owner", text: "Author" }));
+    if (c.author_kind === "owner") parts.push(el("span", { class: "owner", text: t("Author") }));
     // Set by the server for a reader who proved this address at the page's
     // email gate; a typed name never carries it.
-    else if (c.author_verified) parts.push(el("span", { class: "owner", title: "Verified email", text: "✓ verified" }));
+    else if (c.author_verified) parts.push(el("span", { class: "owner", title: t("Verified email"), text: t("✓ verified") }));
     parts.push(el("span", { class: "time", text: relativeTime(c.created_at) }));
     return el("span", { class: "meta" }, parts);
   }
 
-  function threadRow(t, resolved) {
-    const first = t.comments[0] || {};
-    const author = first.author_name || "Anonymous";
-    const anchor = t.anchor || {};
+  function threadRow(th, resolved) {
+    const first = th.comments[0] || {};
+    const author = displayName(first.author_name);
+    const anchor = th.anchor || {};
     const quoted = anchor.kind === "element" ? anchor.text : anchor.quote;
-    const active = t.id === activeId;
-    const replies = t.comments.slice(1);
+    const active = th.id === activeId;
+    const replies = th.comments.slice(1);
 
     const head = el("div", { class: "head" }, [avatar(author), meta(first)]);
     const badge = BADGE[resolved.status];
     if (badge) {
-      head.appendChild(el("span", { class: "badge", "data-s": resolved.status, title: badge[1], text: badge[0] }));
+      head.appendChild(el("span", { class: "badge", "data-s": resolved.status, title: t(badge[1]), text: t(badge[0]) }));
     }
     // "Seen" and "Working on it" describe an open thread. Once it is resolved
     // they are stale; "Declined" stays because it explains the outcome.
-    const progress = t.status === "resolved" && t.progress !== "declined" ? null : PROGRESS[t.progress];
+    const progress = th.status === "resolved" && th.progress !== "declined" ? null : PROGRESS[th.progress];
     if (progress) {
-      head.appendChild(el("span", { class: "badge", "data-p": t.progress, title: progress[1], text: progress[0] }));
+      head.appendChild(el("span", { class: "badge", "data-p": th.progress, title: t(progress[1]), text: t(progress[0]) }));
     }
 
     const body = [head];
     if (quoted) body.push(snippet(quoted));
-    if (t.suggestion) {
-      body.push(el("p", { class: "sug" }, [el("del", { text: anchor.quote || "" }), document.createTextNode(" → "), el("ins", { text: t.suggestion })]));
+    if (th.suggestion) {
+      body.push(el("p", { class: "sug" }, [el("del", { text: anchor.quote || "" }), document.createTextNode(" → "), el("ins", { text: th.suggestion })]));
     }
     if (resolved.status === "orphaned" && !active) {
-      body.push(el("p", { class: "gone", text: "The quoted text is not on this version." }));
+      body.push(el("p", { class: "gone", text: t("The quoted text is not on this version.") }));
     } else {
-      body.push(el("p", { class: "msg", text: first.body || "" }));
+      // A suggestion posted without a reason carries the stock body
+      // "Suggested edit"; show it in the viewer's language.
+      const msg = th.suggestion && first.body === "Suggested edit" ? t("Suggested edit") : first.body || "";
+      body.push(el("p", { class: "msg", text: msg }));
     }
     if (active) {
       if (replies.length) body.push(el("div", { class: "replies" }, replies.map(replyRow)));
-      body.push(replyBox(t));
+      body.push(replyBox(th));
     } else if (replies.length) {
       const n = replies.length;
-      body.push(el("span", { class: "more" }, [icon("reply", 13), el("span", { text: n === 1 ? "1 reply" : `${n} replies` })]));
+      body.push(el("span", { class: "more" }, [icon("reply", 13), el("span", { text: tn(n, "%s reply", "%s replies") })]));
     }
 
     return el(
       "div",
-      { class: "thread", "data-thread": t.id, "data-active": active ? "1" : "0", onclick: () => focusThread(t.id) },
+      { class: "thread", "data-thread": th.id, "data-active": active ? "1" : "0", onclick: () => focusThread(th.id) },
       body
     );
   }
 
   function replyRow(c) {
     return el("div", { class: "r" }, [
-      avatar(c.author_name || "Anonymous", true),
+      avatar(displayName(c.author_name), true),
       el("div", { class: "body" }, [meta(c), el("p", { class: "msg", text: c.body })]),
     ]);
   }
 
-  function replyBox(t) {
+  function replyBox(th) {
     const who = store.get("name") || "Anonymous";
     const input = el("textarea", {
       class: "field",
       rows: "1",
-      placeholder: `Reply as ${who}…`,
-      "aria-label": "Reply",
+      placeholder: t("Reply as %s…", displayName(who)),
+      "aria-label": t("Reply"),
       onkeydown: (ev) => {
         if (ev.key === "Enter" && !ev.shiftKey) {
           ev.preventDefault();
@@ -305,21 +317,21 @@ export function mountPanel(shadow, ctx) {
     const send = el("button", {
       class: "send",
       type: "button",
-      title: "Send reply",
-      "aria-label": "Send reply",
+      title: t("Send reply"),
+      "aria-label": t("Send reply"),
       disabled: "",
       onclick: async (ev) => {
         ev.stopPropagation();
         const text = input.value.trim();
         if (!text) return;
         send.disabled = true;
-        const res = await client.reply(t.id, who, text);
+        const res = await client.reply(th.id, who, text);
         if (res.ok) {
           input.value = "";
           ctx.onRefresh();
         } else {
           send.disabled = false;
-          err.textContent = `Could not post reply: ${res.error}`;
+          err.textContent = t("Could not post reply: %s", t(res.error));
           err.hidden = false;
         }
       },
@@ -327,7 +339,7 @@ export function mountPanel(shadow, ctx) {
     send.appendChild(icon("send", 14));
     const box = el("div", { class: "box" }, [input, send]);
     return el("div", { onclick: (ev) => ev.stopPropagation() }, [
-      el("div", { class: "reply" }, [avatar(who, true), box]),
+      el("div", { class: "reply" }, [avatar(displayName(who), true), box]),
       err,
     ]);
   }
@@ -361,11 +373,11 @@ export function mountPanel(shadow, ctx) {
   }
 
   function renderFilters() {
-    const count = (s) => state.threads.filter((t) => (t.status || "open") === s).length;
+    const count = (s) => state.threads.filter((th) => (th.status || "open") === s).length;
     const chips = [
-      ["open", "Open", count("open")],
-      ["resolved", "Resolved", count("resolved")],
-      ["all", "All", state.threads.length],
+      ["open", t("Open"), count("open")],
+      ["resolved", t("Resolved"), count("resolved")],
+      ["all", t("All"), state.threads.length],
     ];
     seg.replaceChildren(
       ...chips.map(([f, label, n]) =>
@@ -382,8 +394,8 @@ export function mountPanel(shadow, ctx) {
     const none = state.threads.length === 0;
     const box = el("div", { class: "empty" }, [
       icon("comment", 18),
-      el("h3", { text: none ? "No comments yet" : filter === "open" ? "No open comments" : "No resolved comments" }),
-      el("p", { text: none ? "Select any text on the page to start a thread." : "Anything new you comment on will show up here." }),
+      el("h3", { text: t(none ? "No comments yet" : filter === "open" ? "No open comments" : "No resolved comments") }),
+      el("p", { text: t(none ? "Select any text on the page to start a thread." : "Anything new you comment on will show up here.") }),
     ]);
     if (none) box.appendChild(pickButton("pick"));
     return box;
@@ -392,21 +404,21 @@ export function mountPanel(shadow, ctx) {
   function renderList() {
     const here = [];
     const earlier = [];
-    for (const t of visibleThreads()) {
-      const r = state.resolved.get(t.id) || { status: "orphaned" };
-      (r.status === "orphaned" ? earlier : here).push([t, r]);
+    for (const th of visibleThreads()) {
+      const r = state.resolved.get(th.id) || { status: "orphaned" };
+      (r.status === "orphaned" ? earlier : here).push([th, r]);
     }
     list.replaceChildren();
     if (here.length === 0 && earlier.length === 0) list.appendChild(emptyState());
-    for (const [t, r] of here) list.appendChild(threadRow(t, r));
+    for (const [th, r] of here) list.appendChild(threadRow(th, r));
     if (earlier.length) {
-      list.appendChild(el("div", { class: "section", text: "On an earlier version" }));
-      for (const [t, r] of earlier) list.appendChild(threadRow(t, r));
+      list.appendChild(el("div", { class: "section", text: t("On an earlier version") }));
+      for (const [th, r] of earlier) list.appendChild(threadRow(th, r));
     }
   }
 
   function renderLauncher(openN) {
-    launcher.replaceChildren(icon("comment", 15), el("span", { text: openN ? "Comments" : "Comment" }));
+    launcher.replaceChildren(icon("comment", 15), el("span", { text: t(openN ? "Comments" : "Comment") }));
     if (openN) launcher.appendChild(el("span", { class: "count", text: String(openN) }));
   }
 
@@ -414,11 +426,11 @@ export function mountPanel(shadow, ctx) {
     renderVersions();
 
     if (state.unavailable) {
-      note.textContent = "Comments are unavailable right now.";
+      note.textContent = t("Comments are unavailable right now.");
       note.style.display = "";
       cnt.textContent = "";
       seg.replaceChildren();
-      list.replaceChildren(el("div", { class: "empty" }, [el("p", { text: "Comments unavailable." })]));
+      list.replaceChildren(el("div", { class: "empty" }, [el("p", { text: t("Comments unavailable.") })]));
       renderLauncher(0);
       return;
     }
@@ -426,10 +438,10 @@ export function mountPanel(shadow, ctx) {
     const pinned = config.version !== state.currentVersion;
     note.style.display = pinned ? "" : "none";
     if (pinned) {
-      note.textContent = `Viewing v${config.version}. The current version is v${state.currentVersion}.`;
+      note.textContent = t("Viewing v%s. The current version is v%s.", config.version, state.currentVersion);
     }
 
-    const openN = state.threads.filter((t) => (t.status || "open") === "open").length;
+    const openN = state.threads.filter((th) => (th.status || "open") === "open").length;
     cnt.textContent = openN ? String(openN) : "";
     renderFilters();
     renderList();

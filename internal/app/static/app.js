@@ -3,6 +3,7 @@
 // action on the page works without this file; it just feels rougher.
 (function () {
   "use strict";
+  var t = window.byagentI18n.t, tn = window.byagentI18n.tn;
 
   // ---- Copy to clipboard ---------------------------------------------
   // data-copy="#input" copies that field's value; data-copy-text="…" copies
@@ -11,7 +12,7 @@
     var label = btn.querySelector(".menu-item-text") || (btn.classList.contains("btn") ? btn : null);
     var old = label ? label.textContent : null;
     btn.classList.add("is-copied");
-    if (label) label.textContent = "Copied";
+    if (label) label.textContent = t("Copied");
     setTimeout(function () {
       btn.classList.remove("is-copied");
       if (label) label.textContent = old;
@@ -107,7 +108,7 @@
     peek.el.className = "peek";
     peek.el.setAttribute("role", "dialog");
     peek.el.setAttribute("aria-modal", "true");
-    peek.el.setAttribute("aria-label", "Artifact details");
+    peek.el.setAttribute("aria-label", t("Artifact details"));
     document.body.appendChild(peek.backdrop);
     document.body.appendChild(peek.el);
   }
@@ -123,7 +124,7 @@
     peek.el.innerHTML = html;
     peek.el.classList.remove("is-loading");
     var inner = peek.el.querySelector(".peek-inner");
-    if (inner && inner.getAttribute("data-peek-title")) document.title = inner.getAttribute("data-peek-title") + " · Artifacts";
+    if (inner && inner.getAttribute("data-peek-title")) document.title = inner.getAttribute("data-peek-title") + " · " + t("Artifacts");
     var focus = peek.el.querySelector("[autofocus]");
     if (focus) { focus.focus(); return; }
     var target = hash ? peek.el.querySelector("#" + hash) : null;
@@ -225,8 +226,10 @@
     if (isNaN(day)) return null;
     var startOf = function (d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
     var diff = Math.round((startOf(now) - startOf(day)) / 864e5);
-    if (diff === 0) return "Today";
-    if (diff === 1) return "Yesterday";
+    if (diff === 0) return t("Today");
+    if (diff === 1) return t("Yesterday");
+    var lang = document.documentElement.lang;
+    if (lang && lang !== "en") return day.toLocaleDateString(lang, { weekday: "short", month: "short", day: "numeric" });
     return day.toLocaleDateString(undefined, { weekday: "short" }) + " " + day.getDate() + " " + day.toLocaleDateString(undefined, { month: "short" });
   }
 
@@ -260,7 +263,7 @@
     toggle.hidden = false;
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
     if (open) {
-      toggle.textContent = "Show less";
+      toggle.textContent = t("Show less");
       return;
     }
     nav.classList.add("is-collapsed");
@@ -269,7 +272,7 @@
       if (chips[i] === active) continue;
       chips[i].classList.add("is-overflow");
       hidden++;
-      toggle.textContent = "+" + hidden + " more";
+      toggle.textContent = tn(hidden, "+%s more", "+%s more");
     }
     if (!hidden) toggle.hidden = true;
   }

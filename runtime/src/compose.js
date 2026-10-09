@@ -3,6 +3,7 @@
 import { anchorFromSelection, anchorFromElement } from "./dom.js";
 import { el, autogrow, snippet } from "./theme.js";
 import { icon } from "./icons.js";
+import { t } from "./i18n.js";
 
 const GAP = 8;
 const POP_W = 320;
@@ -27,7 +28,8 @@ border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--sh
 .pop .row .hint{flex:1 1 auto;font-size:11px;color:var(--muted);display:flex;gap:4px;align-items:center}
 .pop .err{margin:0 0 6px}
 .pop .sug{margin-bottom:8px}
-.pop .row .link{margin-right:auto;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:2px}
+.pop .row .link{margin-right:auto;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:2px;
+white-space:normal;flex:0 1 auto;text-align:left}
 `;
 
 function uuid() {
@@ -42,12 +44,12 @@ export function mountCompose(shadow, ctx) {
 
   shadow.appendChild(el("style", { text: STYLE }));
 
-  const fab = el("button", { class: "fab", type: "button", "aria-label": "Add comment" }, [
+  const fab = el("button", { class: "fab", type: "button", "aria-label": t("Add comment") }, [
     icon("plus", 14),
-    el("span", { text: "Add comment" }),
+    el("span", { text: t("Add comment") }),
   ]);
   fab.hidden = true;
-  const pop = el("div", { class: "pop", role: "dialog", "aria-label": "New comment" });
+  const pop = el("div", { class: "pop", role: "dialog", "aria-label": t("New comment") });
   pop.hidden = true;
   shadow.appendChild(fab);
   shadow.appendChild(pop);
@@ -108,8 +110,8 @@ export function mountCompose(shadow, ctx) {
     const name = el("input", {
       class: "field name",
       type: "text",
-      placeholder: "Your name",
-      "aria-label": "Your name",
+      placeholder: t("Your name"),
+      "aria-label": t("Your name"),
       value: known,
       onkeydown: (ev) => {
         if (ev.key === "Enter") {
@@ -118,14 +120,17 @@ export function mountCompose(shadow, ctx) {
         }
       },
     });
+    // "Commenting as %s" with the name in bold wherever the language puts it.
+    const [before, after] = t("Commenting as %s").split("%s");
     const who = el("p", { class: "who" }, [
-      document.createTextNode("Commenting as "),
+      document.createTextNode(before),
       el("b", { text: known }),
+      document.createTextNode(after),
       document.createTextNode("·"),
       el("button", {
         class: "link",
         type: "button",
-        text: "change",
+        text: t("change"),
         onclick: () => {
           who.hidden = true;
           name.hidden = false;
@@ -139,8 +144,8 @@ export function mountCompose(shadow, ctx) {
 
     const body = el("textarea", {
       class: "field",
-      placeholder: "Add a comment…",
-      "aria-label": "Comment",
+      placeholder: t("Add a comment…"),
+      "aria-label": t("Your comment"),
       rows: "3",
       onkeydown: (ev) => {
         if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) {
@@ -157,43 +162,44 @@ export function mountCompose(shadow, ctx) {
     const suggest = el("button", {
       class: "link",
       type: "button",
-      text: "Suggest an edit",
+      text: t("Suggest an edit"),
       onclick: () => {
         if (!sug) {
-          sug = el("textarea", { class: "field sug", rows: "2", "aria-label": "Suggested text" });
+          sug = el("textarea", { class: "field sug", rows: "2", "aria-label": t("Suggested text") });
           sug.value = anchor.quote || "";
           body.before(sug);
           autogrow(sug);
-          body.placeholder = "Why? (optional)";
+          body.placeholder = t("Why? (optional)");
         } else {
           sug.hidden = !sug.hidden;
         }
-        suggest.textContent = sug.hidden ? "Suggest an edit" : "Just comment";
+        suggest.textContent = t(sug.hidden ? "Suggest an edit" : "Just comment");
         (sug.hidden ? body : sug).focus();
       },
     });
     suggest.hidden = anchor.kind !== "text";
-    const send = el("button", { class: "btn pri send", type: "button", text: "Comment" });
-    const cancel = el("button", { class: "btn cancel", type: "button", text: "Cancel", onclick: hidePop });
+    const send = el("button", { class: "btn pri send", type: "button", text: t("[send] Comment") });
+    const cancel = el("button", { class: "btn cancel", type: "button", text: t("Cancel"), onclick: hidePop });
 
     send.addEventListener("click", async () => {
       const author = name.value.trim() || "Anonymous";
       const edit = sug && !sug.hidden && sug.value !== pending.quote ? sug.value : "";
+      // Stored in English, like "Anonymous": the panel shows it translated.
       const what = body.value.trim() || (edit ? "Suggested edit" : "");
       if (!what) {
-        err.textContent = "Write something first.";
+        err.textContent = t("Write something first.");
         err.hidden = false;
         body.focus();
         return;
       }
       store.set("name", author);
       send.disabled = true;
-      send.textContent = "Posting…";
+      send.textContent = t("Posting…");
       const res = await client.createThread(author, what, pending, uuid(), edit || undefined);
       send.disabled = false;
-      send.textContent = "Comment";
+      send.textContent = t("[send] Comment");
       if (!res.ok) {
-        err.textContent = res.error || "Could not post.";
+        err.textContent = res.error ? t(res.error) : t("Could not post.");
         err.hidden = false;
         return;
       }
@@ -206,7 +212,7 @@ export function mountCompose(shadow, ctx) {
     // Just the key chip: "to post" next to it does not fit beside the
     // suggest link and both buttons, so the words live in the tooltip.
     const keys = IS_MAC ? "⌘↵" : "Ctrl+↵";
-    const hint = el("span", { class: "hint", title: `Press ${keys} to post`, "aria-label": `Press ${keys} to post` }, [
+    const hint = el("span", { class: "hint", title: t("Press %s to post", keys), "aria-label": t("Press %s to post", keys) }, [
       el("span", { class: "kbd", text: keys }),
     ]);
     pop.replaceChildren();

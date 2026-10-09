@@ -3,80 +3,80 @@
 
 <section class="card">
   <div class="card-head">
-    <h2>Workspace</h2>
-    <span class="muted">Shown in the sidebar and on customer portals.</span>
+    <h2>{{t "Workspace"}}</h2>
+    <span class="muted">{{t "Shown in the sidebar and on customer portals."}}</span>
   </div>
   <form method="post" action="/app/settings/tenant" class="field-row">
     <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
     <label class="field">
-      <span class="field-label">Name</span>
+      <span class="field-label">{{t "Name"}}</span>
       <input id="name" type="text" name="name" required maxlength="64" value="{{.Viewer.Tenant.Name}}">
     </label>
-    <button type="submit" class="btn">Save</button>
+    <button type="submit" class="btn">{{t "Save"}}</button>
   </form>
   <dl class="props">
-    <dt>Kind</dt><dd><span class="badge">{{.Viewer.Tenant.Kind}}</span></dd>
-    <dt>Plan</dt><dd><span class="badge">{{.Viewer.Tenant.Plan}}</span></dd>
-    <dt>Id</dt><dd><span class="chip"><code>{{.Viewer.Tenant.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{.Viewer.Tenant.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span></dd>
+    <dt>{{t "Kind"}}</dt><dd><span class="badge">{{template "tenant-kind" .Viewer.Tenant.Kind}}</span></dd>
+    <dt>{{t "Plan"}}</dt><dd><span class="badge">{{template "tenant-plan" .Viewer.Tenant.Plan}}</span></dd>
+    <dt>{{t "Id"}}</dt><dd><span class="chip"><code>{{.Viewer.Tenant.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{.Viewer.Tenant.ID}}" title="{{t "Copy id"}}" aria-label="{{t "Copy id"}}">{{template "icon" "copy"}}</button></span></dd>
   </dl>
 </section>
 
 {{with .Data.Domains}}
 <section class="card" id="domains">
   <div class="card-head">
-    <h2>Custom domains</h2>
-    <span class="muted">Serve pages from a domain you own, like docs.example.com. Up to {{.Max}} per workspace.</span>
+    <h2>{{t "Custom domains"}}</h2>
+    <span class="muted">{{t "Serve pages from a domain you own, like docs.example.com. Up to %d per workspace." .Max}}</span>
   </div>
   {{if .Error}}<p class="alert">{{template "icon" "alert"}}{{.Error}}</p>{{end}}
   <form method="post" action="/app/settings/domains" class="field-row">
     <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
     <label class="field">
-      <span class="field-label">Domain</span>
+      <span class="field-label">{{t "Domain"}}</span>
       <input type="text" name="domain" required maxlength="253" placeholder="docs.example.com" autocomplete="off" spellcheck="false">
     </label>
-    <button type="submit" class="btn primary">Add domain</button>
+    <button type="submit" class="btn primary">{{t "Add domain"}}</button>
   </form>
   {{range .Domains}}
   <div class="setting-row domain-row" id="domain-{{.Domain}}">
     <div class="setting-text">
       <strong><a class="link" href="{{.URL}}" target="_blank" rel="noopener">{{.Domain}}</a></strong>
-      {{if eq .Status "active"}}<span class="badge ok">Active</span>{{else if eq .Status "error"}}<span class="badge">Needs attention</span>{{else}}<span class="badge">Pending</span>{{end}}
+      {{if eq .Status "active"}}<span class="badge ok">{{t "Active"}}</span>{{else if eq .Status "error"}}<span class="badge">{{t "Needs attention"}}</span>{{else}}<span class="badge">{{t "Pending"}}</span>{{end}}
       {{with .Verification}}<p class="muted">{{.Message}}</p>{{end}}
       {{if ne .Status "active"}}
       <table class="table flush">
-        <thead><tr><th>Type</th><th>Host</th><th>Value</th></tr></thead>
+        <thead><tr><th>{{t "Type"}}</th><th>{{t "Host"}}</th><th>{{t "Value"}}</th></tr></thead>
         <tbody>
         {{range .DNSInstructions}}
-        <tr><td><span class="badge mono">{{.Type}}</span></td><td><code>{{.Host}}</code></td><td><span class="chip"><code>{{.Value}}</code><button type="button" class="chip-copy" data-copy-text="{{.Value}}" title="Copy value" aria-label="Copy value">{{template "icon" "copy"}}</button></span></td></tr>
+        <tr><td><span class="badge mono">{{.Type}}</span></td><td><code>{{.Host}}</code></td><td><span class="chip"><code>{{.Value}}</code><button type="button" class="chip-copy" data-copy-text="{{.Value}}" title="{{t "Copy value"}}" aria-label="{{t "Copy value"}}">{{template "icon" "copy"}}</button></span></td></tr>
         {{end}}
         </tbody>
       </table>
       {{end}}
       {{if .Mounts}}
-      <p class="muted">Serving: {{range $i, $m := .Mounts}}{{if $i}}, {{end}}<a class="link" href="/app/artifacts/{{$m.ArtifactID}}#domains">{{$m.Path}}</a>{{if $m.Primary}} (primary){{end}}{{end}}</p>
+      <p class="muted">{{t "Serving:"}} {{range $i, $m := .Mounts}}{{if $i}}, {{end}}<a class="link" href="/app/artifacts/{{$m.ArtifactID}}#domains">{{$m.Path}}</a>{{if $m.Primary}} {{t "(primary)"}}{{end}}{{end}}</p>
       {{else}}
-      <p class="muted">No pages yet. Open a page and choose this domain under Domains.</p>
+      <p class="muted">{{t "No pages yet. Open a page and choose this domain under Domains."}}</p>
       {{end}}
     </div>
     <div class="switch-form">
       {{if ne .Status "active"}}
       <form method="post" action="/app/settings/domains/{{.Domain}}/check">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-        <button type="submit" class="btn small">Check now</button>
+        <button type="submit" class="btn small">{{t "Check now"}}</button>
       </form>
       {{end}}
       <details class="confirm">
-        <summary class="btn small danger">{{template "icon" "trash"}} Remove</summary>
+        <summary class="btn small danger">{{template "icon" "trash"}} {{t "Remove"}}</summary>
         <form method="post" action="/app/settings/domains/{{.Domain}}/delete" class="confirm-body">
           <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <p>Pages stop being served on {{.Domain}}. Their byagent links keep working.</p>
-          <button type="submit" class="btn small danger solid">Remove domain</button>
+          <p>{{t "Pages stop being served on %s. Their byagent links keep working." .Domain}}</p>
+          <button type="submit" class="btn small danger solid">{{t "Remove domain"}}</button>
         </form>
       </details>
     </div>
   </div>
   {{else}}
-  <p class="card-empty">No custom domains yet. Add one, then create the two DNS records it shows: a CNAME to {{.Target}} and a TXT record that proves the domain is yours.</p>
+  <p class="card-empty">{{t "No custom domains yet. Add one, then create the two DNS records it shows: a CNAME to %s and a TXT record that proves the domain is yours." .Target}}</p>
   {{end}}
 </section>
 {{end}}
@@ -84,39 +84,39 @@
 {{if not .Viewer.Integrator}}
 <section class="card">
   <div class="card-head">
-    <h2>Create an integrator workspace</h2>
-    <span class="muted">An integrator workspace attributes artifacts to your end users and can mint portal links for them.</span>
+    <h2>{{t "Create an integrator workspace"}}</h2>
+    <span class="muted">{{t "An integrator workspace attributes artifacts to your end users and can mint portal links for them."}}</span>
   </div>
   <form method="post" action="/app/settings/integrator" class="field-row">
     <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
     <label class="field">
-      <span class="field-label">Workspace name</span>
-      <input type="text" name="name" required maxlength="64" placeholder="e.g. Acme Inc">
+      <span class="field-label">{{t "Workspace name"}}</span>
+      <input type="text" name="name" required maxlength="64" placeholder="{{t "e.g. Acme Inc"}}">
     </label>
-    <button type="submit" class="btn primary">Create workspace</button>
+    <button type="submit" class="btn primary">{{t "Create workspace"}}</button>
   </form>
 </section>
 {{end}}
 
 <section class="card">
   <div class="card-head">
-    <h2>Variables</h2>
-    <span class="muted">API keys your pages can use through proxy routes, without the key ever reaching a browser.</span>
+    <h2>{{t "Variables"}}</h2>
+    <span class="muted">{{t "API keys your pages can use through proxy routes, without the key ever reaching a browser."}}</span>
   </div>
-  <a class="btn" href="/app/settings/variables">{{template "icon" "key"}} Manage variables</a>
+  <a class="btn" href="/app/settings/variables">{{template "icon" "key"}} {{t "Manage variables"}}</a>
 </section>
 
 <section class="card">
   <div class="card-head">
-    <h2>Sign-in methods</h2>
-    <span class="muted">Signed in as {{.Viewer.User.Email}}.</span>
+    <h2>{{t "Sign-in methods"}}</h2>
+    <span class="muted">{{t "Signed in as %s." .Viewer.User.Email}}</span>
   </div>
   <dl class="props">
     {{range .Data.Identities}}<dt>{{.Provider}}</dt><dd>{{.Subject}}</dd>{{end}}
   </dl>
   <form method="post" action="/app/logout">
     <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
-    <button type="submit" class="btn">{{template "icon" "logout"}} Sign out</button>
+    <button type="submit" class="btn">{{template "icon" "logout"}} {{t "Sign out"}}</button>
   </form>
 </section>
 {{end}}

@@ -54,7 +54,7 @@ func splitAllowText(text string) (emails, domains []string) {
 func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	fail := func(msg string) {
@@ -62,7 +62,7 @@ func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 	}
 	// Saving may hash a password, which is deliberately expensive.
 	if ok, _ := h.AccessLimiter.Allow(v.Session.UserID); !ok {
-		h.renderArtifactWith(w, r, 429, v, a.ID, artifactOpts{AccessError: "Too many changes in a short time. Wait a minute, then try again."})
+		h.renderArtifactWith(w, r, 429, v, a.ID, artifactOpts{AccessError: tr(r, "Too many changes in a short time. Wait a minute, then try again.")})
 		return
 	}
 	ctx := r.Context()
@@ -78,7 +78,7 @@ func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 		}
 	case "password":
 		if h.Cfg.KeySecret == "" {
-			fail("Password pages need KEY_SIGNING_SECRET set on the server.")
+			fail(tr(r, "Password pages need %s set on the server.", "KEY_SIGNING_SECRET"))
 			return
 		}
 		pw := r.PostForm.Get("password")
@@ -86,7 +86,7 @@ func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 			break // keep the current password
 		}
 		if pw == "" {
-			fail("Enter a password.")
+			fail(tr(r, "Enter a password."))
 			return
 		}
 		if err := serve.ValidPassword(pw); err != nil {
@@ -95,7 +95,7 @@ func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 		}
 		hash, err := serve.HashPassword(ctx, pw)
 		if errors.Is(err, serve.ErrBusy) {
-			h.renderArtifactWith(w, r, 503, v, a.ID, artifactOpts{AccessError: "Too many passwords are being set right now. Try again in a moment."})
+			h.renderArtifactWith(w, r, 503, v, a.ID, artifactOpts{AccessError: tr(r, "Too many passwords are being set right now. Try again in a moment.")})
 			return
 		}
 		if err != nil {
@@ -128,7 +128,7 @@ func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 			break
 		}
 		if !h.accessFormOf(a).Mail {
-			fail("This server cannot send email, so the people on the list could not get their code.")
+			fail(tr(r, "This server cannot send email, so the people on the list could not get their code."))
 			return
 		}
 		if err := h.Store.SetAccess(ctx, a.ID, store.Access{Mode: serve.AccessRestricted, Allow: allow}); err != nil {
@@ -136,7 +136,7 @@ func (h *Handler) setAccess(w http.ResponseWriter, r *http.Request, v *viewer) {
 			return
 		}
 	default:
-		fail("Choose who can open this page.")
+		fail(tr(r, "Choose who can open this page."))
 		return
 	}
 	h.backToArtifact(w, r, v, a.ID, "#access")

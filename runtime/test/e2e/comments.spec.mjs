@@ -816,3 +816,95 @@ test("compose footer stays on one line, with or without a suggested edit", async
   await expect(shadow.locator(".pop .row .link")).toHaveText("Just comment");
   await oneLine();
 });
+
+// The panel follows the reader's browser language, not the page's <html lang>:
+// this English page is read by someone whose browser asks for Chinese.
+test.describe("a reader whose browser prefers Simplified Chinese", () => {
+  test.use({ locale: "zh-CN" });
+
+  test("sees the panel in Chinese on an English page", async ({ page }) => {
+    const html = readFileSync("./test/e2e/fixture-basic.html", "utf8").replace("<html>", '<html lang="en">');
+    const id = publish({ "index.html": html });
+    await createThread(id, "First", "brown fox", "The quick ", " jumps");
+    await fetch(`${BASE}/c/${id}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        author_name: "Anonymous",
+        body: "No name given",
+        anchor: { kind: "text", quote: "twelve percent", prefix: "Revenue grew by ", suffix: " this quarter." },
+        version: 1,
+      }),
+    });
+
+    await page.goto(`${BASE}/a/${id}/`);
+    const shadow = page.locator("#artifacts-rt");
+    await expect(shadow).toHaveAttribute("lang", "zh-CN");
+    await expect(shadow.locator(".launcher")).toContainText("评论");
+    await expect(shadow.locator(".launcher")).toHaveAttribute("aria-label", "打开评论");
+    await shadow.locator(".launcher").click();
+    await expect(shadow.locator("header h2")).toContainText("评论");
+    await expect(shadow.locator(".chip")).toHaveText(["未解决2", "已解决0", "全部2"]);
+    await expect(shadow.locator(".foot")).toContainText("选中文字或");
+    await expect(shadow.locator(".thread .time").first()).toHaveText("现在");
+    // Stored as "Anonymous", shown in the reader's language.
+    await expect(shadow.locator(".thread", { hasText: "No name given" })).toContainText("匿名");
+
+    await shadow.locator(".thread").first().click();
+    await expect(shadow.locator(".reply textarea")).toHaveAttribute("placeholder", "以 匿名 的身份回复…");
+
+    // The compose popover, from a text selection.
+    await selectText(page, "#p1");
+    await expect(shadow.locator(".fab")).toHaveText("添加评论");
+    await shadow.locator(".fab").click();
+    await expect(shadow.locator(".pop textarea.field")).toHaveAttribute("placeholder", "写下评论…");
+    await expect(shadow.locator(".pop .cancel")).toHaveText("取消");
+  });
+});
+
+// German and French run the longest; their labels must not push the compose
+// buttons out of the popover or the panel's chips and footer out of the panel.
+for (const locale of ["de-DE", "fr-FR"]) {
+  test.describe(`a ${locale} reader`, () => {
+    test.use({ locale });
+
+    test("long labels fit the popover and the panel", async ({ page }) => {
+      const html = readFileSync("./test/e2e/fixture-basic.html", "utf8");
+      const id = publish({ "index.html": html });
+      await createThread(id, "First", "brown fox", "The quick ", " jumps");
+      await page.goto(`${BASE}/a/${id}/`);
+      const shadow = page.locator("#artifacts-rt");
+      const fits = (sel) =>
+        shadow.locator(sel).first().evaluate((n) => ({ sw: n.scrollWidth, cw: n.clientWidth, h: n.getBoundingClientRect().height }));
+
+      await shadow.locator(".launcher").click();
+      for (const sel of [".seg", ".foot", "header", ".thread .head"]) {
+        const m = await fits(sel);
+        expect(m.sw, `${sel} overflows`).toBeLessThanOrEqual(m.cw);
+      }
+      await shadow.locator(".close").click();
+
+      await selectText(page, "#p2");
+      await shadow.locator(".fab").click();
+      const send = await shadow.locator(".pop .send").boundingBox();
+      for (const step of ["comment", "suggest"]) {
+        if (step === "suggest") await shadow.locator(".pop .row .link").click();
+        const row = await fits(".pop .row");
+        expect(row.sw, `row overflows (${step})`).toBeLessThanOrEqual(row.cw);
+        // The suggest link may wrap between words, but never runs under the key hint.
+        const link = await fits(".pop .row .link");
+        expect(link.sw, `link text overflows its box (${step})`).toBeLessThanOrEqual(link.cw);
+        const lb = await shadow.locator(".pop .row .link").boundingBox();
+        const hb = await shadow.locator(".pop .row .hint").boundingBox();
+        expect(lb.x + lb.width).toBeLessThanOrEqual(hb.x + 0.5);
+        for (const sel of [".cancel", ".send"]) {
+          const b = await shadow.locator(`.pop .row ${sel}`).boundingBox();
+          expect(b.height, `${sel} wraps (${step})`).toBeLessThan(send.height * 1.5);
+        }
+        const pop = await shadow.locator(".pop").boundingBox();
+        const last = await shadow.locator(".pop .send").boundingBox();
+        expect(last.x + last.width).toBeLessThanOrEqual(pop.x + pop.width);
+      }
+    });
+  });
+}

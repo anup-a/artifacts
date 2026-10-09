@@ -7,6 +7,7 @@ import { mountPanel } from "./panel.js";
 import { mountCompose } from "./compose.js";
 import { resolveAnchor } from "./dom.js";
 import { paintThreads, clearHighlights } from "./highlight.js";
+import { LANG } from "./i18n.js";
 
 const HOST_ID = "artifacts-rt";
 
@@ -54,6 +55,9 @@ async function boot() {
 
   const host = document.createElement("div");
   host.id = HOST_ID;
+  // The reader's language, not the page's: picks the right CJK glyphs and
+  // hyphenation for the panel's own text.
+  host.lang = LANG;
   const shadow = host.attachShadow({ mode: "open" });
   document.body.appendChild(host);
 

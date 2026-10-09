@@ -1,32 +1,32 @@
 {{define "content"}}
 {{if .Data.Claimed}}
 <div class="callout ok">
-  <div class="callout-head">{{template "icon" "check"}}<strong>Your guest pages are in <a class="link" href="/app/artifacts">Artifacts</a> now.</strong> The guest key has stopped working. Connect your agent below so it keeps publishing here.</div>
+  <div class="callout-head">{{template "icon" "check"}}{{th "<strong>Your guest pages are in <a class=\"link\" href=\"/app/artifacts\">Artifacts</a> now.</strong> The guest key has stopped working. Connect your agent below so it keeps publishing here."}}</div>
 </div>
 {{end}}
 
 {{with .Data.Pending}}
 <section class="card">
   <div class="card-head">
-    <h2>Approve an agent</h2>
-    <span class="muted">A CLI asked to publish to {{$.Viewer.Tenant.Name}}. The request expires <time title="{{when .ExpiresAt}} UTC">{{when .ExpiresAt}} UTC</time>.</span>
+    <h2>{{t "Approve an agent"}}</h2>
+    <span class="muted">{{th "A CLI asked to publish to %s. The request expires <time title=\"%s UTC\">%s UTC</time>." $.Viewer.Tenant.Name (when .ExpiresAt) (when .ExpiresAt)}}</span>
   </div>
   <dl class="connect-facts">
-    <dt>Key name</dt><dd>{{.Name}}</dd>
-    <dt>Code</dt><dd><code class="connect-code">{{.Code}}</code></dd>
+    <dt>{{t "Key name"}}</dt><dd>{{.Name}}</dd>
+    <dt>{{t "Code"}}</dt><dd><code class="connect-code">{{.Code}}</code></dd>
   </dl>
-  <p class="muted">Approve only if you just ran <code>byagent login --browser</code> and your terminal shows this same code. Approving gives that agent a key that publishes and manages every artifact in {{$.Viewer.Tenant.Name}}.</p>
+  <p class="muted">{{th "Approve only if you just ran <code>%s</code> and your terminal shows this same code. Approving gives that agent a key that publishes and manages every artifact in %s." "byagent login --browser" $.Viewer.Tenant.Name}}</p>
   <form method="post" action="/app/connect/approve" class="field-row">
     <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
     <input type="hidden" name="code" value="{{.Code}}">
-    <button type="submit" class="btn primary">Approve</button>
-    <a class="btn" href="/app/artifacts">Cancel</a>
+    <button type="submit" class="btn primary">{{t "Approve"}}</button>
+    <a class="btn" href="/app/artifacts">{{t "Cancel"}}</a>
   </form>
 </section>
 
 {{else}}{{if .Data.Approved}}
 <div class="callout ok">
-  <div class="callout-head">{{template "icon" "check"}}<strong>Connected.</strong> <span>{{.Data.Approved}} can publish to {{.Viewer.Tenant.Name}} now. Go back to your terminal. You can revoke it any time under <a class="link" href="/app/keys">API keys</a>.</span></div>
+  <div class="callout-head">{{template "icon" "check"}}<strong>{{t "Connected."}}</strong> <span>{{th "%s can publish to %s now. Go back to your terminal. You can revoke it any time under <a class=\"link\" href=\"/app/keys\">API keys</a>." .Data.Approved .Viewer.Tenant.Name}}</span></div>
 </div>
 
 {{else}}

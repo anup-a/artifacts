@@ -9,11 +9,15 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/anup-a/artifacts/internal/i18n"
 )
 
 // Sender delivers magic links. EMAIL_PROVIDER picks the implementation.
+// lang is the language the email is written in, the one the sign-in form
+// was shown in.
 type Sender interface {
-	SendMagicLink(ctx context.Context, to, url string) error
+	SendMagicLink(ctx context.Context, to, url, lang string) error
 }
 
 // LogSender writes the link to the log instead of sending mail. It is the
@@ -21,7 +25,7 @@ type Sender interface {
 // server log.
 type LogSender struct{}
 
-func (LogSender) SendMagicLink(_ context.Context, to, url string) error {
+func (LogSender) SendMagicLink(_ context.Context, to, url, _ string) error {
 	slog.Info("magic link", "email", to, "magic_link_url", url)
 	return nil
 }
@@ -36,8 +40,18 @@ type ResendSender struct {
 	HTTP   *http.Client // defaults to a client with a 10s timeout
 }
 
-func (s ResendSender) SendMagicLink(ctx context.Context, to, url string) error {
-	return s.send(ctx, to, "Sign in to byagent", "Open this link to sign in. It works once and expires in 15 minutes.\n\n"+url+"\n\nIf you did not ask for this, ignore this email.\n")
+func (s ResendSender) SendMagicLink(ctx context.Context, to, url, lang string) error {
+	subject, text := MagicLinkEmail(lang, url)
+	return s.send(ctx, to, subject, text)
+}
+
+// MagicLinkEmail is the subject and plain-text body of a sign-in email in
+// lang.
+func MagicLinkEmail(lang, url string) (subject, text string) {
+	return i18n.T(lang, "Sign in to byagent"),
+		i18n.T(lang, "Open this link to sign in. It works once and expires in 15 minutes.") + "\n\n" +
+			url + "\n\n" +
+			i18n.T(lang, "If you did not ask for this, ignore this email.") + "\n"
 }
 
 func (s ResendSender) send(ctx context.Context, to, subject, text string) error {

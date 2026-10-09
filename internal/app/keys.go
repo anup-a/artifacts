@@ -30,7 +30,7 @@ func (h *Handler) renderKeys(w http.ResponseWriter, r *http.Request, status int,
 		return
 	}
 	d := keysData{Rows: rows, NewKey: newKey, Error: msg, API: h.Cfg.APIOrigin}
-	h.render(w, r, status, "keys", "API keys", v, d)
+	h.render(w, r, status, "keys", tr(r, "API keys"), v, d)
 }
 
 // cleanName trims and bounds a user-supplied label; ok is false when empty
@@ -46,11 +46,11 @@ func cleanName(raw string) (string, bool) {
 func (h *Handler) createKey(w http.ResponseWriter, r *http.Request, v *viewer) {
 	name, ok := cleanName(r.PostForm.Get("name"))
 	if !ok {
-		h.renderKeys(w, r, 400, v, "", "Give the key a name of 1 to 64 characters.")
+		h.renderKeys(w, r, 400, v, "", tr(r, "Give the key a name of 1 to 64 characters."))
 		return
 	}
 	if ok, _ := h.KeyLimiter.Allow(v.Tenant.ID); !ok {
-		h.renderError(w, r, 429, "Too many keys created recently. Try again in an hour.")
+		h.renderError(w, r, 429, tr(r, "Too many keys created recently. Try again in an hour."))
 		return
 	}
 	plain, hash := ids.NewKey()
@@ -64,11 +64,11 @@ func (h *Handler) createKey(w http.ResponseWriter, r *http.Request, v *viewer) {
 func (h *Handler) revokeKey(w http.ResponseWriter, r *http.Request, v *viewer) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		h.renderError(w, r, 404, "That key does not exist.")
+		h.renderError(w, r, 404, tr(r, "That key does not exist."))
 		return
 	}
 	if err := h.Store.RevokeKey(r.Context(), v.Tenant.ID, id, h.Now()); err != nil {
-		h.storeErr(w, r, err, "That key does not exist.")
+		h.storeErr(w, r, err, tr(r, "That key does not exist."))
 		return
 	}
 	http.Redirect(w, r, "/app/keys", http.StatusFound)

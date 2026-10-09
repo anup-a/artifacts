@@ -45,9 +45,10 @@ func NormalizeEmail(raw string) (string, error) {
 	return email, nil
 }
 
-// Issue creates a link for email and hands it to the sender. Only the
-// token's hash is stored.
-func (m *MagicLinks) Issue(ctx context.Context, rawEmail string) error {
+// Issue creates a link for email and hands it to the sender, to be written
+// in lang (an i18n locale code; English when unknown). Only the token's hash
+// is stored.
+func (m *MagicLinks) Issue(ctx context.Context, rawEmail, lang string) error {
 	email, err := NormalizeEmail(rawEmail)
 	if err != nil {
 		return err
@@ -58,7 +59,7 @@ func (m *MagicLinks) Issue(ctx context.Context, rawEmail string) error {
 	if err := m.Store.CreateMagicLink(ctx, link); err != nil {
 		return err
 	}
-	return m.Send.SendMagicLink(ctx, email, m.Origin+"/app/login/email/verify?token="+url.QueryEscape(token))
+	return m.Send.SendMagicLink(ctx, email, m.Origin+"/app/login/email/verify?token="+url.QueryEscape(token), lang)
 }
 
 // Verify consumes a token and returns the address it was issued for.

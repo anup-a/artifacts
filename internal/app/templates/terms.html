@@ -1,8 +1,8 @@
-{{define "title"}}Terms of service · byagent{{end}}
+{{define "title"}}{{t "Terms of service"}} · byagent{{end}}
 
 {{define "head"}}
-<meta name="description" content="The terms for using byagent: your content stays yours, what readers can do, the free service and its limits, and how we process data for you.">
-<meta property="og:title" content="Terms of service · byagent">
+<meta name="description" content="{{t "The terms for using byagent: your content stays yours, what readers can do, the free service and its limits, and how we process data for you."}}">
+<meta property="og:title" content="{{t "Terms of service"}} · byagent">
 {{template "doc-head" .Data}}
 {{end}}
 
@@ -13,13 +13,14 @@
 
 <article class="lp-doc">
   <header class="lp-doc-head">
-    <p class="lp-doc-kicker">Legal</p>
-    <h1>Terms of service</h1>
+    <p class="lp-doc-kicker">{{t "Legal"}}</p>
+    <h1>{{t "Terms of service"}}</h1>
+    {{if ne $.Lang "en"}}<p class="lp-doc-note">{{t "This page is in English only. The English version is the one that applies."}}</p>{{end}}
     {{template "doc-meta" $d}}
   </header>
 
-  <aside class="lp-summary" aria-label="Summary">
-    <h2>In short</h2>
+  <aside class="lp-summary" aria-label="{{t "Summary"}}">
+    <h2>{{t "In short"}}</h2>
     <ul>
       <li>Your pages are yours. We only host, show and send them so the service works, and we do not train AI models on them.</li>
       <li>Comments are visible to anyone who can see the page. You moderate the comments on your pages.</li>
@@ -29,7 +30,7 @@
     </ul>
   </aside>
 
-  <nav class="lp-toc" aria-label="On this page">
+  <nav class="lp-toc" aria-label="{{t "On this page"}}">
     <a href="#service">The service</a>
     <a href="#accounts">Accounts and keys</a>
     <a href="#content">Your content</a>

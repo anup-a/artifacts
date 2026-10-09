@@ -24,6 +24,7 @@ import (
 	"golang.org/x/crypto/argon2"
 
 	"github.com/anup-a/artifacts/internal/auth"
+	"github.com/anup-a/artifacts/internal/i18n"
 	"github.com/anup-a/artifacts/internal/ids"
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/store"
@@ -548,8 +549,9 @@ func (h *Handler) requestAccessCode(w http.ResponseWriter, r *http.Request) {
 	// Everything that depends on the list, the page's and workspace's mail
 	// budgets included, happens after the answer and off the request: the
 	// answer and its timing are the same for every address.
+	lang := i18n.Lang(r)
 	h.later(func() {
-		if err := h.mailAccessCode(context.Background(), a, email); err != nil {
+		if err := h.mailAccessCode(context.Background(), a, email, lang); err != nil {
 			slog.Error("access code", "artifact", a.ID, "err", err)
 		}
 	})
@@ -569,7 +571,7 @@ func (h *Handler) later(fn func()) {
 // mailAccessCode mails a code to a listed address, if the page, workspace and
 // server budgets still allow it. An unlisted or over-budget address is
 // dropped silently: the visitor was already told the same thing either way.
-func (h *Handler) mailAccessCode(ctx context.Context, a store.Artifact, email string) error {
+func (h *Handler) mailAccessCode(ctx context.Context, a store.Artifact, email, lang string) error {
 	if !AllowedEmail(a.AccessAllow, email) {
 		return nil
 	}
@@ -598,12 +600,13 @@ func (h *Handler) mailAccessCode(ctx context.Context, a store.Artifact, email st
 	// Host would otherwise mail a live token to a server of the attacker's
 	// choosing.
 	link := h.pageURLs().Page(a.ID, a.Slug) + accessLinkPath + "?t=" + url.QueryEscape(token)
-	text := "Your code to open a page shared with you on byagent:\n\n    " + code + "\n\n" +
-		"Enter it on the page, or open this link in the browser you want to read it in:\n\n" + link + "\n\n" +
-		"The code and the link work once and stop working in 15 minutes. If you did not ask for this, ignore this email.\n"
+	// In the language of the browser that asked for it.
+	text := i18n.T(lang, "Your code to open a page shared with you on byagent:") + "\n\n    " + code + "\n\n" +
+		i18n.T(lang, "Enter it on the page, or open this link in the browser you want to read it in:") + "\n\n" + link + "\n\n" +
+		i18n.T(lang, "The code and the link work once and stop working in 15 minutes. If you did not ask for this, ignore this email.") + "\n"
 	sendCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	return h.Mail.SendMail(sendCtx, email, "Your byagent code: "+code, text)
+	return h.Mail.SendMail(sendCtx, email, i18n.T(lang, "Your byagent code: %s", code), text)
 }
 
 // submitAccessCode checks a mailed code typed into the gate.

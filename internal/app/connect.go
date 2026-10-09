@@ -52,7 +52,7 @@ func (h *Handler) connectPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if code == "" {
-		h.render(w, r, 200, "connect", "Connect an agent", v, connectData{Prompt: h.mintPrompt(r, v), Claimed: r.URL.Query().Get("claimed") == "1"})
+		h.render(w, r, 200, "connect", tr(r, "Connect an agent"), v, connectData{Prompt: h.mintPrompt(r, v), Claimed: r.URL.Query().Get("claimed") == "1"})
 		return
 	}
 	c, msg := h.pendingByCode(r, code)
@@ -61,15 +61,15 @@ func (h *Handler) connectPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	d := connectData{Pending: &pendingConnect{Code: displayCode(code), Name: c.Name, ExpiresAt: c.ExpiresAt}}
-	h.render(w, r, 200, "connect", "Approve an agent", v, d)
+	h.render(w, r, 200, "connect", tr(r, "Approve an agent"), v, d)
 }
 
 // pendingByCode finds a CLI-started request that still waits for approval.
 func (h *Handler) pendingByCode(r *http.Request, code string) (store.ConnectCode, string) {
-	const gone = "This connect code has expired or was already used. Run byagent login --browser again for a new one."
+	gone := tr(r, "This connect code has expired or was already used. Run %s again for a new one.", "byagent login --browser")
 	hash := connect.Hash(code)
 	if hash == "" {
-		return store.ConnectCode{}, "This connect code is not valid."
+		return store.ConnectCode{}, tr(r, "This connect code is not valid.")
 	}
 	c, err := h.Store.ConnectByCode(r.Context(), hash, h.Now())
 	if err != nil || c.DeviceSHA256 == "" || c.ApprovedAt != nil {
@@ -107,7 +107,7 @@ func (h *Handler) mintPrompt(r *http.Request, v *viewer) *promptView {
 // createConnect answers the old "Create connect prompt" form; the page now
 // shows a prompt straight away, so this just shows it again.
 func (h *Handler) createConnect(w http.ResponseWriter, r *http.Request, v *viewer) {
-	h.render(w, r, 200, "connect", "Connect an agent", v, connectData{Prompt: h.mintPrompt(r, v), Claimed: r.PostForm.Get("claimed") == "1"})
+	h.render(w, r, 200, "connect", tr(r, "Connect an agent"), v, connectData{Prompt: h.mintPrompt(r, v), Claimed: r.PostForm.Get("claimed") == "1"})
 }
 
 // approveConnect binds a waiting CLI request to this workspace. The CLI,
@@ -121,14 +121,14 @@ func (h *Handler) approveConnect(w http.ResponseWriter, r *http.Request, v *view
 	}
 	err := h.Store.ApproveConnect(r.Context(), c.CodeSHA256, v.Tenant.ID, v.User.Email, h.Now())
 	if errors.Is(err, store.ErrNotFound) {
-		h.renderError(w, r, http.StatusGone, "This connect code has expired or was already used. Run byagent login --browser again for a new one.")
+		h.renderError(w, r, http.StatusGone, tr(r, "This connect code has expired or was already used. Run %s again for a new one.", "byagent login --browser"))
 		return
 	}
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, r, 200, "connect", "Agent connected", v, connectData{Approved: c.Name})
+	h.render(w, r, 200, "connect", tr(r, "Agent connected"), v, connectData{Approved: c.Name})
 }
 
 // connectPrompt is what a person pastes into their agent. It names the

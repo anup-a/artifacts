@@ -4,11 +4,11 @@
   <section class="auth-panel">
     <a class="brand auth-brand" href="/app/login">{{template "icon" "mark"}}<span>byagent</span></a>
     <div class="auth-body">
-      <h1>Check your inbox</h1>
-      <p class="muted auth-sub">If this address can receive mail, a sign-in link is on its way.</p>
+      <h1>{{t "Check your inbox"}}</h1>
+      <p class="muted auth-sub">{{t "If this address can receive mail, a sign-in link is on its way."}}</p>
       <p class="auth-email">{{.Data.Email}}</p>
-      <p class="auth-facts muted">Works once · Expires in 15 minutes</p>
-      <p class="muted">Wrong address? <a class="link" href="/app/login">Use a different email</a>.</p>
+      <p class="auth-facts muted">{{t "Works once · Expires in 15 minutes"}}</p>
+      <p class="muted">{{th "Wrong address? <a class=\"link\" href=\"/app/login\">Use a different email</a>."}}</p>
     </div>
   </section>
 </div>

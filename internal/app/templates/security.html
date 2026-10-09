@@ -1,8 +1,8 @@
-{{define "title"}}Security · byagent{{end}}
+{{define "title"}}{{t "Security"}} · byagent{{end}}
 
 {{define "head"}}
-<meta name="description" content="How byagent is hosted and protected: where data lives, encryption, origin isolation, share codes, keys, backups, incident response, and what we do not claim.">
-<meta property="og:title" content="Security · byagent">
+<meta name="description" content="{{t "How byagent is hosted and protected: where data lives, encryption, origin isolation, share codes, keys, backups, incident response, and what we do not claim."}}">
+<meta property="og:title" content="{{t "Security"}} · byagent">
 {{template "doc-head" .Data}}
 {{end}}
 
@@ -13,13 +13,14 @@
 
 <article class="lp-doc">
   <header class="lp-doc-head">
-    <p class="lp-doc-kicker">Trust</p>
-    <h1>Security</h1>
+    <p class="lp-doc-kicker">{{t "Trust"}}</p>
+    <h1>{{t "Security"}}</h1>
+    {{if ne $.Lang "en"}}<p class="lp-doc-note">{{t "This page is in English only. The English version is the one that applies."}}</p>{{end}}
     {{template "doc-meta" $d}}
   </header>
 
-  <aside class="lp-summary" aria-label="Summary">
-    <h2>In short</h2>
+  <aside class="lp-summary" aria-label="{{t "Summary"}}">
+    <h2>{{t "In short"}}</h2>
     <ul>
       <li>One Fly.io machine in Singapore. The database and published files sit on a volume encrypted at rest. Every connection uses TLS.</li>
       {{if $d.ContentDomain}}<li>Every published page has an origin of its own on {{$d.ContentDomain}}, a domain apart from byagent.dev, so a page's scripts cannot reach your signed-in session or another page.</li>{{else}}<li>Published pages and the dashboard live on different origins, so a page's scripts cannot reach your signed-in session.</li>{{end}}
@@ -30,7 +31,7 @@
     </ul>
   </aside>
 
-  <nav class="lp-toc" aria-label="On this page">
+  <nav class="lp-toc" aria-label="{{t "On this page"}}">
     <a href="#hosting">Hosting and data location</a>
     <a href="#encryption">Encryption</a>
     <a href="#origins">Origins and isolation</a>

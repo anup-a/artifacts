@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-type captureSender struct{ to, url string }
+type captureSender struct{ to, url, lang string }
 
-func (c *captureSender) SendMagicLink(_ context.Context, to, u string) error {
-	c.to, c.url = to, u
+func (c *captureSender) SendMagicLink(_ context.Context, to, u, lang string) error {
+	c.to, c.url, c.lang = to, u, lang
 	return nil
 }
 
@@ -35,11 +35,11 @@ func tokenOf(t *testing.T, link string) string {
 
 func TestMagicLinkRoundTrip(t *testing.T) {
 	m, snd, _ := magicFor(t)
-	if err := m.Issue(context.Background(), " Person@X.io "); err != nil {
+	if err := m.Issue(context.Background(), " Person@X.io ", "ja"); err != nil {
 		t.Fatal(err)
 	}
-	if snd.to != "person@x.io" || !strings.HasPrefix(snd.url, "http://api.test/app/login/email/verify?token=") {
-		t.Fatalf("sent to=%q url=%q", snd.to, snd.url)
+	if snd.to != "person@x.io" || !strings.HasPrefix(snd.url, "http://api.test/app/login/email/verify?token=") || snd.lang != "ja" {
+		t.Fatalf("sent to=%q url=%q lang=%q", snd.to, snd.url, snd.lang)
 	}
 	tok := tokenOf(t, snd.url)
 	if len(tok) != 43 {
@@ -57,7 +57,7 @@ func TestMagicLinkRoundTrip(t *testing.T) {
 
 func TestMagicLinkExpiresAndRejectsGarbage(t *testing.T) {
 	m, snd, c := magicFor(t)
-	if err := m.Issue(context.Background(), "a@x.io"); err != nil {
+	if err := m.Issue(context.Background(), "a@x.io", "en"); err != nil {
 		t.Fatal(err)
 	}
 	tok := tokenOf(t, snd.url)
@@ -76,7 +76,7 @@ func TestMagicLinkExpiresAndRejectsGarbage(t *testing.T) {
 func TestMagicLinkRejectsBadAddress(t *testing.T) {
 	m, snd, _ := magicFor(t)
 	for _, bad := range []string{"", "nope", "a@", "@x.io", "a b@x.io", strings.Repeat("a", 250) + "@x.io"} {
-		if err := m.Issue(context.Background(), bad); !errors.Is(err, ErrBadEmail) {
+		if err := m.Issue(context.Background(), bad, "en"); !errors.Is(err, ErrBadEmail) {
 			t.Fatalf("%q: %v", bad, err)
 		}
 	}

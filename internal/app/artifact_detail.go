@@ -126,7 +126,7 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	ctx := r.Context()
 	a, err := h.ownedArtifact(r, v, id)
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	vs, err := h.Store.Versions(ctx, a.ID)
@@ -151,7 +151,7 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	}
 	d := artifactData{Artifact: a, URL: h.artifactURL(a), CoverURL: h.artifactCoverURL(a), Error: o.Error, ErrThread: o.ErrThread,
 		Meta: metaFromArtifact(a), MetaError: o.MetaError, Styles: cover.Styles(), CoverFiles: coverFiles(files)}
-	d.SendURL, d.SendLabel = d.URL, "Share link"
+	d.SendURL, d.SendLabel = d.URL, tr(r, "Share link")
 	d.PreviewURL = d.URL
 	if a.Visibility != "private" {
 		// The private viewer is never counted; the public page needs the mark.
@@ -164,18 +164,18 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 	if a.Visibility == "private" {
 		// Private and uncoded: the only people this link works for are signed-in
 		// members of the workspace. Say so rather than calling it a share link.
-		d.SendLabel = "Workspace link"
+		d.SendLabel = tr(r, "Workspace link")
 	}
 	if a.ShareCode != "" {
 		d.ShareLink = h.pages().Share(a.ID, a.Slug, a.ShareCode)
-		d.SendURL, d.SendLabel = d.ShareLink, "Share link, code included"
+		d.SendURL, d.SendLabel = d.ShareLink, tr(r, "Share link, code included")
 	}
 	d.Access, d.AccessError = h.accessFormOf(a), o.AccessError
 	switch a.AccessMode {
 	case serve.AccessPassword:
-		d.SendURL, d.SendLabel = h.pages().Page(a.ID, a.Slug), "Share link, password needed"
+		d.SendURL, d.SendLabel = h.pages().Page(a.ID, a.Slug), tr(r, "Share link, password needed")
 	case serve.AccessRestricted:
-		d.SendURL, d.SendLabel = h.pages().Page(a.ID, a.Slug), "Share link, for the people you chose"
+		d.SendURL, d.SendLabel = h.pages().Page(a.ID, a.Slug), tr(r, "Share link, for the people you chose")
 	}
 	if o.Meta != nil {
 		d.Meta = *o.Meta
@@ -277,17 +277,17 @@ func anchorQuote(raw string) string {
 func (h *Handler) rollbackArtifact(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	target, err := strconv.Atoi(r.PathValue("version"))
 	if err != nil || target < 1 {
-		h.renderError(w, r, 404, "That version does not exist.")
+		h.renderError(w, r, 404, tr(r, "That version does not exist."))
 		return
 	}
 	err = h.Store.RestoreVersion(r.Context(), a.ID, target, h.Now())
 	if errors.Is(err, store.ErrNotFound) {
-		h.renderError(w, r, 404, "That version does not exist.")
+		h.renderError(w, r, 404, tr(r, "That version does not exist."))
 		return
 	}
 	if err != nil && !errors.Is(err, store.ErrLiveVersion) {
@@ -303,21 +303,21 @@ func (h *Handler) rollbackArtifact(w http.ResponseWriter, r *http.Request, v *vi
 func (h *Handler) deleteVersion(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	target, err := strconv.Atoi(r.PathValue("version"))
 	if err != nil || target < 1 {
-		h.renderError(w, r, 404, "That version does not exist.")
+		h.renderError(w, r, 404, tr(r, "That version does not exist."))
 		return
 	}
 	_, err = h.Store.DeleteVersion(r.Context(), a.ID, target)
 	switch {
 	case errors.Is(err, store.ErrNotFound):
-		h.renderError(w, r, 404, "That version does not exist.")
+		h.renderError(w, r, 404, tr(r, "That version does not exist."))
 		return
 	case errors.Is(err, store.ErrLiveVersion):
-		h.renderError(w, r, 409, "The live version cannot be deleted. Restore another version first.")
+		h.renderError(w, r, 409, tr(r, "The live version cannot be deleted. Restore another version first."))
 		return
 	case err != nil:
 		h.fail(w, r, err)
@@ -331,7 +331,7 @@ func (h *Handler) deleteVersion(w http.ResponseWriter, r *http.Request, v *viewe
 func (h *Handler) setCommentsEnabled(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	var on bool
@@ -341,7 +341,7 @@ func (h *Handler) setCommentsEnabled(w http.ResponseWriter, r *http.Request, v *
 	case "0":
 		on = false
 	default:
-		h.renderError(w, r, 400, "The form could not be read.")
+		h.renderError(w, r, 400, tr(r, "The form could not be read."))
 		return
 	}
 	if on != a.CommentsEnabled {
@@ -358,12 +358,12 @@ func (h *Handler) setCommentsEnabled(w http.ResponseWriter, r *http.Request, v *
 func (h *Handler) setVisibility(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	visibility := r.PostForm.Get("visibility")
 	if visibility != "public" && visibility != "private" {
-		h.renderError(w, r, 400, "Choose Public or Private.")
+		h.renderError(w, r, 400, tr(r, "Choose Public or Private."))
 		return
 	}
 	if visibility != a.Visibility {
@@ -391,24 +391,24 @@ func (h *Handler) setVisibility(w http.ResponseWriter, r *http.Request, v *viewe
 func (h *Handler) setShareCode(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	code := ""
 	switch r.PostForm.Get("action") {
 	case "issue", "rotate":
 		if a.Visibility != "private" {
-			h.renderError(w, r, 400, "Only a private artifact can be shared with a code.")
+			h.renderError(w, r, 400, tr(r, "Only a private artifact can be shared with a code."))
 			return
 		}
 		if a.AccessMode != "" {
-			h.renderArtifactWith(w, r, 400, v, a.ID, artifactOpts{AccessError: "This page already has a password or a list of people. Change its access first."})
+			h.renderArtifactWith(w, r, 400, v, a.ID, artifactOpts{AccessError: tr(r, "This page already has a password or a list of people. Change its access first.")})
 			return
 		}
 		code = ids.NewShareCode()
 	case "revoke":
 	default:
-		h.renderError(w, r, 400, "Choose whether to share this artifact with a code.")
+		h.renderError(w, r, 400, tr(r, "Choose whether to share this artifact with a code."))
 		return
 	}
 	if err := h.Store.SetShareCode(r.Context(), a.ID, code, nil); err != nil {
@@ -437,7 +437,7 @@ func (h *Handler) ownedThread(r *http.Request, v *viewer) (store.Artifact, store
 func (h *Handler) resolveThread(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, t, err := h.ownedThread(r, v)
 	if err != nil {
-		h.storeErr(w, r, err, "That comment thread does not exist.")
+		h.storeErr(w, r, err, tr(r, "That comment thread does not exist."))
 		return
 	}
 	if t.Status != "resolved" {
@@ -452,7 +452,7 @@ func (h *Handler) resolveThread(w http.ResponseWriter, r *http.Request, v *viewe
 func (h *Handler) replyThread(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, t, err := h.ownedThread(r, v)
 	if err != nil {
-		h.storeErr(w, r, err, "That comment thread does not exist.")
+		h.storeErr(w, r, err, tr(r, "That comment thread does not exist."))
 		return
 	}
 	max := h.Cfg.Limits.CommentBytes
@@ -461,7 +461,7 @@ func (h *Handler) replyThread(w http.ResponseWriter, r *http.Request, v *viewer)
 	}
 	body, ok := cleanBody(r.PostForm.Get("body"), max)
 	if !ok {
-		h.renderArtifact(w, r, 400, v, a.ID, t.ID, "Write a reply of 1 to "+strconv.Itoa(max)+" characters.")
+		h.renderArtifact(w, r, 400, v, a.ID, t.ID, tr(r, "Write a reply of 1 to %d characters.", max))
 		return
 	}
 	author := strings.TrimSpace(v.User.Name)

@@ -8,6 +8,7 @@
 // parent domain, so byagent.dev and app.byagent.dev ask once between them.
 // Declining (now or later, from "Cookie settings") removes any _ga cookies.
 (function () {
+  var t = window.byagentI18n.t;
   var tag = document.currentScript;
   var id = tag && tag.getAttribute("data-ga-id");
   if (!id) return;
@@ -59,16 +60,16 @@
     bar = document.createElement("div");
     bar.className = "consent";
     bar.setAttribute("role", "region");
-    bar.setAttribute("aria-label", "Cookie choice");
+    bar.setAttribute("aria-label", t("Cookie choice"));
     var p = document.createElement("p");
-    p.appendChild(document.createTextNode("Can we use Google Analytics cookies to see which pages get used? "));
+    p.appendChild(document.createTextNode(t("Can we use Google Analytics cookies to see which pages get used?") + " "));
     var a = document.createElement("a");
     a.href = "/privacy#cookies";
-    a.textContent = "Details";
+    a.textContent = t("Details");
     p.appendChild(a);
     var row = document.createElement("div");
     row.className = "consent-row";
-    [["no", "Decline", "btn"], ["yes", "Accept", "btn primary"]].forEach(function (b) {
+    [["no", t("Decline"), "btn"], ["yes", t("Accept"), "btn primary"]].forEach(function (b) {
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = b[2];

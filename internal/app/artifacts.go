@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/anup-a/artifacts/internal/i18n"
 	"github.com/anup-a/artifacts/internal/pageurl"
 	"github.com/anup-a/artifacts/internal/store"
 )
@@ -105,7 +106,7 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 	if raw := q.Get("cursor"); raw != "" {
 		before, id, err := store.ParseArtifactCursor(raw)
 		if err != nil {
-			h.renderError(w, r, 400, "That page cursor is not valid.")
+			h.renderError(w, r, 400, tr(r, "That page cursor is not valid."))
 			return
 		}
 		f.Before, f.BeforeID = before, id
@@ -136,7 +137,7 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 		if d.Filtered {
 			d.Grid = h.grid(recent)
 		} else {
-			d.Sections = h.sections(recent, h.Now())
+			d.Sections = h.sections(i18n.Lang(r), recent, h.Now())
 			all, err := h.Store.Collections(r.Context(), v.Tenant.ID)
 			if err != nil {
 				h.fail(w, r, err)
@@ -159,7 +160,7 @@ func (h *Handler) artifacts(w http.ResponseWriter, r *http.Request, v *viewer) {
 	if firstPage && !d.Filtered && len(list) == 0 {
 		d.Connect = h.mintPrompt(r, v)
 	}
-	h.render(w, r, 200, "artifacts", "Artifacts", v, d)
+	h.render(w, r, 200, "artifacts", tr(r, "Artifacts"), v, d)
 }
 
 // ownedArtifact loads a live artifact that belongs to the viewer's workspace;
@@ -179,7 +180,7 @@ func (h *Handler) deleteArtifact(w http.ResponseWriter, r *http.Request, v *view
 	ctx := r.Context()
 	id := r.PathValue("id")
 	if _, err := h.ownedArtifact(r, v, id); err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	if err := h.Store.SoftDelete(ctx, id, h.Now()); err != nil {

@@ -5,18 +5,18 @@
 {{define "site-bar"}}
 <header class="lp-bar" data-ga-where="bar">
   <a class="brand lp-brand" href="/">{{template "icon" "mark"}}<span>byagent</span></a>
-  <nav class="lp-tabs" aria-label="Main">
-    <a class="lp-tab" href="/showcase"{{if eq .Here "/showcase"}} aria-current="page"{{end}}>Showcase</a>
-    <a class="lp-tab" href="/guides"{{if eq .Here "/guides"}} aria-current="page"{{end}}>Guides</a>
+  <nav class="lp-tabs" aria-label="{{t "Main"}}">
+    <a class="lp-tab" href="/showcase"{{if eq .Here "/showcase"}} aria-current="page"{{end}}>{{t "Showcase"}}</a>
+    <a class="lp-tab" href="/guides"{{if eq .Here "/guides"}} aria-current="page"{{end}}>{{t "Guides"}}</a>
   </nav>
-  <div class="lp-theme" role="group" aria-label="Theme" data-theme-picker>
-    <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
-    <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
-    <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
+  <div class="lp-theme" role="group" aria-label="{{t "Theme"}}" data-theme-picker>
+    <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="{{t "Match system"}}" aria-label="{{t "Match system"}}">{{template "icon" "monitor"}}</button>
+    <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="{{t "Light"}}" aria-label="{{t "Light"}}">{{template "icon" "sun"}}</button>
+    <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="{{t "Dark"}}" aria-label="{{t "Dark"}}">{{template "icon" "moon"}}</button>
   </div>
-  <a class="btn lp-cta" href="{{.AppURL}}">Dashboard</a>
-  <button type="button" class="btn primary lp-bar-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" .}}" aria-label="Copy prompt for your agent">
-    <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">Copy prompt</span>
+  <a class="btn lp-cta" href="{{.AppURL}}">{{t "Dashboard"}}</a>
+  <button type="button" class="btn primary lp-bar-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" .}}" aria-label="{{t "Copy prompt for your agent"}}">
+    <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">{{t "Copy prompt"}}</span>
   </button>
 </header>
 {{end}}
@@ -25,42 +25,43 @@
 <footer class="lp-foot">
   <div class="lp-foot-id">
     <a class="brand lp-brand" href="/">{{template "icon" "mark"}}<span>byagent</span></a>
-    <span class="lp-foot-maker">Made by <a href="https://creatica.app" rel="noopener">Creatica</a></span>
+    <span class="lp-foot-maker">{{th `Made by <a href="https://creatica.app" rel="noopener">Creatica</a>`}}</span>
     {{/* On a phone the bar has room for the prompt or the theme, not both,
          so the theme control moves down here. Hidden on wider screens,
          where the one in the bar shows. */}}
-    <div class="lp-theme lp-foot-theme" role="group" aria-label="Theme" data-theme-picker>
-      <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="Match system" aria-label="Match system">{{template "icon" "monitor"}}</button>
-      <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="Light" aria-label="Light">{{template "icon" "sun"}}</button>
-      <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="Dark" aria-label="Dark">{{template "icon" "moon"}}</button>
+    <div class="lp-theme lp-foot-theme" role="group" aria-label="{{t "Theme"}}" data-theme-picker>
+      <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="{{t "Match system"}}" aria-label="{{t "Match system"}}">{{template "icon" "monitor"}}</button>
+      <button type="button" class="lp-theme-btn" data-set-theme="light" aria-pressed="false" title="{{t "Light"}}" aria-label="{{t "Light"}}">{{template "icon" "sun"}}</button>
+      <button type="button" class="lp-theme-btn" data-set-theme="dark" aria-pressed="false" title="{{t "Dark"}}" aria-label="{{t "Dark"}}">{{template "icon" "moon"}}</button>
     </div>
+    {{template "lang-picker" .LangLinks}}
   </div>
-  <nav class="lp-foot-cols" aria-label="Site">
+  <nav class="lp-foot-cols" aria-label="{{t "Site"}}">
     <div class="lp-foot-col">
-      <h2>Product</h2>
-      <a href="/showcase">Showcase</a>
-      <a href="/pricing">Pricing</a>
-      <a href="{{.AgentsURL}}">For agents</a>
-      <a href="/guides">Guides</a>
+      <h2>{{t "Product"}}</h2>
+      <a href="/showcase">{{t "Showcase"}}</a>
+      <a href="/pricing">{{t "Pricing"}}</a>
+      <a href="{{.AgentsURL}}">{{t "For agents"}}</a>
+      <a href="/guides">{{t "Guides"}}</a>
       <a href="{{.SkillURL}}">skill.md</a>
-      <a href="https://www.npmjs.com/package/byagent" rel="noopener">npm package</a>
-      <a href="{{.AppURL}}">Dashboard</a>
+      <a href="https://www.npmjs.com/package/byagent" rel="noopener">{{t "npm package"}}</a>
+      <a href="{{.AppURL}}">{{t "Dashboard"}}</a>
     </div>
     <div class="lp-foot-col">
-      <h2>Legal</h2>
-      <a href="/privacy">Privacy</a>
-      <a href="/terms">Terms</a>
-      <a href="/security">Security</a>
-      <a href="/subprocessors">Subprocessors</a>
-      <a href="/acceptable-use">Acceptable use</a>
-      {{if .AnalyticsOn}}<button type="button" class="lp-foot-link" data-consent-open>Cookie settings</button>{{end}}
+      <h2>{{t "Legal"}}</h2>
+      <a href="/privacy">{{t "Privacy"}}</a>
+      <a href="/terms">{{t "Terms"}}</a>
+      <a href="/security">{{t "Security"}}</a>
+      <a href="/subprocessors">{{t "Subprocessors"}}</a>
+      <a href="/acceptable-use">{{t "Acceptable use"}}</a>
+      {{if .AnalyticsOn}}<button type="button" class="lp-foot-link" data-consent-open>{{t "Cookie settings"}}</button>{{end}}
     </div>
     <div class="lp-foot-col">
-      <h2>Contact</h2>
+      <h2>{{t "Contact"}}</h2>
       {{/* Namecheap forwards hello@ to the owner's inbox. There is no other mailbox
            on this domain, so a new address needs a forwarder added first. */}}
       <a class="lp-foot-mail" href="mailto:hello@byagent.dev">{{template "icon" "mail"}}hello@byagent.dev</a>
-      <a href="/acceptable-use#report">Report abuse</a>
+      <a href="/acceptable-use#report">{{t "Report abuse"}}</a>
     </div>
   </nav>
 </footer>
@@ -79,12 +80,12 @@
      The link is shown without its scheme to keep the line short; what is
      copied is the full URL. It is for all of the person's projects, not one
      repo: the skill tells the agent how to set itself up that way. */}}
-{{define "lp-prompt-line"}}Set up byagent for all my projects: read {{.SkillURL}} and follow it.{{end}}
+{{define "lp-prompt-line"}}{{t "Set up byagent for all my projects: read %s and follow it." .SkillURL}}{{end}}
 {{define "lp-prompt"}}
 <div class="lp-prompt">
-  <p class="lp-prompt-text">Set up byagent for all my projects: read <span class="lp-prompt-url">{{.ShareHost}}/skill.md</span> and follow it.</p>
-  <button type="button" class="btn primary lp-prompt-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" .}}" aria-label="Copy the prompt">
-    <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">Copy</span>
+  <p class="lp-prompt-text">{{th `Set up byagent for all my projects: read <span class="lp-prompt-url">%s</span> and follow it.` (printf "%s/skill.md" .ShareHost)}}</p>
+  <button type="button" class="btn primary lp-prompt-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" .}}" aria-label="{{t "Copy the prompt"}}">
+    <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">{{t "Copy"}}</span>
   </button>
 </div>
 {{end}}

@@ -1,0 +1,24 @@
+{{/* The language picker: the page again in each language. Each link names
+     its language (?lang=), which the server remembers in the lang cookie,
+     so it works without script and overrides an earlier choice. Takes the
+     page's LangLinks. */}}
+{{define "lang-picker"}}
+<details class="menu-wrap lang-picker">
+  {{range .}}{{if .Current}}<summary class="lang-btn" aria-label="{{t "Language"}}: {{.Name}}" title="{{t "Language"}}">{{template "icon" "globe"}}<span class="lang-name">{{.Name}}</span></summary>{{end}}{{end}}
+  <div class="menu lang-menu" role="menu">
+    {{range .}}<a class="menu-item{{if .Current}} is-current{{end}}" href="{{.URL}}" hreflang="{{.Code}}" lang="{{.Code}}" role="menuitem"{{if .Current}} aria-current="true"{{end}}><span class="menu-item-text">{{.Name}}</span>{{if .Current}}{{template "icon" "check"}}{{end}}</a>{{end}}
+  </div>
+</details>
+{{end}}
+
+{{/* Where search engines find the page in each language. English is the
+     bare address and also the default for anyone else. */}}
+{{define "lang-alternates"}}
+{{range .}}<link rel="alternate" hreflang="{{.Code}}" href="{{.Alternate}}">
+{{end}}{{range .}}{{if eq .Code "en"}}<link rel="alternate" hreflang="x-default" href="{{.Alternate}}">{{end}}{{end}}
+{{end}}
+
+{{/* A workspace's kind and plan are stored as English words (personal,
+     integrator, free); these show them in the page's language. */}}
+{{define "tenant-kind"}}{{if eq . "personal"}}{{t "personal"}}{{else if eq . "integrator"}}{{t "integrator"}}{{else}}{{.}}{{end}}{{end}}
+{{define "tenant-plan"}}{{if eq . "free"}}{{t "free"}}{{else}}{{.}}{{end}}{{end}}

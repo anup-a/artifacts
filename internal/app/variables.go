@@ -38,13 +38,13 @@ func (h *Handler) renderVariables(w http.ResponseWriter, r *http.Request, status
 		}
 		d.Rows = rows
 	}
-	h.render(w, r, status, "variables", "Variables", v, d)
+	h.render(w, r, status, "variables", tr(r, "Variables"), v, d)
 }
 
 // setVariable adds or replaces a variable from the Settings form.
 func (h *Handler) setVariable(w http.ResponseWriter, r *http.Request, v *viewer) {
 	if h.sealer == nil {
-		h.renderError(w, r, 503, "Variables are off on this server.")
+		h.renderError(w, r, 503, tr(r, "Variables are off on this server."))
 		return
 	}
 	name := strings.TrimSpace(r.PostForm.Get("name"))
@@ -67,7 +67,7 @@ func (h *Handler) setVariable(w http.ResponseWriter, r *http.Request, v *viewer)
 	_, err = h.Store.PutVariable(r.Context(), store.Variable{TenantID: v.Tenant.ID, Name: name, Sealed: sealed,
 		AllowedUpstreams: hosts, CreatedAt: now, UpdatedAt: now}, variables.MaxPerTenant)
 	if errors.Is(err, store.ErrVariableLimit) {
-		again.Error = "This workspace already holds the most variables it can. Delete one first."
+		again.Error = tr(r, "This workspace already holds the most variables it can. Delete one first.")
 		h.renderVariables(w, r, 400, v, again)
 		return
 	}
@@ -80,11 +80,11 @@ func (h *Handler) setVariable(w http.ResponseWriter, r *http.Request, v *viewer)
 
 func (h *Handler) deleteVariable(w http.ResponseWriter, r *http.Request, v *viewer) {
 	if h.sealer == nil {
-		h.renderError(w, r, 503, "Variables are off on this server.")
+		h.renderError(w, r, 503, tr(r, "Variables are off on this server."))
 		return
 	}
 	if err := h.Store.DeleteVariable(r.Context(), v.Tenant.ID, r.PathValue("name")); err != nil {
-		h.storeErr(w, r, err, "That variable does not exist.")
+		h.storeErr(w, r, err, tr(r, "That variable does not exist."))
 		return
 	}
 	http.Redirect(w, r, "/app/settings/variables", http.StatusFound)

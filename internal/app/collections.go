@@ -144,7 +144,7 @@ func (h *Handler) collections(w http.ResponseWriter, r *http.Request, v *viewer)
 	for _, c := range all {
 		d.Decks = append(d.Decks, h.deck(c))
 	}
-	h.render(w, r, 200, "collections", "Collections", v, d)
+	h.render(w, r, 200, "collections", tr(r, "Collections"), v, d)
 }
 
 type collectionRow struct {
@@ -189,7 +189,7 @@ func (h *Handler) collection(w http.ResponseWriter, r *http.Request, v *viewer) 
 	name := r.PathValue("name")
 	list, meta, err := h.loadCollection(r, v.Tenant.ID, name)
 	if err != nil {
-		h.storeErr(w, r, err, "That collection does not exist.")
+		h.storeErr(w, r, err, tr(r, "That collection does not exist."))
 		return
 	}
 	course := store.CourseOrder(list, meta.Positions)
@@ -218,7 +218,7 @@ func (h *Handler) saveMeta(w http.ResponseWriter, r *http.Request, v *viewer, ch
 	name := r.PathValue("name")
 	list, meta, err := h.loadCollection(r, v.Tenant.ID, name)
 	if err != nil {
-		h.storeErr(w, r, err, "That collection does not exist.")
+		h.storeErr(w, r, err, tr(r, "That collection does not exist."))
 		return
 	}
 	if msg := change(list, &meta); msg != "" {
@@ -236,7 +236,7 @@ func (h *Handler) setCollectionDescription(w http.ResponseWriter, r *http.Reques
 	h.saveMeta(w, r, v, func(_ []store.Artifact, c *store.Collection) string {
 		desc := strings.TrimSpace(r.PostForm.Get("description"))
 		if !utf8.ValidString(desc) || utf8.RuneCountInString(desc) > maxDescriptionChars {
-			return "A description can be at most 500 characters."
+			return tr(r, "A description can be at most 500 characters.")
 		}
 		c.Description = desc
 		return ""
@@ -260,7 +260,7 @@ func (h *Handler) moveCollectionItem(w http.ResponseWriter, r *http.Request, v *
 			to = at - 1
 		}
 		if at < 0 || (dir != "up" && dir != "down") {
-			return "That artifact is not in this collection."
+			return tr(r, "That artifact is not in this collection.")
 		}
 		if to >= 0 && to < len(course) {
 			course[at], course[to] = course[to], course[at]
@@ -292,13 +292,13 @@ func (h *Handler) shareCollection(w http.ResponseWriter, r *http.Request, v *vie
 func (h *Handler) renameCollection(w http.ResponseWriter, r *http.Request, v *viewer) {
 	name := r.PathValue("name")
 	if _, _, err := h.loadCollection(r, v.Tenant.ID, name); err != nil {
-		h.storeErr(w, r, err, "That collection does not exist.")
+		h.storeErr(w, r, err, tr(r, "That collection does not exist."))
 		return
 	}
-	to, msg := cleanProject(r.PostForm.Get("to"))
+	to, msg := cleanProject(r, r.PostForm.Get("to"))
 	if to == nil {
 		if msg == "" {
-			msg = "A collection needs a name."
+			msg = tr(r, "A collection needs a name.")
 		}
 		h.renderError(w, r, 400, msg)
 		return
@@ -323,7 +323,7 @@ type publicCollectionData struct {
 func (h *Handler) publicCollection(w http.ResponseWriter, r *http.Request) {
 	meta, err := h.Store.CollectionByShareSlug(r.Context(), r.PathValue("slug"))
 	if err != nil {
-		h.storeErr(w, r, err, "This collection is not shared.")
+		h.storeErr(w, r, err, tr(r, "This collection is not shared."))
 		return
 	}
 	list, err := h.Store.ListArtifacts(r.Context(), meta.TenantID, store.ArtifactFilter{Project: meta.Name, Limit: collectionListLimit})

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/anup-a/artifacts/internal/cover"
+	"github.com/anup-a/artifacts/internal/i18n"
 	"github.com/anup-a/artifacts/internal/store"
 )
 
@@ -73,23 +74,28 @@ func spans(cards []cardView, hero bool) []cardView {
 	return out
 }
 
-// dayLabel names a UTC calendar day relative to now: Today, Yesterday, then
-// "Mon 14 Sep".
-func dayLabel(day, now time.Time) string {
+// dayLabel names a UTC calendar day relative to now in lang: Today,
+// Yesterday, then "Mon 14 Sep" (the month and day alone outside English;
+// app.js relabels it with the weekday in the viewer's timezone).
+func dayLabel(lang string, day, now time.Time) string {
 	d := day.UTC().Truncate(24 * time.Hour)
 	t := now.UTC().Truncate(24 * time.Hour)
 	switch t.Sub(d) {
 	case 0:
-		return "Today"
+		return i18n.T(lang, "Today")
 	case 24 * time.Hour:
-		return "Yesterday"
+		return i18n.T(lang, "Yesterday")
+	}
+	if lang != i18n.Default {
+		return i18n.Day(lang, d)
 	}
 	return d.Format("Mon 2 Jan")
 }
 
 // sections groups recent artifacts by UTC publish day, newest day first and
-// newest artifact first inside a day. Only the first section gets a hero.
-func (h *Handler) sections(recent []store.Artifact, now time.Time) []sectionView {
+// newest artifact first inside a day, labelled in lang. Only the first
+// section gets a hero.
+func (h *Handler) sections(lang string, recent []store.Artifact, now time.Time) []sectionView {
 	byDay := map[string][]cardView{}
 	for _, a := range recent {
 		day := a.CreatedAt.UTC().Format("2006-01-02")
@@ -105,7 +111,7 @@ func (h *Handler) sections(recent []store.Artifact, now time.Time) []sectionView
 		cards := byDay[day]
 		sort.SliceStable(cards, func(x, y int) bool { return cards[x].Artifact.CreatedAt.After(cards[y].Artifact.CreatedAt) })
 		at, _ := time.Parse("2006-01-02", day)
-		out = append(out, sectionView{Label: dayLabel(at, now), Day: day, At: cards[0].Artifact.CreatedAt.UTC(), Cards: spans(cards, i == 0)})
+		out = append(out, sectionView{Label: dayLabel(lang, at, now), Day: day, At: cards[0].Artifact.CreatedAt.UTC(), Cards: spans(cards, i == 0)})
 	}
 	return out
 }

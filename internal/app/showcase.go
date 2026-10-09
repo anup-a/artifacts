@@ -48,8 +48,8 @@ type showcaseData struct {
 // what appears here is chosen, never every public page on the server. Only
 // public pages show, and only what their own readers can already see.
 func (h *Handler) showcase(w http.ResponseWriter, r *http.Request) {
-	site := h.site()
-	site.Here = "/showcase"
+	site := h.site(r)
+	site.Here, site.Translated = "/showcase", true
 	d := showcaseData{siteData: site, Path: "/showcase", ShareHost: originHost(h.Cfg.ShareOrigin)}
 	list, err := h.showcaseList(r)
 	if err == nil {
@@ -59,8 +59,8 @@ func (h *Handler) showcase(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	w.Header().Set("Cache-Control", "public, max-age=300")
-	h.render(w, r, 200, "showcase", "Showcase", nil, d)
+	publicCache(w, r)
+	h.render(w, r, 200, "showcase", tr(r, "Showcase"), nil, d)
 }
 
 // showcaseList is the curated pages in showcase order: the ones

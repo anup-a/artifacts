@@ -2,7 +2,7 @@
 {{$d := .Data}}
 <article class="public-collection">
   <header>
-    <p class="public-kicker">Collection</p>
+    <p class="public-kicker">{{t "Collection"}}</p>
     <h1 class="collection-title"><span class="dot" data-color="{{$d.Color}}"></span>{{$d.Name}}</h1>
     {{if $d.Description}}<p class="collection-desc">{{$d.Description}}</p>{{end}}
   </header>
@@ -12,13 +12,13 @@
     <li class="course-row" data-artifact="{{.Artifact.ID}}">
       <span class="course-n">{{printf "%02d" .N}}</span>
       <a class="course-thumb" href="{{.URL}}" aria-hidden="true" tabindex="-1"><img src="{{.CoverURL}}" alt="" loading="lazy" width="1200" height="630"></a>
-      <span class="course-text"><a class="course-title" href="{{.URL}}">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}Untitled{{end}}</a></span>
+      <span class="course-text"><a class="course-title" href="{{.URL}}">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}{{t "Untitled"}}{{end}}</a></span>
     </li>
     {{end}}
   </ol>
   {{else}}
-  <p class="muted">Nothing in this collection is public yet.</p>
+  <p class="muted">{{t "Nothing in this collection is public yet."}}</p>
   {{end}}
-  <footer class="public-foot">Made with <a href="/">byagent</a></footer>
+  <footer class="public-foot">{{th `Made with <a href="/">byagent</a>`}}</footer>
 </article>
 {{end}}

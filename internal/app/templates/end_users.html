@@ -1,11 +1,11 @@
 {{define "content"}}
 {{if .Data.Link}}
 <div class="callout ok">
-  <div class="callout-head">{{template "icon" "link"}}<strong>Portal link for <code>{{.Data.Link.ExternalID}}</code></strong>, valid until {{when .Data.Link.ExpiresAt}} UTC. Anyone with the link sees this end user's artifacts, read-only.</div>
+  <div class="callout-head">{{template "icon" "link"}}{{th "<strong>Portal link for <code>%s</code></strong>, valid until %s UTC. Anyone with the link sees this end user's artifacts, read-only." .Data.Link.ExternalID (when .Data.Link.ExpiresAt)}}</div>
   <div class="copyrow">
-    <input type="text" readonly value="{{.Data.Link.URL}}" id="portal-url" aria-label="Portal link">
-    <button type="button" class="btn primary" data-copy="#portal-url">{{template "icon" "copy"}} Copy link</button>
-    <a class="btn" href="{{.Data.Link.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
+    <input type="text" readonly value="{{.Data.Link.URL}}" id="portal-url" aria-label="{{t "Portal link"}}">
+    <button type="button" class="btn primary" data-copy="#portal-url">{{template "icon" "copy"}} {{t "Copy link"}}</button>
+    <a class="btn" href="{{.Data.Link.URL}}" target="_blank" rel="noopener">{{t "Open"}} {{template "icon" "external"}}</a>
   </div>
 </div>
 {{end}}
@@ -13,7 +13,7 @@
 {{if .Data.Rows}}
 <div class="table-card">
 <table class="table">
-  <thead><tr><th>External id</th><th class="num">Artifacts</th><th>First seen</th><th>Last seen</th><th class="actions"></th></tr></thead>
+  <thead><tr><th>{{t "External id"}}</th><th class="num">{{t "Artifacts"}}</th><th>{{t "First seen"}}</th><th>{{t "Last seen"}}</th><th class="actions"></th></tr></thead>
   <tbody>
   {{range .Data.Rows}}
   <tr>
@@ -24,7 +24,7 @@
     <td class="actions">
       <form method="post" action="/app/end-users/{{path .ExternalID}}/portal-link">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-        <button type="submit" class="btn small">{{template "icon" "link"}} Portal link</button>
+        <button type="submit" class="btn small">{{template "icon" "link"}} {{t "Portal link"}}</button>
       </form>
     </td>
   </tr>
@@ -35,8 +35,8 @@
 {{else}}
 <div class="empty">
   <span class="empty-icon">{{template "icon" "users"}}</span>
-  <h2>No end users yet</h2>
-  <p>Publish with <code>--end-user &lt;id&gt;</code> (or the <code>X-Artifact-End-User</code> header) and each id shows up here with its artifacts.</p>
+  <h2>{{t "No end users yet"}}</h2>
+  <p>{{th "Publish with <code>--end-user &lt;id&gt;</code> (or the <code>X-Artifact-End-User</code> header) and each id shows up here with its artifacts."}}</p>
 </div>
 {{end}}
 {{end}}

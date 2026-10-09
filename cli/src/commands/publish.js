@@ -10,7 +10,7 @@ import { collectFiles, readLink, writeLink } from "../files.js";
 import { findProject } from "../project.js";
 import { CliError, usage } from "../errors.js";
 
-const USAGE = "usage: byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>] [--private|--public] [--password] [--comments|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]";
+const USAGE = "usage: byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>] [--private|--public] [--password] [--comments|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>] [--lang <tag>]";
 
 // Image types the server will stream as a cover.
 const COVER_EXTS = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp"]);
@@ -114,7 +114,12 @@ export async function publish(cfg, { positional, flags, source, env = process.en
 
   // A Markdown target is rendered on the way in and supplies the title when
   // --title is absent (its first H1, else the file name).
-  const collected = collectFiles(target, { title: flags.title, source });
+  // --lang sets a rendered Markdown page's language (zh-CN, ja, ...) when
+  // the one detected from its text is wrong.
+  if (flags.lang !== undefined && !/^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i.test(flags.lang)) {
+    throw usage(`--lang takes a language tag like en, zh-CN or ja, not ${JSON.stringify(flags.lang)}`);
+  }
+  const collected = collectFiles(target, { title: flags.title, source, lang: flags.lang });
   const dir = collected.dir;
   const link = readLink(dir);
   const folder = findProject(dir || dirname(resolve(target)));

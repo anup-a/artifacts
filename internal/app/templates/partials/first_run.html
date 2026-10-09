@@ -4,7 +4,7 @@
      tags, grey flow lines, and the accent only on the way back. Colours come
      from classes (the CSP forbids inline styles), so it follows the theme. */}}
 {{define "first-run-art"}}
-<svg class="first-run-art" viewBox="0 0 400 184" width="400" height="184" role="img" aria-label="Claude Code or Codex publishes a page, a reader comments on one line, and the comment goes back into the next run">
+<svg class="first-run-art" viewBox="0 0 400 184" width="400" height="184" role="img" aria-label="{{t "Claude Code or Codex publishes a page, a reader comments on one line, and the comment goes back into the next run"}}">
   <defs>
     <marker id="fr-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fr-arrow-head" d="M1 1.5 L8.5 5 L1 8.5"/></marker>
     <marker id="fr-arrow-back" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="fr-arrow-head is-back" d="M1 1.5 L8.5 5 L1 8.5"/></marker>
@@ -32,7 +32,7 @@
   </g>
   <g class="fr-pin"><circle cx="350" cy="68" r="12"/><svg x="343" y="61" width="14" height="14"><use href="#i-comment"/></svg></g>
 
-  <g class="fr-tag"><rect x="141" y="64" width="54" height="20" rx="10"/><text x="168" y="74">publish</text></g>
-  <g class="fr-tag is-back"><rect x="92" y="158" width="184" height="20" rx="10"/><text x="184" y="168">comments, into the next run</text></g>
+  <g class="fr-tag"><rect x="141" y="64" width="54" height="20" rx="10"/><text x="168" y="74">{{t "publish"}}</text></g>
+  <g class="fr-tag is-back"><rect x="92" y="158" width="184" height="20" rx="10"/><text x="184" y="168">{{t "comments, into the next run"}}</text></g>
 </svg>
 {{end}}
