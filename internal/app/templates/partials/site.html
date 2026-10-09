@@ -58,6 +58,7 @@
     </div>
     <div class="lp-foot-col">
       <h2>{{t "Contact"}}</h2>
+      <a href="/about">{{t "About"}}</a>
       {{/* Namecheap forwards hello@ to the owner's inbox. There is no other mailbox
            on this domain, so a new address needs a forwarder added first. */}}
       <a class="lp-foot-mail" href="mailto:hello@byagent.dev">{{template "icon" "mail"}}hello@byagent.dev</a>
@@ -66,11 +67,6 @@
   </nav>
 </footer>
 {{end}}
-
-{{/* The head every public page shares after its own title and description:
-     the theme resolved before first paint, so a visitor who chose against
-     their system setting sees no flash. Not deferred for that reason. */}}
-{{define "site-theme"}}<script src="{{.ThemeJS}}"></script>{{end}}
 
 {{/* The one action on the page, used in the landing hero, again at its close, and on the showcase.
      The prompt only has to point at the skill: the skill already says

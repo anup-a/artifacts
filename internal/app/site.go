@@ -17,7 +17,6 @@ type siteData struct {
 	AppURL      string // dashboard front door
 	SkillURL    string // the agent skill this server serves
 	AgentsURL   string // the read-only entrypoint written for agents
-	ThemeJS     string // resolves the chosen theme before first paint
 	Here        string // the path of the page being shown, for the current tab
 	// PageForm is how a published page's address looks here, for prose:
 	// https://<name>.byagent.dev/ with page hosts, else .../a/<id>/.
@@ -89,7 +88,6 @@ func (h *Handler) site(r *http.Request) siteData {
 		AppURL:        h.Cfg.APIOrigin + "/app/",
 		SkillURL:      h.Cfg.ShareOrigin + "/skill.md",
 		AgentsURL:     h.Cfg.ShareOrigin + "/agents",
-		ThemeJS:       h.static.themeJSURL,
 		PageForm:      h.pages().Form(),
 		ContentDomain: pageurl.Hostname(h.Cfg.ContentDomain),
 		ContentShared: h.Cfg.ContentShared,
@@ -129,6 +127,7 @@ var docPages = map[string]struct{ name, title string }{
 	"/subprocessors":  {"subprocessors", i18n.M("Subprocessors")},
 	"/acceptable-use": {"acceptable_use", i18n.M("Acceptable use")},
 	"/pricing":        {"pricing", i18n.M("Pricing")},
+	"/about":          {"about", i18n.M("About")},
 }
 
 // doc renders one of docPages. Like the landing page it is the same for

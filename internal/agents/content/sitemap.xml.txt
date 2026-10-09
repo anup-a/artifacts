@@ -3,6 +3,7 @@
   <url><loc>{{.Share}}/</loc></url>
   <url><loc>{{.Share}}/showcase</loc></url>
   <url><loc>{{.Share}}/pricing</loc></url>
+  <url><loc>{{.Share}}/about</loc></url>
   <url><loc>{{.Share}}/privacy</loc></url>
   <url><loc>{{.Share}}/terms</loc></url>
   <url><loc>{{.Share}}/security</loc></url>

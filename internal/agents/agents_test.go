@@ -182,7 +182,7 @@ func TestSitemapListsEveryPublicPage(t *testing.T) {
 		listed[u.Loc] = true
 	}
 	// The site pages internal/app serves on the share origin are listed too.
-	site := []string{"/", "/skill.md", "/showcase", "/pricing", "/privacy", "/terms", "/security", "/subprocessors", "/acceptable-use"}
+	site := []string{"/", "/skill.md", "/showcase", "/pricing", "/about", "/privacy", "/terms", "/security", "/subprocessors", "/acceptable-use"}
 	for _, p := range append(publicPaths(), site...) {
 		if p == "/robots.txt" || p == "/sitemap.xml" {
 			continue
