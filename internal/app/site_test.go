@@ -23,6 +23,11 @@ func siteEnv(t *testing.T) *env {
 // sitePages is every public page next to the landing page, with phrases each
 // one must carry: what a careful reader came to the page to find out.
 var sitePages = map[string][]string{
+	"/about": {
+		"About byagent", "What is byagent?", "Who makes byagent?", "How is it built?", "What does byagent promise?",
+		"Anup Aglawe", "September 2026", `href="https://github.com/anup-a"`, `href="https://x.com/anup_x_dev"`,
+		`"@type":"AboutPage"`, `href="/security"`, `href="/privacy"`, "hello@byagent.dev",
+	},
 	"/privacy": {
 		"Privacy policy", "Who we are", "Two roles", "What we collect and why", "Cookies",
 		"International transfers", "Retention and deletion", "Your rights", "Children", "Contact",

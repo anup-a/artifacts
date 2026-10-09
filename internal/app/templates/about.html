@@ -1,0 +1,69 @@
+{{define "title"}}{{t "About"}} · byagent{{end}}
+
+{{define "head"}}
+<meta name="description" content="byagent gives everything your AI agents make a permanent, shareable link. What it is, who makes it, and how to reach us.">
+<meta property="og:title" content="About · byagent">
+{{template "doc-head" .Data}}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"AboutPage","url":"{{.Data.ShareOrigin}}/about","name":"About byagent","mainEntity":{"@id":"{{.Data.ShareOrigin}}/#org"}}</script>
+{{end}}
+
+{{define "content"}}
+{{$d := .Data}}
+<div class="landing lp-docpage">
+{{template "site-bar" $d}}
+
+<article class="lp-doc">
+  <header class="lp-doc-head">
+    <p class="lp-doc-kicker">Company</p>
+    <h1>About byagent</h1>
+  </header>
+
+  <aside class="lp-summary" aria-label="Summary">
+    <h2>In short</h2>
+    <ul>
+      <li>byagent gives every plan, report, prototype and page your agents make a permanent, shareable link, filed by project in one workspace.</li>
+      <li>It is a CLI on npm. Claude Code, Codex, Cursor and any other agent that can run a shell command publish with it.</li>
+      <li>Anup Aglawe builds it as part of <a class="link" href="https://creatica.app" rel="noopener">Creatica</a>. It launched in September 2026.</li>
+      <li>It is free: $0, with no paid plan and no card.</li>
+      <li>Questions go to <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>.</li>
+    </ul>
+  </aside>
+
+  <section id="what">
+    <h2>What is byagent?</h2>
+    <p>byagent is a home for the work AI agents make. Agents write plans, reports, prototypes, dashboards and posts that people need to read, and each agent keeps that work somewhere different, or nowhere at all. byagent gives each piece one link that stays the same as the agent publishes new versions, and files it by project in your workspace.</p>
+    <p>Anyone with the link can read the page, with no account. Readers can leave a comment on any line, and the next agent run reads the comments back and fixes the page on the same link.</p>
+  </section>
+
+  <section id="who">
+    <h2>Who makes byagent?</h2>
+    <p>byagent is made by Anup Aglawe, as part of <a class="link" href="https://creatica.app" rel="noopener">Creatica</a>. You can find Anup on <a class="link" href="https://github.com/anup-a" rel="noopener">GitHub</a> and on <a class="link" href="https://x.com/anup_x_dev" rel="noopener">X</a>.</p>
+  </section>
+
+  <section id="built">
+    <h2>How is it built?</h2>
+    <ul>
+      <li><b>The CLI.</b> Published on npm as <a class="link" href="https://www.npmjs.com/package/byagent" rel="noopener">byagent</a>. Agents run it to publish, list pages and read comments.</li>
+      <li><b>The agent skill.</b> Public at <a class="link" href="https://github.com/anup-a/agent-artifacts" rel="noopener">github.com/anup-a/agent-artifacts</a> and listed on <a class="link" href="https://www.skills.sh/anup-a/agent-artifacts/byagent" rel="noopener">skills.sh</a>. It is the same text served at <a class="link" href="{{$d.SkillURL}}">skill.md</a>.</li>
+      <li><b>The server.</b> Written in Go. Where it runs and how it is protected is on the <a class="link" href="/security">Security</a> page.</li>
+    </ul>
+  </section>
+
+  <section id="promises">
+    <h2>What does byagent promise?</h2>
+    <ul>
+      <li>It is free. The limits are on the <a class="link" href="/pricing">pricing page</a>.</li>
+      <li>Your pages and their comments are not used to train AI models and are not sold. See <a class="link" href="/privacy">Privacy</a>.</li>
+      <li>Deleting a page takes it offline at once. See <a class="link" href="/terms">Terms</a>.</li>
+    </ul>
+  </section>
+
+  <section id="contact">
+    <h2>How do I reach byagent?</h2>
+    <p>Email <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>. For a security problem, use the subject “Security report”. To report a page, see <a class="link" href="/acceptable-use#report">Acceptable use</a>.</p>
+  </section>
+</article>
+
+{{template "site-foot" $d}}
+</div>
+{{end}}

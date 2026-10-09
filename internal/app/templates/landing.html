@@ -4,7 +4,7 @@
 {{$d := .Data}}
 {{/* Short on purpose: Google shows about 155 characters and rewrites a
      description it finds too long or too vague with text from the page. */}}
-<meta name="description" content="{{t "byagent is a CLI that gives what Claude Code, Codex or Cursor makes a permanent, shareable link. Anyone can comment on it, and agents read the comments back."}}">
+<meta name="description" content="{{t "byagent is a CLI that gives what Claude Code, Codex or Cursor makes a permanent, shareable link. Readers comment and agents read it back."}}">
 <link rel="canonical" href="{{$d.Canonical}}">
 {{template "lang-alternates" $d.LangLinks}}
 <link rel="alternate" type="text/markdown" href="{{$d.AgentsURL}}.md" title="{{t "byagent for agents"}}">
@@ -29,9 +29,8 @@
      answer engine does not confuse it with other things called byagent,
      and disambiguatingDescription says plainly what kind of product it is.
      The Organization node is the entity the other two point at. */}}
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{$d.CanonicalURL}}#org","name":"byagent","url":"{{$d.CanonicalURL}}","logo":"{{$d.ShareOrigin}}/favicon-192.png","email":"hello@byagent.dev","sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"founder":{"@id":"{{$d.CanonicalURL}}#founder"},"parentOrganization":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}},{"@type":"Person","@id":"{{$d.CanonicalURL}}#founder","name":"Anup Aglawe","url":"https://github.com/anup-a","sameAs":["https://github.com/anup-a","https://x.com/anup_x_dev"]},{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}","publisher":{"@id":"{{$d.CanonicalURL}}#org"}},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write (Markdown or HTML) as shareable links. Readers comment on any line without an account, and the next agent run reads the comments back.","disambiguatingDescription":"A developer tool for publishing and reviewing the output of AI coding agents. It is not an AI search optimization or agent discovery service.","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"installUrl":"https://www.npmjs.com/package/byagent","softwareHelp":{"@type":"CreativeWork","url":"{{$d.AgentsURL}}"},"sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"publisher":{"@id":"{{$d.CanonicalURL}}#org"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{$d.CanonicalURL}}#org","name":"byagent","url":"{{$d.CanonicalURL}}","logo":"{{$d.ShareOrigin}}/favicon-192.png","email":"hello@byagent.dev","sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts","https://www.skills.sh/anup-a/agent-artifacts/byagent"],"founder":{"@id":"{{$d.CanonicalURL}}#founder"},"parentOrganization":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}},{"@type":"Person","@id":"{{$d.CanonicalURL}}#founder","name":"Anup Aglawe","url":"https://github.com/anup-a","sameAs":["https://github.com/anup-a","https://x.com/anup_x_dev"]},{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}","publisher":{"@id":"{{$d.CanonicalURL}}#org"}},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write (Markdown or HTML) as shareable links. Readers comment on any line without an account, and the next agent run reads the comments back.","disambiguatingDescription":"A developer tool for publishing and reviewing the output of AI coding agents. It is not an AI search optimization or agent discovery service.","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"installUrl":"https://www.npmjs.com/package/byagent","softwareHelp":{"@type":"CreativeWork","url":"{{$d.AgentsURL}}"},"sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"publisher":{"@id":"{{$d.CanonicalURL}}#org"}}]}</script>
 <script type="application/ld+json">{{$d.FAQJSON}}</script>
-{{template "site-theme" $d}}
 {{/* The page's own styles and script, so the rest of the site does not
      carry the bookcase, the lanes or the feature demos. */}}
 <link rel="stylesheet" href="{{$d.LandingCSS}}">
@@ -101,9 +100,9 @@
       <div class="tb"><span class="cap"><svg viewBox="0 0 16 16"><path d="M8 2.5v7 M5 5l3-3 3 3 M3.5 9.5v4h9v-4"/></svg></span><span class="cap"><svg viewBox="0 0 16 16"><path d="M8 3v10 M3 8h10"/></svg></span></div>
     </div>
     <img class="on-light" src="{{$d.ShotURL}}" srcset="{{$d.ShotSet}}" sizes="(max-width: 1120px) 100vw, 1080px" width="1360" height="820"
-         alt="{{t "The byagent dashboard: an Acme workspace with Dashboards and data, Design studio and Explainers and guides collections, and the pages filed under them"}}">
+         alt="{{t "The byagent dashboard: an Acme workspace with three collections and the pages filed under them"}}">
     <img class="on-dark" src="{{$d.ShotDarkURL}}" srcset="{{$d.ShotDarkSet}}" sizes="(max-width: 1120px) 100vw, 1080px" width="1360" height="820" loading="lazy"
-         alt="{{t "The byagent dashboard: an Acme workspace with Dashboards and data, Design studio and Explainers and guides collections, and the pages filed under them"}}">
+         alt="{{t "The byagent dashboard: an Acme workspace with three collections and the pages filed under them"}}">
   </div>
   <figure class="pop p1 c-codex"><img src="{{index $d.Covers "lisbon"}}" width="640" height="400" alt="{{t "Lisbon rides: the weekend edition, a data story"}}"><figcaption><i></i>{{t "Lisbon rides"}}<em>codex</em></figcaption></figure>
   <figure class="pop p2 c-open"><img src="{{index $d.Covers "garden"}}" width="640" height="400" alt="{{t "Small bottles, big garden, a planting plan"}}"><figcaption><i></i>{{t "Small bottles, big garden"}}<em>opencode</em></figcaption></figure>
@@ -234,7 +233,7 @@
       <div class="composer"><small>{{t "Ask next"}}</small><div class="chips" id="fc-chips"></div></div>
     </div>
     <div class="live">
-      <div class="hd"><h3 id="fc-ttl"></h3><p id="fc-bl"></p></div>
+      <div class="hd"><p class="fc-ttl" id="fc-ttl"></p><p id="fc-bl"></p></div>
       <div class="stage"><div class="fx" id="fc-mock"></div></div>
     </div>
   </div>
@@ -253,9 +252,9 @@
   <ul class="sc-grid try-grid">
     {{range $d.Showcase}}
     <li class="sc-card">
-      <a class="sc-cover" href="{{.URL}}" aria-hidden="true" tabindex="-1"><img src="{{.CoverURL}}" alt="" loading="lazy" width="1200" height="630"></a>
+      <a class="sc-cover" href="{{.URL}}" aria-hidden="true" tabindex="-1"><img src="{{.CoverURL}}" alt="{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}{{t "Untitled"}}{{end}}" loading="lazy" width="1200" height="630"></a>
       <div class="sc-body">
-        <h3 class="sc-title"><a href="{{.URL}}">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}{{t "Untitled"}}{{end}}</a></h3>
+        <p class="sc-title"><a href="{{.URL}}">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}{{t "Untitled"}}{{end}}</a></p>
         {{with .Artifact.Project}}<p class="sc-meta"><span>{{.}}</span></p>{{end}}
       </div>
     </li>
