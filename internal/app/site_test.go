@@ -65,7 +65,7 @@ var sitePages = map[string][]string{
 		"No SOC 2", "One region and one machine", "shares the byagent.dev origin with every other public page",
 	},
 	"/subprocessors": {
-		"Subprocessors", "Last updated 8 October 2026",
+		"Subprocessors", "Last updated 9 October 2026",
 		"OVHcloud", "Hosting: compute and storage", "Canada (Beauharnois, Quebec)",
 		"Cloudflare", "DNS and email routing",
 		"Resend", "Delivering sign-in emails",
@@ -135,7 +135,7 @@ func TestPoliciesCarryDateVersionAndSummary(t *testing.T) {
 	e := siteEnv(t)
 	for _, path := range []string{"/privacy", "/terms", "/security", "/subprocessors", "/acceptable-use"} {
 		body := e.getHost("share.test", path).Body
-		for _, want := range []string{"Effective 8 October 2026", "Version v1.6", `class="lp-summary"`, "In short"} {
+		for _, want := range []string{"Effective 9 October 2026", "Version v1.7", `class="lp-summary"`, "In short"} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s: missing %q", path, want)
 			}

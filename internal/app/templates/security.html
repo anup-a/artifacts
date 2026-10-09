@@ -53,7 +53,7 @@
   <section id="encryption">
     <h2>Encryption</h2>
     <ul>
-      <li><b>In transit.</b> Every connection to byagent.dev and app.byagent.dev uses TLS to Cloudflare, and Cloudflare reaches the server through an encrypted tunnel.</li>
+      <li><b>In transit.</b> Every connection to byagent.dev and app.byagent.dev uses TLS to Cloudflare, and Cloudflare reaches the server through an encrypted tunnel. Plain HTTP is redirected to HTTPS.</li>
       <li><b>At rest.</b> The server's disk, which holds the database and the files, is not encrypted at rest. Only the operator can sign in to the server, and your API keys, session tokens and sign-in tokens are stored on it only as hashes, as described below.</li>
       <li><b>Secrets.</b> API keys, session tokens and email sign-in tokens are stored as SHA-256 hashes, never in plain text.</li>
     </ul>
