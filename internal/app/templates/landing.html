@@ -100,9 +100,9 @@
       <div class="url"><svg viewBox="0 0 16 16"><path d="M5 7V5.5a3 3 0 0 1 6 0V7 M4 7h8v6H4z"/></svg><span>{{$d.APIHost}}</span></div>
       <div class="tb"><span class="cap"><svg viewBox="0 0 16 16"><path d="M8 2.5v7 M5 5l3-3 3 3 M3.5 9.5v4h9v-4"/></svg></span><span class="cap"><svg viewBox="0 0 16 16"><path d="M8 3v10 M3 8h10"/></svg></span></div>
     </div>
-    <img class="on-light" src="{{$d.ShotURL}}" width="1360" height="820"
+    <img class="on-light" src="{{$d.ShotURL}}" srcset="{{$d.ShotSet}}" sizes="(max-width: 1120px) 100vw, 1080px" width="1360" height="820"
          alt="{{t "The byagent dashboard: an Acme workspace with Dashboards and data, Design studio and Explainers and guides collections, and the pages filed under them"}}">
-    <img class="on-dark" src="{{$d.ShotDarkURL}}" width="1360" height="820" loading="lazy"
+    <img class="on-dark" src="{{$d.ShotDarkURL}}" srcset="{{$d.ShotDarkSet}}" sizes="(max-width: 1120px) 100vw, 1080px" width="1360" height="820" loading="lazy"
          alt="{{t "The byagent dashboard: an Acme workspace with Dashboards and data, Design studio and Explainers and guides collections, and the pages filed under them"}}">
   </div>
   <figure class="pop p1 c-codex"><img src="{{index $d.Covers "lisbon"}}" width="640" height="400" alt="{{t "Lisbon rides: the weekend edition, a data story"}}"><figcaption><i></i>{{t "Lisbon rides"}}<em>codex</em></figcaption></figure>
@@ -291,7 +291,7 @@
 <section class="close col" data-in data-ga-where="close">
   <h2>{{t "Give every agent one place to publish."}}</h2>
   <div class="cta">
-    <button type="button" class="btn primary lp-close-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" $d}}" aria-label="{{t "Copy the prompt for your agent"}}">
+    <button type="button" class="btn primary lp-close-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" $d}}" aria-label="{{t "Copy prompt for agent"}}">
       <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">{{t "Copy prompt for agent"}}</span>
     </button>
     <span class="fine">{{t "Free. Works with any agent that has a shell."}}</span>

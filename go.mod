@@ -4,6 +4,8 @@ go 1.26.4
 
 require (
 	github.com/jackc/pgx/v5 v5.11.0
+	github.com/minio/minio-go/v7 v7.3.0
+	github.com/tdewolff/minify/v2 v2.24.19
 	golang.org/x/crypto v0.55.0
 	golang.org/x/net v0.58.0
 	modernc.org/sqlite v1.59.0
@@ -22,11 +24,11 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/minio/crc64nvme v1.1.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.3.0 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/xid v1.6.0 // indirect
+	github.com/tdewolff/parse/v2 v2.8.16 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect

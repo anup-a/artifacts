@@ -3,23 +3,19 @@
   <url><loc>{{.Share}}/</loc></url>
   <url><loc>{{.Share}}/showcase</loc></url>
   <url><loc>{{.Share}}/pricing</loc></url>
-  <url><loc>{{.Share}}/pricing.md</loc></url>
   <url><loc>{{.Share}}/privacy</loc></url>
   <url><loc>{{.Share}}/terms</loc></url>
   <url><loc>{{.Share}}/security</loc></url>
   <url><loc>{{.Share}}/subprocessors</loc></url>
   <url><loc>{{.Share}}/acceptable-use</loc></url>
   <url><loc>{{.Share}}/agents</loc></url>
-  <url><loc>{{.Share}}/agents.md</loc></url>
   <url><loc>{{.Share}}/agents/facts.json</loc></url>
   <url><loc>{{.Share}}/skill.md</loc></url>
   <url><loc>{{.Share}}/llms.txt</loc></url>
   <url><loc>{{.Share}}/llms-full.txt</loc></url>
   <url><loc>{{.Share}}/guides</loc></url>
-  <url><loc>{{.Share}}/guides.md</loc></url>
 {{- range .Guides}}
   <url><loc>{{$.Share}}/guides/{{.Slug}}</loc><lastmod>{{.Updated}}</lastmod></url>
-  <url><loc>{{$.Share}}/guides/{{.Slug}}.md</loc><lastmod>{{.Updated}}</lastmod></url>
 {{- end}}
 {{- range .Tasks}}
   <url><loc>{{$.Share}}/agents/tasks/{{.Slug}}.md</loc></url>

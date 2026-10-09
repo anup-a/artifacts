@@ -46,8 +46,12 @@ func TestSharedContentDomain(t *testing.T) {
 	}
 
 	// Every other name keeps today's routes: no apex redirect (it would
-	// loop), no 404 for labels that are not slugs.
-	for _, h := range []string{"share.test", "www.share.test", "api.test", "app.share.test", "domains.share.test",
+	// loop), no 404 for labels that are not slugs. www is the exception: it
+	// goes to the share origin, so search engines see one copy of the site.
+	if res := on(hostReq{host: "www.share.test", path: "/healthz"}); res.code != 301 || res.hdr.Get("Location") != d.Cfg.ShareOrigin+"/healthz" {
+		t.Errorf("www.share.test/healthz: %d %s", res.code, res.hdr.Get("Location"))
+	}
+	for _, h := range []string{"share.test", "api.test", "app.share.test", "domains.share.test",
 		"x." + host, a.Slug[:15] + ".share.test", a.Slug + "x.share.test"} {
 		if res := on(hostReq{host: h, path: "/healthz"}); res.code != 200 {
 			t.Errorf("%s/healthz: %d %s", h, res.code, res.hdr.Get("Location"))

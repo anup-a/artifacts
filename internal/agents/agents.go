@@ -120,12 +120,12 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /agents/{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/agents", http.StatusMovedPermanently)
 	})
-	mux.HandleFunc("GET /agents.md", h.text("agents.md", "text/markdown"))
+	mux.HandleFunc("GET /agents.md", h.twin("agents.md", "/agents"))
 	mux.HandleFunc("GET /agents/facts.json", h.facts)
 	mux.HandleFunc("GET /agents/tasks/{file}", h.task)
 	// The pricing page for agents. The page for people, /pricing, is in
 	// internal/app with the rest of the site; both read the same limits.
-	mux.HandleFunc("GET /pricing.md", h.text("pricing.md", "text/markdown"))
+	mux.HandleFunc("GET /pricing.md", h.twin("pricing.md", "/pricing"))
 	mux.HandleFunc("GET /llms.txt", h.text("llms.txt", "text/plain"))
 	mux.HandleFunc("GET /llms-full.txt", h.full)
 	mux.HandleFunc("GET /robots.txt", h.text("robots.txt", "text/plain"))
@@ -135,7 +135,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /guides/{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/guides", http.StatusMovedPermanently)
 	})
-	mux.HandleFunc("GET /guides.md", h.text("guides.md", "text/markdown"))
+	mux.HandleFunc("GET /guides.md", h.twin("guides.md", "/guides"))
 	mux.HandleFunc("GET /guides/{file}", h.guideBySlug)
 	mux.HandleFunc("GET /"+indexNowKey+".txt", func(w http.ResponseWriter, r *http.Request) {
 		write(w, "text/plain", []byte(indexNowKey))
@@ -171,6 +171,20 @@ func (h *Handler) text(name, contentType string) http.HandlerFunc {
 		}
 		write(w, contentType, body)
 	}
+}
+
+// twin serves the Markdown copy of an HTML page. The Link header names the
+// HTML page as canonical, so search engines index it rather than both.
+func (h *Handler) twin(name, htmlPath string) http.HandlerFunc {
+	text := h.text(name, "text/markdown")
+	return func(w http.ResponseWriter, r *http.Request) {
+		canonical(w, h.d.Share+htmlPath)
+		text(w, r)
+	}
+}
+
+func canonical(w http.ResponseWriter, url string) {
+	w.Header().Set("Link", `<`+url+`>; rel="canonical"`)
 }
 
 // wantsMarkdown reports whether the request names text/markdown ahead of

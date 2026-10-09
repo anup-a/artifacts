@@ -120,7 +120,29 @@ func NewHandler(d Deps) (http.Handler, error) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		apierr.Write(w, r, apierr.NotFound("route"))
 	})
-	return requestID(hsts(d.Cfg.ShareOrigin, agents.LogCrawlers(readOnly(d.Cfg.ReadOnly, s.hosts(mux, sh))))), nil
+	return requestID(hsts(d.Cfg.ShareOrigin, agents.LogCrawlers(wwwToApex(d.Cfg.ShareOrigin, readOnly(d.Cfg.ReadOnly, s.hosts(mux, sh)))))), nil
+}
+
+// wwwToApex sends www.<share host> to the share origin, path kept, so
+// search engines see one copy of the site instead of two. GET and HEAD get
+// a 301; anything else a 308, which keeps the method and body.
+func wwwToApex(shareOrigin string, next http.Handler) http.Handler {
+	www := "www." + hostOf(shareOrigin)
+	if www == "www." {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requestHost(r) != www {
+			next.ServeHTTP(w, r)
+			return
+		}
+		code := http.StatusPermanentRedirect
+		if r.Method == http.MethodGet || r.Method == http.MethodHead {
+			code = http.StatusMovedPermanently
+		}
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		http.Redirect(w, r, strings.TrimRight(shareOrigin, "/")+r.URL.RequestURI(), code)
+	})
 }
 
 // hsts tells browsers to use HTTPS for a year once they have seen the site

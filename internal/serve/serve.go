@@ -178,6 +178,13 @@ func (h *Handler) securityHeaders(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Security-Policy", policy)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	// Published pages stay out of search on byagent's own hosts: thousands
+	// of agent-written pages on random subdomains read to Google as a free
+	// host and weigh on byagent.dev itself. Links on them are still
+	// followed. A custom domain is its owner's site, so it is indexed.
+	if !OnMount(r) {
+		w.Header().Set("X-Robots-Tag", "noindex")
+	}
 }
 
 func (h *Handler) csp() string {

@@ -36,7 +36,7 @@ func TestAnalyticsStartsFromAFile(t *testing.T) {
 		if res.StatusCode != 200 {
 			t.Fatalf("%s: got %d", path, res.StatusCode)
 		}
-		if !regexp.MustCompile(`<script src="/app/static/ga\.[0-9a-f]+\.js" data-ga-id="G-TEST123"></script>`).MatchString(res.Body) {
+		if !regexp.MustCompile(`<script src="/app/static/ga\.[0-9a-f]+\.js" data-ga-id="G-TEST123" defer></script>`).MatchString(res.Body) {
 			t.Errorf("%s: no ga.js tag carrying the measurement ID", path)
 		}
 		// gtag.js sets cookies, so ga.js loads it only after the visitor
@@ -66,8 +66,10 @@ func TestAnalyticsScriptIsServed(t *testing.T) {
 	if res.StatusCode != 200 || !strings.Contains(res.Header.Get("Content-Type"), "javascript") {
 		t.Fatalf("ga.js: got %d %q", res.StatusCode, res.Header.Get("Content-Type"))
 	}
-	for _, want := range []string{"data-ga-id", `gtag("config", id)`, `"copy_prompt"`, "data-ga-copy", "data-ga-where",
-		"byagent_consent", `if (c === "yes") start()`, "data-consent-open", `sendBeacon("/e/copy`} {
+	// Served minified, so these are strings the minifier leaves alone, not
+	// the source's local names.
+	for _, want := range []string{"data-ga-id", `gtag("config",`, `"copy_prompt"`, "data-ga-copy", "data-ga-where",
+		"byagent_consent", "googletagmanager.com/gtag/js", "data-consent-open", `sendBeacon("/e/copy`} {
 		if !strings.Contains(res.Body, want) {
 			t.Errorf("ga.js is missing %q", want)
 		}

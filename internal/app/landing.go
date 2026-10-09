@@ -30,6 +30,8 @@ type landingData struct {
 	CardURL      string            // the 1200 x 630 link preview card, absolute
 	ShotURL      string            // the dashboard screenshot, content-hashed
 	ShotDarkURL  string            // the same view in the dark theme
+	ShotSet      string            // ShotURL at every width it is saved at
+	ShotDarkSet  string            // and ShotDarkURL
 	LandingCSS   string            // the page's own stylesheet
 	LandingJS    string            // and its script
 	Covers       map[string]string // page covers by name, for the pop-outs and the projects demo
@@ -164,6 +166,8 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 		CardURL:      h.Cfg.ShareOrigin + "/" + cardFile,
 		ShotURL:      h.static.shotURL,
 		ShotDarkURL:  h.static.shotDarkURL,
+		ShotSet:      h.static.shotSet,
+		ShotDarkSet:  h.static.shotDarkSet,
 		LandingCSS:   h.static.landingCSSURL,
 		LandingJS:    h.static.landingJSURL,
 		Covers:       h.static.coverURLs,

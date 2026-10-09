@@ -187,8 +187,30 @@ func TestSitemapListsEveryPublicPage(t *testing.T) {
 		if p == "/robots.txt" || p == "/sitemap.xml" {
 			continue
 		}
-		if !listed["https://share.test"+p] {
-			t.Errorf("sitemap misses %s", p)
+		// A Markdown copy of an HTML page is not listed: the page is.
+		if listed["https://share.test"+p] == (markdownTwins()[p] != "") {
+			t.Errorf("sitemap lists %s: %v", p, listed["https://share.test"+p])
+		}
+	}
+}
+
+// markdownTwins maps each Markdown copy of an HTML page to that page.
+func markdownTwins() map[string]string {
+	out := map[string]string{"/agents.md": "/agents", "/pricing.md": "/pricing", "/guides.md": "/guides"}
+	for _, g := range guides {
+		out["/guides/"+g.Slug+".md"] = "/guides/" + g.Slug
+	}
+	return out
+}
+
+// The Markdown copies name their HTML page as canonical, so search engines
+// index the page and not both.
+func TestMarkdownTwinsNameTheirPageAsCanonical(t *testing.T) {
+	get := server(t)
+	for md, page := range markdownTwins() {
+		want := `<https://share.test` + page + `>; rel="canonical"`
+		if got := get(md, "").header.Get("Link"); got != want {
+			t.Errorf("%s: Link %q, want %q", md, got, want)
 		}
 	}
 }
