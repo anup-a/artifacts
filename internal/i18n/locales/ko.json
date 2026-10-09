@@ -375,7 +375,7 @@
  "Off": "끔",
  "Older": "이전",
  "On": "켬",
- "On one server at Fly.io in its Singapore region. The database and the published files sit on a volume that is encrypted at rest, and every connection uses TLS. See <a class=\"link\" href=\"/security\">Security</a>.": "Fly.io 싱가포르 리전의 서버 한 대에 있어요. 데이터베이스와 게시된 파일은 저장 시 암호화되는 볼륨에 있고, 모든 연결은 TLS를 사용해요. <a class=\"link\" href=\"/security\">보안</a> 페이지를 확인하세요.",
+ "On one OVHcloud server in Beauharnois, Quebec, Canada, with Cloudflare in front. The database and the published files sit on the server's own disk, which is not encrypted at rest. Every connection is encrypted in transit. See <a class=\"link\" href=\"/security\">Security</a>.": "캐나다 퀘벡주 보아르누아에 있는 OVHcloud 서버 한 대에 있고, 그 앞단에 Cloudflare가 있어요. 데이터베이스와 게시된 파일은 서버 자체 디스크에 있으며, 이 디스크는 저장 시 암호화되지 않아요. 모든 연결은 전송 중에 암호화돼요. <a class=\"link\" href=\"/security\">보안</a> 페이지를 확인하세요.",
  "On this page": "목차",
  "One line sets byagent up for your agent. Your page could be next.": "한 줄이면 에이전트에 byagent가 설정돼요. 다음은 여러분의 페이지 차례예요.",
  "Only a private artifact can be shared with a code.": "비공개 페이지만 코드로 공유할 수 있어요.",

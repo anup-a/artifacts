@@ -7,9 +7,9 @@ Operational reference for running `artifacts` on the managed deployment
 ## Production on a VPS (behind a Cloudflare Tunnel)
 
 Why it replaced Fly: Fly bills every GB served and has no spending cap, so a
-viral page or a flood has no ceiling. The box is an OVHcloud VPS-1 in Europe
-(2 vCores, 4 GB, 40 GB NVMe, no commitment): traffic is unlimited and never
-billed, and Cloudflare in front absorbs floods. Same binary, same sqlite +
+viral page or a flood has no ceiling. The box is an OVHcloud VPS-1 in
+Beauharnois, Canada (BHS; 2 vCores, 4 GB, 40 GB NVMe, no commitment):
+traffic is unlimited and never billed, and Cloudflare in front absorbs floods. Same binary, same sqlite +
 local blobs, files in `deploy/box/`. Nothing in them is OVH-specific; any
 Ubuntu 24.04 VPS works. (Hetzner was the first pick, but its CX plans were
 out of stock in October 2026.)

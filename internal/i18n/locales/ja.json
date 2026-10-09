@@ -375,7 +375,7 @@
  "Off": "オフ",
  "Older": "それ以前",
  "On": "オン",
- "On one server at Fly.io in its Singapore region. The database and the published files sit on a volume that is encrypted at rest, and every connection uses TLS. See <a class=\"link\" href=\"/security\">Security</a>.": "Fly.io のシンガポールリージョンにある 1 台のサーバーです。データベースと公開ファイルは保存時に暗号化されるボリュームに置かれ、すべての接続で TLS を使用しています。詳しくは<a class=\"link\" href=\"/security\">セキュリティ</a>をご覧ください。",
+ "On one OVHcloud server in Beauharnois, Quebec, Canada, with Cloudflare in front. The database and the published files sit on the server's own disk, which is not encrypted at rest. Every connection is encrypted in transit. See <a class=\"link\" href=\"/security\">Security</a>.": "カナダ・ケベック州ボーアルノワにある OVHcloud のサーバー 1 台で、その前段に Cloudflare を置いています。データベースと公開ファイルはそのサーバー自身のディスクに置かれ、このディスクは保存時に暗号化されていません。すべての接続は通信中に暗号化されます。詳しくは<a class=\"link\" href=\"/security\">セキュリティ</a>をご覧ください。",
  "On this page": "このページの内容",
  "One line sets byagent up for your agent. Your page could be next.": "1 行でエージェントに byagent をセットアップできます。次はあなたのページかもしれません。",
  "Only a private artifact can be shared with a code.": "コードで共有できるのは非公開のページだけです。",

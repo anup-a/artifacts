@@ -43,6 +43,8 @@ var dotenvKeys = []string{
 	"LIMIT_COMMENT_BYTES", "LIMIT_COMMENTS_PER_MIN", "LIMIT_ANCHOR_BYTES",
 	"LIMIT_ACCESS_MAIL_PER_WORKSPACE_DAY", "LIMIT_ACCESS_MAIL_PER_DAY",
 	"VARIABLES_KEY", "VARIABLES", "LIMIT_PROXY_PER_IP_PER_HOUR", "LIMIT_PROXY_PER_PAGE_PER_HOUR",
+	// The curated /showcase.
+	"SHOWCASE_PAGES", "SHOWCASE_COLLECTION",
 	// Custom domains. DOMAINS_PROVIDER and FLY_* are left out on purpose:
 	// they describe the old host's edge, and the new one sets its own.
 	"DOMAINS_CNAME_TARGET", "DOMAINS_APEX_IPS", "DOMAINS_DNS_RESOLVER",

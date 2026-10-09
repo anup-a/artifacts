@@ -27,7 +27,7 @@
       <li>Readers need no account. A comment stores the name the reader types, the text, the line it is on and the time. We do not store reader IP addresses.</li>
       <li>Google Analytics runs on our own site pages and the dashboard, and only if you accept it in the cookie banner. It never runs on published pages.</li>
       <li>We do not sell personal data, and we do not use your pages or comments to train AI models.</li>
-      <li>Everything is stored on Fly.io in Singapore.</li>
+      <li>Everything is stored on one OVHcloud server in Canada.</li>
     </ul>
   </aside>
 
@@ -153,7 +153,7 @@
     <h3>What published pages load</h3>
     <p>A published page is HTML its owner wrote. Its policy lets it load scripts from cdnjs.cloudflare.com and cdn.jsdelivr.net, fonts from Google Fonts, and images from any HTTPS address. When a page does that, your browser requests those files from those providers directly, and they see your IP address as with any website. We do not control what a page owner loads.</p>
     <h3>IP addresses and logs</h3>
-    <p>Our application logs record errors, not visitors, and do not contain IP addresses. Page view counting reads the IP address only to form the in-memory daily hash described under “Page view counts”. They also note each request from a known AI crawler or search bot, such as GPTBot, ClaudeBot or Googlebot: the bot's name and the page it fetched, so we can see which pages answer engines read. Every request passes through Fly.io's proxy on the way to our server, and Fly.io processes connection data to deliver it.</p>
+    <p>Our application logs record errors, not visitors, and do not contain IP addresses. Page view counting reads the IP address only to form the in-memory daily hash described under “Page view counts”. They also note each request from a known AI crawler or search bot, such as GPTBot, ClaudeBot or Googlebot: the bot's name and the page it fetched, so we can see which pages answer engines read. Every request passes through Cloudflare on the way to our server, and Cloudflare processes connection data, including IP addresses, to deliver it.</p>
   </section>
 
   <section id="cookies">
@@ -175,12 +175,12 @@
 
   <section id="subprocessors">
     <h2>Subprocessors</h2>
-    <p>We use a small number of providers to run byagent: Fly.io, Resend, GitHub and Google. The full list, with what each one receives and where, is on the <a class="link" href="/subprocessors">Subprocessors</a> page.</p>
+    <p>We use a small number of providers to run byagent: OVHcloud, Cloudflare, Resend, GitHub and Google. The full list, with what each one receives and where, is on the <a class="link" href="/subprocessors">Subprocessors</a> page.</p>
   </section>
 
   <section id="transfers">
     <h2>International transfers</h2>
-    <p>Your data is stored in Singapore. Some providers are in the United States. Where the GDPR applies, these transfers rely on the providers' standard contractual clauses where applicable.</p>
+    <p>Your data is stored in Canada. Some providers are in the United States. Where the GDPR applies, these transfers rely on the providers' standard contractual clauses where applicable.</p>
   </section>
 
   <section id="retention">
@@ -189,7 +189,7 @@
       <li><b>Deleting a page</b> (<code>byagent delete</code>, or Delete on the dashboard) is permanent and needs no email. It takes the page offline at once and erases its title, labels, versions, comments and view counts straight away. Its files are erased from storage within a day. Only the page id is kept, so the old link says the page is gone and the id is never reused.</li>
       <li><b>Guest pages</b>, published without an account, are erased the same way 24 hours after the guest key was made, unless someone signs in and keeps them first.</li>
       <li><b>Deleting your account</b> is done by email too, within 30 days. It removes your account, your workspace, its pages and keys.</li>
-      <li><b>Backups.</b> Fly.io takes a daily snapshot of the storage volume and keeps each one for 5 days, so erased data is gone from backups 5 days later.</li>
+      <li><b>Backups.</b> A nightly snapshot of the database and files is kept on our server for 5 days, and OVHcloud's automated backup keeps only the last daily copy, so erased data is gone from backups 5 days later.</li>
       <li><b>Versions.</b> Each page keeps up to {{$d.Limits.VersionsKept}} versions. Older versions are deleted when a new one is published, unless an open comment thread is attached to them.</li>
     </ul>
   </section>

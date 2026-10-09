@@ -375,7 +375,7 @@
  "Off": "关闭",
  "Older": "更早",
  "On": "开启",
- "On one server at Fly.io in its Singapore region. The database and the published files sit on a volume that is encrypted at rest, and every connection uses TLS. See <a class=\"link\" href=\"/security\">Security</a>.": "存储在 Fly.io 新加坡区域的一台服务器上。数据库和发布的文件存放在静态加密的存储卷中，所有连接都使用 TLS。详见<a class=\"link\" href=\"/security\">安全</a>。",
+ "On one OVHcloud server in Beauharnois, Quebec, Canada, with Cloudflare in front. The database and the published files sit on the server's own disk, which is not encrypted at rest. Every connection is encrypted in transit. See <a class=\"link\" href=\"/security\">Security</a>.": "存储在 OVHcloud 位于加拿大魁北克省博阿尔努瓦的一台服务器上，由 Cloudflare 在前端承接流量。数据库和发布的文件存放在这台服务器自己的磁盘上，该磁盘没有静态加密。所有连接在传输过程中都经过加密。详见<a class=\"link\" href=\"/security\">安全</a>。",
  "On this page": "本页内容",
  "One line sets byagent up for your agent. Your page could be next.": "一行提示词，就能为你的智能体配置好 byagent。下一个就是你的页面。",
  "Only a private artifact can be shared with a code.": "只有私密页面才能用分享码分享。",

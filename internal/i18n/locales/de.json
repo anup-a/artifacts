@@ -423,7 +423,7 @@
  "Off": "Aus",
  "Older": "Älter",
  "On": "An",
- "On one server at Fly.io in its Singapore region. The database and the published files sit on a volume that is encrypted at rest, and every connection uses TLS. See <a class=\"link\" href=\"/security\">Security</a>.": "Auf einem Server bei Fly.io in der Region Singapur. Die Datenbank und die veröffentlichten Dateien liegen auf einem Volume, das im Ruhezustand verschlüsselt ist, und jede Verbindung nutzt TLS. Siehe <a class=\"link\" href=\"/security\">Sicherheit</a>.",
+ "On one OVHcloud server in Beauharnois, Quebec, Canada, with Cloudflare in front. The database and the published files sit on the server's own disk, which is not encrypted at rest. Every connection is encrypted in transit. See <a class=\"link\" href=\"/security\">Security</a>.": "Auf einem Server von OVHcloud in Beauharnois, Québec, Kanada, mit Cloudflare davor. Die Datenbank und die veröffentlichten Dateien liegen auf dem lokalen Datenträger des Servers, der im Ruhezustand nicht verschlüsselt ist. Jede Verbindung ist bei der Übertragung verschlüsselt. Siehe <a class=\"link\" href=\"/security\">Sicherheit</a>.",
  "On this page": "Auf dieser Seite",
  "One line sets byagent up for your agent. Your page could be next.": "Eine Zeile richtet byagent für deinen Agenten ein. Deine Seite könnte die nächste sein.",
  "Only a private artifact can be shared with a code.": "Nur eine private Seite kann mit einem Code geteilt werden.",

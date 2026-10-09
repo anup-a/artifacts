@@ -60,7 +60,7 @@ ssh "$TARGET" 'set -e
   docker compose up -d
   for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz >/dev/null 2>&1 && break; sleep 2; done
   curl -fsS http://127.0.0.1:8080/healthz >/dev/null
-  sqlite3 -readonly data/artifacts.db "select count(*) || \" artifacts, \" || (select count(*) from tenants) || \" workspaces\" from artifacts_v2"'
+  sqlite3 -readonly data/artifacts.db "select count(*) || \" artifacts, \" || (select count(*) from tenants) || \" workspaces\" from artifacts"'
 
 echo "==> done. The box serves the copied data on 127.0.0.1:8080."
 if [ "$FINAL" = "--final" ]; then
