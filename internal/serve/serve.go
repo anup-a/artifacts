@@ -187,10 +187,14 @@ func (h *Handler) securityHeaders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// worker-src allows blob: workers so a page can run code it builds at runtime
+// (learnpath's in-lesson exercise runner) off the main thread, where a stuck
+// loop can be terminated. Authors can already run inline script here, so this
+// grants nothing new beyond the thread.
 func (h *Handler) csp() string {
 	return "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
 		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com; " +
-		"img-src 'self' data: blob: https:; connect-src 'self' " + h.ShareOrigin + "; frame-ancestors " + h.frameAncestors()
+		"img-src 'self' data: blob: https:; worker-src 'self' blob:; connect-src 'self' " + h.ShareOrigin + "; frame-ancestors " + h.frameAncestors()
 }
 
 // frameAncestors allows the dashboard to embed a published page for preview

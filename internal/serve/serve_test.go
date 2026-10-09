@@ -96,6 +96,9 @@ func TestServeCurrentAndPinned(t *testing.T) {
 	if !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") || res.Header.Get("Content-Security-Policy") == "" || res.Header.Get("ETag") == "" {
 		t.Fatalf("headers %v", res.Header)
 	}
+	if p := res.Header.Get("Content-Security-Policy"); !strings.Contains(p, "worker-src 'self' blob:") || strings.Contains(p, "unsafe-eval") {
+		t.Fatalf("worker-src %s", p)
+	}
 	if res.Header.Get("Cache-Control") != "no-cache" {
 		t.Fatal(res.Header.Get("Cache-Control"))
 	}
