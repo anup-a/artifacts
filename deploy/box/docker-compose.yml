@@ -31,7 +31,10 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:2026.9.3
-    command: tunnel --no-autoupdate run
+    # --metrics serves cloudflared's own counters on the compose network for
+    # the collector (tunnel requests, errors, edge connections); no port is
+    # published.
+    command: tunnel --no-autoupdate --metrics 0.0.0.0:2000 run
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
     depends_on: [artifacts]
@@ -39,3 +42,26 @@ services:
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "5" }
+
+  # Metrics to Grafana Cloud. It starts only with COMPOSE_PROFILES=telemetry
+  # in .env, next to GRAFANA_OTLP_ENDPOINT and GRAFANA_OTLP_AUTH, so a box
+  # without those credentials runs exactly as before. See otel-collector.yaml.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.162.0
+    profiles: [telemetry]
+    command: ["--config=/etc/otelcol/config.yaml"]
+    # Root inside the container, to read the Docker socket for container
+    # stats. Everything it mounts from the host is read-only.
+    user: "0:0"
+    environment:
+      GRAFANA_OTLP_ENDPOINT: ${GRAFANA_OTLP_ENDPOINT:-}
+      GRAFANA_OTLP_AUTH: ${GRAFANA_OTLP_AUTH:-}
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    mem_limit: 200m
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }

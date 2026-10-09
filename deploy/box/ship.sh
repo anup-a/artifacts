@@ -22,7 +22,7 @@ echo "==> loading it on $TARGET"
 docker save artifacts:local "artifacts:$SHA" | gzip | ssh "$TARGET" 'gunzip | docker load'
 
 echo "==> starting"
-scp deploy/box/docker-compose.yml "$TARGET":/opt/artifacts/docker-compose.yml
+scp deploy/box/docker-compose.yml deploy/box/otel-collector.yaml "$TARGET":/opt/artifacts/
 ssh "$TARGET" 'cd /opt/artifacts && test -f .env || { echo "no /opt/artifacts/.env yet: run migrate.sh first"; exit 1; }
   docker compose up -d --remove-orphans
   # Keep the five newest builds for rollback.

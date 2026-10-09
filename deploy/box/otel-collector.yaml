@@ -1,0 +1,80 @@
+# OpenTelemetry Collector for the byagent box: how the machine handles its
+# traffic, sent to Grafana Cloud. Metrics only. No logs or traces leave the
+# box, so nothing here carries a visitor's IP, an email or a page's content.
+#
+# What it gathers:
+# - hostmetrics: the VPS itself (CPU, load, memory, disk, filesystem,
+#   network), read from the host's /proc and /sys mounted at /hostfs.
+# - docker_stats: CPU, memory and network per container.
+# - prometheus: cloudflared's own metrics (requests through the tunnel, its
+#   errors, response codes, edge connections).
+# - otlp: the app's metrics (request rate, latency and errors per route, Go
+#   runtime), which artifacts-server pushes here when
+#   OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318 is set.
+#
+# Credentials come from .env: GRAFANA_OTLP_ENDPOINT (the stack's OTLP
+# gateway, https://otlp-gateway-prod-<region>.grafana.net/otlp) and
+# GRAFANA_OTLP_AUTH (base64 of "<instance id>:<access policy token>").
+receivers:
+  hostmetrics:
+    root_path: /hostfs
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization: { enabled: true }
+      load: {}
+      memory:
+        metrics:
+          system.memory.utilization: { enabled: true }
+      disk: {}
+      filesystem:
+        exclude_fs_types:
+          fs_types: [autofs, binfmt_misc, bpf, cgroup2, configfs, debugfs, devpts, devtmpfs, fusectl, hugetlbfs, mqueue, nsfs, overlay, proc, procfs, pstore, securityfs, squashfs, sysfs, tmpfs, tracefs]
+          match_type: strict
+        metrics:
+          system.filesystem.utilization: { enabled: true }
+      network: {}
+      paging: {}
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 30s
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: cloudflared
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["cloudflared:2000"]
+  otlp:
+    protocols:
+      # Reachable only on the compose network; no port is published.
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 150
+  resourcedetection:
+    detectors: [env, system]
+    system:
+      hostname_sources: [os]
+  batch:
+    timeout: 30s
+
+exporters:
+  otlphttp/grafana:
+    endpoint: ${env:GRAFANA_OTLP_ENDPOINT}
+    headers:
+      Authorization: Basic ${env:GRAFANA_OTLP_AUTH}
+
+service:
+  telemetry:
+    logs:
+      level: warn
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, docker_stats, prometheus, otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [otlphttp/grafana]

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -19,13 +20,16 @@ import (
 	"github.com/anup-a/artifacts/internal/ratelimit"
 	"github.com/anup-a/artifacts/internal/snapshot"
 	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/artifacts/internal/telemetry"
 	"github.com/anup-a/artifacts/internal/usage"
 	"github.com/anup-a/artifacts/runtime"
+	"go.opentelemetry.io/otel"
 )
 
 const (
 	viewFlushEvery    = 30 * time.Second
 	shutdownTimeout   = 10 * time.Second
+	telemetryTimeout  = 5 * time.Second
 	portalLinksPerMin = 60
 	domainCheckEvery  = time.Minute
 )
@@ -83,6 +87,14 @@ func main() {
 		log.Info("snapshot written", "path", os.Args[2])
 		return
 	}
+	// Telemetry is off unless OTEL_EXPORTER_OTLP_ENDPOINT is set. A broken
+	// telemetry setup is logged and the server runs without it: metrics are
+	// worth less than serving pages.
+	stopTelemetry, err := telemetry.Start(ctx)
+	telemetryOn := telemetry.Enabled() && err == nil
+	if err != nil {
+		log.Error("telemetry", "err", err)
+	}
 	st, err := store.Open(ctx, cfg)
 	if err != nil {
 		log.Error("store", "err", err)
@@ -122,6 +134,13 @@ func main() {
 		log.Error("handler", "err", err)
 		os.Exit(1)
 	}
+	if telemetryOn {
+		h, err = instrument(cfg, h)
+		if err != nil {
+			log.Error("telemetry", "err", err)
+			os.Exit(1)
+		}
+	}
 	go api.RunGC(ctx, deps, time.Hour)
 	if doms != nil {
 		go doms.Run(ctx, domainCheckEvery, func() bool { return cfg.ReadOnly })
@@ -154,7 +173,30 @@ func main() {
 	if err := st.Close(); err != nil {
 		log.Error("close", "err", err)
 	}
+	// Last, so the final page view flush above is in the final export.
+	telemetryCtx, cancel := context.WithTimeout(context.Background(), telemetryTimeout)
+	defer cancel()
+	if err := stopTelemetry(telemetryCtx); err != nil {
+		log.Error("telemetry shutdown", "err", err)
+	}
 	log.Info("stopped")
+}
+
+// instrument wraps the whole handler in the HTTP metrics middleware and
+// starts the data directory gauges for whatever this server keeps on local
+// disk.
+func instrument(cfg config.Config, h http.Handler) (http.Handler, error) {
+	var dbFile, blobDir string
+	if cfg.DB == "sqlite" {
+		dbFile = filepath.Join(cfg.DataDir, "artifacts.db")
+	}
+	if cfg.Storage == "local" {
+		blobDir = filepath.Join(cfg.DataDir, "blobs")
+	}
+	if err := telemetry.ObserveDataDir(dbFile, blobDir); err != nil {
+		return nil, err
+	}
+	return telemetry.Middleware(otel.GetMeterProvider(), telemetry.HostsFor(cfg), h)
 }
 
 // writeSnapshot writes the archive beside its destination and renames it into
