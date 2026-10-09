@@ -35,7 +35,7 @@
     <details class="switcher">
       <summary class="ws" aria-label="{{t "Switch workspace"}}">
         <span class="ws-avatar">{{printf "%.1s" .Viewer.Tenant.Name}}</span>
-        <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{.Viewer.Tenant.Kind}}</span></span>
+        <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{template "tenant-kind" .Viewer.Tenant.Kind}}</span></span>
         {{template "icon" "chevrons"}}
       </summary>
       <div class="menu ws-menu" role="menu">
@@ -47,7 +47,7 @@
           <button type="submit" class="menu-item{{if eq .ID $.Viewer.Tenant.ID}} is-current{{end}}" role="menuitem">
             <span class="ws-avatar small">{{printf "%.1s" .Name}}</span>
             <span class="menu-item-text">{{.Name}}</span>
-            <span class="badge">{{.Kind}}</span>
+            <span class="badge">{{template "tenant-kind" .Kind}}</span>
             {{if eq .ID $.Viewer.Tenant.ID}}{{template "icon" "check"}}{{end}}
           </button>
         </form>
@@ -59,7 +59,7 @@
     {{else}}
     <div class="ws is-static">
       <span class="ws-avatar">{{printf "%.1s" .Viewer.Tenant.Name}}</span>
-      <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{.Viewer.Tenant.Kind}}</span></span>
+      <span class="ws-text"><span class="ws-name">{{.Viewer.Tenant.Name}}</span><span class="ws-kind">{{template "tenant-kind" .Viewer.Tenant.Kind}}</span></span>
     </div>
     {{end}}
 

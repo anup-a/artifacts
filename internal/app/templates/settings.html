@@ -15,8 +15,8 @@
     <button type="submit" class="btn">{{t "Save"}}</button>
   </form>
   <dl class="props">
-    <dt>{{t "Kind"}}</dt><dd><span class="badge">{{.Viewer.Tenant.Kind}}</span></dd>
-    <dt>{{t "Plan"}}</dt><dd><span class="badge">{{.Viewer.Tenant.Plan}}</span></dd>
+    <dt>{{t "Kind"}}</dt><dd><span class="badge">{{template "tenant-kind" .Viewer.Tenant.Kind}}</span></dd>
+    <dt>{{t "Plan"}}</dt><dd><span class="badge">{{template "tenant-plan" .Viewer.Tenant.Plan}}</span></dd>
     <dt>{{t "Id"}}</dt><dd><span class="chip"><code>{{.Viewer.Tenant.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{.Viewer.Tenant.ID}}" title="{{t "Copy id"}}" aria-label="{{t "Copy id"}}">{{template "icon" "copy"}}</button></span></dd>
   </dl>
 </section>

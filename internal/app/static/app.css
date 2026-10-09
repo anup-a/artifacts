@@ -187,7 +187,10 @@ form { margin: 0; }
 .lang-btn .ic { width: 14px; height: 14px; color: var(--muted); }
 .lang-menu { top: auto; bottom: calc(100% + 4px); min-width: 168px; }
 .sidebar-theme .lang-picker { margin-left: auto; margin-right: 6px; }
-.sidebar-theme .lang-name { max-width: 64px; overflow: hidden; text-overflow: ellipsis; }
+/* The sidebar has room for the globe, not the name: the menu names them all. */
+.sidebar-theme .lang-btn { width: 32px; padding: 0; justify-content: center; }
+.sidebar-theme .lang-name { display: none; }
+.sidebar-theme-label { white-space: nowrap; }
 .sidebar-foot {
   margin-top: 0; display: flex; align-items: center; gap: 8px;
   padding: 8px 4px 0; border-top: 1px solid var(--line);

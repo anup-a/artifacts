@@ -17,3 +17,8 @@
 {{range .}}<link rel="alternate" hreflang="{{.Code}}" href="{{.Alternate}}">
 {{end}}{{range .}}{{if eq .Code "en"}}<link rel="alternate" hreflang="x-default" href="{{.Alternate}}">{{end}}{{end}}
 {{end}}
+
+{{/* A workspace's kind and plan are stored as English words (personal,
+     integrator, free); these show them in the page's language. */}}
+{{define "tenant-kind"}}{{if eq . "personal"}}{{t "personal"}}{{else if eq . "integrator"}}{{t "integrator"}}{{else}}{{.}}{{end}}{{end}}
+{{define "tenant-plan"}}{{if eq . "free"}}{{t "free"}}{{else}}{{.}}{{end}}{{end}}

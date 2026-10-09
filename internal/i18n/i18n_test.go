@@ -82,7 +82,7 @@ func TestPlural(t *testing.T) {
 	if got := N("fr", 0, "%s page", "%s pages"); got != "0 page" {
 		t.Errorf("fr 0 = %q", got)
 	}
-	if got := N("ja", 1, "%s page", "%s pages"); got != "1 pages" {
+	if got := N("ja", 1, "%s widget", "%s widgets"); got != "1 widgets" {
 		t.Errorf("ja 1 without a catalog entry = %q, want the English other form", got)
 	}
 	if got := N("xx-test", 1, "%s page", "%s pages"); got != "1 Seite" {

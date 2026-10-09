@@ -476,3 +476,18 @@
   pick(key, false); fade();
   new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { ask(0); o.disconnect(); } }, { threshold: .4 }).observe(document.getElementById("fc-duo"));
 })();
+
+// The "why" drawings have fixed-width boxes, and a translated label can be
+// longer than the English one they were drawn around. A [data-fit] label
+// fits the box beside it (the parent's rect of that class, else its first
+// rect): its type shrinks until it does.
+(() => {
+  "use strict";
+  document.querySelectorAll("#why text[data-fit]").forEach(text => {
+    const box = text.parentNode.querySelector(text.dataset.fit ? "rect." + text.dataset.fit : "rect");
+    if (!box) return;
+    const room = box.x.baseVal.value + box.width.baseVal.value - text.x.baseVal[0].value - 8;
+    const len = text.getComputedTextLength();
+    if (len > room) text.style.fontSize = (parseFloat(getComputedStyle(text).fontSize) * room / len).toFixed(2) + "px";
+  });
+})();
