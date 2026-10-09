@@ -185,7 +185,9 @@ form { margin: 0; }
 }
 .lang-btn:hover, .lang-picker[open] > .lang-btn { background: var(--hover); color: var(--fg); }
 .lang-btn .ic { width: 14px; height: 14px; color: var(--muted); }
-.lang-menu { top: auto; bottom: calc(100% + 4px); min-width: 168px; }
+.menu.lang-menu { top: auto; bottom: calc(100% + 4px); min-width: 168px; }
+/* On the sign-in panel there is room below, and above is the form. */
+.auth-foot .menu.lang-menu { top: calc(100% + 4px); bottom: auto; }
 .sidebar-theme .lang-picker { margin-left: auto; margin-right: 6px; }
 /* The sidebar has room for the globe, not the name: the menu names them all. */
 .sidebar-theme .lang-btn { width: 32px; padding: 0; justify-content: center; }
