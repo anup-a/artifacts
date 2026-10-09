@@ -4,26 +4,29 @@
   <section class="auth-panel">
     <a class="brand auth-brand" href="/app/login">{{template "icon" "mark"}}<span>byagent</span></a>
     <div class="auth-body">
-      <h1>Sign in</h1>
-      <p class="muted auth-sub">Publish, share and review your artifacts.</p>
+      <h1>{{t "Sign in"}}</h1>
+      <p class="muted auth-sub">{{t "Publish, share and review your artifacts."}}</p>
       {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
       {{if .Data.GitHub}}
-      <a class="btn primary block" href="/app/login/github">{{template "icon" "github"}} Continue with GitHub</a>
+      <a class="btn primary block" href="/app/login/github">{{template "icon" "github"}} {{t "Continue with GitHub"}}</a>
       {{end}}
-      {{if and .Data.GitHub .Data.Email}}<p class="divider"><span>or</span></p>{{end}}
+      {{if and .Data.GitHub .Data.Email}}<p class="divider"><span>{{t "or"}}</span></p>{{end}}
       {{if .Data.Email}}
       <form method="post" action="/app/login/email" class="stack">
         <label class="field">
-          <span class="field-label">Email address</span>
+          <span class="field-label">{{t "Email address"}}</span>
           <input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
         </label>
-        <button type="submit" class="btn{{if not .Data.GitHub}} primary{{end}} block">{{template "icon" "mail"}} Email me a sign-in link</button>
+        <button type="submit" class="btn{{if not .Data.GitHub}} primary{{end}} block">{{template "icon" "mail"}} {{t "Email me a sign-in link"}}</button>
       </form>
       {{end}}
       {{if not (or .Data.GitHub .Data.Email)}}
-      <p class="alert">{{template "icon" "alert"}}No sign-in method is configured on this server. Set <code>GITHUB_CLIENT_ID</code> or <code>EMAIL_PROVIDER</code> and restart.</p>
+      <p class="alert">{{template "icon" "alert"}}{{th "No sign-in method is configured on this server. Set <code>%s</code> or <code>%s</code> and restart." "GITHUB_CLIENT_ID" "EMAIL_PROVIDER"}}</p>
       {{end}}
-      <p class="auth-foot muted">Links expire in 15 minutes and work once.</p>
+      <div class="auth-foot">
+        <p class="muted">{{t "Links expire in 15 minutes and work once."}}</p>
+        {{template "lang-picker" .LangLinks}}
+      </div>
     </div>
   </section>
 </div>

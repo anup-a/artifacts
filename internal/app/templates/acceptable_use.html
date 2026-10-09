@@ -1,8 +1,8 @@
-{{define "title"}}Acceptable use · byagent{{end}}
+{{define "title"}}{{t "Acceptable use"}} · byagent{{end}}
 
 {{define "head"}}
-<meta name="description" content="What you may not publish or do with byagent, how we enforce it, and how to report a page that breaks these rules.">
-<meta property="og:title" content="Acceptable use · byagent">
+<meta name="description" content="{{t "What you may not publish or do with byagent, how we enforce it, and how to report a page that breaks these rules."}}">
+<meta property="og:title" content="{{t "Acceptable use"}} · byagent">
 {{template "doc-head" .Data}}
 {{end}}
 
@@ -13,13 +13,14 @@
 
 <article class="lp-doc">
   <header class="lp-doc-head">
-    <p class="lp-doc-kicker">Legal</p>
-    <h1>Acceptable use policy</h1>
+    <p class="lp-doc-kicker">{{t "Legal"}}</p>
+    <h1>{{t "Acceptable use policy"}}</h1>
+    {{if ne $.Lang "en"}}<p class="lp-doc-note">{{t "This page is in English only. The English version is the one that applies."}}</p>{{end}}
     {{template "doc-meta" $d}}
   </header>
 
-  <aside class="lp-summary" aria-label="Summary">
-    <h2>In short</h2>
+  <aside class="lp-summary" aria-label="{{t "Summary"}}">
+    <h2>{{t "In short"}}</h2>
     <ul>
       <li>byagent is for sharing work: plans, reports, pages, prototypes.</li>
       <li>No malware, phishing, illegal content, harassment, spam or impersonation.</li>

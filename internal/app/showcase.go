@@ -60,7 +60,7 @@ func (h *Handler) showcase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	publicCache(w, r)
-	h.render(w, r, 200, "showcase", "Showcase", nil, d)
+	h.render(w, r, 200, "showcase", tr(r, "Showcase"), nil, d)
 }
 
 // showcaseList is the curated pages in showcase order: the ones

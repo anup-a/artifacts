@@ -29,13 +29,13 @@ func (h *Handler) renderSettings(w http.ResponseWriter, r *http.Request, status 
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, r, status, "settings", "Settings", v, settingsData{Identities: idents, Error: msg, Domains: sd})
+	h.render(w, r, status, "settings", tr(r, "Settings"), v, settingsData{Identities: idents, Error: msg, Domains: sd})
 }
 
 func (h *Handler) renameTenant(w http.ResponseWriter, r *http.Request, v *viewer) {
 	name, ok := cleanName(r.PostForm.Get("name"))
 	if !ok {
-		h.renderSettings(w, r, 400, v, "The workspace name must be 1 to 64 characters.")
+		h.renderSettings(w, r, 400, v, tr(r, "The workspace name must be 1 to 64 characters."))
 		return
 	}
 	if err := h.Store.RenameTenant(r.Context(), v.Tenant.ID, name); err != nil {
@@ -47,12 +47,12 @@ func (h *Handler) renameTenant(w http.ResponseWriter, r *http.Request, v *viewer
 
 func (h *Handler) createIntegrator(w http.ResponseWriter, r *http.Request, v *viewer) {
 	if v.Integrator() {
-		h.renderError(w, r, 404, "Integrator workspaces are created from a personal workspace.")
+		h.renderError(w, r, 404, tr(r, "Integrator workspaces are created from a personal workspace."))
 		return
 	}
 	name, ok := cleanName(r.PostForm.Get("name"))
 	if !ok {
-		h.renderSettings(w, r, 400, v, "The workspace name must be 1 to 64 characters.")
+		h.renderSettings(w, r, 400, v, tr(r, "The workspace name must be 1 to 64 characters."))
 		return
 	}
 	t := store.Tenant{ID: "t_" + ids.NewArtifactID(), Kind: "integrator", Name: name, CreatedAt: h.Now()}

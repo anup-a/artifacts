@@ -138,7 +138,7 @@ func Verbs(format string) []string {
 
 // SourceDirs are the directories, relative to the repository root, whose
 // templates, Go files and scripts are searched for messages.
-var SourceDirs = []string{"internal/app", "internal/app/templates", "internal/app/templates/partials", "internal/app/static", "internal/auth", "internal/i18n"}
+var SourceDirs = []string{"internal/app", "internal/app/templates", "internal/app/templates/partials", "internal/app/static", "internal/auth", "internal/i18n", "internal/serve"}
 
 // Collect returns every message under root's SourceDirs, each with the
 // first file that uses it. Tests are skipped.

@@ -2,7 +2,7 @@
      the effective date and version line, and the head tags after each
      page's own description. */}}
 
-{{define "doc-meta"}}<p class="lp-doc-meta">Effective {{.Effective}} <span aria-hidden="true">·</span> Version {{.Version}}</p>{{end}}
+{{define "doc-meta"}}<p class="lp-doc-meta">{{th "Effective %s <span aria-hidden=\"true\">·</span> Version %s" .Effective .Version}}</p>{{end}}
 
 {{define "doc-head"}}
 <link rel="canonical" href="{{.Canonical}}">

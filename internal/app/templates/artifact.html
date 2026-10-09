@@ -1,10 +1,10 @@
 {{define "topbar"}}
-<a class="back" href="/app/artifacts">{{template "icon" "arrow-left"}}<span>Artifacts</span></a>
+<a class="back" href="/app/artifacts">{{template "icon" "arrow-left"}}<span>{{t "Artifacts"}}</span></a>
 <span class="crumb-sep">/</span>
-<h1 class="page-title truncate">{{if .Data.Artifact.Title}}{{.Data.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</h1>
+<h1 class="page-title truncate">{{if .Data.Artifact.Title}}{{.Data.Artifact.Title}}{{else}}<span class="muted">{{t "Untitled"}}</span>{{end}}</h1>
 <span class="spacer"></span>
-<button type="button" class="btn" data-copy-text="{{.Data.SendURL}}" title="{{.Data.SendLabel}}">{{template "icon" "link"}} Copy link</button>
-<a class="btn primary" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
+<button type="button" class="btn" data-copy-text="{{.Data.SendURL}}" title="{{.Data.SendLabel}}">{{template "icon" "link"}} {{t "Copy link"}}</button>
+<a class="btn primary" href="{{.Data.URL}}" target="_blank" rel="noopener">{{t "Open"}} {{template "icon" "external"}}</a>
 {{end}}
 
 {{/* The side peek on the list page fetches this fragment (?panel=1) and
@@ -12,10 +12,10 @@
 {{define "panel"}}
 <div class="peek-inner" data-peek-title="{{.Title}}">
   <header class="peek-head">
-    <h2 class="peek-title truncate">{{if .Data.Artifact.Title}}{{.Data.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</h2>
-    <button type="button" class="btn small" data-copy-text="{{.Data.SendURL}}" title="{{.Data.SendLabel}}">{{template "icon" "link"}} Copy link</button>
-    <a class="btn small primary" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
-    <button type="button" class="icon-btn peek-close" data-peek-close title="Close (Esc)" aria-label="Close">{{template "icon" "x"}}</button>
+    <h2 class="peek-title truncate">{{if .Data.Artifact.Title}}{{.Data.Artifact.Title}}{{else}}<span class="muted">{{t "Untitled"}}</span>{{end}}</h2>
+    <button type="button" class="btn small" data-copy-text="{{.Data.SendURL}}" title="{{.Data.SendLabel}}">{{template "icon" "link"}} {{t "Copy link"}}</button>
+    <a class="btn small primary" href="{{.Data.URL}}" target="_blank" rel="noopener">{{t "Open"}} {{template "icon" "external"}}</a>
+    <button type="button" class="icon-btn peek-close" data-peek-close title="{{t "Close (Esc)"}}" aria-label="{{t "Close"}}">{{template "icon" "x"}}</button>
   </header>
   <div class="peek-body">
     {{template "content" .}}
@@ -29,65 +29,65 @@
 
   <header class="detail-head">
     <div class="detail-top">
-      <a class="detail-cover" href="{{.Data.CoverURL}}" target="_blank" rel="noopener" title="Cover image"><img src="{{.Data.CoverURL}}" alt="Cover of {{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" width="240" height="126"></a>
+      <a class="detail-cover" href="{{.Data.CoverURL}}" target="_blank" rel="noopener" title="{{t "Cover image"}}"><img src="{{.Data.CoverURL}}" alt="{{if $a.Title}}{{t "Cover of %s" $a.Title}}{{else}}{{t "Cover of %s" $a.ID}}{{end}}" width="240" height="126"></a>
       <div class="detail-meta">
-        <span class="chip"><code>{{$a.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{$a.ID}}" title="Copy id" aria-label="Copy id">{{template "icon" "copy"}}</button></span>
+        <span class="chip"><code>{{$a.ID}}</code><button type="button" class="chip-copy" data-copy-text="{{$a.ID}}" title="{{t "Copy id"}}" aria-label="{{t "Copy id"}}">{{template "icon" "copy"}}</button></span>
         <span class="badge mono">v{{$a.CurrentVersion}}</span>
         {{template "visibility-badge" $a}}
         {{if $a.Project}}<a class="tile-project" href="/app/artifacts?project={{str $a.Project}}"><span class="dot" data-color="{{projectColor (str $a.Project)}}"></span>{{str $a.Project}}</a>{{end}}
         {{if $a.Tags}}<span class="tile-tags">{{range $a.Tags}}<span class="tag">{{.}}</span>{{end}}</span>{{end}}
-        {{if $a.EndUser}}<span class="meta-item">End user <a class="link" href="/app/artifacts?end_user={{str $a.EndUser}}">{{str $a.EndUser}}</a></span>{{end}}
-        <span class="meta-item">Updated <time title="{{when $a.UpdatedAt}} UTC">{{ago $a.UpdatedAt $.Now}}</time></span>
-        {{if $a.ExpiresAt}}<span class="meta-item">Stops working <time title="{{when $a.ExpiresAt}} UTC">{{when $a.ExpiresAt}} UTC</time></span>{{end}}
-        <span class="meta-item">Published <time title="{{when $a.CreatedAt}} UTC">{{ago $a.CreatedAt $.Now}}</time></span>
+        {{if $a.EndUser}}<span class="meta-item">{{t "End user"}} <a class="link" href="/app/artifacts?end_user={{str $a.EndUser}}">{{str $a.EndUser}}</a></span>{{end}}
+        <span class="meta-item">{{th `Updated <time title="%s UTC">%s</time>` (when $a.UpdatedAt) (ago $a.UpdatedAt $.Now)}}</span>
+        {{if $a.ExpiresAt}}<span class="meta-item">{{th `Stops working <time title="%[1]s UTC">%[1]s UTC</time>` (when $a.ExpiresAt)}}</span>{{end}}
+        <span class="meta-item">{{th `Published <time title="%s UTC">%s</time>` (when $a.CreatedAt) (ago $a.CreatedAt $.Now)}}</span>
       </div>
     </div>
     <div class="share-row">
       <label class="share-label" for="share-url">{{.Data.SendLabel}}</label>
       <div class="copyrow">
         <input type="text" readonly value="{{.Data.SendURL}}" id="share-url" aria-label="{{.Data.SendLabel}}">
-        <button type="button" class="btn" data-copy="#share-url">{{template "icon" "copy"}} Copy</button>
-        <a class="btn" href="{{.Data.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a>
+        <button type="button" class="btn" data-copy="#share-url">{{template "icon" "copy"}} {{t "Copy"}}</button>
+        <a class="btn" href="{{.Data.URL}}" target="_blank" rel="noopener">{{t "Open"}} {{template "icon" "external"}}</a>
       </div>
     </div>
   </header>
 
   <section class="card" id="visibility">
-    <div class="card-head"><h2>Visibility</h2></div>
+    <div class="card-head"><h2>{{t "Visibility"}}</h2></div>
     <div class="setting-row visibility-setting">
       <div class="setting-text">
-        <strong>{{if eq $a.Visibility "private"}}Private{{else}}Public{{end}}</strong>
-        <p class="muted">Private artifacts are only visible to signed-in members of the owning workspace. Public artifacts are visible to anyone with the link.</p>
+        <strong>{{if eq $a.Visibility "private"}}{{t "Private"}}{{else}}{{t "Public"}}{{end}}</strong>
+        <p class="muted">{{t "Private artifacts are only visible to signed-in members of the owning workspace. Public artifacts are visible to anyone with the link."}}</p>
       </div>
       <form method="post" action="/app/artifacts/{{$a.ID}}/visibility" class="switch-form">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-        <select name="visibility" aria-label="Artifact visibility">
-          <option value="public"{{if ne $a.Visibility "private"}} selected{{end}}>Public</option>
-          <option value="private"{{if eq $a.Visibility "private"}} selected{{end}}>Private</option>
+        <select name="visibility" aria-label="{{t "Artifact visibility"}}">
+          <option value="public"{{if ne $a.Visibility "private"}} selected{{end}}>{{t "Public"}}</option>
+          <option value="private"{{if eq $a.Visibility "private"}} selected{{end}}>{{t "Private"}}</option>
         </select>
-        <button type="submit" class="btn small">Save visibility</button>
+        <button type="submit" class="btn small">{{t "Save visibility"}}</button>
       </form>
     </div>
     {{if eq $a.Visibility "private"}}
     <div class="setting-row visibility-setting">
       <div class="setting-text">
-        <strong>{{if .Data.ShareLink}}Shared with a code{{else}}Share with a code{{end}}</strong>
-        <p class="muted">Anyone holding the code can open this artifact without signing in, and can comment on it. Rotating the code stops every link that carried the old one.</p>
+        <strong>{{if .Data.ShareLink}}{{t "Shared with a code"}}{{else}}{{t "Share with a code"}}{{end}}</strong>
+        <p class="muted">{{t "Anyone holding the code can open this artifact without signing in, and can comment on it. Rotating the code stops every link that carried the old one."}}</p>
         {{if .Data.ShareLink}}
         <div class="share-code-row">
           <span class="share-code">{{$a.ShareCode}}</span>
-          <button type="button" class="btn small" data-copy-text="{{$a.ShareCode}}">{{template "icon" "copy"}} Copy code</button>
+          <button type="button" class="btn small" data-copy-text="{{$a.ShareCode}}">{{template "icon" "copy"}} {{t "Copy code"}}</button>
         </div>
-        {{if $a.ShareCodeExpiresAt}}<p class="muted">The code stops working {{when $a.ShareCodeExpiresAt}} UTC.</p>{{end}}
+        {{if $a.ShareCodeExpiresAt}}<p class="muted">{{t "The code stops working %s UTC." (when $a.ShareCodeExpiresAt)}}</p>{{end}}
         {{end}}
       </div>
       <form method="post" action="/app/artifacts/{{$a.ID}}/share-code" class="switch-form">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
         {{if .Data.ShareLink}}
-          <button type="submit" name="action" value="rotate" class="btn small">New code</button>
-          <button type="submit" name="action" value="revoke" class="btn small">Stop sharing</button>
+          <button type="submit" name="action" value="rotate" class="btn small">{{t "New code"}}</button>
+          <button type="submit" name="action" value="revoke" class="btn small">{{t "Stop sharing"}}</button>
         {{else}}
-          <button type="submit" name="action" value="issue" class="btn small">Create a code</button>
+          <button type="submit" name="action" value="issue" class="btn small">{{t "Create a code"}}</button>
         {{end}}
       </form>
     </div>
@@ -98,29 +98,29 @@
   <section class="card" id="views">
     <div class="views-head">
       <div class="card-head">
-        <h2>Views</h2>
-        <span class="muted">{{num .AllTime}} all time · bots and your own previews are not counted</span>
+        <h2>{{t "Views"}}</h2>
+        <span class="muted">{{t "%s all time · bots and your own previews are not counted" (num .AllTime)}}</span>
       </div>
-      <nav class="seg" aria-label="Range">{{range .Ranges}}<a href="/app/artifacts/{{$a.ID}}?range={{.}}#views"{{if eq . $.Data.Views.Range}} class="is-on" aria-current="true"{{end}}>{{.}}</a>{{end}}</nav>
+      <nav class="seg" aria-label="{{t "Range"}}">{{range .Ranges}}<a href="/app/artifacts/{{$a.ID}}?range={{.}}#views"{{if eq . $.Data.Views.Range}} class="is-on" aria-current="true"{{end}}>{{if eq . "24h"}}{{t "24h"}}{{else if eq . "7d"}}{{t "7d"}}{{else if eq . "30d"}}{{t "30d"}}{{else if eq . "90d"}}{{t "90d"}}{{else if eq . "all"}}{{t "all"}}{{else}}{{.}}{{end}}</a>{{end}}</nav>
     </div>
     <div class="views-totals">
-      <div><span class="stat-value">{{num .Views}}</span><span class="stat-sub">views</span></div>
-      <div><span class="stat-value">{{num .Unique}}</span><span class="stat-sub">visitors{{if ne .Range "24h"}}, counted per day{{end}}</span></div>
+      <div><span class="stat-value">{{num .Views}}</span><span class="stat-sub">{{t "views"}}</span></div>
+      <div><span class="stat-value">{{num .Unique}}</span><span class="stat-sub">{{if ne .Range "24h"}}{{t "visitors, counted per day"}}{{else}}{{t "visitors"}}{{end}}</span></div>
     </div>
     {{if .Empty}}
-    <p class="card-empty">No views {{if eq .Range "all"}}yet{{else}}in this range{{end}}. Share the link and they show up here within a minute.</p>
+    <p class="card-empty">{{if eq .Range "all"}}{{t "No views yet. Share the link and they show up here within a minute."}}{{else}}{{t "No views in this range. Share the link and they show up here within a minute."}}{{end}}</p>
     {{else}}
-    <svg class="views-chart" viewBox="0 0 600 96" preserveAspectRatio="none" role="img" aria-label="Views per {{if .Hourly}}hour{{else}}day{{end}}, {{.From}} to {{.To}}">
+    <svg class="views-chart" viewBox="0 0 600 96" preserveAspectRatio="none" role="img" aria-label="{{if .Hourly}}{{t "Views per hour, %s to %s" .From .To}}{{else}}{{t "Views per day, %s to %s" .From .To}}{{end}}">
       {{range .Bars}}<rect x="{{printf "%.2f" .X}}" y="{{printf "%.2f" .Y}}" width="{{printf "%.2f" .W}}" height="{{printf "%.2f" .H}}" rx="1"><title>{{.Title}}</title></rect>{{end}}
       <line x1="0" y1="95.5" x2="600" y2="95.5"></line>
     </svg>
     <div class="views-axis"><span>{{.From}}</span><span>{{.To}}</span></div>
     {{if .HasLists}}
     <div class="views-lists">
-      {{if .Referrers}}<div><h3>Referrers</h3><ul>{{range .Referrers}}<li><span class="truncate">{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
-      {{if .Countries}}<div><h3>Countries</h3><ul>{{range .Countries}}<li><span>{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
-      {{if .Paths}}<div><h3>Pages</h3><ul>{{range .Paths}}<li><span class="truncate mono">{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
-      {{if .Devices}}<div><h3>Devices</h3><ul>{{range .Devices}}<li><span>{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
+      {{if .Referrers}}<div><h3>{{t "Referrers"}}</h3><ul>{{range .Referrers}}<li><span class="truncate">{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
+      {{if .Countries}}<div><h3>{{t "Countries"}}</h3><ul>{{range .Countries}}<li><span>{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
+      {{if .Paths}}<div><h3>{{t "Pages"}}</h3><ul>{{range .Paths}}<li><span class="truncate mono">{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
+      {{if .Devices}}<div><h3>{{t "Devices"}}</h3><ul>{{range .Devices}}<li><span>{{.Value}}</span><span class="num">{{num .Views}}</span></li>{{end}}</ul></div>{{end}}
     </div>
     {{end}}
     {{end}}
@@ -128,35 +128,35 @@
   {{end}}
   <section class="card" id="access">
     <div class="card-head">
-      <h2>Access</h2>
-      <span class="muted">Who can open this page besides your workspace</span>
+      <h2>{{t "Access"}}</h2>
+      <span class="muted">{{t "Who can open this page besides your workspace"}}</span>
     </div>
     {{$acc := .Data.Access}}
     <div class="setting-row">
       <div class="setting-text">
-        <strong>{{if eq $acc.Mode "password"}}Password{{else if $acc.Workspace}}Only your workspace{{else if eq $acc.Mode "restricted"}}Only people you choose{{else}}Anyone with the link{{end}}</strong>
-        <p class="muted">{{if eq $acc.Mode "password"}}Visitors enter the password once on this device. Changing it signs everyone out.{{else if $acc.Workspace}}Nobody outside the workspace can open it.{{else if eq $acc.Mode "restricted"}}Visitors enter their email and get a one-time code. {{$acc.Emails}} {{plural $acc.Emails "address" "addresses"}}, {{$acc.Domain}} {{plural $acc.Domain "domain" "domains"}}. No account needed.{{else if $a.ShareCode}}Anyone holding the share code can open it.{{else}}Anyone who has the address can open it.{{end}}</p>
+        <strong>{{if eq $acc.Mode "password"}}{{t "Password"}}{{else if $acc.Workspace}}{{t "Only your workspace"}}{{else if eq $acc.Mode "restricted"}}{{t "Only people you choose"}}{{else}}{{t "Anyone with the link"}}{{end}}</strong>
+        <p class="muted">{{if eq $acc.Mode "password"}}{{t "Visitors enter the password once on this device. Changing it signs everyone out."}}{{else if $acc.Workspace}}{{t "Nobody outside the workspace can open it."}}{{else if eq $acc.Mode "restricted"}}{{t "Visitors enter their email and get a one-time code. %s, %s. No account needed." (tn $acc.Emails "%s address" "%s addresses") (tn $acc.Domain "%s domain" "%s domains")}}{{else if $a.ShareCode}}{{t "Anyone holding the share code can open it."}}{{else}}{{t "Anyone who has the address can open it."}}{{end}}</p>
       </div>
     </div>
     <form method="post" action="/app/artifacts/{{$a.ID}}/access" class="access-form">
       <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
       <fieldset class="access-modes">
-        <legend class="field-label">Who can open it</legend>
-        <label class="access-mode"><input type="radio" name="mode" value="anyone_with_link"{{if and (eq $acc.Mode "anyone_with_link") (not $a.ShareCode)}} checked{{end}}><span>Anyone with the link (makes the page public)</span></label>
-        <label class="access-mode"><input type="radio" name="mode" value="password"{{if eq $acc.Mode "password"}} checked{{end}}><span>Anyone with the password</span></label>
-        <label class="access-mode"><input type="radio" name="mode" value="restricted"{{if eq $acc.Mode "restricted"}} checked{{end}}{{if not $acc.Mail}} title="This server cannot send email, so only an empty list (your workspace) works"{{end}}><span>Only people you choose</span></label>
+        <legend class="field-label">{{t "Who can open it"}}</legend>
+        <label class="access-mode"><input type="radio" name="mode" value="anyone_with_link"{{if and (eq $acc.Mode "anyone_with_link") (not $a.ShareCode)}} checked{{end}}><span>{{t "Anyone with the link (makes the page public)"}}</span></label>
+        <label class="access-mode"><input type="radio" name="mode" value="password"{{if eq $acc.Mode "password"}} checked{{end}}><span>{{t "Anyone with the password"}}</span></label>
+        <label class="access-mode"><input type="radio" name="mode" value="restricted"{{if eq $acc.Mode "restricted"}} checked{{end}}{{if not $acc.Mail}} title="{{t "This server cannot send email, so only an empty list (your workspace) works"}}"{{end}}><span>{{t "Only people you choose"}}</span></label>
       </fieldset>
       <label class="field">
-        <span class="field-label">Password{{if $acc.PasswordSet}} (leave empty to keep the current one){{end}}</span>
-        <input type="password" name="password" autocomplete="new-password" maxlength="512" placeholder="{{if $acc.PasswordSet}}Unchanged{{else}}8 characters or more{{end}}">
+        <span class="field-label">{{if $acc.PasswordSet}}{{t "Password (leave empty to keep the current one)"}}{{else}}{{t "Password"}}{{end}}</span>
+        <input type="password" name="password" autocomplete="new-password" maxlength="512" placeholder="{{if $acc.PasswordSet}}{{t "Unchanged"}}{{else}}{{t "8 characters or more"}}{{end}}">
       </label>
       <label class="field">
-        <span class="field-label">People, one a line: sam@acme.com, or @acme.com for everyone there. Empty means only your workspace.</span>
+        <span class="field-label">{{t "People, one a line: sam@acme.com, or @acme.com for everyone there. Empty means only your workspace."}}</span>
         <textarea name="allow" spellcheck="false" autocomplete="off">{{$acc.Allow}}</textarea>
       </label>
       {{if .Data.AccessError}}<p class="alert">{{template "icon" "alert"}}{{.Data.AccessError}}</p>{{end}}
       <div class="form-actions">
-        <button type="submit" class="btn primary">Save access</button>
+        <button type="submit" class="btn primary">{{t "Save access"}}</button>
       </div>
     </form>
   </section>
@@ -164,33 +164,33 @@
   {{with .Data.Domains}}
   <section class="card" id="domains">
     <div class="card-head">
-      <h2>Domains</h2>
-      <span class="muted">Serve this page on a domain you own</span>
+      <h2>{{t "Domains"}}</h2>
+      <span class="muted">{{t "Serve this page on a domain you own"}}</span>
     </div>
     {{if .Error}}<p class="alert">{{template "icon" "alert"}}{{.Error}}</p>{{end}}
     {{if .Mounts}}
     <table class="table flush">
-      <thead><tr><th>Address</th><th></th><th class="actions"></th></tr></thead>
+      <thead><tr><th>{{t "Address"}}</th><th></th><th class="actions"></th></tr></thead>
       <tbody>
       {{range .Mounts}}
       <tr>
         <td><a class="link" href="{{.URL}}" target="_blank" rel="noopener">{{.URL}}</a></td>
-        <td>{{if .Primary}}<span class="badge ok">Primary</span>{{else if not .Active}}<span class="badge">Domain pending</span>{{end}}</td>
+        <td>{{if .Primary}}<span class="badge ok">{{t "Primary"}}</span>{{else if not .Active}}<span class="badge">{{t "Domain pending"}}</span>{{end}}</td>
         <td class="actions">
           <form method="post" action="/app/artifacts/{{$a.ID}}/primary-domain">
             <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
             {{if .Primary}}
             <input type="hidden" name="mount" value="">
-            <button type="submit" class="btn small">Stop redirecting</button>
+            <button type="submit" class="btn small">{{t "Stop redirecting"}}</button>
             {{else if .Active}}
             <input type="hidden" name="mount" value="{{.Key}}">
-            <button type="submit" class="btn small" title="byagent.dev links to this page will redirect here">Make primary</button>
+            <button type="submit" class="btn small" title="{{t "byagent.dev links to this page will redirect here"}}">{{t "Make primary"}}</button>
             {{end}}
           </form>
           <form method="post" action="/app/artifacts/{{$a.ID}}/domains/remove">
             <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
             <input type="hidden" name="mount" value="{{.Key}}">
-            <button type="submit" class="btn small">Remove</button>
+            <button type="submit" class="btn small">{{t "Remove"}}</button>
           </form>
         </td>
       </tr>
@@ -202,107 +202,107 @@
     <form method="post" action="/app/artifacts/{{$a.ID}}/domains" class="field-row">
       <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
       <label class="field">
-        <span class="field-label">Domain</span>
-        <select name="domain" aria-label="Domain">
-          {{range .Domains}}<option value="{{.Hostname}}">{{.Hostname}}{{if ne .Status "active"}} (pending){{end}}</option>{{end}}
+        <span class="field-label">{{t "Domain"}}</span>
+        <select name="domain" aria-label="{{t "Domain"}}">
+          {{range .Domains}}<option value="{{.Hostname}}">{{if ne .Status "active"}}{{t "%s (pending)" .Hostname}}{{else}}{{.Hostname}}{{end}}</option>{{end}}
         </select>
       </label>
       <label class="field">
-        <span class="field-label">Path</span>
-        <input type="text" name="path" value="/" maxlength="200" placeholder="/ or /docs" autocomplete="off" spellcheck="false">
+        <span class="field-label">{{t "Path"}}</span>
+        <input type="text" name="path" value="/" maxlength="200" placeholder="{{t "/ or /docs"}}" autocomplete="off" spellcheck="false">
       </label>
-      <button type="submit" class="btn">Serve here</button>
+      <button type="submit" class="btn">{{t "Serve here"}}</button>
     </form>
-    <p class="card-note muted">A primary domain makes this page's byagent.dev link redirect to it. Visibility, share codes and comments work the same on every address.</p>
+    <p class="card-note muted">{{t "A primary domain makes this page's byagent.dev link redirect to it. Visibility, share codes and comments work the same on every address."}}</p>
     {{else}}
-    <p class="card-empty">No custom domains in this workspace. Add one in <a class="link" href="/app/settings#domains">Settings</a>.</p>
+    <p class="card-empty">{{th `No custom domains in this workspace. Add one in <a class="link" href="/app/settings#domains">Settings</a>.`}}</p>
     {{end}}
   </section>
   {{end}}
 
   <section class="card preview-card">
     <div class="card-head">
-      <h2>Preview</h2>
-      <span class="muted">Current version, as viewers see it</span>
+      <h2>{{t "Preview"}}</h2>
+      <span class="muted">{{t "Current version, as viewers see it"}}</span>
     </div>
     <div class="preview-frame">
-      <iframe src="{{.Data.PreviewURL}}" title="Preview of {{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" sandbox="allow-scripts allow-forms allow-popups" loading="lazy" referrerpolicy="no-referrer"></iframe>
+      <iframe src="{{.Data.PreviewURL}}" title="{{if $a.Title}}{{t "Preview of %s" $a.Title}}{{else}}{{t "Preview of %s" $a.ID}}{{end}}" sandbox="allow-scripts allow-forms allow-popups" loading="lazy" referrerpolicy="no-referrer"></iframe>
     </div>
   </section>
 
   <section class="card" id="about">
     <div class="card-head">
-      <h2>About</h2>
-      <span class="muted">Project, tags and cover, as the gallery shows them</span>
+      <h2>{{t "About"}}</h2>
+      <span class="muted">{{t "Project, tags and cover, as the gallery shows them"}}</span>
     </div>
     <form method="post" action="/app/artifacts/{{$a.ID}}/meta" class="meta-form">
       <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
       <div class="field-row">
         <label class="field">
-          <span class="field-label">Project</span>
-          <input type="text" name="project" value="{{.Data.Meta.Project}}" list="project-names" maxlength="64" placeholder="No project" autocomplete="off">
+          <span class="field-label">{{t "Project"}}</span>
+          <input type="text" name="project" value="{{.Data.Meta.Project}}" list="project-names" maxlength="64" placeholder="{{t "No project"}}" autocomplete="off">
         </label>
         <label class="field">
-          <span class="field-label">Tags</span>
-          <input type="text" name="tags" value="{{.Data.Meta.Tags}}" placeholder="report, quarterly" autocomplete="off">
+          <span class="field-label">{{t "Tags"}}</span>
+          <input type="text" name="tags" value="{{.Data.Meta.Tags}}" placeholder="{{t "report, quarterly"}}" autocomplete="off">
         </label>
       </div>
       <datalist id="project-names">{{range .Data.Projects}}<option value="{{.}}"></option>{{end}}</datalist>
       <fieldset class="cover-choice">
-        <legend class="field-label">Cover</legend>
+        <legend class="field-label">{{t "Cover"}}</legend>
         <label class="cover-option">
           <input type="radio" name="cover_kind" value="generated"{{if ne .Data.Meta.CoverKind "file"}} checked{{end}}>
-          <span>Generated</span>
-          <select name="cover_style" aria-label="Cover style">
+          <span>{{t "Generated"}}</span>
+          <select name="cover_style" aria-label="{{t "Cover style"}}">
             {{range .Data.Styles}}<option value="{{.}}"{{if eq . $.Data.Meta.CoverStyle}} selected{{end}}>{{.}}</option>{{end}}
           </select>
         </label>
         <label class="cover-option">
           <input type="radio" name="cover_kind" value="file"{{if eq .Data.Meta.CoverKind "file"}} checked{{end}}{{if not .Data.CoverFiles}} disabled{{end}}>
-          <span>File in this version</span>
-          <select name="cover_file" aria-label="Cover file"{{if not .Data.CoverFiles}} disabled{{end}}>
-            {{if .Data.CoverFiles}}{{range .Data.CoverFiles}}<option value="{{.}}"{{if eq . $.Data.Meta.CoverFile}} selected{{end}}>{{.}}</option>{{end}}{{else}}<option value="">No svg, png, jpg or webp files</option>{{end}}
+          <span>{{t "File in this version"}}</span>
+          <select name="cover_file" aria-label="{{t "Cover file"}}"{{if not .Data.CoverFiles}} disabled{{end}}>
+            {{if .Data.CoverFiles}}{{range .Data.CoverFiles}}<option value="{{.}}"{{if eq . $.Data.Meta.CoverFile}} selected{{end}}>{{.}}</option>{{end}}{{else}}<option value="">{{t "No svg, png, jpg or webp files"}}</option>{{end}}
           </select>
         </label>
       </fieldset>
       {{if .Data.MetaError}}<p class="alert">{{template "icon" "alert"}}{{.Data.MetaError}}</p>{{end}}
       <div class="form-actions">
-        <button type="submit" class="btn primary">Save</button>
+        <button type="submit" class="btn primary">{{t "Save"}}</button>
       </div>
     </form>
   </section>
 
   <section class="card" id="versions">
     <div class="card-head">
-      <h2>Versions</h2>
-      <span class="muted">{{len .Data.Versions}} {{plural (len .Data.Versions) "version" "versions"}} kept</span>
+      <h2>{{t "Versions"}}</h2>
+      <span class="muted">{{tn (len .Data.Versions) "%s version kept" "%s versions kept"}}</span>
     </div>
     {{if .Data.Versions}}
     <table class="table flush">
-      <thead><tr><th>Version</th><th>Published</th><th>By</th><th class="num">Size</th><th class="num">Files</th><th class="num">Comments</th><th class="actions"></th></tr></thead>
+      <thead><tr><th>{{t "Version"}}</th><th>{{t "Published"}}</th><th>{{t "By"}}</th><th class="num">{{t "Size"}}</th><th class="num">{{t "Files"}}</th><th class="num">{{t "Comments"}}</th><th class="actions"></th></tr></thead>
       <tbody>
       {{range .Data.Versions}}
       <tr{{if .Current}} class="is-current"{{end}}>
-        <td><span class="badge mono">v{{.N}}</span>{{if .Current}} <span class="badge ok">Current</span>{{end}}</td>
-        <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time>{{if .RestoredAt}}<br><span class="muted">restored <time title="{{when .RestoredAt}} UTC">{{ago .RestoredAt $.Now}}</time></span>{{end}}</td>
-        <td class="muted"{{if .Key}} title="key: {{.Key}}"{{end}}>{{if .By}}{{.By}}{{else}}&ndash;{{end}}</td>
+        <td><span class="badge mono">v{{.N}}</span>{{if .Current}} <span class="badge ok">{{t "Current"}}</span>{{end}}</td>
+        <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time>{{if .RestoredAt}}<br><span class="muted">{{th `restored <time title="%s UTC">%s</time>` (when .RestoredAt) (ago .RestoredAt $.Now)}}</span>{{end}}</td>
+        <td class="muted"{{if .Key}} title="{{t "key: %s" .Key}}"{{end}}>{{if .By}}{{.By}}{{else}}&ndash;{{end}}</td>
         <td class="num">{{bytes .Bytes}}</td>
         <td class="num">{{.FileCount}}</td>
         <td class="num">{{.Comments}}</td>
         <td class="actions">
           <div class="row-actions">
-          <a class="btn small" href="{{.Preview}}" target="_blank" rel="noopener" title="Open v{{.N}} without making it live. Only you can see this link.">Preview</a>
+          <a class="btn small" href="{{.Preview}}" target="_blank" rel="noopener" title="{{t "Open v%d without making it live. Only you can see this link." .N}}">{{t "Preview"}}</a>
           {{if not .Current}}
           <form method="post" action="/app/artifacts/{{$a.ID}}/rollback/{{.N}}">
             <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-            <button type="submit" class="btn small" title="Make v{{.N}} live again. Access, sharing and comments stay as they are.">{{template "icon" "rollback"}} Restore</button>
+            <button type="submit" class="btn small" title="{{t "Make v%d live again. Access, sharing and comments stay as they are." .N}}">{{template "icon" "rollback"}} {{t "Restore"}}</button>
           </form>
           <details class="confirm menu-wrap">
-            <summary class="btn small danger" title="Delete v{{.N}} for good">Delete</summary>
+            <summary class="btn small danger" title="{{t "Delete v%d for good" .N}}">{{t "Delete"}}</summary>
             <form method="post" action="/app/artifacts/{{$a.ID}}/versions/{{.N}}/delete" class="menu right confirm-body">
               <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-              <p>v{{.N}} and its link are erased for good. Comments on it stay, marked as on an earlier version.</p>
-              <button type="submit" class="btn small danger solid">Delete v{{.N}}</button>
+              <p>{{t "v%d and its link are erased for good. Comments on it stay, marked as on an earlier version." .N}}</p>
+              <button type="submit" class="btn small danger solid">{{t "Delete v%d" .N}}</button>
             </form>
           </details>
           {{end}}
@@ -313,31 +313,31 @@
       </tbody>
     </table>
     {{else}}
-    <p class="card-empty">No versions recorded for this artifact.</p>
+    <p class="card-empty">{{t "No versions recorded for this artifact."}}</p>
     {{end}}
   </section>
 
   <section class="card" id="comments">
     <div class="card-head">
-      <h2>Comments</h2>
-      <span class="muted">{{len .Data.Open}} open · {{len .Data.Resolved}} resolved</span>
+      <h2>{{t "Comments"}}</h2>
+      <span class="muted">{{t "%d open · %d resolved" (len .Data.Open) (len .Data.Resolved)}}</span>
     </div>
 
     <div class="setting-row" id="comments-setting">
       <div class="setting-text">
-        <strong>Viewer comments</strong>
-        <p class="muted">{{if and (eq $a.Visibility "private") (not $a.AccessMode)}}Viewer comments are unavailable while this artifact is private. Existing threads remain readable and you can reply here.{{else}}Show the comment panel on the published page and accept new threads from {{if $a.AccessMode}}everyone who can open it{{else}}anyone with the link{{end}}.{{end}}</p>
+        <strong>{{t "Viewer comments"}}</strong>
+        <p class="muted">{{if and (eq $a.Visibility "private") (not $a.AccessMode)}}{{t "Viewer comments are unavailable while this artifact is private. Existing threads remain readable and you can reply here."}}{{else if $a.AccessMode}}{{t "Show the comment panel on the published page and accept new threads from everyone who can open it."}}{{else}}{{t "Show the comment panel on the published page and accept new threads from anyone with the link."}}{{end}}</p>
       </div>
       {{if or (ne $a.Visibility "private") $a.AccessMode}}<form method="post" action="/app/artifacts/{{$a.ID}}/comments-enabled" class="switch-form">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
         <input type="hidden" name="enabled" value="{{if $a.CommentsEnabled}}0{{else}}1{{end}}">
-        <span class="switch-state">{{if $a.CommentsEnabled}}On{{else}}Off{{end}}</span>
-        <button type="submit" class="switch{{if $a.CommentsEnabled}} is-on{{end}}" role="switch" aria-checked="{{if $a.CommentsEnabled}}true{{else}}false{{end}}" aria-label="Viewer comments" title="{{if $a.CommentsEnabled}}Turn comments off{{else}}Turn comments on{{end}}"><span class="switch-knob"></span></button>
+        <span class="switch-state">{{if $a.CommentsEnabled}}{{t "On"}}{{else}}{{t "Off"}}{{end}}</span>
+        <button type="submit" class="switch{{if $a.CommentsEnabled}} is-on{{end}}" role="switch" aria-checked="{{if $a.CommentsEnabled}}true{{else}}false{{end}}" aria-label="{{t "Viewer comments"}}" title="{{if $a.CommentsEnabled}}{{t "Turn comments off"}}{{else}}{{t "Turn comments on"}}{{end}}"><span class="switch-knob"></span></button>
       </form>{{end}}
     </div>
 
     {{if and (ne $a.Visibility "private") (not $a.CommentsEnabled)}}
-    <p class="card-note muted">{{template "icon" "comment"}}Comments are off for this artifact. Viewers do not see the comment panel; existing threads stay here.</p>
+    <p class="card-note muted">{{template "icon" "comment"}}{{t "Comments are off for this artifact. Viewers do not see the comment panel; existing threads stay here."}}</p>
     {{end}}
     {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
 
@@ -346,12 +346,12 @@
       {{range .Data.Open}}{{template "thread" (dict $ .)}}{{end}}
     </div>
     {{else if and (ne $a.Visibility "private") $a.CommentsEnabled}}
-    <p class="card-empty">No open comments. Viewers select text on the page and leave notes; they show up here.</p>
+    <p class="card-empty">{{t "No open comments. Viewers select text on the page and leave notes; they show up here."}}</p>
     {{end}}
 
     {{if .Data.Resolved}}
     <details class="resolved-fold">
-      <summary>{{template "icon" "chevron-down"}}{{len .Data.Resolved}} resolved {{plural (len .Data.Resolved) "thread" "threads"}}</summary>
+      <summary>{{template "icon" "chevron-down"}}{{tn (len .Data.Resolved) "%s resolved thread" "%s resolved threads"}}</summary>
       <div class="threads">
         {{range .Data.Resolved}}{{template "thread" (dict $ .)}}{{end}}
       </div>
@@ -361,19 +361,19 @@
 
   <section class="card danger-zone">
     <div class="card-head">
-      <h2>Danger zone</h2>
+      <h2>{{t "Danger zone"}}</h2>
     </div>
     <div class="danger-row">
       <div>
-        <strong>Delete this artifact</strong>
-        <p class="muted">The share link stops working immediately. The title, labels, every version, all comments and view counts are erased.</p>
+        <strong>{{t "Delete this artifact"}}</strong>
+        <p class="muted">{{t "The share link stops working immediately. The title, labels, every version, all comments and view counts are erased."}}</p>
       </div>
       <details class="confirm">
-        <summary class="btn danger">{{template "icon" "trash"}} Delete artifact</summary>
+        <summary class="btn danger">{{template "icon" "trash"}} {{t "Delete artifact"}}</summary>
         <form method="post" action="/app/artifacts/{{$a.ID}}/delete" class="confirm-body">
           <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <p>This cannot be undone.</p>
-          <button type="submit" class="btn small danger solid">Confirm delete</button>
+          <p>{{t "This cannot be undone."}}</p>
+          <button type="submit" class="btn small danger solid">{{t "Confirm delete"}}</button>
         </form>
       </details>
     </div>

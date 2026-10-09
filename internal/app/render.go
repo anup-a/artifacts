@@ -53,12 +53,6 @@ var funcs = template.FuncMap{
 		}
 		return "?"
 	},
-	"plural": func(n int, one, many string) string {
-		if n == 1 {
-			return one
-		}
-		return many
-	},
 	// dict pairs the page with one item so a partial can reach both.
 	"dict": func(p page, item any) map[string]any {
 		return map[string]any{"Page": p, "Item": item}
@@ -86,9 +80,10 @@ func langFuncs(lang string) template.FuncMap {
 		"tn": func(n any, one, other string, args ...any) string {
 			return i18n.N(lang, toInt(n), one, other, args...)
 		},
-		"ago":  func(t, now time.Time) string { return i18n.Ago(lang, t, now) },
-		"date": func(t time.Time) string { return i18n.Date(lang, t) },
-		"num":  func(n int64) string { return i18n.Number(lang, n) },
+		"ago":   func(t, now time.Time) string { return i18n.Ago(lang, t, now) },
+		"date":  func(t time.Time) string { return i18n.Date(lang, t) },
+		"month": func(t time.Time) string { return i18n.Month(lang, t) },
+		"num":   func(n int64) string { return i18n.Number(lang, n) },
 	}
 }
 

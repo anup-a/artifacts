@@ -120,14 +120,15 @@ func (d docData) MB() int64 { return d.Limits.VersionBytes / (1 << 20) }
 func (d docData) CommentKB() int { return d.Limits.CommentBytes / 1024 }
 
 // docPages are the public pages that sit next to the landing page on the
-// share origin, by path. The template name is the page's file name.
+// share origin, by path. The template name is the page's file name, and
+// the title is translated where the page is shown.
 var docPages = map[string]struct{ name, title string }{
-	"/privacy":        {"privacy", "Privacy"},
-	"/terms":          {"terms", "Terms"},
-	"/security":       {"security", "Security"},
-	"/subprocessors":  {"subprocessors", "Subprocessors"},
-	"/acceptable-use": {"acceptable_use", "Acceptable use"},
-	"/pricing":        {"pricing", "Pricing"},
+	"/privacy":        {"privacy", i18n.M("Privacy")},
+	"/terms":          {"terms", i18n.M("Terms")},
+	"/security":       {"security", i18n.M("Security")},
+	"/subprocessors":  {"subprocessors", i18n.M("Subprocessors")},
+	"/acceptable-use": {"acceptable_use", i18n.M("Acceptable use")},
+	"/pricing":        {"pricing", i18n.M("Pricing")},
 }
 
 // doc renders one of docPages. Like the landing page it is the same for
@@ -139,7 +140,7 @@ func (h *Handler) doc(path string) http.HandlerFunc {
 		site := h.site(r)
 		site.Here = path
 		site.Translated = path == "/pricing"
-		h.render(w, r, 200, p.name, p.title, nil, docData{
+		h.render(w, r, 200, p.name, tr(r, p.title), nil, docData{
 			siteData:  site,
 			Path:      path,
 			Effective: policyEffective,
@@ -164,7 +165,7 @@ func (h *Handler) GuidePage(w http.ResponseWriter, r *http.Request, doc agents.G
 		publicCache(w, r)
 		title := doc.Guide.Title
 		if doc.Index {
-			title = "Guides"
+			title = tr(r, "Guides")
 		}
 		site := h.site(r)
 		site.Here = "/guides" // the Guides tab is current on every guide

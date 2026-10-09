@@ -16,7 +16,7 @@ type monthView struct {
 
 func (h *Handler) usage(w http.ResponseWriter, r *http.Request, v *viewer) {
 	now := h.Now()
-	months := []monthView{{Label: "This month", Month: usage.MonthStart(now)}, {Label: "Last month", Month: usage.PreviousMonth(now)}}
+	months := []monthView{{Label: tr(r, "This month"), Month: usage.MonthStart(now)}, {Label: tr(r, "Last month"), Month: usage.PreviousMonth(now)}}
 	for i := range months {
 		u, err := h.Store.Usage(r.Context(), v.Tenant.ID, months[i].Month)
 		if err != nil {
@@ -30,7 +30,7 @@ func (h *Handler) usage(w http.ResponseWriter, r *http.Request, v *viewer) {
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, r, 200, "usage", "Usage", v, struct {
+	h.render(w, r, 200, "usage", tr(r, "Usage"), v, struct {
 		Pages  pageQuota
 		Months []monthView
 	}{pages, months})

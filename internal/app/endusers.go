@@ -28,7 +28,7 @@ func (h *Handler) endUsers(w http.ResponseWriter, r *http.Request, v *viewer) {
 
 func (h *Handler) renderEndUsers(w http.ResponseWriter, r *http.Request, v *viewer, link *portalLinkView) {
 	if !v.Integrator() {
-		h.renderError(w, r, 404, "End users exist only in integrator workspaces.")
+		h.renderError(w, r, 404, tr(r, "End users exist only in integrator workspaces."))
 		return
 	}
 	rows, err := h.Store.EndUsers(r.Context(), v.Tenant.ID)
@@ -36,21 +36,21 @@ func (h *Handler) renderEndUsers(w http.ResponseWriter, r *http.Request, v *view
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, r, 200, "end_users", "End users", v, endUsersData{Rows: rows, Link: link})
+	h.render(w, r, 200, "end_users", tr(r, "End users"), v, endUsersData{Rows: rows, Link: link})
 }
 
 func (h *Handler) portalLink(w http.ResponseWriter, r *http.Request, v *viewer) {
 	if !v.Integrator() {
-		h.renderError(w, r, 404, "End users exist only in integrator workspaces.")
+		h.renderError(w, r, 404, tr(r, "End users exist only in integrator workspaces."))
 		return
 	}
 	if ok, _ := h.PortalLimiter.Allow(v.Tenant.ID); !ok {
-		h.renderError(w, r, 429, "Too many portal links created. Try again in a minute.")
+		h.renderError(w, r, 429, tr(r, "Too many portal links created. Try again in a minute."))
 		return
 	}
 	eu, err := h.Store.EndUser(r.Context(), v.Tenant.ID, r.PathValue("external_id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That end user does not exist.")
+		h.storeErr(w, r, err, tr(r, "That end user does not exist."))
 		return
 	}
 	expires := h.Now().Add(PortalLinkTTL)

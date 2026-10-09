@@ -1,5 +1,5 @@
 {{define "topbar"}}
-<nav class="crumbs" aria-label="Breadcrumb"><a href="/app/collections">Collections</a><span class="crumb-sep">/</span><h1 class="page-title truncate">{{.Data.Name}}</h1></nav>
+<nav class="crumbs" aria-label="{{t "Breadcrumb"}}"><a href="/app/collections">{{t "Collections"}}</a><span class="crumb-sep">/</span><h1 class="page-title truncate">{{.Data.Name}}</h1></nav>
 {{end}}
 
 {{define "content"}}
@@ -13,49 +13,54 @@
   <div class="collection-info">
     <h2 class="collection-title"><span class="dot" data-color="{{$d.Color}}"></span>{{$d.Name}}</h2>
     <p class="collection-facts">
-      <span>{{$d.Count}} {{plural $d.Count "artifact" "artifacts"}}</span>
-      <span>{{$d.Open}} open {{plural $d.Open "thread" "threads"}}</span>
-      <span>updated <time datetime="{{$d.ActiveAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}">{{ago $d.ActiveAt $.Now}}</time></span>
+      <span>{{tn $d.Count "%s artifact" "%s artifacts"}}</span>
+      <span>{{tn $d.Open "%s open thread" "%s open threads"}}</span>
+      <span>{{th "updated <time datetime=\"%s\">%s</time>" ($d.ActiveAt.UTC.Format "2006-01-02T15:04:05Z07:00") (ago $d.ActiveAt $.Now)}}</span>
     </p>
     {{if $d.Description}}<p class="collection-desc">{{$d.Description}}</p>{{end}}
 
     <div class="collection-actions">
       <form method="post" action="{{$d.Path}}/share">
         <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-        {{if $d.ShareURL}}<button type="submit" class="btn small">Stop sharing</button>
-        {{else}}<input type="hidden" name="on" value="1"><button type="submit" class="btn small primary">Share collection</button>{{end}}
+        {{if $d.ShareURL}}<button type="submit" class="btn small">{{t "Stop sharing"}}</button>
+        {{else}}<input type="hidden" name="on" value="1"><button type="submit" class="btn small primary">{{t "Share collection"}}</button>{{end}}
       </form>
       <details class="menu-wrap">
-        <summary class="btn small">Edit description</summary>
+        <summary class="btn small">{{t "Edit description"}}</summary>
         <form class="menu pop-form" method="post" action="{{$d.Path}}/meta">
           <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <label class="field-label" for="collection-desc">Description</label>
+          <label class="field-label" for="collection-desc">{{t "Description"}}</label>
           <textarea id="collection-desc" name="description" rows="4" maxlength="500">{{$d.Description}}</textarea>
-          <button type="submit" class="btn small primary">Save</button>
+          <button type="submit" class="btn small primary">{{t "Save"}}</button>
         </form>
       </details>
       <details class="menu-wrap">
-        <summary class="btn small">Rename or merge</summary>
+        <summary class="btn small">{{t "Rename or merge"}}</summary>
         <form class="menu pop-form" method="post" action="{{$d.Path}}/rename">
           <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <label class="field-label" for="collection-to">New name</label>
+          <label class="field-label" for="collection-to">{{t "New name"}}</label>
           <input type="text" id="collection-to" name="to" value="{{$d.Name}}" maxlength="64" required>
-          <p class="hint">Every artifact in it is relabelled. Using the name of another collection merges the two.</p>
-          <button type="submit" class="btn small primary">Rename</button>
+          <p class="hint">{{t "Every artifact in it is relabelled. Using the name of another collection merges the two."}}</p>
+          <button type="submit" class="btn small primary">{{t "Rename"}}</button>
         </form>
       </details>
     </div>
     {{if $d.ShareURL}}
-    <p class="collection-share">Public index <span class="chip"><code>{{$d.ShareURL}}</code><button type="button" class="chip-copy" data-copy-text="{{$d.ShareURL}}" title="Copy link" aria-label="Copy link">{{template "icon" "copy"}}</button></span> lists the public artifacts in this order. Private ones stay hidden.</p>
+    {{/* The link chip sits mid-sentence, so it is built as trusted HTML
+         (the same markup as everywhere else; its format is markup, not a
+         message) and passed whole into the one sentence. */}}
+    {{$chipHTML := `<span class="chip"><code>%s</code><button type="button" class="chip-copy" data-copy-text="%s" title="%s" aria-label="%s"><svg class="ic" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg></button></span>`}}
+    {{$chip := th $chipHTML $d.ShareURL $d.ShareURL (t "Copy link") (t "Copy link")}}
+    <p class="collection-share">{{th "Public index %s lists the public artifacts in this order. Private ones stay hidden." $chip}}</p>
     {{end}}
   </div>
 </header>
 
 <div class="collection-toolbar">
-  <h2 class="day-label">{{if $d.Newest}}Newest first{{else}}Course order{{end}}</h2>
-  <nav class="seg" aria-label="Order">
-    <a href="{{$d.Path}}"{{if not $d.Newest}} class="is-on" aria-current="true"{{end}}>Course order</a>
-    <a href="{{$d.Path}}?sort=newest"{{if $d.Newest}} class="is-on" aria-current="true"{{end}}>Newest</a>
+  <h2 class="day-label">{{if $d.Newest}}{{t "Newest first"}}{{else}}{{t "Course order"}}{{end}}</h2>
+  <nav class="seg" aria-label="{{t "Order"}}">
+    <a href="{{$d.Path}}"{{if not $d.Newest}} class="is-on" aria-current="true"{{end}}>{{t "Course order"}}</a>
+    <a href="{{$d.Path}}?sort=newest"{{if $d.Newest}} class="is-on" aria-current="true"{{end}}>{{t "Newest"}}</a>
   </nav>
 </div>
 
@@ -65,15 +70,15 @@
     <span class="course-n">{{printf "%02d" .N}}</span>
     <a class="course-thumb" href="/app/artifacts/{{.Artifact.ID}}" data-peek aria-hidden="true" tabindex="-1"><img src="{{.CoverURL}}" alt="" loading="lazy" width="1200" height="630"></a>
     <span class="course-text">
-      <a class="course-title" href="/app/artifacts/{{.Artifact.ID}}" data-peek>{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</a>
-      <span class="course-sub">{{if eq .Artifact.Visibility "private"}}{{template "visibility-badge" .Artifact}} {{end}}{{if .Artifact.OpenComments}}{{.Artifact.OpenComments}} open · {{end}}<code>{{.Artifact.ID}}</code></span>
+      <a class="course-title" href="/app/artifacts/{{.Artifact.ID}}" data-peek>{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">{{t "Untitled"}}</span>{{end}}</a>
+      <span class="course-sub">{{if eq .Artifact.Visibility "private"}}{{template "visibility-badge" .Artifact}} {{end}}{{if .Artifact.OpenComments}}{{t "%d open" .Artifact.OpenComments}} · {{end}}<code>{{.Artifact.ID}}</code></span>
     </span>
     <time datetime="{{.Artifact.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}">{{ago .Artifact.UpdatedAt $.Now}}</time>
-    <a class="icon-btn" href="{{.URL}}" target="_blank" rel="noopener" title="Open published page" aria-label="Open published page">{{template "icon" "external"}}</a>
+    <a class="icon-btn" href="{{.URL}}" target="_blank" rel="noopener" title="{{t "Open published page"}}" aria-label="{{t "Open published page"}}">{{template "icon" "external"}}</a>
     {{if not $d.Newest}}
     <span class="course-move">
-      <form method="post" action="{{$d.Path}}/move"><input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}"><input type="hidden" name="id" value="{{.Artifact.ID}}"><input type="hidden" name="dir" value="up"><button type="submit" class="icon-btn" title="Move up" aria-label="Move up"{{if eq .N 1}} disabled{{end}}>↑</button></form>
-      <form method="post" action="{{$d.Path}}/move"><input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}"><input type="hidden" name="id" value="{{.Artifact.ID}}"><input type="hidden" name="dir" value="down"><button type="submit" class="icon-btn" title="Move down" aria-label="Move down"{{if eq .N $d.Count}} disabled{{end}}>↓</button></form>
+      <form method="post" action="{{$d.Path}}/move"><input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}"><input type="hidden" name="id" value="{{.Artifact.ID}}"><input type="hidden" name="dir" value="up"><button type="submit" class="icon-btn" title="{{t "Move up"}}" aria-label="{{t "Move up"}}"{{if eq .N 1}} disabled{{end}}>↑</button></form>
+      <form method="post" action="{{$d.Path}}/move"><input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}"><input type="hidden" name="id" value="{{.Artifact.ID}}"><input type="hidden" name="dir" value="down"><button type="submit" class="icon-btn" title="{{t "Move down"}}" aria-label="{{t "Move down"}}"{{if eq .N $d.Count}} disabled{{end}}>↓</button></form>
     </span>
     {{end}}
   </li>

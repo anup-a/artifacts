@@ -1,8 +1,8 @@
-{{define "title"}}Subprocessors · byagent{{end}}
+{{define "title"}}{{t "Subprocessors"}} · byagent{{end}}
 
 {{define "head"}}
-<meta name="description" content="Every provider byagent uses to run the service, what each one receives, and where it is located.">
-<meta property="og:title" content="Subprocessors · byagent">
+<meta name="description" content="{{t "Every provider byagent uses to run the service, what each one receives, and where it is located."}}">
+<meta property="og:title" content="{{t "Subprocessors"}} · byagent">
 {{template "doc-head" .Data}}
 {{end}}
 
@@ -13,13 +13,14 @@
 
 <article class="lp-doc">
   <header class="lp-doc-head">
-    <p class="lp-doc-kicker">Legal</p>
-    <h1>Subprocessors</h1>
+    <p class="lp-doc-kicker">{{t "Legal"}}</p>
+    <h1>{{t "Subprocessors"}}</h1>
+    {{if ne $.Lang "en"}}<p class="lp-doc-note">{{t "This page is in English only. The English version is the one that applies."}}</p>{{end}}
     {{template "doc-meta" $d}}
   </header>
 
-  <aside class="lp-summary" aria-label="Summary">
-    <h2>In short</h2>
+  <aside class="lp-summary" aria-label="{{t "Summary"}}">
+    <h2>{{t "In short"}}</h2>
     <ul>
       <li>Four providers help run byagent. Only Fly.io holds your pages and comments.</li>
       <li>We update this list, with a new date, before we add a new subprocessor.</li>

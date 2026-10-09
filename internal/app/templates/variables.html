@@ -1,46 +1,46 @@
 {{define "content"}}
-<p class="muted"><a class="link" href="/app/settings">Settings</a> / Variables</p>
+<p class="muted"><a class="link" href="/app/settings">{{t "Settings"}}</a> / {{t "Variables"}}</p>
 {{if not .Data.Enabled}}
 <div class="empty">
   <span class="empty-icon">{{template "icon" "key"}}</span>
-  <h2>Variables are off on this server</h2>
-  <p>The operator turns them on by setting <code>VARIABLES_KEY</code>.</p>
+  <h2>{{t "Variables are off on this server"}}</h2>
+  <p>{{th "The operator turns them on by setting <code>VARIABLES_KEY</code>."}}</p>
 </div>
 {{else}}
 {{if .Data.Saved}}
 <div class="callout ok">
-  <div class="callout-head">{{template "icon" "check"}}<strong>Saved {{.Data.Saved}}.</strong> Pages in this workspace can use it in their proxy routes now.</div>
+  <div class="callout-head">{{template "icon" "check"}}{{th "<strong>Saved %s.</strong> Pages in this workspace can use it in their proxy routes now." .Data.Saved}}</div>
 </div>
 {{end}}
 <section class="card">
   <div class="card-head">
-    <h2>Add or update a variable</h2>
-    <span class="muted">Keep API keys here, not in pages. A page calls a route in its <code>.byagent/proxy.json</code>, and the server adds the key before forwarding the call. Values are stored encrypted and never shown again.</span>
+    <h2>{{t "Add or update a variable"}}</h2>
+    <span class="muted">{{th "Keep API keys here, not in pages. A page calls a route in its <code>.byagent/proxy.json</code>, and the server adds the key before forwarding the call. Values are stored encrypted and never shown again."}}</span>
   </div>
   <form method="post" action="/app/settings/variables" class="field-row" autocomplete="off">
     <input type="hidden" name="csrf" value="{{.Viewer.CSRF}}">
     <label class="field">
-      <span class="field-label">Name</span>
-      <input type="text" name="name" required maxlength="64" pattern="[A-Z][A-Z0-9_]*" placeholder="OPENROUTER_API_KEY" value="{{.Data.Name}}" aria-label="Variable name">
+      <span class="field-label">{{t "Name"}}</span>
+      <input type="text" name="name" required maxlength="64" pattern="[A-Z][A-Z0-9_]*" placeholder="OPENROUTER_API_KEY" value="{{.Data.Name}}" aria-label="{{t "Variable name"}}">
     </label>
     <label class="field">
-      <span class="field-label">Value</span>
-      <input type="password" name="value" required maxlength="4096" autocomplete="new-password" placeholder="sk-..." aria-label="Variable value">
+      <span class="field-label">{{t "Value"}}</span>
+      <input type="password" name="value" required maxlength="4096" autocomplete="new-password" placeholder="sk-..." aria-label="{{t "Variable value"}}">
     </label>
     <label class="field">
-      <span class="field-label">Allowed hosts</span>
-      <input type="text" name="upstreams" required placeholder="openrouter.ai" value="{{.Data.Upstreams}}" aria-label="Allowed upstream hosts">
+      <span class="field-label">{{t "Allowed hosts"}}</span>
+      <input type="text" name="upstreams" required placeholder="openrouter.ai" value="{{.Data.Upstreams}}" aria-label="{{t "Allowed upstream hosts"}}">
     </label>
-    <button type="submit" class="btn primary">Save</button>
+    <button type="submit" class="btn primary">{{t "Save"}}</button>
   </form>
-  <p class="muted">The value is only ever sent to the hosts you list (and their subdomains), separated by commas. Saving a name that exists replaces its value and hosts. Up to {{.Data.Limit}} variables.</p>
+  <p class="muted">{{t "The value is only ever sent to the hosts you list (and their subdomains), separated by commas. Saving a name that exists replaces its value and hosts. Up to %d variables." .Data.Limit}}</p>
   {{if .Data.Error}}<p class="alert">{{template "icon" "alert"}}{{.Data.Error}}</p>{{end}}
 </section>
 
 {{if .Data.Rows}}
 <div class="table-card">
 <table class="table">
-  <thead><tr><th>Name</th><th>Allowed hosts</th><th>Updated</th><th class="actions"></th></tr></thead>
+  <thead><tr><th>{{t "Name"}}</th><th>{{t "Allowed hosts"}}</th><th>{{t "Updated"}}</th><th class="actions"></th></tr></thead>
   <tbody>
   {{range .Data.Rows}}
   <tr>
@@ -49,11 +49,11 @@
     <td class="when"><time title="{{when .UpdatedAt}} UTC">{{ago .UpdatedAt $.Now}}</time></td>
     <td class="actions">
       <details class="confirm menu-wrap">
-        <summary class="btn small danger">Delete</summary>
+        <summary class="btn small danger">{{t "Delete"}}</summary>
         <form method="post" action="/app/settings/variables/{{path .Name}}/delete" class="menu right confirm-body">
           <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
-          <p>Routes that use {{.Name}} stop working now.</p>
-          <button type="submit" class="btn small danger solid">Confirm delete</button>
+          <p>{{t "Routes that use %s stop working now." .Name}}</p>
+          <button type="submit" class="btn small danger solid">{{t "Confirm delete"}}</button>
         </form>
       </details>
     </td>
@@ -65,8 +65,8 @@
 {{else}}
 <div class="empty">
   <span class="empty-icon">{{template "icon" "key"}}</span>
-  <h2>No variables yet</h2>
-  <p>Add one above, or from your agent: <code>byagent vars set NAME --upstream api.example.com</code> with the value on stdin.</p>
+  <h2>{{t "No variables yet"}}</h2>
+  <p>{{th "Add one above, or from your agent: <code>byagent vars set NAME --upstream api.example.com</code> with the value on stdin."}}</p>
 </div>
 {{end}}
 {{end}}

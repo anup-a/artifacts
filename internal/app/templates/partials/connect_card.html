@@ -2,18 +2,18 @@
      agent. Receives a promptView, or nil when none could be made. */}}
 {{define "connect-card"}}
 <section class="card connect-card">
-  <h2>Connect your agent</h2>
+  <h2>{{t "Connect your agent"}}</h2>
   {{if .}}
-  <p class="muted">Paste this into Claude Code, Codex, Cursor or any agent with a shell. It sets up byagent and publishes here.</p>
+  <p class="muted">{{t "Paste this into Claude Code, Codex, Cursor or any agent with a shell. It sets up byagent and publishes here."}}</p>
   <div class="prompt-box">
     <p class="prompt-text">{{.Text}}</p>
-    <button type="button" class="prompt-copy" data-copy-text="{{.Text}}" aria-label="Copy prompt" title="Copy prompt"><span class="ic-copy">{{template "icon" "copy"}}</span><span class="ic-done">{{template "icon" "check"}}</span></button>
+    <button type="button" class="prompt-copy" data-copy-text="{{.Text}}" aria-label="{{t "Copy prompt"}}" title="{{t "Copy prompt"}}"><span class="ic-copy">{{template "icon" "copy"}}</span><span class="ic-done">{{template "icon" "check"}}</span></button>
   </div>
   <div class="connect-actions">
-    <button type="button" class="btn primary" data-copy-text="{{.Text}}">Copy prompt</button>
+    <button type="button" class="btn primary" data-copy-text="{{.Text}}">{{t "Copy prompt"}}</button>
   </div>
   {{else}}
-  <p class="muted">Too many connect prompts were made recently. Try again in a few minutes, or run <code>npx byagent login --browser</code>.</p>
+  <p class="muted">{{th `Too many connect prompts were made recently. Try again in a few minutes, or run <code>npx byagent login --browser</code>.`}}</p>
   {{end}}
 </section>
 {{end}}

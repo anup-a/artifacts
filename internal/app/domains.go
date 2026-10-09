@@ -91,7 +91,7 @@ func (h *Handler) renderSettingsDomains(w http.ResponseWriter, r *http.Request, 
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, r, status, "settings", "Settings", v, settingsData{Identities: idents, Domains: sd})
+	h.render(w, r, status, "settings", tr(r, "Settings"), v, settingsData{Identities: idents, Domains: sd})
 }
 
 // artifactDomains is the Domains card on an artifact's page: where the page
@@ -139,7 +139,7 @@ func (h *Handler) domainFailed(w http.ResponseWriter, r *http.Request, v *viewer
 func (h *Handler) mountArtifact(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	if _, e := h.Domains.Mount(r.Context(), v.Tenant.ID, r.PostForm.Get("domain"), r.PostForm.Get("path"), a.ID); e != nil {
@@ -152,7 +152,7 @@ func (h *Handler) mountArtifact(w http.ResponseWriter, r *http.Request, v *viewe
 func (h *Handler) unmountArtifact(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	domain, path, _ := strings.Cut(r.PostForm.Get("mount"), " ")
@@ -169,7 +169,7 @@ func (h *Handler) unmountArtifact(w http.ResponseWriter, r *http.Request, v *vie
 		}
 	}
 	if !found {
-		h.domainFailed(w, r, v, 404, "That mount does not exist.")
+		h.domainFailed(w, r, v, 404, tr(r, "That mount does not exist."))
 		return
 	}
 	if e := h.Domains.Unmount(r.Context(), v.Tenant.ID, domain, path); e != nil {
@@ -184,7 +184,7 @@ func (h *Handler) unmountArtifact(w http.ResponseWriter, r *http.Request, v *vie
 func (h *Handler) setPrimaryDomain(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	domain, path, _ := strings.Cut(r.PostForm.Get("mount"), " ")

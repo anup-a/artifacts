@@ -39,7 +39,7 @@ func TestLandingFAQIsMarkedUp(t *testing.T) {
 			}
 		}
 	}
-	if faq.Type != "FAQPage" || len(faq.Main) != len(landingFAQ(cfg.Limits)) {
+	if faq.Type != "FAQPage" || len(faq.Main) != len(landingFAQ("en", cfg.Limits)) {
 		t.Fatalf("FAQPage block: %+v", faq)
 	}
 	for _, q := range faq.Main {

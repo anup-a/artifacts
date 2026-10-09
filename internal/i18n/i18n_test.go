@@ -106,6 +106,11 @@ func TestFormats(t *testing.T) {
 			t.Errorf("Date(%s) = %q, want %q", lang, got, want)
 		}
 	}
+	for lang, want := range map[string]string{"en": "October 2026", "zh-TW": "2026年10月", "es": "octubre de 2026", "de": "Oktober 2026"} {
+		if got := Month(lang, now); got != want {
+			t.Errorf("Month(%s) = %q, want %q", lang, got, want)
+		}
+	}
 	for lang, want := range map[string]string{"en": "1,234,567", "de": "1.234.567", "fr": "1 234 567", "ja": "-1,234,567"} {
 		n := int64(1234567)
 		if lang == "ja" {

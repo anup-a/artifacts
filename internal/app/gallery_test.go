@@ -176,7 +176,7 @@ func TestDayLabel(t *testing.T) {
 		time.Date(2026, 9, 10, 12, 0, 0, 0, time.UTC):  "Thu 10 Sep",
 	}
 	for day, s := range cases {
-		if got := dayLabel(day, now); got != s {
+		if got := dayLabel("en", day, now); got != s {
 			t.Errorf("dayLabel(%v) = %q, want %q", day, got, s)
 		}
 	}

@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"strings"
@@ -59,16 +58,16 @@ func hasControl(s string) bool {
 
 // cleanProject mirrors the API: trimmed, 1 to 64 characters, no control
 // characters; empty means no project.
-func cleanProject(raw string) (*string, string) {
+func cleanProject(r *http.Request, raw string) (*string, string) {
 	p := strings.TrimSpace(raw)
 	if p == "" {
 		return nil, ""
 	}
 	if !utf8.ValidString(p) || hasControl(p) {
-		return nil, "project must not contain control characters"
+		return nil, tr(r, "project must not contain control characters")
 	}
 	if utf8.RuneCountInString(p) > maxProjectChars {
-		return nil, fmt.Sprintf("project must be 1 to %d characters", maxProjectChars)
+		return nil, tr(r, "project must be 1 to %d characters", maxProjectChars)
 	}
 	return &p, ""
 }
@@ -76,7 +75,7 @@ func cleanProject(raw string) (*string, string) {
 // cleanTags splits the comma-separated field, drops empty entries (a
 // trailing comma is not a tag), then applies the API's rules: lowercased,
 // trimmed, deduplicated, at most 10 of up to 32 characters.
-func cleanTags(raw string) ([]string, string) {
+func cleanTags(r *http.Request, raw string) ([]string, string) {
 	out := []string{}
 	seen := map[string]bool{}
 	for i, t := range strings.Split(raw, ",") {
@@ -85,10 +84,10 @@ func cleanTags(raw string) ([]string, string) {
 			continue
 		}
 		if utf8.RuneCountInString(t) > maxTagChars {
-			return nil, fmt.Sprintf("tags[%d] must be 1 to %d characters", i, maxTagChars)
+			return nil, tr(r, "tags[%d] must be 1 to %d characters", i, maxTagChars)
 		}
 		if !utf8.ValidString(t) || hasControl(t) {
-			return nil, fmt.Sprintf("tags[%d] must not contain control characters", i)
+			return nil, tr(r, "tags[%d] must not contain control characters", i)
 		}
 		if seen[t] {
 			continue
@@ -97,7 +96,7 @@ func cleanTags(raw string) ([]string, string) {
 		out = append(out, t)
 	}
 	if len(out) > maxTags {
-		return nil, fmt.Sprintf("tags: at most %d allowed", maxTags)
+		return nil, tr(r, "tags: at most %d allowed", maxTags)
 	}
 	return out, ""
 }
@@ -116,26 +115,26 @@ func coverFiles(files []store.File) []string {
 
 // cleanCover validates the cover choice against the current version's files
 // and the generator's style names.
-func cleanCover(m metaForm, files []string) (coverPath *string, style string, msg string) {
+func cleanCover(r *http.Request, m metaForm, files []string) (coverPath *string, style string, msg string) {
 	switch m.CoverKind {
 	case "file":
 		p := m.CoverFile
 		if !coverExts[strings.ToLower(path.Ext(p))] {
-			return nil, "", "cover must be an svg, png, jpg or webp file"
+			return nil, "", tr(r, "cover must be an svg, png, jpg or webp file")
 		}
 		for _, f := range files {
 			if f == p {
 				return &p, m.CoverStyle, ""
 			}
 		}
-		return nil, "", "cover must name a file in the current version: " + p
+		return nil, "", tr(r, "cover must name a file in the current version: %s", p)
 	case "generated", "":
 		if m.CoverStyle != "" && !cover.Valid(m.CoverStyle) {
-			return nil, "", "cover_style must be one of " + strings.Join(cover.Styles(), ", ")
+			return nil, "", tr(r, "cover_style must be one of %s", strings.Join(cover.Styles(), ", "))
 		}
 		return nil, m.CoverStyle, ""
 	}
-	return nil, "", "The form could not be read."
+	return nil, "", tr(r, "The form could not be read.")
 }
 
 // setMetadata is the About card's save: POST /app/artifacts/{id}/meta with
@@ -145,19 +144,19 @@ func cleanCover(m metaForm, files []string) (coverPath *string, style string, ms
 func (h *Handler) setMetadata(w http.ResponseWriter, r *http.Request, v *viewer) {
 	a, err := h.ownedArtifact(r, v, r.PathValue("id"))
 	if err != nil {
-		h.storeErr(w, r, err, "That artifact does not exist.")
+		h.storeErr(w, r, err, tr(r, "That artifact does not exist."))
 		return
 	}
 	m := metaFromForm(r)
 	fail := func(msg string) {
 		h.renderArtifactWith(w, r, 400, v, a.ID, artifactOpts{MetaError: msg, Meta: &m})
 	}
-	project, msg := cleanProject(m.Project)
+	project, msg := cleanProject(r, m.Project)
 	if msg != "" {
 		fail(msg)
 		return
 	}
-	tags, msg := cleanTags(m.Tags)
+	tags, msg := cleanTags(r, m.Tags)
 	if msg != "" {
 		fail(msg)
 		return
@@ -167,7 +166,7 @@ func (h *Handler) setMetadata(w http.ResponseWriter, r *http.Request, v *viewer)
 		h.fail(w, r, err)
 		return
 	}
-	coverPath, style, msg := cleanCover(m, coverFiles(files))
+	coverPath, style, msg := cleanCover(r, m, coverFiles(files))
 	if msg != "" {
 		fail(msg)
 		return

@@ -83,6 +83,33 @@ func Day(lang string, t time.Time) string {
 	return months["en"][m-1] + " " + ds
 }
 
+// longMonths are the full month names, January first.
+var longMonths = map[string][12]string{
+	"en":    {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"},
+	"es":    {"enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"},
+	"pt-BR": {"janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"},
+	"fr":    {"janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"},
+	"de":    {"Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"},
+}
+
+// Month is t's month and year in UTC: "October 2026", "2026年10月".
+func Month(lang string, t time.Time) string {
+	t = t.UTC()
+	y, m, _ := t.Date()
+	ys, ms := strconv.Itoa(y), strconv.Itoa(int(m))
+	switch lang {
+	case "zh-CN", "zh-TW", "ja":
+		return ys + "年" + ms + "月"
+	case "ko":
+		return ys + "년 " + ms + "월"
+	case "es", "pt-BR":
+		return longMonths[lang][m-1] + " de " + ys
+	case "fr", "de":
+		return longMonths[lang][m-1] + " " + ys
+	}
+	return longMonths["en"][m-1] + " " + ys
+}
+
 // Number groups the thousands of n the way lang does: 1,234,567 in
 // English and the CJK languages, 1.234.567 in German, Spanish and
 // Portuguese, and 1 234 567 (narrow no-break spaces) in French.

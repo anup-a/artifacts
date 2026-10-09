@@ -1,9 +1,9 @@
-{{define "title"}}Showcase · byagent{{end}}
+{{define "title"}}{{t "Showcase"}} · byagent{{end}}
 
 {{define "head"}}
-<meta name="description" content="Real pages published with byagent: plans, reports and sites agents wrote, with the comments readers left on them.">
-<meta property="og:title" content="Showcase · byagent">
-<meta property="og:description" content="Real pages published with byagent, with the comments readers left on them.">
+<meta name="description" content="{{t "Real pages published with byagent: plans, reports and sites agents wrote, with the comments readers left on them."}}">
+<meta property="og:title" content="{{t "Showcase"}} · byagent">
+<meta property="og:description" content="{{t "Real pages published with byagent, with the comments readers left on them."}}">
 {{template "doc-head" .Data}}
 {{end}}
 
@@ -14,9 +14,9 @@
 
 <article class="lp-showcase">
   <header class="lp-doc-head is-center">
-    <p class="lp-doc-kicker">Showcase</p>
-    <h1>Pages built with byagent.</h1>
-    <p class="lp-sub">Real pages agents published, with the comments readers left on them and the answers that came back. Open any one to read it and leave a comment of your own.</p>
+    <p class="lp-doc-kicker">{{t "Showcase"}}</p>
+    <h1>{{t "Pages built with byagent."}}</h1>
+    <p class="lp-sub">{{t "Real pages agents published, with the comments readers left on them and the answers that came back. Open any one to read it and leave a comment of your own."}}</p>
   </header>
 
   {{if $d.Items}}
@@ -25,11 +25,11 @@
     <li class="sc-card">
       <a class="sc-cover" href="{{.URL}}" aria-hidden="true" tabindex="-1"><img src="{{.CoverURL}}" alt="" loading="lazy" width="1200" height="630"></a>
       <div class="sc-body">
-        <h2 class="sc-title"><a href="{{.URL}}">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}Untitled{{end}}</a></h2>
+        <h2 class="sc-title"><a href="{{.URL}}">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}{{t "Untitled"}}{{end}}</a></h2>
         <p class="sc-meta">
           {{with .Artifact.Project}}<span>{{.}}</span>{{end}}
           <span>v{{.Artifact.CurrentVersion}}</span>
-          {{if .Total}}<span>{{.Total}} {{plural .Total "thread" "threads"}}</span>{{end}}
+          {{if .Total}}<span>{{tn .Total "%s thread" "%s threads"}}</span>{{end}}
         </p>
         {{range .Threads}}
         <div class="sc-thread">
@@ -44,23 +44,23 @@
             <div><span class="lp-note-who">{{.AuthorName}}</span><span class="lp-note-txt">{{.Body}}</span></div>
           </div>
           {{end}}
-          {{if .Resolved}}<p class="sc-done">{{template "icon" "check"}}Resolved</p>{{end}}
+          {{if .Resolved}}<p class="sc-done">{{template "icon" "check"}}{{t "Resolved"}}</p>{{end}}
         </div>
         {{else}}
-        <p class="sc-none muted">Select any line on the page to comment on it.</p>
+        <p class="sc-none muted">{{t "Select any line on the page to comment on it."}}</p>
         {{end}}
-        <a class="sc-open" href="{{.URL}}">Open the page {{template "icon" "external"}}</a>
+        <a class="sc-open" href="{{.URL}}">{{t "Open the page"}} {{template "icon" "external"}}</a>
       </div>
     </li>
     {{end}}
   </ul>
   {{else}}
-  <p class="sc-empty muted">The first pages are on their way. Check back soon.</p>
+  <p class="sc-empty muted">{{t "The first pages are on their way. Check back soon."}}</p>
   {{end}}
 
   <section class="lp-section lp-start" data-ga-where="showcase">
-    <h2 class="lp-h2">Publish yours.</h2>
-    <p class="lp-sub">One line sets byagent up for your agent. Your page could be next.</p>
+    <h2 class="lp-h2">{{t "Publish yours."}}</h2>
+    <p class="lp-sub">{{t "One line sets byagent up for your agent. Your page could be next."}}</p>
     {{template "lp-prompt" $d}}
   </section>
 </article>

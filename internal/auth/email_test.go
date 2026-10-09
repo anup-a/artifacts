@@ -17,7 +17,7 @@ func TestLogSenderLogsTheLink(t *testing.T) {
 	prev := slog.Default()
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, nil)))
 	t.Cleanup(func() { slog.SetDefault(prev) })
-	err := LogSender{}.SendMagicLink(context.Background(), "a@x.io", "http://api.test/app/login/email/verify?token=abc")
+	err := LogSender{}.SendMagicLink(context.Background(), "a@x.io", "http://api.test/app/login/email/verify?token=abc", "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestResendSenderPostsEmail(t *testing.T) {
 	}))
 	defer srv.Close()
 	s := ResendSender{APIKey: "re_test", From: "Artifacts <login@x.io>", URL: srv.URL}
-	if err := s.SendMagicLink(context.Background(), "a@x.io", "http://api.test/v?token=abc"); err != nil {
+	if err := s.SendMagicLink(context.Background(), "a@x.io", "http://api.test/v?token=abc", "en"); err != nil {
 		t.Fatal(err)
 	}
 	if auth != "Bearer re_test" || got["from"] != "Artifacts <login@x.io>" {
@@ -61,7 +61,7 @@ func TestResendSenderReportsFailure(t *testing.T) {
 	}))
 	defer srv.Close()
 	s := ResendSender{APIKey: "k", From: "x", URL: srv.URL}
-	err := s.SendMagicLink(context.Background(), "a@x.io", "u")
+	err := s.SendMagicLink(context.Background(), "a@x.io", "u", "en")
 	if err == nil || !strings.Contains(err.Error(), "422") {
 		t.Fatal(err)
 	}

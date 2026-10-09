@@ -3,25 +3,25 @@
 {{$p := .Page}}{{$c := .Item}}{{$a := $c.Artifact}}
 <article class="tile{{if $c.Span}} is-{{$c.Span}}{{end}}" data-project="{{$c.Project}}">
   {{/* The cover carries the title, so it is the tile's one link to the peek. */}}
-  <a class="tile-cover" href="/app/artifacts/{{$a.ID}}" data-peek aria-label="{{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" title="{{if $a.Title}}{{$a.Title}}{{else}}Untitled: {{$a.ID}}{{end}}">
+  <a class="tile-cover" href="/app/artifacts/{{$a.ID}}" data-peek aria-label="{{if $a.Title}}{{$a.Title}}{{else}}{{$a.ID}}{{end}}" title="{{if $a.Title}}{{$a.Title}}{{else}}{{t "Untitled: %s" $a.ID}}{{end}}">
     <img src="{{$c.CoverURL}}" alt="" loading="lazy" width="1200" height="630">
   </a>
   <div class="tile-body">
     <div class="tile-meta">
-      {{if $c.Project}}<a class="tile-project" href="{{$p.Data.ChipURL $c.Project}}" title="Show project {{$c.Project}}"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">{{$c.Project}}</span></a>{{else}}<span class="tile-project muted"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">No project</span></span>{{end}}
+      {{if $c.Project}}<a class="tile-project" href="{{$p.Data.ChipURL $c.Project}}" title="{{t "Show project %s" $c.Project}}"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">{{$c.Project}}</span></a>{{else}}<span class="tile-project muted"><span class="dot" data-color="{{$c.Color}}"></span><span class="truncate">{{t "No project"}}</span></span>{{end}}
       {{if $c.Tags}}<span class="tile-tags">{{range $c.Tags}}<span class="tag">{{.}}</span>{{end}}</span>{{end}}
       {{/* Public is the default and labelling it on every tile says nothing;
            the badge earns its place in this row only when it is news. */}}
       {{if eq $a.Visibility "private"}}{{template "visibility-badge" $a}}{{end}}
       <span class="spacer"></span>
-      {{with index $p.Data.Views $a.ID}}<span class="count" title="{{num .}} views in the last 30 days">{{template "icon" "eye"}}{{num .}}</span>{{end}}
-      {{if $a.OpenComments}}<a class="count is-open" href="/app/artifacts/{{$a.ID}}#comments" title="Open comments" data-peek>{{template "icon" "comment"}}{{$a.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}
-      {{if not $a.CommentsEnabled}}<span class="badge off" title="Comments are off for this artifact">off</span>{{end}}
-      <time datetime="{{$a.CreatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="Published {{when $a.CreatedAt}} UTC">{{ago $a.CreatedAt $p.Now}}</time>
-      <a class="icon-btn tile-open" href="{{$c.URL}}" target="_blank" rel="noopener" title="Open published page" aria-label="Open published page">{{template "icon" "external"}}</a>
+      {{with index $p.Data.Views $a.ID}}<span class="count" title="{{tn . "%s view in the last 30 days" "%s views in the last 30 days"}}">{{template "icon" "eye"}}{{num .}}</span>{{end}}
+      {{if $a.OpenComments}}<a class="count is-open" href="/app/artifacts/{{$a.ID}}#comments" title="{{t "Open comments"}}" data-peek>{{template "icon" "comment"}}{{$a.OpenComments}}</a>{{else}}<span class="count muted">{{template "icon" "comment"}}0</span>{{end}}
+      {{if not $a.CommentsEnabled}}<span class="badge off" title="{{t "Comments are off for this artifact"}}">{{t "off"}}</span>{{end}}
+      <time datetime="{{$a.CreatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="{{t "Published %s UTC" (when $a.CreatedAt)}}">{{ago $a.CreatedAt $p.Now}}</time>
+      <a class="icon-btn tile-open" href="{{$c.URL}}" target="_blank" rel="noopener" title="{{t "Open published page"}}" aria-label="{{t "Open published page"}}">{{template "icon" "external"}}</a>
     </div>
   </div>
 </article>
 {{end}}
 
-{{define "visibility-badge"}}{{if eq .Visibility "private"}}<span class="badge" title="Only signed-in members of the owning workspace can view this artifact">Private</span>{{else}}<span class="badge" title="Anyone with the link can view this artifact">Public</span>{{end}}{{end}}
+{{define "visibility-badge"}}{{if eq .Visibility "private"}}<span class="badge" title="{{t "Only signed-in members of the owning workspace can view this artifact"}}">{{t "Private"}}</span>{{else}}<span class="badge" title="{{t "Anyone with the link can view this artifact"}}">{{t "Public"}}</span>{{end}}{{end}}

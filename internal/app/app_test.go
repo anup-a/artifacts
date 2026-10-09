@@ -22,7 +22,7 @@ import (
 
 type captureSender struct{ to, url string }
 
-func (c *captureSender) SendMagicLink(_ context.Context, to, u string) error {
+func (c *captureSender) SendMagicLink(_ context.Context, to, u, _ string) error {
 	c.to, c.url = to, u
 	return nil
 }

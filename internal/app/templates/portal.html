@@ -3,23 +3,23 @@
   <header class="portal-head">
     <span class="brand">{{template "icon" "mark"}}<span>byagent</span></span>
     <div>
-      <h1>Artifacts from {{.Data.Tenant.Name}}</h1>
-      <p class="muted">Shared with you, read-only. This link expires {{when .Data.ExpiresAt}} UTC.</p>
+      <h1>{{t "Artifacts from %s" .Data.Tenant.Name}}</h1>
+      <p class="muted">{{t "Shared with you, read-only. This link expires %s UTC." (when .Data.ExpiresAt)}}</p>
     </div>
   </header>
   {{if .Data.Rows}}
   <div class="table-card">
   <table class="table">
-    <thead><tr><th>Title</th><th>Id</th><th class="num">Version</th><th class="num">Comments</th><th>Updated</th><th class="actions"></th></tr></thead>
+    <thead><tr><th>{{t "Title"}}</th><th>{{t "Id"}}</th><th class="num">{{t "Version"}}</th><th class="num">{{t "Comments"}}</th><th>{{t "Updated"}}</th><th class="actions"></th></tr></thead>
     <tbody>
     {{range .Data.Rows}}
     <tr>
-      <td class="c-title"><a class="row-title" href="{{.URL}}" target="_blank" rel="noopener">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">Untitled</span>{{end}}</a></td>
+      <td class="c-title"><a class="row-title" href="{{.URL}}" target="_blank" rel="noopener">{{if .Artifact.Title}}{{.Artifact.Title}}{{else}}<span class="muted">{{t "Untitled"}}</span>{{end}}</a></td>
       <td><span class="chip"><code>{{.Artifact.ID}}</code></span></td>
       <td class="num"><span class="badge mono">v{{.Artifact.CurrentVersion}}</span></td>
       <td class="num"><span class="count{{if .Artifact.OpenComments}} is-open{{else}} muted{{end}}">{{template "icon" "comment"}}{{.Artifact.OpenComments}}</span></td>
       <td class="when"><time title="{{when .Artifact.UpdatedAt}} UTC">{{ago .Artifact.UpdatedAt $.Now}}</time></td>
-      <td class="actions"><a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">Open {{template "icon" "external"}}</a></td>
+      <td class="actions"><a class="btn small" href="{{.URL}}" target="_blank" rel="noopener">{{t "Open"}} {{template "icon" "external"}}</a></td>
     </tr>
     {{end}}
     </tbody>
@@ -28,8 +28,8 @@
   {{else}}
   <div class="empty">
     <span class="empty-icon">{{template "icon" "artifacts"}}</span>
-    <h2>No artifacts yet</h2>
-    <p>Anything published for you will show up here.</p>
+    <h2>{{t "No artifacts yet"}}</h2>
+    <p>{{t "Anything published for you will show up here."}}</p>
   </div>
   {{end}}
 </div>

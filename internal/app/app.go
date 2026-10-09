@@ -157,7 +157,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /app/logout", h.private(h.logout))
 	h.registerDomains(mux)
 	mux.HandleFunc("/app/", h.headers(func(w http.ResponseWriter, r *http.Request) {
-		h.renderError(w, r, 404, "That page does not exist.")
+		h.renderError(w, r, 404, tr(r, "That page does not exist."))
 	}))
 }
 
@@ -225,7 +225,7 @@ func publicCache(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) public(next http.HandlerFunc) http.HandlerFunc {
 	return h.headers(func(w http.ResponseWriter, r *http.Request) {
 		if !h.Cfg.WebEnabled() {
-			h.renderError(w, r, 503, "Sign-in is not configured on this server.")
+			h.renderError(w, r, 503, tr(r, "Sign-in is not configured on this server."))
 			return
 		}
 		next(w, r)
@@ -245,8 +245,8 @@ func (h *Handler) DenyArtifactAccess(w http.ResponseWriter, r *http.Request) {
 	h.headers(func(w http.ResponseWriter, r *http.Request) {
 		d := errorData{
 			Status:    http.StatusNotFound,
-			Title:     "No access",
-			Message:   "You do not have access to this artifact. It may be private to another workspace, or it may no longer exist.",
+			Title:     tr(r, "No access"),
+			Message:   tr(r, "You do not have access to this artifact. It may be private to another workspace, or it may no longer exist."),
 			RequestID: apierr.RequestID(r.Context()),
 			SignIn:    h.Cfg.WebEnabled(),
 		}
@@ -291,7 +291,7 @@ func (h *Handler) GateArtifactAccess(w http.ResponseWriter, r *http.Request, g s
 	p.CSS, p.JS, p.I18nJS, p.AnalyticsID = g.AssetOrigin+h.static.cssURL, g.AssetOrigin+h.static.jsURL, g.AssetOrigin+h.static.i18nJSURL, ""
 	var buf bytes.Buffer
 	if err := pages[p.Lang]["gate"].ExecuteTemplate(&buf, "layout.html", p); err != nil {
-		http.Error(w, "This artifact needs a code.", status)
+		http.Error(w, tr(r, "This artifact needs a code."), status)
 		return
 	}
 	hd.Set("Content-Type", "text/html; charset=utf-8")
@@ -313,11 +313,11 @@ func (h *Handler) private(next func(http.ResponseWriter, *http.Request, *viewer)
 		}
 		if r.Method == "POST" {
 			if err := r.ParseForm(); err != nil {
-				h.renderError(w, r, 400, "The form could not be read.")
+				h.renderError(w, r, 400, tr(r, "The form could not be read."))
 				return
 			}
 			if !auth.CheckCSRF(v.Session.ID, r.PostForm.Get("csrf")) {
-				h.renderError(w, r, 403, "The form has expired. Go back, reload the page and try again.")
+				h.renderError(w, r, 403, tr(r, "The form has expired. Go back, reload the page and try again."))
 				return
 			}
 		}

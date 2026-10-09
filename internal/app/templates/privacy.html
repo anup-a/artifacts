@@ -1,8 +1,8 @@
-{{define "title"}}Privacy policy · byagent{{end}}
+{{define "title"}}{{t "Privacy policy"}} · byagent{{end}}
 
 {{define "head"}}
-<meta name="description" content="What byagent collects, why, where it is stored and for how long, and how to use your rights, in plain language.">
-<meta property="og:title" content="Privacy policy · byagent">
+<meta name="description" content="{{t "What byagent collects, why, where it is stored and for how long, and how to use your rights, in plain language."}}">
+<meta property="og:title" content="{{t "Privacy policy"}} · byagent">
 {{template "doc-head" .Data}}
 {{end}}
 
@@ -13,13 +13,14 @@
 
 <article class="lp-doc">
   <header class="lp-doc-head">
-    <p class="lp-doc-kicker">Legal</p>
-    <h1>Privacy policy</h1>
+    <p class="lp-doc-kicker">{{t "Legal"}}</p>
+    <h1>{{t "Privacy policy"}}</h1>
+    {{if ne $.Lang "en"}}<p class="lp-doc-note">{{t "This page is in English only. The English version is the one that applies."}}</p>{{end}}
     {{template "doc-meta" $d}}
   </header>
 
-  <aside class="lp-summary" aria-label="Summary">
-    <h2>In short</h2>
+  <aside class="lp-summary" aria-label="{{t "Summary"}}">
+    <h2>{{t "In short"}}</h2>
     <ul>
       <li>byagent is operated by Anup Aglawe, an individual based in India. Write to <a class="link" href="mailto:hello@byagent.dev">hello@byagent.dev</a>.</li>
       <li>We keep what the service needs: your account email and name, the pages you publish, and the comments readers leave on them.</li>
@@ -30,7 +31,7 @@
     </ul>
   </aside>
 
-  <nav class="lp-toc" aria-label="On this page">
+  <nav class="lp-toc" aria-label="{{t "On this page"}}">
     <a href="#who">Who we are</a>
     <a href="#roles">Two roles</a>
     <a href="#collect">What we collect and why</a>

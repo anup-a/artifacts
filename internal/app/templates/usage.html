@@ -2,14 +2,14 @@
 {{with .Data.Pages}}
 <section class="usage">
   <div class="section-head">
-    <h2>Pages</h2>
-    <span class="muted">live now, across every key</span>
+    <h2>{{t "Pages"}}</h2>
+    <span class="muted">{{t "live now, across every key"}}</span>
   </div>
   <div class="stat quota{{if .Full}} is-full{{else if .Near}} is-near{{end}}">
-    <span class="stat-label">{{template "icon" "artifacts"}}Live pages</span>
-    <span class="stat-value">{{num .Used}} <span class="quota-of">of {{num .Limit}}</span></span>
-    <progress value="{{.Used}}" max="{{.Limit}}" aria-label="{{.Used}} of {{.Limit}} pages used">{{.Used}} of {{.Limit}}</progress>
-    <span class="stat-sub">{{if .Full}}Limit reached. New pages are refused until you delete one; new versions of existing pages still publish.{{else}}{{num .Left}} left. Deleting a page frees its slot.{{end}}</span>
+    <span class="stat-label">{{template "icon" "artifacts"}}{{t "Live pages"}}</span>
+    <span class="stat-value">{{th "%s <span class=\"quota-of\">of %s</span>" (num .Used) (num .Limit)}}</span>
+    <progress value="{{.Used}}" max="{{.Limit}}" aria-label="{{t "%d of %d pages used" .Used .Limit}}">{{t "%d of %d" .Used .Limit}}</progress>
+    <span class="stat-sub">{{if .Full}}{{t "Limit reached. New pages are refused until you delete one; new versions of existing pages still publish."}}{{else}}{{t "%s left. Deleting a page frees its slot." (num .Left)}}{{end}}</span>
   </div>
 </section>
 {{end}}
@@ -17,13 +17,13 @@
 <section class="usage">
   <div class="section-head">
     <h2>{{.Label}}</h2>
-    <span class="muted">{{.Month.Format "January 2006"}} · UTC</span>
+    <span class="muted">{{month .Month}} · UTC</span>
   </div>
   <div class="stats">
-    <div class="stat"><span class="stat-label">{{template "icon" "artifacts"}}Publishes</span><span class="stat-value">{{num .Publishes}}</span><span class="stat-sub">versions published</span></div>
-    <div class="stat"><span class="stat-label">{{template "icon" "usage"}}Storage</span><span class="stat-value">{{bytes .StorageBytes}}</span><span class="stat-sub">across kept versions</span></div>
-    <div class="stat"><span class="stat-label">{{template "icon" "external"}}Page views</span><span class="stat-value">{{num .PageViews}}</span><span class="stat-sub">on share links</span></div>
-    <div class="stat"><span class="stat-label">{{template "icon" "comment"}}Open comments</span><span class="stat-value">{{num .OpenComments}}</span><span class="stat-sub">threads awaiting you</span></div>
+    <div class="stat"><span class="stat-label">{{template "icon" "artifacts"}}{{t "Publishes"}}</span><span class="stat-value">{{num .Publishes}}</span><span class="stat-sub">{{t "versions published"}}</span></div>
+    <div class="stat"><span class="stat-label">{{template "icon" "usage"}}{{t "Storage"}}</span><span class="stat-value">{{bytes .StorageBytes}}</span><span class="stat-sub">{{t "across kept versions"}}</span></div>
+    <div class="stat"><span class="stat-label">{{template "icon" "external"}}{{t "Page views"}}</span><span class="stat-value">{{num .PageViews}}</span><span class="stat-sub">{{t "on share links"}}</span></div>
+    <div class="stat"><span class="stat-label">{{template "icon" "comment"}}{{t "Open comments"}}</span><span class="stat-value">{{num .OpenComments}}</span><span class="stat-sub">{{t "threads awaiting you"}}</span></div>
   </div>
 </section>
 {{end}}
