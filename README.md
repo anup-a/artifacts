@@ -666,8 +666,8 @@ it and fails if the checked-in copy is stale.
 ## Deploying
 
 - Self-host: `deploy/docker-compose.yml` (above).
-- Managed (Hetzner + Cloudflare + Neon + R2) and the Fly.io upgrade path:
-  see [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md).
+- Production (one OVHcloud VPS behind a Cloudflare Tunnel), plus the older
+  managed and Fly.io setups: see [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md).
 
 ## Development
 

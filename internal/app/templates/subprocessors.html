@@ -22,7 +22,7 @@
   <aside class="lp-summary" aria-label="{{t "Summary"}}">
     <h2>{{t "In short"}}</h2>
     <ul>
-      <li>Four providers help run byagent. Only Fly.io holds your pages and comments.</li>
+      <li>Five providers help run byagent. Only OVHcloud stores your pages and comments, on a server in Canada.</li>
       <li>We update this list, with a new date, before we add a new subprocessor.</li>
     </ul>
   </aside>
@@ -34,7 +34,8 @@
       <table>
         <thead><tr><th>Provider</th><th>Purpose</th><th>Data</th><th>Location</th></tr></thead>
         <tbody>
-          <tr><td>Fly.io</td><td>Hosting: compute and storage</td><td>All service data: accounts, pages, versions, comments, view counts</td><td>Singapore region</td></tr>
+          <tr><td>OVHcloud</td><td>Hosting: compute and storage</td><td>All service data: accounts, pages, versions, comments, view counts</td><td>Canada (Beauharnois, Quebec)</td></tr>
+          <tr><td>Cloudflare</td><td>Network edge in front of the server, the tunnel to it, DNS and email routing for byagent.dev</td><td>All traffic to and from byagent, including visitors' IP addresses; email sent to byagent.dev addresses</td><td>Global network</td></tr>
           <tr><td>Resend</td><td>Delivering sign-in emails</td><td>Email address</td><td>United States</td></tr>
           <tr><td>GitHub</td><td>Sign-in, only if you choose GitHub</td><td>GitHub profile id, email and name</td><td>United States</td></tr>
           <tr><td>Google</td><td>Google Analytics on our site pages and the dashboard</td><td>Usage data and cookie identifiers</td><td>United States</td></tr>

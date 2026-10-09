@@ -22,7 +22,7 @@
   <aside class="lp-summary" aria-label="{{t "Summary"}}">
     <h2>{{t "In short"}}</h2>
     <ul>
-      <li>One Fly.io machine in Singapore. The database and published files sit on a volume encrypted at rest. Every connection uses TLS.</li>
+      <li>One OVHcloud server in Beauharnois, Quebec, Canada, with Cloudflare in front. The database and published files sit on the server's own disk, which is not encrypted at rest. Every connection is encrypted in transit.</li>
       {{if $d.ContentDomain}}<li>Every published page has an origin of its own on {{$d.ContentDomain}}, a domain apart from byagent.dev, so a page's scripts cannot reach your signed-in session or another page.</li>{{else}}<li>Published pages and the dashboard live on different origins, so a page's scripts cannot reach your signed-in session.</li>{{end}}
       <li>API keys, session tokens and sign-in links are stored only as hashes.</li>
       <li>Only the operator has access to production.</li>
@@ -46,14 +46,15 @@
 
   <section id="hosting">
     <h2>Hosting and data location</h2>
-    <p>byagent runs on one machine at Fly.io, in its Singapore region. The database (SQLite) and the published files are stored on the same Fly.io volume, attached to that machine. Nothing is stored in another region or with another storage provider.</p>
+    <p>byagent runs on one OVHcloud virtual private server in OVHcloud's Beauharnois, Quebec, Canada datacenter (BHS). The database (SQLite) and the published files are stored on that server's local disk. Nothing is stored with another storage provider.</p>
+    <p>Cloudflare sits in front of the server. Visitors connect to Cloudflare, and Cloudflare carries the traffic to the server through an encrypted Cloudflare Tunnel that the server opens outward. The server's firewall admits SSH only, so the service cannot be reached except through Cloudflare. Cloudflare also hosts the DNS and email routing for byagent.dev.</p>
   </section>
 
   <section id="encryption">
     <h2>Encryption</h2>
     <ul>
-      <li><b>In transit.</b> Every connection to byagent.dev and app.byagent.dev uses TLS. Plain HTTP is redirected to HTTPS.</li>
-      <li><b>At rest.</b> The Fly.io volume that holds the database and the files is encrypted at rest.</li>
+      <li><b>In transit.</b> Every connection to byagent.dev and app.byagent.dev uses TLS to Cloudflare, and Cloudflare reaches the server through an encrypted tunnel. Plain HTTP is redirected to HTTPS.</li>
+      <li><b>At rest.</b> The server's disk, which holds the database and the files, is not encrypted at rest. Only the operator can sign in to the server, and your API keys, session tokens and sign-in tokens are stored on it only as hashes, as described below.</li>
       <li><b>Secrets.</b> API keys, session tokens and email sign-in tokens are stored as SHA-256 hashes, never in plain text.</li>
     </ul>
   </section>
@@ -107,7 +108,7 @@
 
   <section id="backups">
     <h2>Backups</h2>
-    <p>Fly.io takes a daily snapshot of the storage volume and keeps each snapshot for 5 days.</p>
+    <p>Every night at 02:17 UTC the server takes a snapshot of the database and the files, and keeps each snapshot on the server for 5 days. OVHcloud's automated VPS backup also keeps the last daily backup of the server. No backup is kept for more than 5 days.</p>
   </section>
 
   <section id="incidents">

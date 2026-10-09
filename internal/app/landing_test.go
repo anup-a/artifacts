@@ -61,7 +61,8 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"Watch an agent use it.",
 		"<details>", // the FAQ
 		"Does byagent train AI on my pages?",
-		"Fly.io in its Singapore region",
+		"OVHcloud server in Beauharnois, Quebec, Canada",
+		"not encrypted at rest",
 		"Give every agent one place to publish.",
 		"Try it on your next task.",                                 // the prompt again after the demo, with no showcase set
 		"A reader outside your Claude org needs a seat to comment.", // each lane in words, for phones
