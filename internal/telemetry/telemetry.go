@@ -32,10 +32,9 @@ import (
 const scope = "github.com/anup-a/artifacts"
 
 // defaultInterval is how often metrics are pushed when
-// OTEL_METRIC_EXPORT_INTERVAL is unset. The SDK's own default is a minute;
-// half that gives a traffic graph that reacts within a scrape or two
-// without sending much.
-const defaultInterval = 30 * time.Second
+// OTEL_METRIC_EXPORT_INTERVAL is unset: the SDK's own default, and the one
+// sample a minute Grafana Cloud bills as a single series.
+const defaultInterval = time.Minute
 
 // Enabled reports whether telemetry is configured: an OTLP endpoint is set
 // and the SDK has not been switched off with OTEL_SDK_DISABLED=true.
