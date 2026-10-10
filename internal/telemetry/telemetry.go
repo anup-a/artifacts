@@ -78,6 +78,7 @@ func Start(ctx context.Context) (shutdown func(context.Context) error, err error
 	}
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithResource(res),
+		sdkmetric.WithView(sizeView),
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exp, opts...)),
 	)
 	otel.SetMeterProvider(mp)

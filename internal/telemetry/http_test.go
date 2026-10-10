@@ -38,7 +38,7 @@ func TestMiddlewareLabels(t *testing.T) {
 	outer.Handle("/", Routed(inner))
 
 	rd := sdkmetric.NewManualReader()
-	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(rd))
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(rd), sdkmetric.WithView(sizeView))
 	h, err := Middleware(mp, testHosts, Routed(outer))
 	if err != nil {
 		t.Fatal(err)
@@ -72,6 +72,12 @@ func TestMiddlewareLabels(t *testing.T) {
 				for _, dp := range m.Data.(metricdata.Histogram[float64]).DataPoints {
 					got[key{str(dp.Attributes, "http.request.method"), str(dp.Attributes, "http.route"),
 						str(dp.Attributes, "byagent.host_kind"), num(dp.Attributes, "http.response.status_code")}] += dp.Count
+				}
+			case "http.server.response.body.size":
+				for _, dp := range m.Data.(metricdata.Histogram[int64]).DataPoints {
+					if len(dp.Bounds) != 0 {
+						t.Errorf("response size has bucket bounds %v, want none", dp.Bounds)
+					}
 				}
 			case "byagent.publishes":
 				for _, dp := range m.Data.(metricdata.Sum[int64]).DataPoints {

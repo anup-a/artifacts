@@ -9,6 +9,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 
 	"github.com/anup-a/artifacts/internal/config"
@@ -49,8 +50,15 @@ const (
 // milliseconds, a publish upload or a slow proxy call can take seconds.
 var durationBuckets = []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10}
 
-// sizeBuckets go from a JSON error to a large page asset, in powers of four.
-var sizeBuckets = []float64{0, 256, 1 << 10, 4 << 10, 16 << 10, 64 << 10, 256 << 10, 1 << 20, 4 << 20, 16 << 20}
+// sizeView keeps only the sum and count of response sizes, enough for
+// bytes sent per second and the mean size. Each bucket would be one more
+// series per route, status and host kind, against Grafana Cloud's free
+// tier. It has to be a view: an instrument given no bucket boundaries gets
+// the SDK's default fifteen.
+var sizeView = sdkmetric.NewView(
+	sdkmetric.Instrument{Name: "http.server.response.body.size"},
+	sdkmetric.Stream{Aggregation: sdkmetric.AggregationExplicitBucketHistogram{Boundaries: []float64{}, NoMinMax: true}},
+)
 
 // labels is what the inner handlers learn about a request that the
 // middleware, outside them, cannot see for itself. One is put in the
@@ -197,7 +205,8 @@ func Middleware(mp metric.MeterProvider, hosts Hosts, next http.Handler) (http.H
 	size, err := m.Int64Histogram("http.server.response.body.size",
 		metric.WithUnit("By"),
 		metric.WithDescription("Size of HTTP server response bodies."),
-		metric.WithExplicitBucketBoundaries(sizeBuckets...))
+		// Buckets are dropped by sizeView.
+	)
 	if err != nil {
 		return nil, err
 	}
