@@ -135,7 +135,7 @@ func main() {
 		os.Exit(1)
 	}
 	if telemetryOn {
-		h, err = instrument(cfg, h)
+		h, err = instrument(cfg, st, h)
 		if err != nil {
 			log.Error("telemetry", "err", err)
 			os.Exit(1)
@@ -183,9 +183,9 @@ func main() {
 }
 
 // instrument wraps the whole handler in the HTTP metrics middleware and
-// starts the data directory gauges for whatever this server keeps on local
-// disk.
-func instrument(cfg config.Config, h http.Handler) (http.Handler, error) {
+// starts the gauges: the totals of accounts and pages, and the size of
+// whatever this server keeps on local disk.
+func instrument(cfg config.Config, st store.Store, h http.Handler) (http.Handler, error) {
 	var dbFile, blobDir string
 	if cfg.DB == "sqlite" {
 		dbFile = filepath.Join(cfg.DataDir, "artifacts.db")
@@ -194,6 +194,9 @@ func instrument(cfg config.Config, h http.Handler) (http.Handler, error) {
 		blobDir = filepath.Join(cfg.DataDir, "blobs")
 	}
 	if err := telemetry.ObserveDataDir(dbFile, blobDir); err != nil {
+		return nil, err
+	}
+	if err := telemetry.ObserveTotals(st.Totals); err != nil {
 		return nil, err
 	}
 	return telemetry.Middleware(otel.GetMeterProvider(), telemetry.HostsFor(cfg), h)
