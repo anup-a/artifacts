@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anup-a/artifacts/internal/guest"
 	"github.com/anup-a/artifacts/internal/ids"
 )
 
@@ -205,6 +206,17 @@ func (s *sqlStore) CountArtifacts(ctx context.Context, tenantID string) (int, er
 	var n int
 	err := s.db.QueryRowContext(ctx, s.q(`SELECT COUNT(*) FROM artifacts WHERE tenant_id=? AND deleted_at IS NULL`), tenantID).Scan(&n)
 	return n, err
+}
+
+func (s *sqlStore) Totals(ctx context.Context, now time.Time) (Totals, error) {
+	var t Totals
+	err := s.db.QueryRowContext(ctx, s.q(`SELECT
+		(SELECT COUNT(*) FROM users),
+		(SELECT COUNT(*) FROM tenants WHERE plan IN (?,?)),
+		(SELECT COUNT(*) FROM artifacts WHERE deleted_at IS NULL AND (expires_at IS NULL OR expires_at>?)),
+		(SELECT COUNT(*) FROM artifacts WHERE deleted_at IS NOT NULL OR expires_at<=?)`), guest.Plan, guest.ClaimedPlan, now, now).
+		Scan(&t.Users, &t.Guests, &t.LivePages, &t.DeletedPages)
+	return t, err
 }
 
 // Erase removes everything a deleted artifact still holds: its comments and

@@ -222,6 +222,9 @@ type Store interface {
 	ArtifactBySlug(ctx context.Context, slug string) (Artifact, error)
 	ListArtifacts(ctx context.Context, tenantID string, filter ArtifactFilter) ([]Artifact, error)
 	CountArtifacts(ctx context.Context, tenantID string) (int, error)
+	// Totals counts accounts and pages across the whole server, for the
+	// telemetry gauges.
+	Totals(ctx context.Context, now time.Time) (Totals, error)
 	UpdateTitle(ctx context.Context, id, title string) error
 	SetCommentsEnabled(ctx context.Context, id string, on bool) error
 	SetVisibility(ctx context.Context, id, visibility string) error
@@ -285,4 +288,18 @@ type Store interface {
 	CountThreadsByVersion(ctx context.Context, artifactID string) (map[int]int, error)
 	Ping(ctx context.Context) error
 	Close() error
+}
+
+// Totals is the server-wide size: accounts, guest workspaces and pages.
+type Totals struct {
+	// Users are signed-up accounts (GitHub or email), not guests.
+	Users int64
+	// Guests are every guest workspace ever made by POST /api/guest, claimed
+	// or not.
+	Guests int64
+	// LivePages are pages being served: not deleted, not expired.
+	LivePages int64
+	// DeletedPages are pages deleted or past their guest expiry. Their rows
+	// stay, so LivePages plus DeletedPages is every page ever created.
+	DeletedPages int64
 }
