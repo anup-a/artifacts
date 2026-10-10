@@ -12,13 +12,16 @@
 #   runtime), which artifacts-server pushes here when
 #   OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318 is set.
 #
+# Everything is sampled once a minute: Grafana Cloud bills a series sampled
+# more often than that as more than one, against the free tier's 10k.
+#
 # Credentials come from .env: GRAFANA_OTLP_ENDPOINT (the stack's OTLP
 # gateway, https://otlp-gateway-prod-<region>.grafana.net/otlp) and
 # GRAFANA_OTLP_AUTH (base64 of "<instance id>:<access policy token>").
 receivers:
   hostmetrics:
     root_path: /hostfs
-    collection_interval: 30s
+    collection_interval: 60s
     scrapers:
       cpu:
         metrics:
@@ -38,14 +41,21 @@ receivers:
       paging: {}
   docker_stats:
     endpoint: unix:///var/run/docker.sock
-    collection_interval: 30s
+    collection_interval: 60s
   prometheus:
     config:
       scrape_configs:
         - job_name: cloudflared
-          scrape_interval: 30s
+          scrape_interval: 60s
           static_configs:
             - targets: ["cloudflared:2000"]
+          # Only cloudflared's own counters. Its QUIC internals and Go
+          # runtime are dropped: the container stats already cover its CPU
+          # and memory, and every series counts against the free tier.
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: "cloudflared_.*|up"
+              action: keep
   otlp:
     protocols:
       # Reachable only on the compose network; no port is published.
