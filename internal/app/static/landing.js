@@ -1,31 +1,17 @@
-// The landing page, and only that page: the bookcase behind the hero, the
-// dashboard window that lands flat as you scroll, the sections settling onto
-// planks, the "brrr" scribble, and the feature demos. Everything works and
-// reads without it; this file only moves things. The CSP allows no inline
-// script or style attribute, so colours and positions here are set through
-// classes or the CSSOM.
+// The landing page, and only that page: the feature cards in the hero, the
+// dashboard window that lands flat as you scroll, the sections settling in,
+// the pager, the "brrr" scribble, and the feature demos. Everything works
+// and reads without it; this file only moves things. The CSP allows no
+// inline script or style attribute, so colours and positions here are set
+// through classes or the CSSOM.
 (() => {
   "use strict";
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const hero = document.querySelector(".lp3 .hero");
   if (!hero) return;
 
-  // scroll: settle sections in, and drop a few spines onto each plank
+  // scroll: settle sections in as they arrive
   document.documentElement.classList.add("js-in");
-  document.querySelectorAll(".plank").forEach(p => {
-    const W = p.classList.contains("wide") ? 880 : 520, H = 70, NS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    const line = document.createElementNS(NS, "path"); line.setAttribute("d", `M0 ${H - 1} H ${W}`); line.setAttribute("pathLength", 1); line.setAttribute("class", "pl"); svg.appendChild(line);
-    const n = p.classList.contains("wide") ? 26 : 7;
-    const ws = Array.from({ length: n }, () => 11 + Math.random() * 9);
-    let x = (W - ws.reduce((a, b) => a + b + 1.5, -1.5)) / 2, k = 0;
-    while (k < n) {
-      const w = ws[k], h = 34 + Math.random() * 30, r = document.createElementNS(NS, "rect");
-      r.setAttribute("x", x); r.setAttribute("y", H - 1 - h); r.setAttribute("width", w); r.setAttribute("height", h); r.setAttribute("rx", 1.5); r.setAttribute("class", "sp2");
-      r.style.setProperty("--d", (0.35 + k * 0.07) + "s"); svg.appendChild(r); x += w + 1.5; k++;
-    }
-    p.appendChild(svg);
-  });
   const settle = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); settle.unobserve(e.target); } }), { threshold: .18 });
   document.querySelectorAll("[data-in]").forEach(el => still ? el.classList.add("in") : settle.observe(el));
   const reveal = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); reveal.unobserve(e.target); } }), { threshold: .3 });
@@ -41,8 +27,8 @@
       P.push([190 + 6.4 * t + b * Math.sin(t), Y - 3 + b * .85 * Math.cos(t)]);
     }
     const [cx, cy] = [412, 84];
-    for (let i = 0; i < 24; i++) {
-      const a = rnd() * Math.PI * 2, r = 20 + rnd() * 40;
+    for (let i = 0; i < 14; i++) {
+      const a = rnd() * Math.PI * 2, r = 14 + rnd() * 26;
       P.push([cx + Math.cos(a) * r * 1.2, cy + Math.sin(a) * r * .95]);
     }
     P.push([478, 80], [500, 74], [516, 70]);
@@ -56,107 +42,45 @@
     document.getElementById("w-scrib").setAttribute("d", d);
   })();
 
-  // the living shelf: a bookcase draws itself, pages drop onto it, agents keep adding and reading
-  const NS = "http://www.w3.org/2000/svg";
-  const bg = document.getElementById("bg"), copy = document.getElementById("hero-copy");
-  const AGENTS = [["claude code", "--a-claude"], ["codex", "--a-codex"], ["cursor", "--a-cursor"], ["hermes", "--a-hermes"], ["cron job", "--a-cron"]];
-  const pick = a => a[Math.floor(Math.random() * a.length)];
-  const rnd = (a, b) => a + Math.random() * (b - a);
-  const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
-  let bays = [], books = [], tick = null, lastW = 0;
+  // the cards: a soft light follows the pointer across the one it is over
+  document.querySelectorAll(".lp3 .card").forEach(c => c.addEventListener("pointermove", e => {
+    const r = c.getBoundingClientRect();
+    c.style.setProperty("--mx", (e.clientX - r.left) + "px"); c.style.setProperty("--my", (e.clientY - r.top) + "px");
+  }));
 
-  function tint() { return `color-mix(in srgb, var(--ink) ${Math.round(rnd(2, 11))}%, var(--panel))`; }
-  function spine(g, x, y, w, h, c, delay, cls) {
-    const r = el("rect", { x, y, width: w, height: h, rx: 1.5, class: "bk" + (cls ? " " + cls : "") });
-    r.style.setProperty("--d", delay + "s"); r.style.fill = tint(); if (c) r.style.setProperty("--c", `var(${c})`);
-    g.appendChild(r);
-    const deco = el("g", { class: "bk-cap" }); deco.style.setProperty("--d", delay + "s");
-    const band = yy => deco.appendChild(el("path", { d: `M${x + 2} ${yy} H ${x + w - 2}`, class: "band" }));
-    band(y + h * .1); band(y + h * .1 + 3); band(y + h * .88);
-    if (w > 15 && h > 60) { const lh = Math.min(h * .34, 38); deco.appendChild(el("rect", { x: x + w / 2 - 1.5, y: y + h * .3, width: 3, height: lh, rx: 1.5, class: "label" })); }
-    g.appendChild(deco);
-    return r;
-  }
-  function book(bay, w, h, delay, opts = {}) {
-    const x = bay.cursor, y = bay.base - h;
-    const wrap = el("g", { class: "bkw" }), g = el("g", {});
-    if (opts.lean) g.setAttribute("transform", `rotate(${opts.lean} ${x + w} ${bay.base})`);
-    const r = spine(g, x, y, w, h, opts.c, delay, opts.cls);
-    wrap.appendChild(g); bg.appendChild(wrap); bay.cursor += w + (opts.lean ? 6 : 1);
-    const b = { r, g: wrap, x, y, w, h, bay }; books.push(b); return b;
-  }
-  function stack(bay, delay) {
-    const n = 2 + Math.floor(Math.random() * 3), x = bay.cursor;
-    let y = bay.base, maxW = 0; const g = el("g", {});
-    for (let k = 0; k < n; k++) {
-      const w = rnd(46, 70), h = rnd(8, 12), off = rnd(-4, 4);
-      y -= h; maxW = Math.max(maxW, w + Math.abs(off));
-      const r = el("rect", { x: x + off + 2, y, width: w, height: h, rx: 1.5, class: "bk" });
-      r.style.fill = tint(); r.style.setProperty("--d", (delay + k * .04) + "s"); g.appendChild(r);
-    }
-    bg.appendChild(g); bay.cursor += maxW + 6;
+  // the publish card: a different agent publishes a different page every few seconds
+  const pubAgent = document.getElementById("pub-agent"), pubDir = document.getElementById("pub-dir"), pubLink = document.getElementById("pub-link");
+  if (pubAgent && !still) {
+    const host = pubLink.textContent.split("/a/")[0];
+    const runs = [["claude code", "./launch-plan", "k4m2Qv9pXz1A"], ["codex", "./q3-report", "Hr8LmZ2xQa0c"], ["cursor", "./pricing-draft", "zMzQTdMFg9ng"], ["hermes", "./moodboard", "Az5naoIGGjHk"]];
+    let k = 0;
+    setInterval(() => {
+      const [a, d, id] = runs[k = (k + 1) % runs.length];
+      [[pubAgent, a], [pubDir, d], [pubLink, host + "/a/" + id]].forEach(([el, v]) => { el.textContent = v; el.classList.remove("swap"); void el.offsetWidth; el.classList.add("swap"); });
+    }, 2800);
   }
 
-  function build() {
-    clearInterval(tick); bg.innerHTML = ""; bays = []; books = [];
-    const W = hero.clientWidth, H = hero.clientHeight; lastW = W;
-    bg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    const m = W < 700 ? 14 : 28, x0 = m, x1 = W - m, y0 = 84, y1 = H - m;
-    const rows = Math.max(3, Math.round((y1 - y0) / 150)), rowH = (y1 - y0) / rows;
-    const nb = Math.max(2, Math.round((x1 - x0) / (W < 700 ? 150 : 230))), bayW = (x1 - x0) / nb;
-    const c = copy.getBoundingClientRect(), hr = hero.getBoundingClientRect();
-    const clear = { x0: c.left - hr.left - 40, x1: c.right - hr.left + 40, y0: c.top - hr.top - 30, y1: c.bottom - hr.top + 30 };
-    const line = (d, cls, delay) => { const p = el("path", { d, class: "ol " + cls, pathLength: 1 }); p.style.setProperty("--d", delay + "s"); bg.appendChild(p); };
-    line(`M${x0} ${y0} H ${x1} V ${y1} H ${x0} Z`, "frame", 0);
-    for (let r = 1; r < rows; r++) { const y = y0 + r * rowH; line(`M${x0} ${y} H ${x1} M ${x0} ${y + 5} H ${x1}`, "board", .3 + r * .12); }
-    for (let b = 1; b < nb; b++) { const x = x0 + b * bayW; line(`M${x} ${y0} V ${y1}`, "div", .55 + b * .06); }
-    let d = 1.3;
-    for (let r = 0; r < rows; r++) for (let b = 0; b < nb; b++) {
-      const bx0 = x0 + b * bayW + 10, bx1 = x0 + (b + 1) * bayW - 10, base = y0 + (r + 1) * rowH - 1, top = y0 + r * rowH + 6;
-      const blocked = !(bx1 < clear.x0 || bx0 > clear.x1 || base < clear.y0 || top > clear.y1);
-      const bay = { x0: bx0, x1: bx1, base, inner: base - top - 8, cursor: bx0, blocked };
-      bays.push(bay);
-      const fill = bx0 + (bx1 - bx0) * rnd(.55, .85);
-      const tall = bay.inner * rnd(.82, .95);
-      while (bay.cursor < fill) {
-        if (Math.random() < .07 && fill - bay.cursor > 80) { stack(bay, d); d += still ? 0 : .05; continue; }
-        const w = rnd(12, 24), h = tall * rnd(.78, 1);
-        const a = Math.random() < .55 ? pick(AGENTS) : null;
-        book(bay, w, h, d, { c: a && a[1] });
-        d += still ? 0 : .012;
-      }
-      if (Math.random() < .3 && bx1 - bay.cursor > 40) { book(bay, rnd(13, 20), tall * rnd(.8, .95), d, { c: pick(AGENTS)[1], lean: rnd(9, 16) }); }
-    }
-    if (!still) tick = setInterval(step, 1700);
+  // the pager: a dash per section, the one you are in lit
+  const pager = document.getElementById("pager");
+  const secs = [hero, ...document.querySelectorAll(".lp3 > section:not(.hero)")];
+  const dots = secs.map(() => pager.querySelector(".dots").appendChild(document.createElement("i")));
+  let at = -1;
+  function where() {
+    const line = innerHeight * .45;
+    let i = 0; secs.forEach((s, k) => { if (s.getBoundingClientRect().top <= line) i = k; });
+    const end = innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
+    if (end) i = secs.length - 1;
+    if (i !== at) { at = i; dots.forEach((d, k) => d.classList.toggle("on", k === i)); }
+    pager.classList.toggle("done", i === secs.length - 1);
   }
+  pager.hidden = false; where();
 
-  // every tick an agent publishes one more page onto a free shelf, away from the copy
-  function step() {
-    const open = bays.filter(b => b.x1 - b.cursor > 30);
-    if (!open.length) { makeRoom(); return; }
-    const edge = open.filter(b => !b.blocked);
-    const bay = pick(edge.length ? edge : open), a = pick(AGENTS);
-    book(bay, rnd(13, 22), bay.inner * rnd(.74, .92), 0, { c: a[1] });
-  }
-
-  // a full shelf never resets: the last book on one shelf slides off to make room
-  function makeRoom() {
-    const bay = pick(bays), mine = books.filter(b => b.bay === bay);
-    const last = mine[mine.length - 1];
-    if (!last) return;
-    books.splice(books.indexOf(last), 1);
-    bay.cursor = last.x;
-    last.g.style.transition = "opacity .5s ease"; last.g.style.opacity = "0";
-    setTimeout(() => last.g.remove(), 600);
-  }
-
-  // scroll: the shelf sinks a little and fades as the page moves past it
+  // scroll: the pager follows, and the dashboard window lands
   let ticking = false;
   addEventListener("scroll", () => {
-    if (ticking || still) return; ticking = true;
+    if (ticking) return; ticking = true;
     requestAnimationFrame(() => {
-      bg.style.setProperty("--p", Math.min(1, scrollY / hero.clientHeight).toFixed(3));
-      tiltShot();
+      where(); tiltShot();
       ticking = false;
     });
   }, { passive: true });
@@ -169,14 +93,10 @@
     const t = Math.max(0, Math.min(1, (r.top - innerHeight * .18) / (innerHeight * .7)));
     shotGlow.style.transform = `perspective(1800px) rotateX(${(t * 18).toFixed(2)}deg) scale(${(1 - t * .08).toFixed(3)}) translateY(${(t * 30).toFixed(1)}px)`;
     shotGlow.style.opacity = (1 - t * .35).toFixed(3);
-    shotGlow.classList.toggle("popped", t < .55);
   }
   tiltShot();
 
-  // rebuild only when the width changes, not on every height wobble (mobile address bars)
-  let rt;
-  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (hero.clientWidth !== lastW) build(); }, 250); });
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(build);
+  addEventListener("resize", where);
 })();
 
 // ---- The feature demos ---------------------------------------------------
@@ -474,6 +394,8 @@
   seg.addEventListener("scroll", fade, { passive: true });
   addEventListener("resize", fade);
   pick(key, false); fade();
+  // a card in the hero opens the demo on its feature; its link does the scrolling
+  document.querySelectorAll(".lp3 .card[data-feat]").forEach(c => c.addEventListener("click", () => pick(c.dataset.feat, true)));
   new IntersectionObserver((e, o) => { if (e[0].isIntersecting) { ask(0); o.disconnect(); } }, { threshold: .4 }).observe(document.getElementById("fc-duo"));
 })();
 
@@ -490,4 +412,18 @@
     const len = text.getComputedTextLength();
     if (len > room) text.style.fontSize = (parseFloat(getComputedStyle(text).fontSize) * room / len).toFixed(2) + "px";
   });
+})();
+
+// The "Works with" row stays on one line. When it overflows, its end fades,
+// and the fade lifts once it has been scrolled to the last chip.
+(() => {
+  const row = document.querySelector(".lp3 .works");
+  if (!row) return;
+  const sync = () => {
+    row.classList.toggle("over", row.scrollWidth > row.clientWidth + 1);
+    row.classList.toggle("end", row.scrollLeft + row.clientWidth >= row.scrollWidth - 1);
+  };
+  row.addEventListener("scroll", sync, { passive: true });
+  new ResizeObserver(sync).observe(row);
+  sync();
 })();
