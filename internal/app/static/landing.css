@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   The landing page at the bare root, and only that page: the shelf behind
+   The landing page at the bare root, and only that page: the cards in
    the hero, the dashboard in its glass window, the lanes that show why,
    and the feature demos. Everything is scoped under .lp3 so the shared
    site bar, footer and prompt (app.css) are only restyled here.
@@ -9,19 +9,19 @@
    <html> from the theme theme.js resolved before the first paint. The site
    bar and footer read --fg, --fg-2 and --hover, so those follow too. */
 :root:has(.landing.lp3) {
-  --bg: light-dark(#fbfbfd, #0a0b10);
-  --panel: light-dark(#ffffff, #12141c);
-  --panel-2: light-dark(#f7f7fb, #141720);
-  --soft: light-dark(#f1f2f6, #181b26);
-  --deep: light-dark(#f4f5f8, #0d0f16);
-  --ink: light-dark(#0d0f17, #eef0f6);
-  --ink-2: light-dark(#4b5161, #a8aec0);
-  --muted: light-dark(#6b7080, #7f8597); /* 4.5:1 or better on --bg, for the footer and small print */
-  --faint: light-dark(#a6abb8, #4d5263);
-  --line: light-dark(rgba(13,15,23,.07), rgba(255,255,255,.07));
-  --line-strong: light-dark(rgba(13,15,23,.18), rgba(255,255,255,.16));
-  --hover: light-dark(rgba(13,15,23,.05), rgba(255,255,255,.06));
-  --accent: light-dark(#5b3df5, #a99cff);
+  --bg: light-dark(#f6f6f7, #0b0b0c);
+  --panel: light-dark(#ffffff, #151516);
+  --panel-2: light-dark(#f9f9fa, #18181a);
+  --soft: light-dark(#efeff1, #1e1e20);
+  --deep: light-dark(#f1f1f3, #0f0f10);
+  --ink: light-dark(#111113, #ededee);
+  --ink-2: light-dark(#55555c, #a1a1a6);
+  --muted: light-dark(#6c6c74, #86868c); /* 4.5:1 or better on --bg, for the footer and small print */
+  --faint: light-dark(#a9a9b0, #48484d);
+  --line: light-dark(rgba(17,17,19,.08), rgba(255,255,255,.07));
+  --line-strong: light-dark(rgba(17,17,19,.16), rgba(255,255,255,.13));
+  --hover: light-dark(rgba(17,17,19,.05), rgba(255,255,255,.06));
+  --accent: light-dark(#6d4aff, #a48bff);
   --green: light-dark(#0f9d63, #34d399);
   --ok: var(--green);
   --red: light-dark(#ef4444, #f87171);
@@ -29,13 +29,21 @@
   --claude: #d97757;
   --slack: light-dark(#c27a12, #e8a54b);
   --a-claude: #e8875f;
-  --a-codex: light-dark(#0d0f17, #e9ecf5);
+  --a-codex: light-dark(#111113, #e9e9ec);
   --a-cursor: #5b8cff;
   --a-hermes: #5eead4;
-  --a-cron: light-dark(#7c5cff, #b9a8ff);
+  --a-cron: light-dark(#6d4aff, #c4b5fd);
+  /* The card surface: a sheet a shade lighter at the top. In light mode it
+     is frosted glass. */
+  --card-top: light-dark(rgba(255,255,255,.66), #1a1a1c);
+  --card-bot: light-dark(rgba(255,255,255,.4), #111112);
+  --card-line: light-dark(rgba(255,255,255,.85), rgba(255,255,255,.08));
+  --card-hi: light-dark(#fff, rgba(255,255,255,.06));
+  --card-shadow: light-dark(0 1px 2px rgba(60,40,140,.06), 0 0 0 transparent), light-dark(0 24px 50px -24px rgba(70,50,170,.22), 0 30px 60px -40px rgba(0,0,0,.6));
+  --glass: blur(24px) saturate(1.6);
   --fg: var(--ink);
   --fg-2: var(--ink-2);
-  --lp-bar-bg: light-dark(rgba(251,251,253,.72), rgba(10,11,16,.72));
+  --lp-bar-bg: light-dark(rgba(246,246,247,.72), rgba(11,11,12,.72));
   --sans: var(--font);
 }
 .bare:has(.lp3) { background: var(--bg); }
@@ -50,43 +58,156 @@
 .lp3 .center { text-align: center; }
 .lp3-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-/* ---- Site bar: full width over the shelf ---------------------------- */
+/* ---- Site bar: full width over the hero ----------------------------- */
 .lp3 .lp-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 10; margin: 0; padding: 0 max(24px, calc((100% - 1132px) / 2)); border-bottom: 0; }
 .lp3 .lp-cta { margin-left: 0; }
+/* The theme control as a quiet segmented switch: a recessed track with the
+   chosen mode raised on it, in ink rather than the accent. */
+.lp3 .lp-theme { gap: 0; padding: 3px; border: 0; border-radius: 10px; background: var(--soft); box-shadow: inset 0 0 0 1px var(--line); }
+.lp3 .lp-theme-btn { width: 30px; height: 26px; border-radius: 7px; color: var(--muted); transition: color .15s, background .15s, box-shadow .15s; }
+.lp3 .lp-theme-btn:hover { background: none; color: var(--ink); }
+.lp3 .lp-theme-btn[aria-pressed="true"] { background: light-dark(#fff, rgba(255,255,255,.1)); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px light-dark(rgba(0,0,0,.04), rgba(255,255,255,.06)); }
 
-/* ---- Hero and its living shelf -------------------------------------- */
-.lp3 .hero { position: relative; min-height: max(600px, calc(100vh - 190px)); display: grid; place-items: center; padding: 110px 24px 40px; overflow: hidden; text-align: center; }
-.lp3 .hero-copy { position: relative; z-index: 2; max-width: 980px; }
-.lp3 .hero h1 { margin: 0; font: 700 clamp(34px, 4.3vw, 56px)/1.05 var(--sans); letter-spacing: -.045em; color: var(--ink); }
+/* ---- Hero: the copy on the left, the feature cards on the right ------- */
+.lp3 .hero { position: relative; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: center; gap: clamp(32px, 5vw, 72px); max-width: 1320px; min-height: max(660px, 100vh); margin: 0 auto; padding: 96px 32px 88px; }
+/* A low warm light behind the cards, as on the onboarding screen. */
+.lp3 .hero::before { content: ""; position: absolute; z-index: 0; inset: 10% -10% 0 35%; pointer-events: none;
+  background: radial-gradient(50% 50% at 50% 60%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%); }
+.lp3 .hero-copy { position: relative; z-index: 1; }
+/* The section badge. It shares a class name with the site's small status
+   badge (app.css), so its border, height and round ends are undone here. */
+.lp3 .badge { display: inline-flex; align-items: center; gap: 7px; height: auto; margin: 0 0 20px; padding: 5px 11px 5px 9px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font: 500 13.5px/1.3 var(--sans); letter-spacing: 0; }
+.lp3 .badge svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.lp3 .hero h1 { margin: 0; font: 600 clamp(36px, 3.9vw, 56px)/1.07 var(--sans); letter-spacing: -.035em; color: var(--ink); }
 .lp3 .hero h1 .two { background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 62%, transparent), color-mix(in srgb, var(--ink) 38%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 /* On a phone each line wraps once, between phrases, never leaving one word. */
 .lp3 .hero h1 .nw { white-space: nowrap; }
-.lp3 .sub { margin: 22px auto 0; max-width: 40em; font-size: 19px; line-height: 1.55; color: var(--ink-2); text-wrap: pretty; }
+.lp3 .sub { margin: 22px 0 0; max-width: 31em; font-size: 18px; line-height: 1.55; color: var(--ink-2); text-wrap: pretty; }
 .lp3 .sub .it { color: var(--ink); font-weight: 500; padding: 0 5px; margin: 0 -1px; border-radius: 6px; background: color-mix(in srgb, var(--ink) 8%, transparent); white-space: nowrap; }
-.lp3 .hero .lp-prompt { margin: 60px auto 0; max-width: 728px; text-align: left; background: var(--panel); }
-.lp3 .under { margin: 14px auto 0; max-width: 728px; font-size: 13.5px; color: var(--muted); }
+.lp3 .hero .lp-prompt { margin: 36px 0 0; max-width: 640px; text-align: left; background: light-dark(rgba(255,255,255,.7), var(--panel)); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); }
+/* The prompt on one line: the address reads as part of the sentence rather
+   than a chip, and Copy is compact. Where it still does not fit, the line
+   fades out at its end; the button copies all of it either way. */
+@media (min-width: 641px) {
+  .lp3 .lp-prompt { gap: 12px; padding: 8px 8px 8px 18px; border-radius: 14px; }
+  .lp3 .lp-prompt-text { font-size: 14px; white-space: nowrap; overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+  .lp3 .lp-prompt-copy { min-width: 0; height: 34px; padding: 0 12px; border-radius: 9px; font-size: 13px; }
+  /* In the hero the button is just its icon; its label says what it does. */
+  .lp3 .hero .lp-prompt-copy { width: 34px; padding: 0; }
+  .lp3 .hero .lp-prompt-copy .menu-item-text { display: none; }
+}
+.lp3 .lp-prompt-url { padding: 0; background: none; font-size: 13px; color: var(--accent); }
+.lp3 .under { margin: 12px 0 0; max-width: 640px; font-size: 13.5px; color: var(--muted); }
 .lp3 .under b { color: var(--ink); font-weight: 600; }
-.lp3 .works { margin: 44px auto 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+/* One row, never two: what does not fit fades out at the edge and scrolls. */
+.lp3 .works { margin: 30px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.lp3 .works::-webkit-scrollbar { display: none; }
+.lp3 .works li { flex: none; white-space: nowrap; }
+.lp3 .works.over { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 72px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 72px), transparent); }
+.lp3 .works.over.end { -webkit-mask-image: none; mask-image: none; }
 .lp3 .works li { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-2); font: 13.5px var(--sans); }
 .lp3 .works li.works-k { padding: 0; border: 0; color: var(--muted); margin-right: 6px; }
 .lp3 .lg { width: 15px; height: 15px; fill: currentColor; margin-right: 7px; flex: none; }
 .lp3 .lg.is-claude { color: var(--claude); }
 
-.lp3 .bg { --shelf: .5; position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; opacity: calc(var(--shelf) - var(--p, 0) * .4);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(70vh - 120px), transparent 70vh), radial-gradient(ellipse 41% 40% at 50% 46%, rgba(0,0,0,.08) 40%, #000 88%);
-          mask-image: linear-gradient(to bottom, #000 0, #000 calc(70vh - 120px), transparent 70vh), radial-gradient(ellipse 41% 40% at 50% 46%, rgba(0,0,0,.08) 40%, #000 88%);
-  -webkit-mask-composite: source-in; mask-composite: intersect;
-  transform: translateY(calc(var(--p, 0) * 70px)); }
-.lp3 .ol { fill: none; stroke: var(--line-strong); stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: lp3-draw 1.6s cubic-bezier(.5,.1,.3,1) forwards; animation-delay: var(--d, 0s); }
-.lp3 .ol.frame { stroke-width: 1.6; }
-:root[data-theme="light"] .lp3 .bg { --shelf: .6; }
-@keyframes lp3-draw { to { stroke-dashoffset: 0; } }
-.lp3 .bk { stroke: var(--line-strong); stroke-width: 1.1; opacity: 0; transform: translateY(-16px); transform-box: fill-box; animation: lp3-drop .55s cubic-bezier(.3,1.35,.5,1) forwards; animation-delay: var(--d, 0s); transition: fill .45s ease, stroke .4s ease, transform .5s cubic-bezier(.3,1.3,.5,1); }
-.lp3 .band { fill: none; stroke: var(--line-strong); stroke-width: 1; }
-.lp3 .label { fill: var(--ink); stroke: none; opacity: .16; }
-.lp3 .bk-cap { opacity: 0; animation: lp3-drop .55s cubic-bezier(.3,1.35,.5,1) forwards; animation-delay: var(--d, 0s); transform-box: fill-box; transform: translateY(-16px); }
-@keyframes lp3-drop { to { opacity: 1; transform: none; } }
-.lp3 .bkw { transition: opacity .35s ease, transform .5s cubic-bezier(.3,1.4,.5,1); }
+/* The cards. Each is a sheet with a still of the feature fading out above
+   an app icon and a title; a light follows the pointer (--mx, --my, set by
+   landing.js) and each card keeps a glow of its own in one corner. */
+.lp3 .bento { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: .9fr 1fr 1fr; grid-template-areas: "a a" "c b" "c d"; gap: 14px; height: min(720px, calc(100vh - 200px)); min-height: 600px; }
+.lp3 .k-publish { grid-area: a; } .lp3 .k-notes { grid-area: b; } .lp3 .k-shelf { grid-area: c; } .lp3 .k-versions { grid-area: d; }
+.lp3 .card { --glow: transparent; position: relative; isolation: isolate; display: flex; align-items: flex-end; min-height: 0; padding: 18px 20px; border-radius: 18px; overflow: hidden; color: var(--ink);
+  background: linear-gradient(180deg, var(--card-top), var(--card-bot)); border: 1px solid var(--card-line);
+  box-shadow: inset 0 1px 0 var(--card-hi), var(--card-shadow); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); transition: border-color .25s ease; }
+.lp3 .card::before { content: ""; position: absolute; inset: 0; z-index: -2; background: radial-gradient(70% 60% at var(--gx, 85%) var(--gy, 100%), var(--glow), transparent 70%); }
+.lp3 .card::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .3s ease;
+  background: radial-gradient(280px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--ink) 6%, transparent), transparent 65%); }
+.lp3 .card:hover { border-color: var(--line-strong); }
+.lp3 .card:hover::after { opacity: 1; }
+.lp3 .card:hover .art { transform: translateY(-4px); }
+.lp3 .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.lp3 .k-shelf { --glow: color-mix(in srgb, var(--accent) 16%, transparent); --gx: 30%; --gy: 105%; }
+.lp3 .k-publish { --glow: color-mix(in srgb, var(--accent) 16%, transparent); --gx: 15%; --gy: 110%; }
+.lp3 .k-publish .win { max-width: 470px; }
+.lp3 .art { position: absolute; inset: 0; z-index: -1; display: flex; flex-direction: column; align-items: center; padding: 18px 18px 64px; pointer-events: none; transition: transform .5s cubic-bezier(.2,.9,.3,1);
+  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent 90%); mask-image: linear-gradient(to bottom, #000 45%, transparent 90%); }
+.lp3 .ttl { position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; margin: 0; font: 500 19px/1.2 var(--sans); letter-spacing: -.01em; }
+
+/* A small window, for the comments and the dashboard. */
+.lp3 .win { width: 100%; max-width: 360px; padding: 10px 14px 14px; border-radius: 12px; border: 1px solid var(--line-strong); background: light-dark(rgba(255,255,255,.7), color-mix(in srgb, var(--panel) 85%, transparent)); box-shadow: inset 0 1px 0 var(--card-hi), light-dark(0 8px 24px -12px rgba(70,50,170,.18), 0 0 0 transparent); text-align: left; }
+.lp3 .win-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.lp3 .win-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+.lp3 .win-bar i:first-child { background: #ff5f57; }
+.lp3 .win-bar span { margin: 0 auto; padding-right: 30px; font-size: 11.5px; color: var(--muted); }
+.lp3 .ln { margin: 3px -4px; padding: 1px 4px; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 4px; }
+.lp3 .ln.hl { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--ink); }
+.lp3 .note { margin-top: 10px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--panel); font-size: 12px; }
+.lp3 .note b { color: var(--ink); font-weight: 600; }
+.lp3 .note em { margin-left: 7px; font: 10.5px var(--mono); font-style: normal; color: var(--green); }
+.lp3 .note span { display: block; margin-top: 2px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The publish card: a terminal, and the link it printed. */
+.lp3 .term { font: 12px/1.5 var(--mono); }
+.lp3 .term .cmd { margin: 0; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp3 .term .cmd b { color: var(--accent); font-weight: 500; }
+.lp3 .term .ok { margin: 2px 0 10px; color: var(--ink-2); }
+.lp3 .pub-url { display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 9px; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 9%, var(--panel)); font: 500 12px var(--mono); color: var(--ink); }
+.lp3 .pub-url svg { flex: none; width: 14px; height: 14px; fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.lp3 .pub-url span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp3 .pub-url em { display: inline-flex; align-items: center; gap: 5px; flex: none; font: 11px var(--mono); font-style: normal; color: var(--accent); }
+.lp3 .pub-url em::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); animation: lp3-blink 1.6s ease-in-out infinite; }
+.lp3 .term .swap { animation: lp3-in .35s ease; }
+
+/* The tall card: agents on the left, the dashboard running off the edge. */
+.lp3 .k-shelf .art { flex-direction: row; align-items: flex-start; gap: 16px; padding: 22px 0 80px 20px; }
+.lp3 .tiles { display: grid; gap: 12px; flex: none; margin-top: 20px; }
+.lp3 .tiles span { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, var(--card-top), var(--soft)); box-shadow: inset 0 1px 0 var(--card-hi), 0 10px 22px -10px rgba(0,0,0,.7); }
+.lp3 .tiles svg { width: 24px; height: 24px; fill: var(--ink-2); }
+.lp3 .tiles svg.is-claude { fill: var(--claude); }
+.lp3 .tiles .txt { font: 600 15px var(--mono); color: var(--ink-2); }
+.lp3 .win.dash { flex: 1; min-width: 0; max-width: none; padding: 10px 0 0; border-right: 0; border-radius: 14px 0 0 14px; }
+.lp3 .dash .win-bar { padding: 0 12px; }
+.lp3 .dash-in { border-top: 1px solid var(--line); }
+.lp3 .cols { display: flex; flex-wrap: wrap; gap: 2px; margin: 0; padding: 10px 8px; list-style: none; border-bottom: 1px solid var(--line); font-size: 12px; }
+.lp3 .cols li { display: flex; align-items: center; gap: 7px; padding: 6px 7px; border-radius: 7px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp3 .cols li.h { flex-basis: 100%; padding-bottom: 4px; font: 600 9.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lp3 .cols li.on { background: var(--soft); color: var(--ink); }
+.lp3 .cols li i { flex: none; width: 7px; height: 7px; border-radius: 50%; }
+.lp3 .covers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+.lp3 .covers figure { margin: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--line-strong); background: var(--panel); }
+.lp3 .covers img { display: block; width: 100%; height: auto; aspect-ratio: 16/10; object-fit: cover; object-position: top left; }
+.lp3 .covers figcaption { padding: 5px 7px; font-size: 10.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.lp3 .vers { display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 330px; margin-top: 2px; text-align: left; }
+.lp3 .vers .v { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px 11px; border-radius: 10px; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 75%, transparent); font-size: 12px; color: var(--ink-2); }
+.lp3 .vers .v b { font: 600 12px var(--mono); color: var(--ink); }
+.lp3 .vers .v small { font: 10.5px var(--mono); color: var(--muted); }
+.lp3 .vers .v em { font: 10.5px var(--mono); font-style: normal; color: var(--green); }
+.lp3 .vers .v.on { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+
+@media (max-width: 1080px) {
+  .lp3 .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; padding-top: 124px; }
+  .lp3 .hero-copy { max-width: 680px; }
+  .lp3 .bento { height: 700px; min-height: 0; }
+}
+@media (max-width: 640px) {
+  .lp3 .hero { padding: 112px 18px 40px; gap: 40px; }
+  .lp3 .sub { font-size: 17px; }
+  .lp3 .bento { grid-template-columns: minmax(0, 1fr); grid-template-areas: "a" "c" "b" "d"; grid-template-rows: 236px 360px repeat(2, 236px); height: auto; }
+}
+
+/* ---- The pager: where you are on the page --------------------------- */
+.lp3 .pager { position: fixed; z-index: 9; left: 0; right: 0; bottom: 18px; display: flex; align-items: center; justify-content: space-between; padding: 0 max(20px, calc((100% - 1320px) / 2 + 20px)); pointer-events: none; }
+.lp3 .pager[hidden] { display: none; }
+.lp3 .pager > * { pointer-events: auto; }
+.lp3 .pager .dots { display: flex; gap: 5px; padding: 10px 12px; border-radius: 999px; background: var(--lp-bar-bg); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.lp3 .pager .dots i { width: 12px; height: 4px; border-radius: 2px; background: var(--faint); transition: width .35s ease, background .35s ease; }
+.lp3 .pager .dots i.on { width: 40px; background: var(--accent); }
+.lp3 .pager { transition: opacity .3s ease, transform .3s ease; }
+.lp3 .pager.done { opacity: 0; transform: translateY(10px); }
+.lp3 .pager.done > * { pointer-events: none; }
+@media (max-width: 760px) { .lp3 .pager { display: none; } }
 
 /* ---- The dashboard in a glass window --------------------------------- */
 .lp3 .shot-glow { position: relative; z-index: 2; max-width: 1120px; margin: 0 auto; padding: 0 20px; transform-origin: 50% 0; will-change: transform; }
@@ -117,46 +238,39 @@
 :root[data-theme="dark"] .lp3 .shot .on-dark { display: block; }
 :root[data-theme="dark"] .lp3 .shot .on-light { display: none; }
 
-/* Real pages float out of the window, clear of its toolbar. */
-.lp3 .pop { position: absolute; z-index: 3; width: 24%; margin: 0; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,.18);
-  background: var(--panel); box-shadow: 0 30px 60px -20px rgba(0,0,0,.9); animation: lp3-float 6s ease-in-out infinite;
-  opacity: 0; transform: translateY(40px) scale(.94); transition: opacity .6s ease, transform .9s cubic-bezier(.2,1.2,.35,1); }
-.lp3 .pop img { display: block; width: 100%; height: auto; aspect-ratio: 16/10; object-fit: cover; object-position: top left; }
-.lp3 .pop figcaption { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: 12.5px; color: var(--ink-2); }
-.lp3 .pop figcaption i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
-.lp3 .pop figcaption em { margin-left: auto; font: 11px var(--mono); font-style: normal; color: var(--muted); }
-.lp3 .c-codex { --c: var(--a-codex); } .lp3 .c-open { --c: var(--a-hermes); } .lp3 .c-claude { --c: var(--a-claude); }
-.lp3 .p1 { top: 24%; left: -5%; rotate: -6deg; }
-.lp3 .p2 { top: 16%; right: -5%; rotate: 5deg; animation-delay: -2s; }
-.lp3 .p3 { bottom: -7%; left: 38%; rotate: -2deg; animation-delay: -4s; }
-@keyframes lp3-float { 50% { translate: 0 -10px; } }
-.lp3 .shot-glow.popped .pop { opacity: 1; transform: none; }
-.lp3 .shot-glow.popped .p2 { transition-delay: .12s; } .lp3 .shot-glow.popped .p3 { transition-delay: .24s; }
-@media (max-width: 860px) { .lp3 .pop { width: 38%; } .lp3 .p1 { left: -2%; } .lp3 .p2 { right: -2%; } .lp3 .p3 { display: none; } }
 @media (max-width: 760px) { .lp3 .tb, .lp3 .tl { display: none; } .lp3 .shot-bar { grid-template-columns: 1fr; } }
 
-/* ---- Planks: sections settle in like books landing on a shelf -------- */
+/* ---- Sections: each a slide like the hero ---------------------------
+   The badge, heading and words on the left, held in view while the cards
+   on the right scroll past; one column below 1080px. */
+.lp3 .slide { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); align-items: start; gap: clamp(32px, 5vw, 72px); max-width: 1320px; margin: 0 auto; padding: 140px 32px 0; }
+.lp3 .slide-copy { position: sticky; top: 120px; }
+.lp3 .slide h2, .lp3 .close h2 { margin: 0; font: 600 clamp(30px, 3vw, 42px)/1.1 var(--sans); letter-spacing: -.03em; text-wrap: balance; }
+.lp3 .slide .lead { margin: 18px 0 0; max-width: 30em; font-size: 17px; text-wrap: pretty; }
+.lp3 .slide .lead a { color: var(--accent); }
+/* The card surface every section's content sits on. */
+.lp3 .surf, .lp3 .try-grid .sc-card, .lp3 .faq details { position: relative; isolation: isolate; border-radius: 18px; border: 1px solid var(--card-line); background: linear-gradient(180deg, var(--card-top), var(--card-bot)); box-shadow: inset 0 1px 0 var(--card-hi), var(--card-shadow); -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); }
+@media (max-width: 1080px) {
+  .lp3 .slide { grid-template-columns: minmax(0, 1fr); gap: 32px; padding-top: 110px; }
+  .lp3 .slide-copy { position: static; max-width: 680px; }
+}
+@media (max-width: 640px) { .lp3 .slide { padding: 90px 18px 0; } }
 .js-in .lp3 [data-in] { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .9s cubic-bezier(.2,1.25,.35,1); }
 .js-in .lp3 [data-in].in { opacity: 1; transform: none; }
-.lp3 .plank { width: min(520px, 80vw); height: 70px; margin: 72px auto -24px; }
-.lp3 .plank.wide { width: min(880px, 90vw); }
-.lp3 .plank svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.lp3 .plank .pl { stroke: var(--line-strong); stroke-width: 1.2; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1s cubic-bezier(.5,.1,.3,1); }
-.lp3 .plank.in .pl { stroke-dashoffset: 0; }
-.lp3 .plank .sp2 { fill: color-mix(in srgb, var(--ink) 6%, var(--panel)); stroke: var(--line-strong); stroke-width: 1; opacity: 0; transform: translateY(-22px); transform-box: fill-box; transition: opacity .3s ease, transform .55s cubic-bezier(.3,1.45,.5,1); transition-delay: var(--d); }
-.lp3 .plank.in .sp2 { opacity: 1; transform: none; }
 
 /* ---- Why: every agent keeps its work somewhere different ------------- */
-.lp3 #why { max-width: 1160px; margin: 0 auto; padding: 64px 24px 0; }
-.lp3 #why .w-head { max-width: 760px; margin: 0 auto; text-align: center; }
-.lp3 #why h2 { margin: 0; }
-.lp3 #why .w-lanes { max-width: 860px; margin: 28px auto 0; opacity: .9; }
-.lp3 #why .w-lane { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 28px; align-items: center; padding: 6px 0; }
-.lp3 #why .w-cap { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
-.lp3 #why .w-cap b { display: block; color: var(--ink-2); font-weight: 500; }
-/* The drawings' labels shrink past reading on a phone, so each lane says
-   its point in a line of text there. The drawing stays for its motion. */
-.lp3 #why .w-note { display: none; }
+.lp3 #why .w-lanes { display: grid; gap: 14px; }
+.lp3 #why .w-lane { padding: 28px 28px 20px; }
+.lp3 #why .w-stage { padding: 6px 0 22px; }
+.lp3 #why .w-brrr .w-stage { padding-top: 0; }
+.lp3 #why .w-cap { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--muted); }
+.lp3 #why .w-cap b { display: block; font: 500 17px/1.3 var(--sans); color: var(--ink); }
+/* Each lane's mark, as a small app icon beside its title. */
+.lp3 #why .ic { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(180deg, var(--i1), var(--i2));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 0 0 1px rgba(255,255,255,.1), 0 3px 8px -2px rgba(0,0,0,.45); }
+.lp3 #why .ic svg { width: 17px; height: 17px; fill: #fff; stroke: none; }
+.lp3 #why .i-gray svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.lp3 #why .i-claude { --i1: #f0a07f; --i2: #d97757; } .lp3 #why .i-ink { --i1: #3c3c41; --i2: #1b1b1e; } .lp3 #why .i-gray { --i1: #9a9aa2; --i2: #55555c; }
 .lp3 #why .w-stage svg { display: block; width: 100%; height: auto; overflow: visible; }
 .lp3 #why .w-stage text { font-family: var(--sans); fill: var(--ink); }
 .lp3 #why .w-chip-r { fill: var(--panel); stroke: var(--line-strong); }
@@ -190,13 +304,17 @@
 .lp3 #why .w-halo.w-h2 { animation-delay: .7s; }
 @keyframes lp3-halo { from { transform: scale(1); opacity: .7; } to { transform: scale(2.6); opacity: 0; } }
 @keyframes lp3-travel { 0% { opacity: 0; transform: translateX(0); } 12% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; transform: translateX(118px); } }
-.lp3 #why .w-link { fill: none; stroke: var(--red); stroke-width: 1.5; stroke-dasharray: 3 4; opacity: .75; }
-.lp3 #why .w-stopc { fill: var(--bg); stroke: var(--red); stroke-width: 1.8; }
-.lp3 #why .w-stopl { stroke: var(--red); stroke-width: 1.8; stroke-linecap: round; }
-.lp3 #why .w-pill-r { fill: color-mix(in srgb, var(--red) 12%, transparent); stroke: color-mix(in srgb, var(--red) 30%, transparent); }
-.lp3 #why .w-ic-r { fill: none; stroke: var(--red); stroke-width: 1.4; stroke-linecap: round; }
-.lp3 #why .w-t-pill { font-size: 11px; font-weight: 500; fill: var(--red); }
-.lp3 #why .w-post { fill: var(--soft); stroke: var(--line); }
+/* The reader's comment box, kept quiet: a soft card, a neutral wire to it,
+   and red only on the small stop sign and the reason it gives. */
+.lp3 #why .w-link { fill: none; stroke: var(--line-strong); stroke-width: 1.4; stroke-dasharray: 2 4; stroke-linecap: round; }
+.lp3 #why .w-stopc { fill: var(--panel); stroke: color-mix(in srgb, var(--red) 75%, transparent); stroke-width: 1.3; }
+.lp3 #why .w-stopl { stroke: color-mix(in srgb, var(--red) 75%, transparent); stroke-width: 1.3; stroke-linecap: round; }
+.lp3 #why .w-bump .w-card { stroke: var(--line); filter: drop-shadow(0 6px 14px light-dark(rgba(60,40,140,.08), rgba(0,0,0,.4))); }
+.lp3 #why .w-bump .w-avatar { stroke: none; }
+.lp3 #why .w-pill-r { fill: none; stroke: none; }
+.lp3 #why .w-ic-r { fill: none; stroke: color-mix(in srgb, var(--red) 80%, transparent); stroke-width: 1.2; stroke-linecap: round; }
+.lp3 #why .w-t-pill { font-size: 11px; font-weight: 400; fill: color-mix(in srgb, var(--red) 85%, var(--ink)); }
+.lp3 #why .w-post { fill: var(--soft); stroke: none; }
 /* The post button is an arrow, not a word: a word in its 22px would not
    survive translation. */
 .lp3 #why .w-send { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
@@ -209,18 +327,17 @@
 .lp3 #why .w-bump { transform-box: fill-box; transform-origin: center; }
 .lp3 #why .in .w-bump { animation: lp3-bump 3.2s ease-in-out 1.6s infinite; }
 @keyframes lp3-bump { 0%, 60%, 100% { transform: none; } 66% { transform: translateX(-6px); } 72% { transform: translateX(2px); } 78% { transform: none; } }
-.lp3 #why .w-lane.w-brrr { padding-top: 26px; padding-bottom: 30px; background: radial-gradient(60% 90% at 45% 50%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 70%); border-radius: 0 0 22px 22px; }
-.lp3 #why .w-scrib { fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; filter: url(#w-rough); stroke-dasharray: 1; stroke-dashoffset: 1; }
+.lp3 #why .w-scrib { fill: none; stroke: color-mix(in srgb, var(--ink) 55%, transparent); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; filter: url(#w-rough); stroke-dasharray: 1; stroke-dashoffset: 1; }
 .lp3 #why .in .w-scrib { transition: stroke-dashoffset 2.2s cubic-bezier(.45,.05,.35,1) .2s; stroke-dashoffset: 0; }
 .lp3 #why .w-shake { transform-box: fill-box; transform-origin: center; }
 .lp3 #why .in .w-shake { animation: lp3-shake .09s linear 2.4s infinite alternate; }
 @keyframes lp3-shake { from { transform: translate(-1.2px, .6px); } to { transform: translate(1.2px, -.6px); } }
-.lp3 #why .w-hand { fill: var(--ink); }
+.lp3 #why .w-hand { fill: var(--muted); }
 .lp3 #why .w-brrr-word { transform-box: fill-box; transform-origin: center; opacity: 0; }
 .lp3 #why .in .w-brrr-word { opacity: 1; transition: opacity .3s ease 1.6s; animation: lp3-brrr .07s linear 1.6s infinite alternate; }
 @keyframes lp3-brrr { from { transform: translate(-2px, 1px) rotate(-2.5deg); } to { transform: translate(2px, -1px) rotate(2.5deg); } }
 .lp3 #why .w-zip { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; opacity: 0; }
-.lp3 #why .in .w-zip { opacity: .8; transition: opacity .3s 1.8s; animation: lp3-zip .18s linear 1.8s infinite alternate; }
+.lp3 #why .in .w-zip { opacity: .5; transition: opacity .3s 1.8s; animation: lp3-zip .18s linear 1.8s infinite alternate; }
 @keyframes lp3-zip { to { opacity: .25; } }
 .lp3 #why .w-file { transform-box: fill-box; transform-origin: center; opacity: 0; transform: translate(-260px, 10px) rotate(0deg) scale(.5); }
 .lp3 #why .in .w-file { opacity: 1; transform: rotate(var(--r)); transition: transform .9s cubic-bezier(.2,1.3,.4,1) var(--d), opacity .2s ease var(--d); }
@@ -239,23 +356,16 @@
 .lp3 #why .w-slack rect { fill: var(--panel); stroke: color-mix(in srgb, var(--slack) 45%, transparent); }
 .lp3 #why .w-slack text.w-t-s { font-family: var(--sans); font-size: 11px; fill: var(--ink-2); }
 .lp3 #why .w-slack .w-hash { font-family: var(--sans); font-size: 12px; font-weight: 600; fill: var(--slack); }
-.lp3 #why .w-bridge { margin: 44px auto 0; text-align: center; font-size: 17px; color: var(--ink-2); }
-.lp3 #why .w-bridge a { color: var(--accent); margin-left: 6px; text-decoration: underline; text-underline-offset: 3px; }
-@media (max-width: 900px) { .lp3 #why .w-lane { grid-template-columns: 1fr; gap: 20px; padding: 28px 20px; } }
-@media (max-width: 600px) {
-  .lp3 #why .w-lane { gap: 12px; padding: 22px 4px; }
-  .lp3 #why .w-cap b { font-size: 15px; color: var(--ink); font-weight: 600; }
-  .lp3 #why .w-note { display: block; margin-top: 4px; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
-}
+@media (max-width: 640px) { .lp3 #why .w-lane { padding: 20px 18px 16px; } }
 
 /* ---- How: watch an agent use it (chat on the left, the page on the right) */
-.lp3 section.feat { max-width: 1140px; margin: 0 auto; padding: 64px 24px 0; text-align: center; }
+.lp3 section.feat { text-align: left; }
 /* One row, always. Where the six tabs do not fit, the row scrolls inside the
    pill and fades out at whichever edge has more tabs past it, so nothing
    ends in a hard cut. The pill (border, background) is the outer element and
    the fade a mask on the inner scroller, so the border never fades.
    landing.js sets --fl / --fr from the scroll position. */
-.lp3 #how .seg-pill { margin: 28px auto 0; width: max-content; max-width: 100%; padding: 5px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel); }
+.lp3 #how .seg-pill { margin: 28px 0 0; width: max-content; max-width: 100%; padding: 5px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--panel); }
 .lp3 #how .seg { --fl: 0px; --fr: 0px; display: flex; gap: 4px; padding: 0; border: 0; background: none; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; border-radius: 999px;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent);
   mask-image: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent); }
@@ -264,8 +374,17 @@
 @media (max-width: 640px) { .lp3 #how .seg button { padding: 7px 12px; } }
 .lp3 #how .seg button:hover { color: var(--ink); }
 .lp3 #how .seg button.on { background: var(--ink); color: var(--bg); }
-.lp3 #how .duo { display: grid; grid-template-columns: 400px minmax(0, 1fr); height: 620px; margin-top: 22px; border-radius: 24px; overflow: hidden; border: 1px solid var(--line-strong); background: var(--deep); box-shadow: 0 60px 120px -60px rgba(0,0,0,.9); text-align: left; }
-.lp3 #how .chat { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--bg); }
+/* Beside the demo the tabs stand as a list, the open one lit. */
+@media (min-width: 1081px) {
+  .lp3 #how .seg-pill { margin-top: 32px; width: auto; padding: 0; border: 0; background: none; }
+  .lp3 #how .seg { flex-direction: column; gap: 2px; overflow: visible; border-radius: 0; -webkit-mask-image: none; mask-image: none; }
+  .lp3 #how .seg button { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; font-size: 15px; text-align: left; color: var(--ink-2); }
+  .lp3 #how .seg button::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--faint); transition: background .15s; }
+  .lp3 #how .seg button.on { background: var(--soft); color: var(--ink); }
+  .lp3 #how .seg button.on::before { background: var(--accent); }
+}
+.lp3 #how .duo { display: grid; grid-template-columns: 310px minmax(0, 1fr); height: 640px; overflow: hidden; text-align: left; }
+.lp3 #how .chat { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 55%, transparent); }
 .lp3 #how .chat .hd { display: flex; align-items: center; gap: 9px; padding: 14px 18px; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
 .lp3 #how .chat .hd i { width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--accent)); }
 .lp3 #how .chat .hd small { margin-left: auto; font: 11.5px var(--mono); color: var(--muted); }
@@ -296,7 +415,6 @@
 .lp3 #how .live .hd p { margin: 0; color: var(--muted); font-size: 13.5px; }
 .lp3 #how .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; padding: 22px 28px 28px; overflow-y: auto; }
 .lp3 #how .stage .fx { width: 100%; }
-.lp3 #how .fc-lead { text-align: center; }
 @keyframes lp3-in { from { opacity: 0; transform: translateY(8px); } }
 @media (max-width: 900px) {
   .lp3 #how .duo { grid-template-columns: 1fr; height: auto; }
@@ -381,7 +499,7 @@
 .lp3 .fx .fx-tr.hit { background: color-mix(in srgb, var(--accent) 12%, transparent) !important; border-color: transparent !important; }
 
 /* The shelf mock: collections on the left, page covers on the right. */
-.lp3 .dd { display: grid; grid-template-columns: 190px minmax(0, 1fr); width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 14px; overflow: hidden; background: var(--bg); text-align: left; }
+.lp3 .dd { display: grid; grid-template-columns: 160px minmax(0, 1fr); width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 14px; overflow: hidden; background: var(--bg); text-align: left; }
 .lp3 .dd-side { display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; border-right: 1px solid var(--line); background: var(--panel); }
 .lp3 .dd-h { padding: 2px 8px 10px; font: 600 10.5px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .lp3 .dd-col { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 9px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font-size: 13px; text-align: left; transition: background .15s, color .15s; }
@@ -395,7 +513,7 @@
 .lp3 .dd-main { min-width: 0; padding: 14px 16px 16px; }
 .lp3 .dd-top { display: flex; align-items: center; gap: 14px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
 .lp3 .dd-top b { font-size: 15px; }
-.lp3 .dd-top .fx-search { margin: 0 0 0 auto; width: 220px; padding: 6px 10px; font-size: 12.5px; }
+.lp3 .dd-top .fx-search { margin: 0 0 0 auto; width: 150px; padding: 6px 10px; font-size: 12.5px; }
 .lp3 .dd-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 2px; }
 .lp3 .dd-card { border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: var(--panel); transition: border-color .25s, transform .25s, box-shadow .25s; }
 .lp3 .dd-card:hover { transform: translateY(-2px); }
@@ -416,13 +534,21 @@
 }
 
 /* ---- Try: real pages, then the prompt again -------------------------- */
-.lp3 section.try { max-width: 1140px; margin: 0 auto; padding: 64px 24px 0; text-align: center; }
-.lp3 .try .lead { margin: 12px auto 0; }
-.lp3 .try-grid { margin-top: 32px; text-align: left; }
-.lp3 .try-grid .sc-body { padding: 14px 16px; gap: 6px; }
-.lp3 .try-grid .sc-title { font-size: 15px; }
-.lp3 .try-more { margin: 18px 0 0; font-size: 14px; }
-.lp3 .try-k { margin: 44px auto 14px; font-size: 15px; color: var(--ink-2); }
+.lp3 .try-side { display: grid; gap: 14px; }
+.lp3 .try-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.lp3 .try-grid .sc-card { display: flex; flex-direction: column; overflow: hidden; transition: border-color .25s ease; }
+.lp3 .try-grid .sc-card:hover { border-color: var(--line-strong); }
+.lp3 .try-grid .sc-cover { display: block; aspect-ratio: 1200 / 630; overflow: hidden; border-bottom: 1px solid var(--line); }
+.lp3 .try-grid .sc-cover img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.lp3 .try-grid .sc-body { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
+.lp3 .try-grid .sc-title { margin: 0; font: 500 15px/1.35 var(--sans); }
+.lp3 .try-grid .sc-title a { color: var(--ink); }
+.lp3 .try-grid .sc-meta { margin: 0; font-size: 12.5px; color: var(--muted); }
+.lp3 .try-more { margin: 20px 0 0; font-size: 14px; }
+.lp3 .try-box { padding: 26px; overflow: hidden;
+  background: radial-gradient(60% 90% at 100% 0, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%), linear-gradient(180deg, var(--card-top), var(--card-bot)); }
+.lp3 .try-k { margin: 0 0 14px; font-size: 15px; color: var(--ink-2); }
+.lp3 .try-box .lp-prompt { margin: 0; }
 /* A phone stacks them as rows, the cover as a thumbnail, so three pages
    take about one screen rather than three. */
 @media (max-width: 860px) {
@@ -432,18 +558,23 @@
 }
 
 /* ---- Questions and the close ----------------------------------------- */
-.lp3 .faq { margin-top: 40px; text-align: left; }
-.lp3 .faq details { border-top: 1px solid var(--line); }
-.lp3 .faq details:last-child { border-bottom: 1px solid var(--line); }
+.lp3 .faq { display: grid; gap: 10px; text-align: left; }
+.lp3 .faq details { padding: 0 22px; transition: border-color .2s ease; }
+.lp3 .faq details:hover, .lp3 .faq details[open] { border-color: var(--line-strong); }
 .lp3 .faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; }
 .lp3 .faq summary::-webkit-details-marker { display: none; }
 .lp3 .faq summary h3 { margin: 0; font: 600 16.5px/1.4 var(--sans); letter-spacing: -.01em; color: var(--ink); }
 .lp3 .faq summary::after { content: "+"; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .2s; }
 .lp3 .faq details[open] summary::after { transform: rotate(45deg); }
-.lp3 .faq p { margin: -4px 0 18px; color: var(--ink-2); font-size: 15.5px; }
+.lp3 .faq p { margin: -6px 0 20px; color: var(--ink-2); font-size: 15.5px; }
 .lp3 .faq code { font: 13.5px var(--mono); background: var(--panel); padding: 1px 6px; border-radius: 4px; }
-.lp3 section.close { padding-top: 64px; padding-bottom: 40px; text-align: center; }
-.lp3 .cta { margin-top: 34px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.lp3 section.close { max-width: 1320px; margin: 0 auto; padding: 140px 32px 0; }
+.lp3 .close-in { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 40px; padding: 56px; overflow: hidden;
+  background: radial-gradient(50% 120% at 100% 100%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%), linear-gradient(180deg, var(--card-top), var(--card-bot)); }
+.lp3 .close h2 { max-width: 14em; font-size: clamp(30px, 3.4vw, 46px); }
+.lp3 .cta { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+@media (max-width: 860px) { .lp3 .close-in { grid-template-columns: minmax(0, 1fr); padding: 36px 26px; } }
+@media (max-width: 640px) { .lp3 section.close { padding: 90px 18px 0; } }
 .lp3 .fine { font-size: 13.5px; color: var(--muted); }
 .lp3 .lp-close-copy { height: 48px; padding: 0 22px; gap: 10px; border-radius: 999px; font-size: 15px; font-weight: 500; }
 .lp3 .lp-close-copy .ic { width: 16px; height: 16px; }
@@ -456,7 +587,6 @@
 @media (prefers-reduced-motion: reduce) {
   .lp3 *, .lp3 *::before, .lp3 *::after { transition: none !important; animation: none !important; }
   .js-in .lp3 [data-in] { opacity: 1; transform: none; }
-  .lp3 .plank .pl, .lp3 #why .w-scrib { stroke-dashoffset: 0; }
-  .lp3 .plank .sp2, .lp3 .pop, .lp3 #why .w-pop, .lp3 #why .w-file, .lp3 #why .w-brrr-word { opacity: 1; transform: none; }
-  .lp3 .bk, .lp3 .bk-cap, .lp3 .ol { opacity: 1; transform: none; stroke-dashoffset: 0; }
+  .lp3 #why .w-scrib { stroke-dashoffset: 0; }
+  .lp3 #why .w-pop, .lp3 #why .w-file, .lp3 #why .w-brrr-word { opacity: 1; transform: none; }
 }
