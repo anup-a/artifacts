@@ -49,23 +49,28 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 		"Made by <a",                   // and who is behind it
 		"/app/static/dashboard-light.", // the dashboard screenshot, a hashed asset
 		"/app/static/dashboard-dark.",  // and swapped with the reader's theme
-		"/app/static/cover-lisbon.",    // real pages float out of it
 		"/app/static/landing.",         // the page's own stylesheet and script
 		"/app/static/theme.",           // the script that resolves the theme before paint
 		`data-set-theme="dark"`,        // and the control that sets it
 		"Free. Readers need no account.",
 		`aria-label="Works with"`, "any agent with a shell",
-		"Every agent keeps its work somewhere different.", // the problem, as lanes
-		"Needs a Claude seat", "Nowhere to comment", "plan_v3_final_REAL.md",
-		`data-host="share.test"`, // the demos show this deployment's links
-		"Watch an agent use it.",
+		// The loop under the hero: publish, comment, revise, with this
+		// deployment's link and the real CLI's commands.
+		"Your agent", "Your team", "The agent publishes", "People comment", "The agent revises",
+		"http://share.test/a/k4m2Qv9pXz1A/", "byagent comments k4m2Qv9pXz1A --wait",
+		"Every agent, one place.",          // one place across agents
+		"What your agents can make.",       // the gallery
+		"Who can open it?",                 // the four answers
+		"roll back to any of the last",     // with this server's version limit
+		"Views and visitors",               // what a page does besides being read
+		"byagent hooks install claude",     // the CLI tabs
+		`role="tab"`, `aria-controls="panel-loop"`,
 		"<details>", // the FAQ
 		"Does byagent train AI on my pages?",
 		"OVHcloud server in Beauharnois, Quebec, Canada",
 		"not encrypted at rest",
 		"Give every agent one place to publish.",
 		"Try it on your next task.",                                 // the prompt again after the demo, with no showcase set
-		"A reader outside your Claude org needs a seat to comment.", // each lane in words, for phones
 		`href="/showcase"`, `href="/guides"`,
 		`href="/pricing"`, `href="/privacy"`, `href="/terms"`, `href="/security"`,
 		`href="/subprocessors"`, `href="/acceptable-use"`, `href="/acceptable-use#report"`,
@@ -78,7 +83,7 @@ func TestLandingServesThePublishingPage(t *testing.T) {
 	// neither: they would be dropped silently in production. Nor may it load
 	// a font from a third-party host. The old drawings are gone, and the
 	// footer links to real pages, not to the health check.
-	for _, gone := range []string{"style=", "<style", "fonts.googleapis.com", "<video", "thread-light", "lp-term", `href="/healthz"`, "for this project", "One shelf", "the same shelf", "What is the shelf?"} {
+	for _, gone := range []string{"style=", "<style", "fonts.googleapis.com", "<video", "thread-light", "lp-term", `href="/healthz"`, "for this project", "One shelf", "the same shelf", "What is the shelf?", "Every agent keeps its work somewhere different.", "Watch an agent use it."} {
 		if strings.Contains(res.Body, gone) {
 			t.Errorf("landing page still carries %q", gone)
 		}
@@ -144,13 +149,38 @@ func TestLandingShowsShowcasePages(t *testing.T) {
 func TestLandingAssetsAreServed(t *testing.T) {
 	e := fixture(t)
 	body := e.getHost("share.test", "/").Body
-	urls := regexp.MustCompile(`/app/static/(?:landing|cover-[a-z]+|dashboard-[a-z]+)\.[0-9a-f]{12}\.(?:css|js|webp)`).FindAllString(strings.ReplaceAll(body, "&#34;", `"`), -1)
-	if len(urls) < 8 {
-		t.Fatalf("found %d landing assets, want the script, the styles, two screenshots and the covers", len(urls))
+	urls := regexp.MustCompile(`/app/static/(?:landing|dashboard-[a-z]+)\.[0-9a-f]{12}\.(?:css|js|webp)`).FindAllString(body, -1)
+	if len(urls) < 4 {
+		t.Fatalf("found %d landing assets, want the script, the styles and two screenshots", len(urls))
 	}
 	for _, u := range urls {
 		if res := e.getHost("share.test", u); res.StatusCode != 200 {
 			t.Errorf("%s: %d", u, res.StatusCode)
+		}
+	}
+}
+
+// The landing page claims only what this server does: proxy routes and custom
+// domains only where they are turned on, and an origin per page only with a
+// content domain.
+func TestLandingClaimsFollowTheConfig(t *testing.T) {
+	body := fixture(t).getHost("share.test", "/").Body
+	for _, off := range []string{"byagent vars set", "byagent domain add", "&lt;slug&gt;."} {
+		if strings.Contains(body, off) {
+			t.Errorf("landing claims %q on a server without it", off)
+		}
+	}
+	if !strings.Contains(body, "served apart from the dashboard") {
+		t.Error("no answer to whether a page is safe to open")
+	}
+	cfg := baseConfig(t.TempDir())
+	cfg.VariablesKey = "k"
+	cfg.Domains.Provider, cfg.Domains.Target = "manual", "domains.share.test"
+	cfg.ContentDomain = "share.test"
+	body = newEnv(t, cfg, nil).getHost("share.test", "/").Body
+	for _, on := range []string{"byagent vars set", "byagent domain add", "domains.share.test", "&lt;slug&gt;.share.test"} {
+		if !strings.Contains(body, on) {
+			t.Errorf("landing is missing %q on a server with it", on)
 		}
 	}
 }

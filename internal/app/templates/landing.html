@@ -32,7 +32,7 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"{{$d.CanonicalURL}}#org","name":"byagent","url":"{{$d.CanonicalURL}}","logo":"{{$d.ShareOrigin}}/favicon-192.png","email":"hello@byagent.dev","sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts","https://www.skills.sh/anup-a/agent-artifacts/byagent"],"founder":{"@id":"{{$d.CanonicalURL}}#founder"},"parentOrganization":{"@type":"Organization","name":"Creatica","url":"https://creatica.app"}},{"@type":"Person","@id":"{{$d.CanonicalURL}}#founder","name":"Anup Aglawe","url":"https://github.com/anup-a","sameAs":["https://github.com/anup-a","https://x.com/anup_x_dev"]},{"@type":"WebSite","name":"byagent","url":"{{$d.CanonicalURL}}","publisher":{"@id":"{{$d.CanonicalURL}}#org"}},{"@type":"SoftwareApplication","name":"byagent","applicationCategory":"DeveloperApplication","operatingSystem":"macOS, Linux, Windows","url":"{{$d.CanonicalURL}}","description":"A CLI that publishes what AI agents write (Markdown or HTML) as shareable links. Readers comment on any line without an account, and the next agent run reads the comments back.","disambiguatingDescription":"A developer tool for publishing and reviewing the output of AI coding agents. It is not an AI search optimization or agent discovery service.","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"installUrl":"https://www.npmjs.com/package/byagent","softwareHelp":{"@type":"CreativeWork","url":"{{$d.AgentsURL}}"},"sameAs":["https://www.npmjs.com/package/byagent","https://github.com/anup-a/agent-artifacts"],"publisher":{"@id":"{{$d.CanonicalURL}}#org"}}]}</script>
 <script type="application/ld+json">{{$d.FAQJSON}}</script>
 {{/* The page's own styles and script, so the rest of the site does not
-     carry the feature cards, the lanes or the feature demos. */}}
+     carry the demo, the gallery or the tabs. */}}
 <link rel="stylesheet" href="{{$d.LandingCSS}}">
 <script src="{{$d.LandingJS}}" defer></script>
 {{end}}
@@ -41,40 +41,41 @@
 {{$d := .Data}}
 <div class="landing lp3">
 
-{{/* Shared drawing parts: agent marks and the filters the lanes use. Kept
-     in the page rather than the site sprite because only this page draws
-     them. The marks are names, not logos of partners: the agents are tools
-     byagent works with, and nothing here claims more than that. */}}
+{{/* Drawing parts only this page uses: the agent marks in the works-with
+     row, a shield for the questions, and the hand-drawn wobble of the
+     explainer. The marks are names, not logos of partners: the agents are
+     tools byagent works with, and nothing here claims more than that. */}}
 <svg class="lp3-defs" width="0" height="0" aria-hidden="true" focusable="false">
   <defs>
-    <filter id="w-rough" filterUnits="userSpaceOnUse" x="-50" y="-50" width="1000" height="400"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="2.8"/></filter>
+    <filter id="w-rough" filterUnits="userSpaceOnUse" x="-50" y="-50" width="800" height="400"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="2.4"/></filter>
     <symbol id="lg-claude" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></symbol>
     <symbol id="lg-openai" viewBox="0 0 24 24"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></symbol>
     <symbol id="lg-cursor" viewBox="0 0 24 24"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></symbol>
-    <clipPath id="w-shaft" clipPathUnits="userSpaceOnUse"><rect x="156" y="40" width="130" height="40"/></clipPath>
-    <linearGradient id="w-fadeg" x1="0" x2="1"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
-    <mask id="w-fade" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="url(#w-fadeg)"/></mask>
-    <symbol id="w-person" viewBox="0 0 44 44"><circle cx="22" cy="17" r="7"/><path d="M9 37c1.5-7 7-10.5 13-10.5S33.5 30 35 37z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.8 13 3.6v4.1c0 3-2.1 5.3-5 6.5-2.9-1.2-5-3.5-5-6.5V3.6z"/><path d="m5.8 8 1.6 1.6 2.9-3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5.3a2.5 2.5 0 0 1 5 0V7"/></symbol>
   </defs>
 </svg>
 
 {{template "site-bar" $d}}
 
-{{/* The hero: the copy on the left, and on the right a grid of cards, one
-     per feature, each a small still of the real thing. A card is a link to
-     the demo below, opened on that feature (landing.js). The headline says
-     the job (a link you can share for what an agent made) rather than a
-     metaphor the sub then has to explain. The one action on the page is the
-     line you paste to your agent; the skill behind it teaches the agent the
-     CLI. */}}
+{{/* The hero: what byagent is, the one line to paste into an agent, and
+     under it the loop it starts, played in two windows. The headline says
+     the job (a link you can share for what an agent made); comments are the
+     loop that follows, never the pitch. */}}
 <section class="hero" data-ga-where="hero">
-  <div class="hero-copy" id="hero-copy">
+  <div class="hero-head">
+    <p class="eyebrow">{{t "A free CLI for AI agents"}}</p>
     <h1>{{th `<span class="nw">A shareable link</span> <span class="nw">for everything</span><br><span class="two">your agents make.</span>`}}</h1>
     <p class="sub">{{th `<span class="it">Plans</span>, <span class="it">reports</span>, <span class="it">prototypes</span> and <span class="it">posts</span> each get a permanent link, filed by project in one place, whichever agent made them.`}}</p>
-    {{template "lp-prompt" $d}}
+    {{/* The prompt as a line in a box, and the button that copies it. */}}
+    <div class="hero-act">
+      <p class="hero-line">{{th `Set up byagent for all my projects: read <span class="lp-prompt-url">%s</span> and follow it.` (printf "%s/skill.md" $d.ShareHost)}}</p>
+      <button type="button" class="btn primary lp-hero-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" $d}}" aria-label="{{t "Copy the prompt"}}">
+        <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">{{t "Copy prompt"}}</span>
+      </button>
+    </div>
     <p class="under"><b>{{t "Free. Readers need no account."}}</b> {{t "Paste it into your agent."}} {{if $d.Guest}}{{t "No account to try it either: your first pages last 24 hours."}}{{else if $d.SignIn}}{{th `It asks for a key once, from the <a class="link" href="%s">dashboard</a>.` $d.KeysURL}}{{else}}{{t "It asks for a key once."}}{{end}}</p>
-    {{/* Labels, not buttons: they used to copy the same prompt as the box
-         above, which nothing on them said. */}}
+    {{/* Labels, not buttons: nothing here copies anything. */}}
     <ul class="works" aria-label="{{t "Works with"}}">
       <li class="works-k">{{t "Works with"}}</li>
       <li><svg class="lg is-claude" aria-hidden="true"><use href="#lg-claude"/></svg>Claude Code</li>
@@ -85,254 +86,331 @@
     </ul>
   </div>
 
-  {{/* The drawings in the cards are decoration (aria-hidden): each card
-       reads as its title. Their words are the demo's own, already
-       translated. Project dots and cover images are classes and files, as
-       the CSP allows no style attributes. */}}
-  <nav class="bento" aria-label="{{t "Features"}}">
-    {{/* What byagent is, in one card: an agent runs one command and the page
-         is on the web at a link. landing.js cycles the agent and the link. */}}
-    <a class="card k-publish" href="#how">
-      <div class="art" aria-hidden="true">
-        <div class="win term">
-          <div class="win-bar"><i></i><i></i><i></i><span id="pub-agent">claude code</span></div>
-          <p class="cmd"><b>$</b> byagent publish <span id="pub-dir">./launch-plan</span></p>
-          <p class="ok">✓ published</p>
-          <div class="pub-url"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5s-1.2 6.1-3.8 8.5c-2.6-2.4-3.8-5.2-3.8-8.5s1.2-6.1 3.8-8.5z"/></svg><span id="pub-link">{{$d.ShareHost}}/a/k4m2Qv9pXz1A</span><em>{{t "live"}}</em></div>
+  {{/* The loop in two windows: the agent's terminal publishes, the team's
+       browser opens the link, someone comments on the exact words, the
+       agent reads the comment, publishes v2 and resolves it. As written here
+       it is the last moment, which is what a reader without script or with
+       reduced motion sees; landing.js plays it from the start while it is
+       in view. Its words are this page's, already translated; the commands
+       and their output are the real CLI's. */}}
+  <div class="loop is-pub is-open is-v2" id="loop">
+    <div class="loop-panes">
+      <figure class="pane">
+        <figcaption>{{t "Your agent"}}</figcaption>
+        <div class="win win-term" id="loop-term">
+          <div class="win-top"><span class="tl3" aria-hidden="true"><i></i><i></i><i></i></span><span class="win-name">zsh</span></div>
+          <div class="term">
+            <p class="tline k-prompt" data-g="1"><b>›</b><span>{{t "Write a rollout plan for the new build and publish it with byagent"}}</span></p>
+            <p class="tline k-note" data-g="2"><b>●</b><span>{{t "Wrote %s" "rollout-plan.md"}}</span></p>
+            <p class="tline k-cmd" data-g="3"><b>$</b><span>byagent publish ./rollout-plan.md</span></p>
+            <p class="tline k-out" data-g="4"><span>{{$d.ExampleURL}}</span></p>
+            <p class="tline k-out" data-g="4"><span>version 1, 1 files, 2140 bytes, 1 uploaded</span></p>
+            <p class="tline k-cmd" data-g="5"><b>$</b><span>byagent comments {{$d.ExampleID}} --wait</span></p>
+            <p class="tline k-out" data-g="6"><span>{{$d.ExampleThread}}  open  anchor attached  v1</span></p>
+            <p class="tline k-out" data-g="6"><span>  on: {{t "Step 1: move every team to the new build in one go."}}</span></p>
+            <p class="tline k-out" data-g="6"><span>  Maya (viewer): {{t "Can we pilot one team for a week first?"}}</span></p>
+            <p class="tline k-note" data-g="7"><b>●</b><span>{{t "Edited %s" "rollout-plan.md"}}</span></p>
+            <p class="tline k-cmd" data-g="8"><b>$</b><span>byagent publish ./rollout-plan.md --id {{$d.ExampleID}}</span></p>
+            <p class="tline k-out" data-g="9"><span>version 2, 1 files, 2196 bytes, 1 uploaded</span></p>
+            <p class="tline k-cmd" data-g="10"><b>$</b><span>byagent reply {{$d.ExampleID}} {{$d.ExampleThread}} "{{t "Done in v%s: one team first." "2"}}"</span></p>
+            <p class="tline k-out" data-g="11"><span>replied to {{$d.ExampleThread}}</span></p>
+            <p class="tline k-cmd" data-g="12"><b>$</b><span>byagent resolve {{$d.ExampleID}} {{$d.ExampleThread}}</span></p>
+            <p class="tline k-out" data-g="13"><span>resolved {{$d.ExampleThread}}</span></p>
+          </div>
         </div>
-      </div>
-      <p class="ttl">{{t "Live on the web, from any agent"}}</p>
-    </a>
-
-    <a class="card k-notes" href="#how" data-feat="notes">
-      <div class="art" aria-hidden="true">
-        <div class="win">
-          <div class="win-bar"><i></i><i></i><i></i><span>{{t "Rollout plan"}}</span></div>
-          <p class="ln">{{t "Goal: every team on the new build by month end."}}</p>
-          <p class="ln hl">{{t "Step 1: move every team to the new build in one go."}}</p>
-          <div class="note"><b>Maya</b><em>{{t "no account · open"}}</em><span>{{t "Can we pilot one team for a week first?"}}</span></div>
-        </div>
-      </div>
-      <p class="ttl">{{t "Comments"}}</p>
-    </a>
-
-    <a class="card k-shelf tall" href="#how" data-feat="shelf">
-      <div class="art" aria-hidden="true">
-        <div class="tiles">
-          <span><svg class="is-claude"><use href="#lg-claude"/></svg></span>
-          <span><svg><use href="#lg-openai"/></svg></span>
-          <span><svg><use href="#lg-cursor"/></svg></span>
-          <span class="txt">&gt;_</span>
-        </div>
-        <div class="win dash">
-          <div class="win-bar"><i></i><i></i><i></i></div>
-          <div class="dash-in">
-            <ul class="cols">
-              <li class="h">{{t "Collections"}}</li>
-              <li class="on"><i class="pj-data"></i>{{t "Dashboards & data"}}</li>
-              <li><i class="pj-design"></i>{{t "Design studio"}}</li>
-              <li><i class="pj-guides"></i>{{t "Explainers & guides"}}</li>
-            </ul>
-            <div class="covers">
-              <figure><img src="{{index $d.Covers "lisbon"}}" alt="" width="640" height="400" loading="lazy"><figcaption>{{t "Lisbon rides"}}</figcaption></figure>
-              <figure><img src="{{index $d.Covers "signups"}}" alt="" width="640" height="400" loading="lazy"><figcaption>{{t "Signups, week 41"}}</figcaption></figure>
-              <figure><img src="{{index $d.Covers "garden"}}" alt="" width="640" height="400" loading="lazy"><figcaption>{{t "Small bottles, big garden"}}</figcaption></figure>
-              <figure><img src="{{index $d.Covers "kyoto"}}" alt="" width="640" height="400" loading="lazy"><figcaption>{{t "Five days in Kyoto"}}</figcaption></figure>
+      </figure>
+      <div class="loop-gap" aria-hidden="true"><div class="wind" id="loop-wind"></div></div>
+      <figure class="pane">
+        <figcaption>{{t "Your team"}}</figcaption>
+        <div class="win win-web" id="loop-web">
+          <div class="win-top"><span class="tl3" aria-hidden="true"><i></i><i></i><i></i></span><span class="addr">{{template "icon" "lock"}}<span>{{$d.ExampleURL}}</span></span></div>
+          <div class="web">
+            <p class="web-wait">{{t "Waiting for a link…"}}</p>
+            <div class="web-doc">
+              <div class="doc-bar">{{template "icon" "mark"}}<b>{{t "Rollout plan"}}</b><span class="ver"><span class="v1">v1</span><span class="v2">v2</span></span></div>
+              <div class="doc-grid">
+                <article class="doc">
+                  <h3>{{t "Rollout plan"}}</h3>
+                  <p class="doc-sub">{{t "The new build, team by team"}}</p>
+                  <p>{{t "Goal: every team on the new build by month end."}}</p>
+                  <p><span class="ph"><span class="ph1">{{t "Step 1: move every team to the new build in one go."}}</span><span class="ph2">{{t "Step 1: pilot with one team for a week, then roll out to the rest."}}</span></span></p>
+                  <p>{{t "Step 2: watch error rates for 48 hours before the next wave."}}</p>
+                </article>
+                <aside class="doc-notes">
+                  <p class="notes-h">{{t "Comments"}} <span class="n0">0</span><span class="n1">1</span></p>
+                  <div class="note compose">
+                    <p class="note-q">{{t "Step 1: move every team to the new build in one go."}}</p>
+                    <p class="note-in" id="loop-typed">{{t "Can we pilot one team for a week first?"}}</p>
+                    <span class="note-btn">{{t "Comment"}}</span>
+                  </div>
+                  <div class="note thread">
+                    <p class="note-who"><b>Maya</b><span class="badge-open">{{t "open"}}</span><span class="badge-done">{{template "icon" "check"}}{{t "resolved"}}</span></p>
+                    <p class="note-q">{{t "Step 1: move every team to the new build in one go."}}</p>
+                    <p>{{t "Can we pilot one team for a week first?"}}</p>
+                    <p class="note-re"><b>Claude Code</b> {{t "Done in v%s: one team first." "2"}}</p>
+                  </div>
+                </aside>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <p class="ttl">{{t "Projects"}}</p>
-    </a>
+      </figure>
+    </div>
+    <ol class="steps" id="loop-steps">
+      <li data-s="0">{{t "The agent publishes"}}</li>
+      <li data-s="1">{{t "People comment"}}</li>
+      <li data-s="2" class="on">{{t "The agent revises"}}</li>
+    </ol>
+  </div>
+</section>
 
-    <a class="card k-versions" href="#how" data-feat="versions">
-      <div class="art" aria-hidden="true">
-        <div class="vers">
-          <div class="v"><b>v1</b><span>claude code</span><small>{{t "Mon %s" "10:02"}}</small></div>
-          <div class="v"><b>v2</b><span>codex</span><small>{{t "Tue %s" "09:15"}}</small></div>
-          <div class="v on"><b>v3</b><span>claude code</span><em>{{t "live"}}</em></div>
+{{/* One place: every agent's pages land in the same workspace, filed by
+     project. The real dashboard, as two stills because a <picture> answers
+     only to the system setting and this page has a theme control. */}}
+<section class="sec rule" id="one-place" data-in>
+  <div class="sec-in">
+    <h2>{{t "Every agent, one place."}}</h2>
+    <p class="lead">{{t "Claude Code, Codex, Cursor and your scripts publish to the same workspace. Every page is filed by project, and agents search it before they start something new."}}</p>
+    <figure class="shot">
+      <div class="shot-bar" aria-hidden="true"><span class="tl3"><i></i><i></i><i></i></span><span class="addr">{{template "icon" "lock"}}<span>{{$d.APIHost}}</span></span></div>
+      <img class="on-light" src="{{$d.ShotURL}}" srcset="{{$d.ShotSet}}" sizes="(max-width: 1200px) 100vw, 1152px" width="1360" height="820" loading="lazy"
+           alt="{{t "The byagent dashboard: an Acme workspace with three collections and the pages filed under them"}}">
+      <img class="on-dark" src="{{$d.ShotDarkURL}}" srcset="{{$d.ShotDarkSet}}" sizes="(max-width: 1200px) 100vw, 1152px" width="1360" height="820" loading="lazy"
+           alt="{{t "The byagent dashboard: an Acme workspace with three collections and the pages filed under them"}}">
+    </figure>
+  </div>
+</section>
+
+{{/* What a page can be: four small pages drawn in HTML and CSS. Their
+     numbers are made up, as the drawings make plain. Each card is the drawing
+     on top and what it is below. */}}
+<section class="sec" id="gallery" data-in>
+  <div class="sec-in">
+    <h2>{{t "What your agents can make."}}</h2>
+    <p class="lead">{{t "An agent publishes Markdown or HTML, so a page can be anything a web page can be."}}</p>
+    <div class="gal">
+      <figure class="shot-card wide">
+        <div class="stage" aria-hidden="true">
+          <div class="paper">
+            <div class="paper-bar"><b>{{t "Signups, week 41"}}</b><span>v12</span></div>
+            <div class="rep">
+              <div class="rep-h"><b>{{t "Signups, last 14 days"}}</b><span class="live">{{t "Updates every day at 08:00"}}</span></div>
+              <div class="kpis">
+                <div><small>{{t "Signups"}}</small><b>1,284</b><em>+12%</em></div>
+                <div><small>{{t "Activated"}}</small><b>41%</b><em>+3 pt</em></div>
+                <div><small>{{t "Paid"}}</small><b>96</b><em>+8</em></div>
+                <div><small>{{t "Churn"}}</small><b>2.1%</b><em>−0.4 pt</em></div>
+              </div>
+              <svg class="bars" viewBox="0 0 140 40" preserveAspectRatio="none">
+                <rect x="1" y="22" width="8" height="18"/><rect x="11" y="16" width="8" height="24"/><rect x="21" y="20" width="8" height="20"/><rect x="31" y="12" width="8" height="28"/><rect x="41" y="18" width="8" height="22"/><rect x="51" y="24" width="8" height="16"/><rect x="61" y="14" width="8" height="26"/><rect x="71" y="17" width="8" height="23"/><rect x="81" y="11" width="8" height="29"/><rect x="91" y="15" width="8" height="25"/><rect x="101" y="9" width="8" height="31"/><rect x="111" y="13" width="8" height="27"/><rect x="121" y="7" width="8" height="33"/><rect class="now" x="131" y="4" width="8" height="36"/>
+              </svg>
+            </div>
+          </div>
         </div>
-      </div>
-      <p class="ttl">{{t "Versions"}}</p>
-    </a>
-  </nav>
+        <figcaption><h3>{{t "A report that updates itself"}}</h3><p>{{t "A scheduled agent republishes it to the same link every morning. Nobody rebuilds it by hand."}}</p></figcaption>
+      </figure>
+      <figure class="shot-card">
+        <div class="stage" aria-hidden="true">
+          <div class="deck">
+            <i class="deck-b2"></i><i class="deck-b1"></i>
+            <div class="slide">
+              <small>{{t "Proposal · October"}}</small>
+              <b>{{t "Ship the new onboarding in four weeks"}}</b>
+              <span class="prog"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span>
+            </div>
+            <span class="ask"><span class="av">A</span>{{t "Slide 3?"}}</span>
+          </div>
+        </div>
+        <figcaption><h3>{{t "A slide deck"}}</h3><p>{{t "HTML slides with real motion, shared as one link instead of a file."}}</p></figcaption>
+      </figure>
+      <figure class="shot-card">
+        <div class="stage" aria-hidden="true">
+          <div class="mag-back"></div>
+          <div class="mag">
+            <span class="mag-ed">{{t "Edition 01"}}</span>
+            <b class="mag-t">{{t "The Offsite"}}</b>
+            <i class="mag-k">{{t "Journal"}}</i>
+            <p>{{t "Three days, forty people, and the plan we came home with."}}</p>
+            <small>{{t "3 days · 8 talks · 1 plan"}}</small>
+          </div>
+        </div>
+        <figcaption><h3>{{t "A magazine"}}</h3><p>{{t "Round up an event in a magazine anyone can open."}}</p></figcaption>
+      </figure>
+      <figure class="shot-card wide">
+        <div class="stage" aria-hidden="true">
+          <div class="paper">
+            <div class="paper-bar"><b>{{t "PR #2190 explainer: retry failed uploads"}}</b><span>v1</span></div>
+            <svg class="sketch" viewBox="0 0 640 220">
+              <text class="sk-title" x="24" y="40">{{t "Retry failed uploads"}}</text>
+              <g class="sk-hand">
+                <rect x="24" y="70" width="116" height="54" rx="6"/><rect x="176" y="70" width="116" height="54" rx="6"/><rect x="328" y="70" width="116" height="54" rx="6"/><rect x="480" y="70" width="116" height="54" rx="6"/>
+                <path d="M146 97h24m-7-5 7 5-7 5M298 97h24m-7-5 7 5-7 5M450 97h24m-7-5 7 5-7 5"/>
+                <path d="M386 124c-4 26-12 44-24 58M460 182c-10-16-16-34-20-56m-5 6 5-6 5 6"/>
+                <rect class="sk-note" x="320" y="182" width="180" height="30" rx="5"/>
+              </g>
+              <text class="sk-l" x="82" y="102">{{t "Client"}}</text><text class="sk-l" x="234" y="102">{{t "Upload"}}</text><text class="sk-l" x="386" y="102">{{t "Queue"}}</text><text class="sk-l" x="538" y="102">{{t "Storage"}}</text>
+              <text class="sk-bad" x="520" y="150">{{t "503 busy"}}</text>
+              <text class="sk-ok" x="470" y="58">{{t "200 OK on try 2"}}</text>
+              <text class="sk-n" x="410" y="202">{{t "retry at 1s · 4s · 16s"}}</text>
+              <circle class="sk-dot" cx="82" cy="97" r="5"/>
+            </svg>
+          </div>
+        </div>
+        <figcaption><h3>{{t "An animated PR explainer"}}</h3><p>{{t "A moving diagram of the change, linked from the pull request, so reviewers get it faster."}}</p></figcaption>
+      </figure>
+    </div>
+  </div>
 </section>
 
-{{/* Where you are on the page, as the onboarding dots. Drawn by landing.js
-     from the sections it finds. */}}
-<div class="pager" id="pager" hidden>
-  <div class="dots" aria-hidden="true"></div>
-</div>
-
-{{/* The real dashboard in a glass window that peeks into the first screen,
-     tilted back, and lands flat as you scroll. Two
-     stills rather than one <picture>: a <picture> answers only to the system
-     setting, and this page has a theme control of its own. */}}
-<div class="shot-glow"><figure class="shot">
-  <div class="shot-in">
-    <div class="shot-bar" aria-hidden="true">
-      <div class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></div>
-      <div class="tb"><span class="cap"><svg viewBox="0 0 16 16"><path d="M2.5 3.5h11v9h-11z M6 3.5v9"/></svg></span><span class="cap pair"><svg viewBox="0 0 16 16"><path d="M9.5 3.5 5 8l4.5 4.5"/></svg><svg viewBox="0 0 16 16"><path d="M6.5 3.5 11 8l-4.5 4.5"/></svg></span></div>
-      <div class="url"><svg viewBox="0 0 16 16"><path d="M5 7V5.5a3 3 0 0 1 6 0V7 M4 7h8v6H4z"/></svg><span>{{$d.APIHost}}</span></div>
-      <div class="tb"><span class="cap"><svg viewBox="0 0 16 16"><path d="M8 2.5v7 M5 5l3-3 3 3 M3.5 9.5v4h9v-4"/></svg></span><span class="cap"><svg viewBox="0 0 16 16"><path d="M8 3v10 M3 8h10"/></svg></span></div>
+{{/* The four questions a link leaves open, and how a byagent page answers
+     each. Every answer is something the product does today. */}}
+<section class="sec rule muted" id="answers" data-in>
+  <div class="sec-in two-col">
+    <div class="two-col-h">
+      <h2>{{t "A link your team can actually use."}}</h2>
+      <p class="lead">{{t "Sharing what an agent made raises the same four questions. Every byagent page comes with the answers."}}</p>
     </div>
-    <img class="on-light" src="{{$d.ShotURL}}" srcset="{{$d.ShotSet}}" sizes="(max-width: 1120px) 100vw, 1080px" width="1360" height="820"
-         alt="{{t "The byagent dashboard: an Acme workspace with three collections and the pages filed under them"}}">
-    <img class="on-dark" src="{{$d.ShotDarkURL}}" srcset="{{$d.ShotDarkSet}}" sizes="(max-width: 1120px) 100vw, 1080px" width="1360" height="820" loading="lazy"
-         alt="{{t "The byagent dashboard: an Acme workspace with three collections and the pages filed under them"}}">
+    <ol class="qs">
+      <li><span class="q-ic">{{template "icon" "users"}}</span><div><h3>{{t "Who can open it?"}}</h3><p>{{t "Anyone with the link, or only your workspace. Or add a six-digit share code, a password, or a list of allowed emails and domains."}}</p></div></li>
+      <li><span class="q-ic">{{template "icon" "comment"}}</span><div><h3>{{t "Where does feedback go?"}}</h3><p>{{th `Onto the exact words. Readers comment without an account, and your agent reads the threads with <code>byagent comments</code>, then replies or publishes a fix.`}}</p></div></li>
+      <li><span class="q-ic">{{template "icon" "rollback"}}</span><div><h3>{{t "Which copy is current?"}}</h3><p>{{t "The one at the link. Every publish is a new version on the same link, and you can roll back to any of the last %d." $d.Limits.VersionsKept}}</p></div></li>
+      <li><span class="q-ic">{{template "icon" "shield"}}</span><div><h3>{{t "Is it safe to open?"}}</h3><p>{{if $d.PageHost}}{{th `Every page gets its own origin, like <code>%s</code>, so one page's script can't reach another page or your dashboard.` $d.PageHost}}{{else}}{{t "Pages are served apart from the dashboard, so a page's script can't act as you there."}}{{end}}</p></div></li>
+    </ol>
   </div>
-</figure></div>
-
-
-{{/* The problem, drawn rather than argued: each agent keeps its work in its
-     own place, and the rest have nowhere at all. Only the scribble is drawn
-     by hand; "brrr…" is a path, so the page loads no handwriting font. */}}
-<section id="why" class="slide">
-  <div class="slide-copy">
-    <p class="badge">{{template "lp-badge"}}{{t "The problem"}}</p>
-    <h2>{{t "Every agent keeps its work somewhere different."}}</h2>
-    <p class="lead">{{t "So we built one place they all publish to."}} <a href="#how">{{t "See how it works"}}</a></p>
-  </div>
-
-  <div class="w-lanes">
-    <div class="w-lane surf" data-reveal>
-      <div class="w-stage">
-        <svg viewBox="0 0 800 120" role="img" aria-label="{{t "Claude Code publishes a Claude artifact inside your Claude org. A reader outside the org tries to comment and is stopped."}}">
-          <rect class="w-chip-r" x="0" y="42" width="150" height="36" rx="10"/><svg x="14" y="51" width="18" height="18" class="w-mark-claude"><use href="#lg-claude"/></svg><text class="w-t-chip" x="40" y="65">Claude Code</text>
-          <path class="w-wire" d="M160 60 H 299"/><path class="w-wire" d="M291 54 L 300 60 L 291 66"/>
-          <g clip-path="url(#w-shaft)"><g class="w-packet w-c-claude">
-            <rect class="w-trail" x="116" y="59" width="52" height="2" rx="1" mask="url(#w-fade)"/>
-            <circle class="w-halo" cx="164" cy="60" r="3.5"/><circle class="w-halo w-h2" cx="164" cy="60" r="3.5"/>
-            <circle class="w-core" cx="164" cy="60" r="3.2"/>
-          </g></g>
-          <rect class="w-fence" x="316" y="14" width="240" height="92" rx="16"/>
-          <rect class="w-fence-tag" x="330" y="5" width="122" height="18" rx="9"/><text class="w-fence-lbl" x="340" y="18">{{t "your Claude org"}}</text>
-          <rect class="w-card" x="332" y="34" width="208" height="54" rx="10"/>
-          <svg x="346" y="45" width="16" height="16" class="w-mark-claude"><use href="#lg-claude"/></svg>
-          <text class="w-t-l" x="370" y="58">{{t "Claude artifact"}}</text>
-          <text class="w-t-m" x="370" y="76">launch-plan</text>
-          <path class="w-ok w-pop w-d1" d="M510 61 l 5 6 l 10 -12"/>
-          <g class="w-pop w-d2">
-            <path class="w-link" d="M558 60 H 571 M 589 60 H 600"/>
-            <circle class="w-stopc" cx="580" cy="60" r="8"/><path class="w-stopl" d="M574.3 65.7 L 585.7 54.3"/>
-            <g class="w-bump">
-              <rect class="w-card" x="600" y="26" width="200" height="68" rx="12"/>
-              <circle class="w-avatar" cx="620" cy="45" r="10"/><svg x="610" y="35" width="20" height="20" class="w-avatar-g"><use href="#w-person"/></svg>
-              <text class="w-t-s w-t-ink" x="638" y="50">{{t "Small note on step 2…"}}</text>
-              <rect class="w-pill-r" x="611" y="66" width="150" height="19" rx="9.5"/>
-              <rect class="w-ic-r" x="618.5" y="73.5" width="8" height="6.5" rx="1.4"/><path class="w-ic-r" d="M620.3 73.5 v-1.6 a2.2 2.2 0 0 1 4.4 0 v1.6"/>
-              <text class="w-t-pill" x="633" y="79.5" data-fit="w-pill-r">{{t "Needs a Claude seat"}}</text>
-              <rect class="w-post" x="768" y="66" width="22" height="19" rx="6"/><path class="w-send" d="M779 80V71M775.5 74.5 779 71l3.5 3.5"/>
-            </g>
-          </g>
-        </svg>
-      </div>
-      <p class="w-cap ttl"><span aria-hidden="true" class="ic i-claude"><svg><use href="#lg-claude"/></svg></span><span><b>{{t "Claude keeps it in Claude."}}</b><span class="w-note">{{t "A reader outside your Claude org needs a seat to comment."}}</span></span></p>
-    </div>
-
-    <div class="w-lane surf" data-reveal>
-      <div class="w-stage">
-        <svg viewBox="0 0 800 120" role="img" aria-label="{{t "Codex publishes a ChatGPT Site. A reader looks for somewhere to comment and finds nothing."}}">
-          <rect class="w-chip-r" x="0" y="42" width="150" height="36" rx="10"/><svg x="14" y="51" width="18" height="18" class="w-mark-ink"><use href="#lg-openai"/></svg><text class="w-t-chip" x="40" y="65">Codex</text>
-          <path class="w-wire" d="M160 60 H 299"/><path class="w-wire" d="M291 54 L 300 60 L 291 66"/>
-          <g clip-path="url(#w-shaft)"><g class="w-packet w-c-ink">
-            <rect class="w-trail" x="116" y="59" width="52" height="2" rx="1" mask="url(#w-fade)"/>
-            <circle class="w-halo" cx="164" cy="60" r="3.5"/><circle class="w-halo w-h2" cx="164" cy="60" r="3.5"/>
-            <circle class="w-core" cx="164" cy="60" r="3.2"/>
-          </g></g>
-          <rect class="w-card" x="316" y="16" width="240" height="88" rx="10"/>
-          <path class="w-wire w-wire-faint" d="M316 38 H 556"/>
-          <circle cx="330" cy="27" r="3" class="w-bar"/><circle cx="340" cy="27" r="3" class="w-bar"/><circle cx="350" cy="27" r="3" class="w-bar"/>
-          <text class="w-t-m" x="364" y="31">chatgpt.com/…</text>
-          <svg x="332" y="50" width="16" height="16" class="w-mark-ink"><use href="#lg-openai"/></svg>
-          <text class="w-t-l" x="356" y="63">ChatGPT Site</text>
-          <rect class="w-bar" x="332" y="78" width="170" height="5" rx="2.5"/><rect class="w-bar" x="332" y="89" width="130" height="5" rx="2.5"/>
-          <path class="w-ok w-pop w-d1" d="M526 56 l 5 6 l 10 -12"/>
-          <g class="w-pop w-d2">
-            <path class="w-link" d="M558 60 H 571 M 589 60 H 600"/>
-            <circle class="w-stopc" cx="580" cy="60" r="8"/><path class="w-stopl" d="M574.3 65.7 L 585.7 54.3"/>
-            <g class="w-bump">
-              <rect class="w-card" x="600" y="26" width="200" height="68" rx="12"/>
-              <circle class="w-avatar" cx="620" cy="45" r="10"/><svg x="610" y="35" width="20" height="20" class="w-avatar-g"><use href="#w-person"/></svg>
-              <text class="w-t-s w-t-ask" x="638" y="50">{{t "Where do I comment?"}}</text>
-              <rect class="w-pill-r" x="611" y="66" width="150" height="19" rx="9.5"/>
-              <circle class="w-ic-r" cx="622.5" cy="75.5" r="4.5"/><path class="w-ic-r" d="M619.3 78.7 L 625.7 72.3"/>
-              <text class="w-t-pill" x="633" y="79.5" data-fit="w-pill-r">{{t "Nowhere to comment"}}</text>
-              <rect class="w-post" x="768" y="66" width="22" height="19" rx="6"/><path class="w-send" d="M779 80V71M775.5 74.5 779 71l3.5 3.5"/>
-            </g>
-          </g>
-        </svg>
-      </div>
-      <p class="w-cap ttl"><span aria-hidden="true" class="ic i-ink"><svg><use href="#lg-openai"/></svg></span><span><b>{{t "ChatGPT keeps it in ChatGPT."}}</b><span class="w-note">{{t "A ChatGPT Site has nowhere for a reader to comment."}}</span></span></p>
-    </div>
-
-    <div class="w-lane surf w-brrr" data-reveal>
-      <div class="w-stage">
-        <svg viewBox="0 0 800 190" role="img" aria-label="{{t "Every other agent, like Cursor, Hermes or a cron job, goes brrr and sprays loose files: plan_v3_final.md, plan_v3_final_REAL.md, report (2).html. Feedback ends up in a Slack thread."}}">
-          <g transform="translate(0 25)">
-            <rect class="w-chip-r" x="0" y="42" width="150" height="36" rx="10"/>
-            <circle class="w-stack" cx="22" cy="60" r="9"/><svg x="16.5" y="54.5" width="11" height="11" class="w-mark-ink"><use href="#lg-cursor"/></svg>
-            <circle class="w-stack" cx="34" cy="60" r="9"/><text class="w-t-more" x="34" y="63.5" text-anchor="middle">+2</text>
-            <text class="w-t-chip" x="52" y="65" data-fit="w-chip-r">{{t "Everyone else"}}</text>
-            <text class="w-t-m w-t-who" x="0" y="100">{{t "Cursor, Hermes, a cron job…"}}</text>
-          </g>
-          <g class="w-shake"><path class="w-scrib" id="w-scrib" pathLength="1" d=""/></g>
-          <path class="w-zip" d="M336 36 q -8 10 0 20 M 326 31 q -12 15 0 30 M 494 112 q 8 10 0 20 M 504 107 q 12 15 0 30"/>
-          <g class="w-brrr-word"><path class="w-hand" d="{{template "lp-brrr"}}"/></g>
-          <g transform="translate(540 14)"><g class="w-file f1"><g class="w-float"><rect width="160" height="32" rx="6"/><path class="w-fold" d="M148 0 V 9 H 160"/><text x="12" y="20.5">plan_v3_final.md</text></g></g></g>
-          <g transform="translate(588 60)"><g class="w-file f2"><g class="w-float"><rect width="196" height="32" rx="6"/><path class="w-fold" d="M184 0 V 9 H 196"/><text x="12" y="20.5">plan_v3_final_REAL.md</text></g></g></g>
-          <g transform="translate(536 106)"><g class="w-file f3"><g class="w-float"><rect width="150" height="32" rx="6"/><path class="w-fold" d="M138 0 V 9 H 150"/><text x="12" y="20.5">report (2).html</text></g></g></g>
-          <g transform="translate(624 146)"><g class="w-file w-slack f4"><rect width="176" height="38" rx="10"/><text class="w-hash" x="11" y="15.5">#launch</text><text class="w-t-s" x="11" y="30" data-fit>{{t "notes on v3? which file?"}}</text></g></g>
-        </svg>
-      </div>
-      <p class="w-cap ttl"><span aria-hidden="true" class="ic i-gray"><svg viewBox="0 0 24 24"><path d="M7 4.5h7l3.5 3.5v11.5H7z"/><path d="M14 4.5V8h3.5"/></svg></span><span><b>{{t "Everyone else gets nothing."}}</b><span class="w-note">{{t "Loose files like plan_v3_final_REAL.md, and feedback lost in Slack."}}</span></span></p>
-    </div>
-  </div>
-
 </section>
 
-{{/* Every feature as a sentence you say to your agent: the chat plays the
-     request on the left while the page on the right changes. The commands
-     shown are the real CLI's. The mocks are drawn by landing.js; the covers
-     and the host come in from here so they follow this deployment. */}}
-<section class="feat slide" id="how" data-in data-host="{{$d.ShareHost}}" data-covers="{{$d.CoversJSON}}">
-  <div class="slide-copy">
-    <p class="badge">{{template "lp-badge"}}{{t "How it works"}}</p>
-    <h2>{{t "Watch an agent use it."}}</h2>
-    <p class="lead fc-lead">{{t "Every feature is a sentence you say to your agent. Pick one and watch the page change, or click into the page and try it yourself."}}</p>
-    <div class="seg-pill"><div class="seg" id="fc-seg" role="tablist" aria-label="{{t "Features"}}"></div></div>
-  </div>
-  <div class="duo surf" id="fc-duo">
-    <div class="chat">
-      <div class="hd" id="fc-who"><i></i><span id="fc-aname"></span><small>{{t "with byagent"}}</small></div>
-      <div class="log" id="fc-log" aria-live="polite"></div>
-      <div class="composer"><small>{{t "Ask next"}}</small><div class="chips" id="fc-chips"></div></div>
+{{/* What a page can do besides being read: each card only where this
+     server has the feature turned on. */}}
+<section class="sec rule" id="more" data-in>
+  <div class="sec-in">
+    <h2>{{t "Pages that do more than sit there."}}</h2>
+    <p class="lead">{{t "A page can call an API, live on your own domain, and tell you who read it."}}</p>
+    <div class="trio">
+      {{if $d.Proxy}}
+      <figure class="shot-card">
+        <div class="stage short" aria-hidden="true">
+          <div class="paper">
+            <div class="paper-bar"><b>{{t "Support bot"}}</b><span>v3</span></div>
+            <div class="chat">
+              <p class="me">{{t "How do I export a page?"}}</p>
+              <p class="bot"><i></i><i></i><i class="s"></i></p>
+              <p class="via">{{template "icon" "lock"}}<code>_proxy/chat</code><span>{{t "key added on the server"}}</span></p>
+            </div>
+          </div>
+        </div>
+        <figcaption><h3>{{t "API calls, keys kept"}}</h3><p>{{th `Store a key with <code>byagent vars set</code>. The page calls its proxy route and the server adds the key, so readers never see it.`}}</p>
+          <ul class="uses"><li>{{t "Chat demos"}}</li><li>{{t "Live data"}}</li><li>{{t "Internal tools"}}</li></ul></figcaption>
+      </figure>
+      {{end}}
+      {{if $d.Domains}}
+      <figure class="shot-card">
+        <div class="stage short" aria-hidden="true">
+          <div class="paper">
+            <div class="paper-bar"><span class="addr">{{template "icon" "lock"}}<span>docs.example.com/guide</span></span><span class="ok">{{t "active"}}</span></div>
+            <div class="dns">
+              <p><b>CNAME</b><span>docs</span><code>{{if $d.DomainsTarget}}{{$d.DomainsTarget}}{{else}}domains.{{$d.ShareHost}}{{end}}</code></p>
+              <p><b>TXT</b><span>_byagent.docs</span><code>byagent-verify=…</code></p>
+            </div>
+          </div>
+        </div>
+        <figcaption><h3>{{t "Your own domain"}}</h3><p>{{th `Serve a page at <code>docs.example.com</code> or under a path like <code>/guide</code>. <code>byagent domain add</code> prints the DNS records to add.`}}</p>
+          <ul class="uses"><li>{{t "Docs"}}</li><li>{{t "Launch pages"}}</li><li>{{t "Portfolios"}}</li></ul></figcaption>
+      </figure>
+      {{end}}
+      <figure class="shot-card">
+        <div class="stage short" aria-hidden="true">
+          <div class="paper">
+            <div class="paper-bar"><b>{{t "Rollout plan"}}</b><span>{{t "Last 30 days"}}</span></div>
+            <div class="views">
+              <p><b>1,204</b><small>{{t "views"}}</small><b>318</b><small>{{t "visitors"}}</small></p>
+              <svg class="bars" viewBox="0 0 140 30" preserveAspectRatio="none"><rect x="1" y="20" width="8" height="10"/><rect x="11" y="16" width="8" height="14"/><rect x="21" y="6" width="8" height="24"/><rect x="31" y="10" width="8" height="20"/><rect x="41" y="18" width="8" height="12"/><rect x="51" y="22" width="8" height="8"/><rect x="61" y="14" width="8" height="16"/><rect x="71" y="12" width="8" height="18"/><rect x="81" y="19" width="8" height="11"/><rect x="91" y="15" width="8" height="15"/><rect x="101" y="9" width="8" height="21"/><rect x="111" y="17" width="8" height="13"/><rect x="121" y="13" width="8" height="17"/><rect class="now" x="131" y="8" width="8" height="22"/></svg>
+            </div>
+          </div>
+        </div>
+        <figcaption><h3>{{t "Views and visitors"}}</h3><p>{{t "Each page counts views and unique visitors, with referrers, countries and devices. No cookies, and no IP address is stored."}}</p>
+          <ul class="uses"><li>{{t "Referrers"}}</li><li>{{t "Countries"}}</li><li>{{t "Devices"}}</li></ul></figcaption>
+      </figure>
     </div>
-    <div class="live">
-      <div class="hd"><p class="fc-ttl" id="fc-ttl"></p><p id="fc-bl"></p></div>
-      <div class="stage"><div class="fx" id="fc-mock"></div></div>
-    </div>
   </div>
-  <noscript><p class="lead">{{t "Your agent publishes pages to your workspace, filed by project. Readers comment on any line without an account, and the agent reads the comments, fixes the page on the same link and resolves them. Pages can be private with a six-digit share code, keep their versions, expire when you say, and each project has a brief for the next agent."}}</p></noscript>
 </section>
 
-{{/* Right after the demo, where a reader has just seen what it does: real
-     pages from the showcase (the curated collection, never every public
-     page), then the prompt again, so a phone reader does not have to scroll
-     to the foot to act. Without a showcase it is just the prompt. */}}
-<section class="try slide" id="try" data-in data-ga-where="try">
-  <div class="slide-copy">
-    <p class="badge">{{template "lp-badge"}}{{t "Showcase"}}</p>
+{{/* Everything from the CLI, as tabs. The commands are the real CLI's.
+     Without script every panel shows, one after another. */}}
+<section class="sec rule" id="cli" data-in>
+  <div class="sec-in">
+    <h2>{{t "Everything you can do, your agent can do from the CLI."}}</h2>
+    <div class="tabs" role="tablist" aria-label="{{t "What the CLI does"}}" id="cli-tabs">
+      <button type="button" role="tab" id="tab-setup" aria-controls="panel-setup" aria-selected="true">{{t "CLI and skill"}}</button>
+      <button type="button" role="tab" id="tab-loop" aria-controls="panel-loop" aria-selected="false">{{t "Comments loop"}}</button>
+      <button type="button" role="tab" id="tab-hooks" aria-controls="panel-hooks" aria-selected="false">{{t "Hooks"}}</button>
+    </div>
+    <div class="panel" role="tabpanel" id="panel-setup" aria-labelledby="tab-setup">
+      <div class="panel-l">
+        <p>{{t "Paste the prompt once. The agent installs the CLI and the skill and signs in. From then on, publishing is one command."}}</p>
+        <pre class="code"><code>npm install -g byagent
+byagent login --browser
+byagent publish ./report.md --project Launch</code></pre>
+      </div>
+      <figure class="shot-card">
+        <div class="stage short" aria-hidden="true">
+          <div class="paper term-paper">
+            <p><b>$</b> byagent publish ./report.md --project Launch</p>
+            <p class="link-out">{{template "icon" "link"}}<span>{{$d.ExampleURL}}</span></p>
+            <p class="dim">version 1, 1 files, 4210 bytes, 1 uploaded</p>
+          </div>
+        </div>
+        <figcaption><h3>{{t "One command, one link"}}</h3><p>{{t "Every publish prints the page's link, and publishing again keeps it."}}</p></figcaption>
+      </figure>
+    </div>
+    <div class="panel" role="tabpanel" id="panel-loop" aria-labelledby="tab-loop">
+      <div class="panel-l">
+        <p>{{t "The agent waits for readers, answers on the thread, publishes the fix to the same link and resolves it."}}</p>
+        <pre class="code"><code>byagent comments {{$d.ExampleID}} --wait
+byagent reply {{$d.ExampleID}} {{$d.ExampleThread}} "Fixed in v2"
+byagent publish ./report.md --id {{$d.ExampleID}}
+byagent resolve {{$d.ExampleID}} {{$d.ExampleThread}}</code></pre>
+      </div>
+      <figure class="shot-card">
+        <div class="stage short" aria-hidden="true">
+          <div class="paper">
+            <div class="paper-bar"><b>{{t "Q3 report"}}</b><span>v2</span></div>
+            <div class="mini-thread">
+              <p class="note-who"><b>Maya</b><span class="badge-done">{{template "icon" "check"}}{{t "resolved"}}</span></p>
+              <p>{{t "Can the chart start in January?"}}</p>
+              <p class="note-re"><b>Codex</b> {{t "Fixed in v2"}}</p>
+            </div>
+          </div>
+        </div>
+        <figcaption><h3>{{t "Answers on the thread"}}</h3><p>{{t "The reply sits under the reader's comment, and the fix is already live."}}</p></figcaption>
+      </figure>
+    </div>
+    <div class="panel" role="tabpanel" id="panel-hooks" aria-labelledby="tab-hooks">
+      <div class="panel-l">
+        <p>{{t "A hook in Claude Code or Codex reminds the agent to publish the HTML and Markdown pages it writes. It never publishes by itself."}}</p>
+        <pre class="code"><code>byagent hooks install claude
+byagent hooks install codex --scope project</code></pre>
+      </div>
+      <figure class="shot-card">
+        <div class="stage short" aria-hidden="true">
+          <div class="paper nudge">
+            <p class="nudge-k">PostToolUse hook</p>
+            <p>byagent: report.html could be shared as a page. If it is something to read rather than part of a codebase, publish it when you finish this turn, drafts included.</p>
+          </div>
+        </div>
+        <figcaption><h3>{{t "A nudge, not an autopilot"}}</h3><p>{{th `Once per file and five times a session at most. <code>BYAGENT_NUDGE=0</code> silences it.`}}</p></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+{{/* Real pages from the showcase (the curated collection, never every
+     public page), then the prompt again, so a phone reader does not have to
+     scroll to the foot to act. Without a showcase it is just the prompt. */}}
+<section class="sec rule try" id="try" data-in data-ga-where="try">
+  <div class="sec-in">
     {{if $d.Showcase}}
     <h2>{{t "Real pages agents published."}}</h2>
-    <p class="lead">{{t "Plans, reports and sites agents made, each at its own link."}}</p>
-    <p class="try-more"><a class="link" href="/showcase">{{t "See the whole showcase"}}</a></p>
-    {{else}}
-    <h2>{{t "Try it on your next task."}}</h2>
-    {{end}}
-  </div>
-  <div class="try-side">
-    {{if $d.Showcase}}
+    <p class="lead">{{t "Plans, reports and sites agents made, each at its own link."}} <a class="link" href="/showcase">{{t "See the whole showcase"}}</a></p>
     <ul class="try-grid">
       {{range $d.Showcase}}
       <li class="sc-card">
@@ -344,8 +422,10 @@
       </li>
       {{end}}
     </ul>
+    {{else}}
+    <h2>{{t "Try it on your next task."}}</h2>
     {{end}}
-    <div class="try-box surf">
+    <div class="try-box">
       <p class="try-k">{{if $d.Showcase}}{{t "Yours next. Paste this into your agent:"}}{{else}}{{t "Paste this into your agent:"}}{{end}}</p>
       {{template "lp-prompt" $d}}
     </div>
@@ -356,27 +436,25 @@
      line into their agent. The list lives in landing.go, which also writes
      it into the FAQPage data block in the head. Each question is a heading
      so it can be quoted as the answer to that question. */}}
-<section class="slide" id="qa" data-in>
-  <div class="slide-copy">
-    <p class="badge">{{template "lp-badge"}}{{t "Questions"}}</p>
-    <h2>{{t "Before you paste it."}}</h2>
-  </div>
-  <div class="faq">
-    {{range $d.FAQ}}
-    <details>
-      <summary><h3>{{.Q}}</h3></summary>
-      <p>{{.A}}</p>
-    </details>
-    {{end}}
+<section class="sec rule" id="qa" data-in>
+  <div class="sec-in two-col">
+    <div class="two-col-h">
+      <h2>{{t "Before you paste it."}}</h2>
+    </div>
+    <div class="faq">
+      {{range $d.FAQ}}
+      <details>
+        <summary><h3>{{.Q}}</h3></summary>
+        <p>{{.A}}</p>
+      </details>
+      {{end}}
+    </div>
   </div>
 </section>
 
-<section class="close" data-in data-ga-where="close">
-  <div class="close-in surf">
-    <div>
-      <p class="badge">{{template "lp-badge"}}{{t "Get started"}}</p>
-      <h2>{{t "Give every agent one place to publish."}}</h2>
-    </div>
+<section class="sec rule close" data-in data-ga-where="close">
+  <div class="sec-in close-in">
+    <h2>{{t "Give every agent one place to publish."}}</h2>
     <div class="cta">
       <button type="button" class="btn primary lp-close-copy" data-ga-copy data-copy-text="{{template "lp-prompt-line" $d}}" aria-label="{{t "Copy prompt for agent"}}">
         <span class="lp-copy-ic">{{template "icon" "copy"}}</span><span class="lp-copied-ic">{{template "icon" "check"}}</span><span class="menu-item-text">{{t "Copy prompt for agent"}}</span>
@@ -390,11 +468,3 @@
 
 </div>
 {{end}}
-
-{{/* "brrr…" in Caveat Bold at 44px, traced to a path (drawn once with
-     fontTools from the OFL-licensed font), so the
-     page needs no handwriting font from a third-party host. */}}
-{{define "lp-brrr"}}M360.1 177.7Q359.2 177.6 358.7 177.3Q358.2 176.9 357.9 176.3Q357.6 175.9 357.5 175.7Q357.4 175.5 357.5 175.3Q357.7 175.3 357.9 175.3Q358.1 175.3 358.1 175.1Q358.1 175 358.2 175Q358.4 174.9 358.6 175Q359.4 175 360.6 174.4Q361.8 173.8 363.3 172.7Q364.7 171.5 366.2 170.2Q367.3 168.7 367.8 168Q368.3 167.3 368.3 166.9Q368.3 166.6 368.1 166.2Q367.9 165.8 367.2 165.8Q366.6 165.8 365.2 166.7Q363.3 167.9 362.2 168.9Q361 169.9 360.1 171.2Q359.7 171.6 359.3 172.1Q358.9 172.6 358.6 173Q358.3 173.3 358.3 173.3Q358.3 173.5 357.8 173.8Q357.3 174 357 174Q356.8 174 356.5 173.7Q356.2 173.5 356.1 173.1Q355.7 172.8 355.5 172.5Q355.2 172.3 355.2 171.7Q355.2 171.4 355.3 170.8Q355.4 170.3 355.6 169.5Q355.9 168.3 356.2 167.1Q356.5 165.8 356.8 164.9Q357.1 164 357.2 163.9Q357.2 163.9 357.4 163.5Q357.6 163.1 357.6 162.6Q357.7 162.1 357.9 161.7Q358.1 161.3 358.1 161.1Q358.2 161 358.6 160Q358.9 159.1 359.5 157.6Q359.5 157.5 359.8 156.8Q360.1 156 360.5 155.1Q361 154.1 361.4 153Q361.9 151.9 362.2 151.1Q362.7 150.3 363.1 149.6Q363.5 148.8 363.8 148.7Q364 148.6 364.5 148.8Q365.1 149 365.7 149.4Q366.2 149.8 366.5 150.1Q366.6 150.3 366.6 150.5Q366.6 150.8 366.4 151.3Q366.2 151.8 365.7 152.9Q365.1 154 364.2 156Q362.9 158.7 362.3 160.4Q361.6 162.2 361.2 163.5Q360.7 164.8 360.3 165.9L360.1 166.9L361.2 165.6Q361.7 165.2 362.1 164.8Q362.6 164.4 363.2 164Q363.6 163.7 364.1 163.4Q364.7 163.1 365.3 162.9Q365.9 162.7 366.1 162.6Q366.3 162.6 367 162.4Q367.8 162.3 368.6 162.3Q369.5 162.3 370.3 163Q371 163.7 371.6 164.6Q372 165.5 371.9 167Q371.8 168.4 371.2 169.4Q370.9 169.6 370.7 169.9Q370.5 170.2 370.5 170.3Q370.5 170.7 369.7 171.6Q369 172.5 368.2 173.4Q367.4 174.2 366.3 175Q365.1 175.8 364 176.5Q362.9 177.1 362.1 177.4Q361.7 177.4 361.1 177.5Q360.4 177.6 360.1 177.7ZM374.8 176.8Q374.4 176.5 373.9 176Q373.5 175.5 373.6 174.7Q373.7 173.4 373.9 172.5Q374.2 171.5 374.5 170.3Q374.6 169.8 374.9 168.5Q375.3 167.2 375.8 165.7Q376.4 164.2 376.9 162.9Q377.5 161.5 377.9 160.9Q378.4 160.4 379.4 160.4Q380.3 160.4 380.7 160.8Q381.2 161.2 381 162.2Q380.8 163.2 379.7 165.2Q379.5 165.8 379.2 166.4Q378.9 167 378.7 167.3Q378.6 167.7 378.8 167.7Q379.1 167.2 379.8 166.5Q380.5 165.9 381.3 165.3Q382.1 164.7 382.8 164.2Q383.5 163.7 383.7 163.6Q384.1 163.3 384.6 163.2Q385 163 385.2 163Q386.2 162.5 387.4 162.6Q388.6 162.7 388.9 163.3Q388.9 163.7 389.2 163.9Q389.4 164.1 389.4 164.1Q389.6 164.1 389.6 164.2Q389.6 164.3 389.6 164.3Q389.6 164.6 389.1 165.2Q388.5 165.8 387.8 165.8Q387.2 165.9 386.7 166Q386.3 166.2 385.7 166.5Q384 167.4 382.7 168.2Q381.3 168.9 379.9 170.5Q379.6 170.8 379.3 171.1Q378.9 171.4 378.6 172Q378.3 172.2 378.1 173Q377.9 173.7 377.7 174.4Q377.6 175.1 377.6 175.2Q377.6 175.2 377.5 175.6Q377.3 176.1 377 176.5Q376.5 177.2 376 177.3Q375.5 177.5 374.8 176.8ZM390.6 176.8Q390.2 176.5 389.8 176Q389.3 175.5 389.4 174.7Q389.6 173.4 389.8 172.5Q390 171.5 390.3 170.3Q390.4 169.8 390.8 168.5Q391.1 167.2 391.7 165.7Q392.2 164.2 392.8 162.9Q393.3 161.5 393.8 160.9Q394.3 160.4 395.2 160.4Q396.2 160.4 396.5 160.8Q397 161.2 396.8 162.2Q396.6 163.2 395.6 165.2Q395.4 165.8 395 166.4Q394.7 167 394.6 167.3Q394.4 167.7 394.7 167.7Q394.9 167.2 395.6 166.5Q396.3 165.9 397.1 165.3Q397.9 164.7 398.6 164.2Q399.3 163.7 399.6 163.6Q399.9 163.3 400.4 163.2Q400.9 163 401 163Q402.1 162.5 403.3 162.6Q404.5 162.7 404.7 163.3Q404.8 163.7 405 163.9Q405.3 164.1 405.3 164.1Q405.4 164.1 405.5 164.2Q405.5 164.3 405.5 164.3Q405.5 164.6 404.9 165.2Q404.3 165.8 403.6 165.8Q403 165.9 402.6 166Q402.1 166.2 401.5 166.5Q399.9 167.4 398.5 168.2Q397.2 168.9 395.8 170.5Q395.5 170.8 395.1 171.1Q394.7 171.4 394.4 172Q394.2 172.2 394 173Q393.7 173.7 393.6 174.4Q393.4 175.1 393.4 175.2Q393.4 175.2 393.3 175.6Q393.2 176.1 392.9 176.5Q392.3 177.2 391.8 177.3Q391.3 177.5 390.6 176.8ZM406.5 176.8Q406.1 176.5 405.6 176Q405.1 175.5 405.3 174.7Q405.4 173.4 405.6 172.5Q405.8 171.5 406.1 170.3Q406.2 169.8 406.6 168.5Q407 167.2 407.5 165.7Q408 164.2 408.6 162.9Q409.2 161.5 409.6 160.9Q410.1 160.4 411 160.4Q412 160.4 412.3 160.8Q412.8 161.2 412.7 162.2Q412.5 163.2 411.4 165.2Q411.2 165.8 410.9 166.4Q410.5 167 410.4 167.3Q410.3 167.7 410.5 167.7Q410.8 167.2 411.5 166.5Q412.2 165.9 413 165.3Q413.8 164.7 414.5 164.2Q415.2 163.7 415.4 163.6Q415.8 163.3 416.2 163.2Q416.7 163 416.9 163Q417.9 162.5 419.1 162.6Q420.3 162.7 420.6 163.3Q420.6 163.7 420.9 163.9Q421.1 164.1 421.1 164.1Q421.3 164.1 421.3 164.2Q421.3 164.3 421.3 164.3Q421.3 164.6 420.7 165.2Q420.1 165.8 419.4 165.8Q418.9 165.9 418.4 166Q418 166.2 417.4 166.5Q415.7 167.4 414.4 168.2Q413 168.9 411.6 170.5Q411.3 170.8 410.9 171.1Q410.6 171.4 410.2 172Q410 172.2 409.8 173Q409.6 173.7 409.4 174.4Q409.3 175.1 409.3 175.2Q409.3 175.2 409.1 175.6Q409 176.1 408.7 176.5Q408.2 177.2 407.7 177.3Q407.2 177.5 406.5 176.8ZM423.8 175.7Q423 176 422.4 176Q421.9 176 421.2 175.5Q420.4 174.7 420.6 173.9Q420.9 173.1 422.1 172.3Q422.9 171.8 423.2 171.8Q423.6 171.7 424.4 172.1Q425.7 172.9 425.6 173.9Q425.4 174.9 423.8 175.7ZM432.5 175.7Q431.7 176 431.1 176Q430.6 176 429.9 175.5Q429.1 174.7 429.4 173.9Q429.6 173.1 430.8 172.3Q431.6 171.8 431.9 171.8Q432.3 171.7 433.1 172.1Q434.4 172.9 434.3 173.9Q434.1 174.9 432.5 175.7ZM441.2 175.7Q440.4 176 439.8 176Q439.3 176 438.6 175.5Q437.8 174.7 438.1 173.9Q438.4 173.1 439.5 172.3Q440.3 171.8 440.7 171.8Q441 171.7 441.8 172.1Q443.1 172.9 443 173.9Q442.8 174.9 441.2 175.7Z{{end}}
-
-{{/* The mark in every section badge: a seal with a tick. */}}
-{{define "lp-badge"}}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.3 1.7 2.8-.1.9 2.7 2.3 1.6-.9 2.7.9 2.7-2.3 1.6-.9 2.7-2.8-.1L12 21.2l-2.3-1.7-2.8.1-.9-2.7-2.3-1.6.9-2.7-.9-2.7 2.3-1.6.9-2.7 2.8.1z"/><path d="M8.6 12.2l2.3 2.3 4.6-4.8"/></svg>{{end}}

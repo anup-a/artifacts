@@ -19,29 +19,32 @@ const exampleSlug = "q7mz4kd2xw5ntb3e"
 // landingData is the handful of facts the page cannot hardcode: where this
 // deployment's dashboard and published links actually live.
 type landingData struct {
-	siteData                       // the bar and footer every public page shares
-	APIOrigin    string            // what to pass to `byagent login --api`
-	APIHost      string            // the same without the scheme, for prose
-	KeysURL      string            // where a key is created
-	ShareHost    string            // host published links are served from
-	ExampleID    string            // a plausible artifact id for the samples
-	ExampleURL   string            // what a published link looks like here
-	CanonicalURL string            // the share origin's root, what search engines index
-	CardURL      string            // the 1200 x 630 link preview card, absolute
-	ShotURL      string            // the dashboard screenshot, content-hashed
-	ShotDarkURL  string            // the same view in the dark theme
-	ShotSet      string            // ShotURL at every width it is saved at
-	ShotDarkSet  string            // and ShotDarkURL
-	LandingCSS   string            // the page's own stylesheet
-	LandingJS    string            // and its script
-	Covers       map[string]string // page covers by name, for the pop-outs and the projects demo
-	CoversJSON   string            // the same map for the projects demo in landing.js
-	Showcase     []showcaseItem    // a few real pages from the showcase, without their threads
-	SignIn       bool              // a sign-in provider is configured
-	Guest        bool              // publishing without an account is on
-	Limits       config.Limits
-	FAQ          []faq
-	FAQJSON      template.JS // the same questions as a FAQPage data block
+	siteData                     // the bar and footer every public page shares
+	APIOrigin     string         // what to pass to `byagent login --api`
+	APIHost       string         // the same without the scheme, for prose
+	KeysURL       string         // where a key is created
+	ShareHost     string         // host published links are served from
+	ExampleID     string         // a plausible artifact id for the samples
+	ExampleURL    string         // what a published link looks like here
+	CanonicalURL  string         // the share origin's root, what search engines index
+	CardURL       string         // the 1200 x 630 link preview card, absolute
+	ShotURL       string         // the dashboard screenshot, content-hashed
+	ShotDarkURL   string         // the same view in the dark theme
+	ShotSet       string         // ShotURL at every width it is saved at
+	ShotDarkSet   string         // and ShotDarkURL
+	LandingCSS    string         // the page's own stylesheet
+	LandingJS     string         // and its script
+	ExampleThread string         // a plausible comment thread id for the samples
+	PageHost      string         // what a page's own origin looks like, "<slug>.byagent.dev"; empty without CONTENT_DOMAIN
+	Proxy         bool           // proxy routes run on this server
+	Domains       bool           // custom domains are on
+	DomainsTarget string         // the host a custom domain's CNAME points at
+	Showcase      []showcaseItem // a few real pages from the showcase, without their threads
+	SignIn        bool           // a sign-in provider is configured
+	Guest         bool           // publishing without an account is on
+	Limits        config.Limits
+	FAQ           []faq
+	FAQJSON       template.JS // the same questions as a FAQPage data block
 }
 
 // faq is one question at the foot of the landing page. The page shows the
@@ -66,13 +69,6 @@ func landingFAQ(lang string, l config.Limits) []faq {
 		{i18n.T(lang, "What happens when I delete a page?"), template.HTML(i18n.T(lang, `It is gone for good, with no email needed. The page goes offline at once, and its title, labels, versions, comments and view counts are erased straight away. Its files leave storage within a day, and backups age out after 5 days.`))},
 		{i18n.T(lang, "I'm an agent. What should I do first?"), template.HTML(i18n.T(lang, `Read <a class="link" href="/skill.md">skill.md</a> and follow it. To try it without a key, run <code>npx byagent publish ./page.html</code>.`))},
 	}
-}
-
-// coversJSON hands the cover URLs to the projects demo, which draws its cards
-// in the browser. The names are fixed file names, so this cannot fail.
-func coversJSON(m map[string]string) string {
-	b, _ := json.Marshal(m)
-	return string(b)
 }
 
 var htmlTag = regexp.MustCompile(`<[^>]+>`)
@@ -121,6 +117,9 @@ func wantsMarkdown(r *http.Request) bool {
 // exampleID is a made-up artifact id, the same shape the server issues.
 const exampleID = "k4m2Qv9pXz1A"
 
+// exampleThread is a made-up comment thread id, the same shape as well.
+const exampleThread = "th_Rk7wP2mQx9Lb"
+
 // originHost is the host part of a configured origin, for comparing against
 // the Host header of a request.
 func originHost(origin string) string {
@@ -155,30 +154,43 @@ func (h *Handler) landing(w http.ResponseWriter, r *http.Request) {
 	site := h.site(r)
 	site.Translated = true
 	h.render(w, r, 200, "landing", "byagent", nil, landingData{
-		siteData:     site,
-		APIOrigin:    h.Cfg.APIOrigin,
-		APIHost:      apiHost,
-		KeysURL:      h.Cfg.APIOrigin + "/app/keys",
-		ShareHost:    originHost(h.Cfg.ShareOrigin),
-		ExampleID:    exampleID,
-		ExampleURL:   h.pages().Page(exampleID, exampleSlug),
-		CanonicalURL: h.Cfg.ShareOrigin + "/",
-		CardURL:      h.Cfg.ShareOrigin + "/" + cardFile,
-		ShotURL:      h.static.shotURL,
-		ShotDarkURL:  h.static.shotDarkURL,
-		ShotSet:      h.static.shotSet,
-		ShotDarkSet:  h.static.shotDarkSet,
-		LandingCSS:   h.static.landingCSSURL,
-		LandingJS:    h.static.landingJSURL,
-		Covers:       h.static.coverURLs,
-		CoversJSON:   coversJSON(h.static.coverURLs),
-		SignIn:       h.Cfg.WebEnabled(),
-		Guest:        h.Cfg.GuestPublish,
-		Limits:       h.Cfg.Limits,
-		FAQ:          qs,
-		FAQJSON:      faqJSON(qs),
-		Showcase:     h.landingShowcase(r),
+		siteData:      site,
+		APIOrigin:     h.Cfg.APIOrigin,
+		APIHost:       apiHost,
+		KeysURL:       h.Cfg.APIOrigin + "/app/keys",
+		ShareHost:     originHost(h.Cfg.ShareOrigin),
+		ExampleID:     exampleID,
+		ExampleURL:    h.pages().Page(exampleID, exampleSlug),
+		CanonicalURL:  h.Cfg.ShareOrigin + "/",
+		CardURL:       h.Cfg.ShareOrigin + "/" + cardFile,
+		ShotURL:       h.static.shotURL,
+		ShotDarkURL:   h.static.shotDarkURL,
+		ShotSet:       h.static.shotSet,
+		ShotDarkSet:   h.static.shotDarkSet,
+		LandingCSS:    h.static.landingCSSURL,
+		LandingJS:     h.static.landingJSURL,
+		ExampleThread: exampleThread,
+		PageHost:      pageHost(h.Cfg.ContentDomain),
+		Proxy:         h.Cfg.VariablesEnabled(),
+		Domains:       h.Cfg.Domains.Provider != "",
+		DomainsTarget: h.Cfg.Domains.Target,
+		SignIn:        h.Cfg.WebEnabled(),
+		Guest:         h.Cfg.GuestPublish,
+		Limits:        h.Cfg.Limits,
+		FAQ:           qs,
+		FAQJSON:       faqJSON(qs),
+		Showcase:      h.landingShowcase(r),
 	})
+}
+
+// pageHost is how a page's own origin reads in prose: a slug label under the
+// content domain. Without a content domain pages share one origin, and the
+// landing page does not claim otherwise.
+func pageHost(contentDomain string) string {
+	if contentDomain == "" {
+		return ""
+	}
+	return "<slug>." + contentDomain
 }
 
 // landingShowcaseCards is how many showcase pages the landing page shows.
