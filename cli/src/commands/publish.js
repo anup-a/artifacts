@@ -107,6 +107,9 @@ export async function publish(cfg, { positional, flags, source, env = process.en
   }
   // The password is read before anything is sent, and the page goes up
   // private, so there is no moment where it is public without one.
+  if (cfg.local && (flags.password || flags.expires !== undefined)) {
+    throw usage("--password and --expires need byagent.dev; a --local page never leaves this machine");
+  }
   const password = flags.password ? await readPassword() : undefined;
   if (password !== undefined && [...password].length < 8) throw usage("the password must be at least 8 characters");
   const visibility = flags.private || password !== undefined ? "private" : flags.public ? "public" : undefined;
