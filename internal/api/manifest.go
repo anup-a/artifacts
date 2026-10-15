@@ -7,6 +7,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/anup-a/artifacts/internal/apierr"
 	"github.com/anup-a/artifacts/internal/config"
@@ -26,6 +28,12 @@ type manifest struct {
 	// off for the artifact. Absent means "leave it as it is" (on for a new
 	// artifact).
 	CommentsEnabled *bool `json:"comments_enabled"`
+	// StateEnabled, when present, turns page state (window.byagent.state)
+	// on or off. Absent leaves it as it is (on for a new artifact).
+	StateEnabled *bool `json:"state_enabled"`
+	// Summary is a short note on what this version changed, one change per
+	// line (summaryMax characters at most). Optional.
+	Summary string `json:"summary"`
 	// Omission preserves visibility on update; new artifacts default to public.
 	Visibility *string `json:"visibility"`
 	// Gallery labels. Omitted keys keep the current value on PUT; null clears
@@ -76,6 +84,9 @@ func parseManifest(raw []byte, lim config.Limits) (manifest, *apierr.Error) {
 		if f.Path == proxy.PathPrefix || strings.HasPrefix(f.Path, proxy.PathPrefix+"/") {
 			return m, apierr.Invalid(fmt.Sprintf("files[%d].path: %s/ is reserved for proxy routes", i, proxy.PathPrefix))
 		}
+		if f.Path == statePath {
+			return m, apierr.Invalid(fmt.Sprintf("files[%d].path: %s is reserved for page state", i, statePath))
+		}
 		if seen[f.Path] {
 			return m, apierr.Invalid("duplicate path " + f.Path)
 		}
@@ -107,7 +118,48 @@ func parseManifest(raw []byte, lim config.Limits) (manifest, *apierr.Error) {
 			}
 		}
 	}
+	summary, e := cleanSummary(m.Summary)
+	if e != nil {
+		return m, e
+	}
+	m.Summary = summary
 	return validateGallery(m)
+}
+
+// summaryMax is the longest version summary, in characters.
+const summaryMax = 1000
+
+// statePath is the page-state route below every page, which no file may
+// take (see serve.statePath).
+const statePath = "_state"
+
+// cleanSummary normalises a version summary: line endings to \n, each line
+// trimmed, blank lines dropped. It refuses control characters other than
+// line breaks and tabs, and anything over summaryMax characters.
+func cleanSummary(raw string) (string, *apierr.Error) {
+	if raw == "" {
+		return "", nil
+	}
+	if !utf8.ValidString(raw) {
+		return "", apierr.Invalid("summary must be UTF-8 text")
+	}
+	raw = strings.ReplaceAll(strings.ReplaceAll(raw, "\r\n", "\n"), "\r", "\n")
+	var lines []string
+	for _, line := range strings.Split(raw, "\n") {
+		for _, r := range line {
+			if r != '\t' && (unicode.IsControl(r) || r == 0x2028 || r == 0x2029) {
+				return "", apierr.Invalid("summary must not contain control characters")
+			}
+		}
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	out := strings.Join(lines, "\n")
+	if utf8.RuneCountInString(out) > summaryMax {
+		return "", apierr.Invalid(fmt.Sprintf("summary must be at most %d characters", summaryMax))
+	}
+	return out, nil
 }
 
 func validateGallery(m manifest) (manifest, *apierr.Error) {

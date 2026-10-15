@@ -196,7 +196,7 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 		return a, 0, apierr.Internal(err)
 	}
 	v := store.Version{ArtifactID: a.ID, Version: next, CreatedAt: s.Now(), Bytes: total, FileCount: len(files),
-		Agent: m.Agent, Model: m.Model, KeyName: k.Name}
+		Agent: m.Agent, Model: m.Model, KeyName: k.Name, Summary: m.Summary}
 	// Restrict access before storing any new content. If publishing later fails,
 	// the artifact stays private rather than exposing the attempted update.
 	if m.Visibility != nil && *m.Visibility == "private" && a.Visibility != "private" {
@@ -222,6 +222,12 @@ func (s *server) publishVersion(ctx context.Context, a store.Artifact, m manifes
 			return a, 0, apierr.Internal(err)
 		}
 		a.CommentsEnabled = *m.CommentsEnabled
+	}
+	if m.StateEnabled != nil && *m.StateEnabled != a.StateEnabled {
+		if err := s.Store.SetStateEnabled(ctx, a.ID, *m.StateEnabled); err != nil {
+			return a, 0, apierr.Internal(err)
+		}
+		a.StateEnabled = *m.StateEnabled
 	}
 	a, e = s.applyMetadata(ctx, a, m)
 	if e != nil {
@@ -286,8 +292,9 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := s.Now()
-	// CommentsEnabled mirrors the column default; the manifest may switch it off below.
-	a := store.Artifact{ID: ids.NewArtifactID(), Slug: ids.NewSlug(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, Visibility: "public", CommentsEnabled: true, CreatedAt: now, UpdatedAt: now}
+	// CommentsEnabled and StateEnabled mirror the column defaults; the
+	// manifest may switch them off below.
+	a := store.Artifact{ID: ids.NewArtifactID(), Slug: ids.NewSlug(), KeyID: k.ID, TenantID: k.TenantID, Title: m.Title, Visibility: "public", CommentsEnabled: true, StateEnabled: true, CreatedAt: now, UpdatedAt: now}
 	if m.Visibility != nil {
 		a.Visibility = *m.Visibility
 	}
@@ -322,6 +329,7 @@ func (s *server) createArtifact(w http.ResponseWriter, r *http.Request) {
 func (s *server) publishResponse(a store.Artifact, version int) map[string]any {
 	out := s.galleryFields(a)
 	out["id"], out["url"], out["version"], out["end_user"], out["comments_enabled"] = a.ID, s.artifactViewURL(a), version, a.EndUser, a.CommentsEnabled
+	out["state_enabled"] = a.StateEnabled
 	if a.ExpiresAt != nil {
 		for k, v := range s.guestFields(guestInfo{TenantID: a.TenantID, ExpiresAt: *a.ExpiresAt}) {
 			out[k] = v

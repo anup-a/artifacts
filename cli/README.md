@@ -63,7 +63,7 @@ byagent publish ./notes.md --project "Personal" --tag notes --json
 - The directory's `.artifacts.json` remembers the artifact id, project and tags, so publishing the same directory again updates the same URL.
 - A `.byagent.json` at a project root, `{"collection": "Puzzled"}`, makes that collection the default `--project` for every publish below it. The nearest one wins, so a monorepo can give each app its own. It holds no key, so commit it.
 
-Flags: `--private | --public`, `--comments | --no-comments`, `--project <name>`, `--tag <t>` (repeatable), `--cover <image>`, `--cover-style dots|grid|lines|wash|rings|plain`, `--end-user <id>`, `--id <id>`, `--lang <tag>` (Markdown only).
+Flags: `--private | --public`, `--comments | --no-comments`, `--state | --no-state`, `--summary "<what changed>"`, `--project <name>`, `--tag <t>` (repeatable), `--cover <image>`, `--cover-style dots|grid|lines|wash|rings|plain`, `--end-user <id>`, `--id <id>`, `--lang <tag>` (Markdown only).
 
 ## Agent hooks
 
@@ -110,7 +110,8 @@ byagent list [--project <name>]
 byagent collections                    # every --project label: count, last update, share URL
 byagent collection <name>              # one collection's artifacts in reading order, with urls
 byagent share <id> [--off]             # six-digit code for a private artifact; rerun to rotate
-byagent versions <id>                  # history, live version marked, owner-only preview links
+byagent versions <id>                  # history with summaries, live version marked, owner-only preview links
+byagent state <id> [--clear]           # the page's shared state (window.byagent.state) as JSON; --clear empties it
 byagent rollback <id> <version>        # make an old version live again; nothing re-uploaded
 byagent version rm <id> <version>      # delete one old version for good (never the live one)
 byagent diff <id> <from> [<to>]        # files added, removed and changed between versions

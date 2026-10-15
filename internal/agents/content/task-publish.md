@@ -21,6 +21,8 @@ byagent publish ./site --title "Q3 plan" --project "<collection>" --tag plan --j
 - Republish from the **same** directory to update the same link (`.artifacts.json` binds it). A new directory makes a new link.
 - `--private` limits the page to workspace members; `--public` opens it. Without either, a republish keeps the current visibility.
 - `--no-comments` hides the comment panel; `--comments` turns it back on.
+- On a republish, `--summary "added the chart\nfixed the totals"` records what changed, one change per line; `byagent versions` shows it.
+- An HTML page can keep what readers set (checkboxes, votes, form fields) in `window.byagent.state`, shared by everyone who opens the page: see "Pages that remember" in the skill ({{.Share}}/skill.md). `byagent state <id> --json` reads it back; `--no-state` turns it off.
 
 ## Limits on this server
 

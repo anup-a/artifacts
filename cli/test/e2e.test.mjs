@@ -367,7 +367,7 @@ test("comments --wait returns when a reader replies in an existing thread", asyn
   assert.equal(res.threads[0].comments.at(-1).body, "Monday works");
 });
 
-test("publish --no-comments removes the runtime and closes the viewer API; --comments restores them", async () => {
+test("publish --no-comments drops the panel and closes the viewer API; --comments restores them", async () => {
   const dir = siteDir("<p>Quiet page.</p>");
   const off = json(["publish", dir, "--no-comments"]);
   assert.equal(off.comments_enabled, false);
@@ -376,7 +376,8 @@ test("publish --no-comments removes the runtime and closes the viewer API; --com
 
   let page = await (await fetch(`${BASE}/a/${off.id}/`)).text();
   assert.match(page, /Quiet page/);
-  assert.doesNotMatch(page, /_rt\/comments\.js/);
+  // The runtime stays for page state only, told to draw no panel.
+  assert.match(page, /_rt\/comments\.js[^>]*data-comments="off"/);
   assert.equal((await fetch(`${BASE}/c/${off.id}/comments`)).status, 404);
   const attempt = await fetch(`${BASE}/c/${off.id}/comments`, {
     method: "POST",
@@ -394,11 +395,39 @@ test("publish --no-comments removes the runtime and closes the viewer API; --com
   assert.equal(on.comments_enabled, true);
   page = await (await fetch(`${BASE}/a/${off.id}/`)).text();
   assert.match(page, /_rt\/comments\.js/);
+  assert.doesNotMatch(page, /data-comments="off"/);
   assert.equal((await fetch(`${BASE}/c/${off.id}/comments`)).status, 200);
 
   const both = run(["publish", dir, "--comments", "--no-comments", "--json"]);
   assert.equal(both.code, 2);
   assert.match(JSON.parse(both.stderr).error.message, /mutually exclusive/);
+});
+
+test("page state: the page writes it, state shows and clears it, --no-state turns it off", async () => {
+  const dir = siteDir("<p>Checklist.</p>");
+  const pub = json(["publish", dir, "--summary", "first draft\\nadded the checklist"]);
+  assert.equal(pub.state_enabled, true);
+  const route = `${BASE}/a/${pub.id}/_state`;
+  const fromPage = { Origin: BASE, "Content-Type": "application/json" };
+  const wrote = await fetch(route, { method: "POST", headers: fromPage, body: JSON.stringify({ items: { done: true } }) });
+  assert.equal(wrote.status, 200);
+  assert.deepEqual(JSON.parse(run(["state", pub.id]).stdout), { done: true });
+  assert.equal(json(["state", pub.id]).revision, 1);
+
+  // A republish leaves state alone and carries its own summary.
+  json(["publish", dir, "--summary", "tightened copy"]);
+  assert.deepEqual(json(["state", pub.id]).items, { done: true });
+  const vs = json(["versions", pub.id]).versions;
+  assert.deepEqual(vs.map((v) => v.summary), ["first draft\nadded the checklist", "tightened copy"]);
+  assert.match(run(["versions", pub.id]).stdout, /- added the checklist/);
+
+  assert.match(run(["state", pub.id, "--clear"]).stdout, /cleared/);
+  assert.deepEqual(json(["state", pub.id]).items, {});
+
+  const off = json(["publish", dir, "--no-state"]);
+  assert.equal(off.state_enabled, false);
+  assert.match(run(["get", pub.id]).stdout, /page state off/);
+  assert.equal((await fetch(route, { headers: { Origin: BASE } })).status, 404);
 });
 
 test("publish --project/--tag/--cover labels the artifact, serves the cover and filters list", async () => {

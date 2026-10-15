@@ -25,7 +25,7 @@ func (s *server) artifactView(r *http.Request, a store.Artifact) (map[string]any
 	out := s.galleryFields(a)
 	for k, v := range map[string]any{
 		"id": a.ID, "title": a.Title, "url": s.artifactViewURL(a), "current_version": a.CurrentVersion,
-		"versions_count": len(vs), "open_comments": open, "comments_enabled": a.CommentsEnabled, "end_user": a.EndUser,
+		"versions_count": len(vs), "open_comments": open, "comments_enabled": a.CommentsEnabled, "state_enabled": a.StateEnabled, "end_user": a.EndUser,
 		"created_at": a.CreatedAt, "updated_at": a.UpdatedAt, "published_at": a.CreatedAt,
 	} {
 		out[k] = v
@@ -146,7 +146,7 @@ func (s *server) listVersions(w http.ResponseWriter, r *http.Request) {
 	out := make([]map[string]any, 0, len(vs))
 	for _, v := range vs {
 		row := map[string]any{"version": v.Version, "created_at": v.CreatedAt, "bytes": v.Bytes, "files": v.FileCount, "comment_count": counts[v.Version],
-			"agent": v.Agent, "model": v.Model, "key": v.KeyName}
+			"agent": v.Agent, "model": v.Model, "key": v.KeyName, "summary": v.Summary}
 		for k, x := range s.versionFields(r, a, v) {
 			row[k] = x
 		}

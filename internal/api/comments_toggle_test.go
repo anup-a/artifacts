@@ -80,7 +80,8 @@ func TestCommentsSwitchViaManifest(t *testing.T) {
 	if b["artifacts"].([]any)[0].(map[string]any)["comments_enabled"] != false {
 		t.Fatalf("list: %v", b)
 	}
-	if body := pageBody(t, srv.URL+"/a/"+id+"/"); strings.Contains(body, "<script") || !strings.Contains(body, "hello world") {
+	// The runtime stays for page state, told to draw no panel.
+	if body := pageBody(t, srv.URL+"/a/"+id+"/"); !strings.Contains(body, `data-comments="off"`) || !strings.Contains(body, "hello world") {
 		t.Fatalf("page with comments off: %s", body)
 	}
 

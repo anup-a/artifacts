@@ -571,6 +571,11 @@ textarea { resize: vertical; line-height: 1.45; }
 .preview-frame { margin: 0 -20px; border-top: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; background: #fff; }
 .preview-frame iframe { display: block; width: 100%; height: 440px; border: 0; background: #fff; }
 .table tr.is-current td { background: color-mix(in srgb, var(--ok-soft) 50%, transparent); }
+/* A version's summary sits under its row, one change per line. */
+.table tr.has-changes td { border-bottom: 0; }
+.table tr.ver-changes td { height: auto; padding-bottom: 12px; color: var(--muted); font-size: 13px; }
+.table tr.ver-changes ul { margin: 0; padding-left: 18px; }
+.table tr.ver-changes li + li { margin-top: 2px; }
 
 /* ---- Comments ---------------------------------------------------- */
 .threads { display: flex; flex-direction: column; gap: 12px; }

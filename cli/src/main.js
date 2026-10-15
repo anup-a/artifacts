@@ -3,7 +3,7 @@ import { resolveConfig, trimSlash } from "./config.js";
 import { createGuest } from "./guest.js";
 import { CliError, usage } from "./errors.js";
 import { publish } from "./commands/publish.js";
-import { get, list, pull, share, versions, rollback, remove, expire } from "./commands/artifacts.js";
+import { get, list, pull, share, versions, rollback, remove, expire, state } from "./commands/artifacts.js";
 import { comments, reply, resolve, mark } from "./commands/comments.js";
 import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
@@ -30,6 +30,7 @@ const COMMANDS = {
   collection: { run: collection, needsConfig: true },
   share: { run: share, needsConfig: true },
   versions: { run: versions, needsConfig: true },
+  state: { run: state, needsConfig: true },
   rollback: { run: rollback, needsConfig: true },
   version: { run: version, needsConfig: true },
   diff: { run: diff, needsConfig: true },
@@ -59,7 +60,8 @@ Usage:
   byagent login --guest
   byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>]
                   [--private|--public]
-                  [--comments|--no-comments] [--project <name>] [--tag <t>]...
+                  [--comments|--no-comments] [--state|--no-state]
+                  [--summary "<what changed>"] [--project <name>] [--tag <t>]...
                   [--cover <file>] [--cover-style dots|grid|lines|wash|rings|plain]
                   [--lang <tag>]
                   [--agent <name>] [--model <name>] [--expires <when>]
@@ -76,6 +78,7 @@ Usage:
   byagent whoami
   byagent portal-link <end-user id>
   byagent versions <id>
+  byagent state <id> [--clear]
   byagent rollback <id> <version>
   byagent version rm <id> <version>
   byagent diff <id> <from> [<to>]
@@ -128,6 +131,16 @@ include end_user. portal-link is for integrator workspaces; links last 7 days.
 comment API for that artifact; --comments turns it back on. Without either,
 a republish keeps the current setting (new artifacts start with comments on).
 Artifact JSON carries comments_enabled.
+--summary records what this version changed, shown by versions and on the
+dashboard: one change per line, separated by newlines or a literal \\n
+("added the chart\\nfixed the totals"), 1000 characters at most.
+A published page's script can keep shared state in window.byagent.state:
+get, all, set, delete, patch and on("change"). Everyone who can open the page
+reads and writes the same values; writes never make a version. state <id>
+prints it as JSON, state <id> --clear empties it, and deleting the page
+erases it. --no-state turns it off for the page (--state back on); without
+either a republish keeps the current setting. Artifact JSON carries
+state_enabled.
 comments --wait blocks until a reader leaves a new comment (a new thread or a
 reply in an old one), then prints the threads holding it and exits; owner
 replies never wake it. It polls every --interval seconds (default 20) and gives

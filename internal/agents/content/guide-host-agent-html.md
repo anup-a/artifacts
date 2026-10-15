@@ -29,6 +29,23 @@ No CLI yet? `npm install -g byagent`, or `npx byagent publish ...`. The first pu
 - Scripts from `cdnjs.cloudflare.com` and `cdn.jsdelivr.net`, and fonts from Google Fonts, load. Pin the versions.
 - {{.MB}} MB and {{.Limits.Files}} files per version on this server.
 
+## Pages that remember
+
+A page can keep what readers set (checkboxes, votes, form fields) in `window.byagent.state`. It is stored with the page, shared by everyone who can open it, and survives reloads and republishes:
+
+```js
+addEventListener("DOMContentLoaded", async () => {
+  const state = window.byagent?.state;
+  if (!state) return;
+  const box = document.querySelector("#done");
+  box.checked = (await state.get("done")) === true;
+  box.addEventListener("change", () => state.set("done", box.checked));
+  state.on("change", async () => (box.checked = (await state.get("done")) === true));
+});
+```
+
+Values are JSON, up to 64 KiB each and 2 MiB per page. Anyone who can open the page can change them, so keep secrets out. `byagent state <id>` shows the stored values.
+
 ## Comments on HTML
 
 Readers can comment on any text in the page, so write prose as real text, not images. The comment panel is added by byagent, so the page doesn't need its own. `--no-comments` turns it off for a page that shouldn't take feedback.

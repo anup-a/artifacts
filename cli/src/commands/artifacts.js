@@ -50,7 +50,7 @@ export async function get(cfg, { positional }) {
       `${a.url}`,
       `visibility ${a.visibility || "public"}${a.share_code ? `, shared with code ${a.share_code}` : ""}`,
       ...(a.share_url ? [`share link ${a.share_url}`] : []),
-      `version ${a.current_version} of ${a.versions_count}, ${a.open_comments} open comments${a.comments_enabled === false ? " (comments off)" : ""}`,
+      `version ${a.current_version} of ${a.versions_count}, ${a.open_comments} open comments${a.comments_enabled === false ? " (comments off)" : ""}${a.state_enabled === false ? " (page state off)" : ""}`,
       ...(labels ? [labels] : []),
       `updated ${a.updated_at}`,
     ],
@@ -100,7 +100,9 @@ export async function versions(cfg, { positional }) {
       // preview_url opens the version for the owner only (dashboard sign-in);
       // older servers send neither field.
       const link = v.preview_url || v.url;
-      return link ? [line, `    ${link}`] : [line];
+      // summary is one change per line; older servers send none.
+      const changes = v.summary ? v.summary.split("\n").map((c) => `    - ${c}`) : [];
+      return [line, ...changes, ...(link ? [`    ${link}`] : [])];
     }),
   };
 }
@@ -208,4 +210,18 @@ export async function expire(cfg, { positional }) {
   const when = parseWhen(positional[1]);
   const a = await setExpiry(cfg, positional[0], when);
   return { json: a, human: [when ? `${a.id} stops working at ${a.expires_at}, then is erased` : `${a.id} no longer expires`] };
+}
+
+// state prints a page's shared state (what window.byagent.state holds for
+// every reader) as JSON; --clear empties it. Writes from the page never make
+// a version, so this is the only place to see them besides the page itself.
+export async function state(cfg, { positional, flags }) {
+  need(positional, 1, "usage: byagent state <id> [--clear]");
+  const path = `/api/artifacts/${encodeURIComponent(positional[0])}/state`;
+  if (flags.clear) {
+    const res = await apiJson(cfg, "DELETE", path);
+    return { json: res, human: [`cleared the page state of ${res.id} (revision ${res.revision})`] };
+  }
+  const res = await apiJson(cfg, "GET", path);
+  return { json: res, human: [JSON.stringify(res.items || {}, null, 2)] };
 }

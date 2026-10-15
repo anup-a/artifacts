@@ -42,6 +42,19 @@ type versionView struct {
 	// Preview opens the version in the signed-in, sandboxed viewer on this
 	// origin: owner-only, and never counted as a view.
 	Preview string
+	// Changes is the publisher's summary, one change per line.
+	Changes []string
+}
+
+// summaryLines splits a version summary into its changes, one per line.
+func summaryLines(summary string) []string {
+	var out []string
+	for _, line := range strings.Split(summary, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			out = append(out, line)
+		}
+	}
+	return out
 }
 
 func versionBy(v store.Version) string {
@@ -196,7 +209,8 @@ func (h *Handler) renderArtifactWith(w http.ResponseWriter, r *http.Request, sta
 		vv := vs[i]
 		d.Versions = append(d.Versions, versionView{N: vv.Version, CreatedAt: vv.CreatedAt, Bytes: vv.Bytes, FileCount: vv.FileCount,
 			Current: vv.Version == a.CurrentVersion, Comments: counts[vv.Version], By: versionBy(vv), Key: vv.KeyName,
-			RestoredAt: vv.RestoredAt, Preview: h.Cfg.APIOrigin + "/app/view/" + a.ID + "/v/" + strconv.Itoa(vv.Version) + "/"})
+			RestoredAt: vv.RestoredAt, Preview: h.Cfg.APIOrigin + "/app/view/" + a.ID + "/v/" + strconv.Itoa(vv.Version) + "/",
+			Changes: summaryLines(vv.Summary)})
 	}
 	threads, err := h.Store.Threads(ctx, a.ID, "", time.Time{}, 0)
 	if err != nil {

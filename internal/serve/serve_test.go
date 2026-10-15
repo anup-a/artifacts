@@ -116,24 +116,37 @@ func TestCommentsOffServesPageWithoutRuntime(t *testing.T) {
 	srv, st, id := fixture(t)
 	ctx := context.Background()
 	res, body := get(t, srv.URL+"/a/"+id+"/", nil)
-	if res.StatusCode != 200 || !strings.Contains(body, "/_rt/comments.js") {
+	if res.StatusCode != 200 || !strings.Contains(body, "/_rt/comments.js") || strings.Contains(body, "data-comments") {
 		t.Fatalf("enabled: %d %s", res.StatusCode, body)
 	}
 	onTag := res.Header.Get("ETag")
+	// Comments off with page state on: the runtime stays for state only.
 	if err := st.SetCommentsEnabled(ctx, id, false); err != nil {
+		t.Fatal(err)
+	}
+	res, body = get(t, srv.URL+"/a/"+id+"/", nil)
+	if res.StatusCode != 200 || !strings.Contains(body, `data-comments="off" defer></script>`) {
+		t.Fatalf("comments off, state on: %d %s", res.StatusCode, body)
+	}
+	stateTag := res.Header.Get("ETag")
+	if stateTag == onTag {
+		t.Fatal("ETag must change when comments go off, or caches serve the panel")
+	}
+	// Both off: no runtime at all.
+	if err := st.SetStateEnabled(ctx, id, false); err != nil {
 		t.Fatal(err)
 	}
 	for _, path := range []string{"/a/" + id + "/", "/a/" + id + "/v/1/"} {
 		res, body = get(t, srv.URL+path, nil)
 		if res.StatusCode != 200 || strings.Contains(body, "<script") || strings.Contains(body, "data-artifact") {
-			t.Fatalf("%s: runtime injected with comments off: %d %s", path, res.StatusCode, body)
+			t.Fatalf("%s: runtime injected with comments and state off: %d %s", path, res.StatusCode, body)
 		}
 		if !strings.HasPrefix(res.Header.Get("Content-Type"), "text/html") || res.Header.Get("Content-Length") == "" {
 			t.Fatalf("%s: headers %v", path, res.Header)
 		}
 	}
 	res, _ = get(t, srv.URL+"/a/"+id+"/", nil)
-	if res.Header.Get("ETag") == onTag {
+	if tag := res.Header.Get("ETag"); tag == onTag || tag == stateTag {
 		t.Fatal("ETag must change when the runtime is dropped, or caches serve the injected page")
 	}
 	// A conditional request with the old (injected) tag is not a match.
@@ -145,7 +158,7 @@ func TestCommentsOffServesPageWithoutRuntime(t *testing.T) {
 		t.Fatalf("css %q", css)
 	}
 	_ = st.SetCommentsEnabled(ctx, id, true)
-	if _, body = get(t, srv.URL+"/a/"+id+"/", nil); !strings.Contains(body, `data-version="2"`) {
+	if _, body = get(t, srv.URL+"/a/"+id+"/", nil); !strings.Contains(body, `data-version="2"`) || strings.Contains(body, "data-comments") {
 		t.Fatalf("runtime not restored: %s", body)
 	}
 }

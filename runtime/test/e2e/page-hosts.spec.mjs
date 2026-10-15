@@ -19,12 +19,14 @@ const TOKEN = "e2e-pages-token";
 let server;
 
 /** Publish a directory of files; returns the publish output (id, url). */
-function publish(files, id, { visibility } = {}) {
+function publish(files, id, { visibility, manifest } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "artifacts-e2e-"));
   for (const [name, body] of Object.entries(files)) writeFileSync(join(dir, name), body);
   const args = ["run", "./scripts/e2e-publish.go", BASE, TOKEN, dir];
   if (id) args.push(id);
-  const env = visibility ? { ...process.env, ARTIFACT_VISIBILITY: visibility } : process.env;
+  const env = { ...process.env };
+  if (visibility) env.ARTIFACT_VISIBILITY = visibility;
+  if (manifest) env.ARTIFACT_MANIFEST = JSON.stringify(manifest);
   return JSON.parse(execFileSync("go", args, { cwd: REPO, encoding: "utf8", env }));
 }
 
@@ -178,4 +180,75 @@ test("one page cannot read or write another, even one the visitor unlocked", asy
   expect(res.status()).toBe(403);
   const owner = await api(`/api/artifacts/${secret.id}/comments`);
   expect(owner.threads).toHaveLength(0);
+});
+
+// A page that keeps state the way the guides teach it: a checkbox whose
+// value lives in window.byagent.state, read on load and on every change.
+const STATE_PAGE = `<!doctype html><html><head><title>Checklist</title></head><body>
+<label><input type="checkbox" id="done"> Ship it</label>
+<p id="status">loading</p>
+<script type="module">
+addEventListener("DOMContentLoaded", async () => {
+  const state = window.byagent && window.byagent.state;
+  if (!state) { document.querySelector("#status").textContent = "no state"; return; }
+  const box = document.querySelector("#done");
+  const show = async () => {
+    box.checked = (await state.get("done")) === true;
+    document.querySelector("#status").textContent = box.checked ? "done" : "open";
+  };
+  box.addEventListener("change", () => state.set("done", box.checked));
+  state.on("change", show);
+  await show();
+});
+</script></body></html>`;
+
+test("page state is shared by every reader of a page and by no other page", async ({ browser }) => {
+  const a = publish({ "index.html": STATE_PAGE });
+  const b = publish({ "index.html": STATE_PAGE });
+  const alice = await (await browser.newContext()).newPage();
+  const bob = await (await browser.newContext()).newPage();
+  await alice.goto(a.url);
+  await bob.goto(a.url);
+  await expect(alice.locator("#status")).toHaveText("open");
+  await expect(bob.locator("#status")).toHaveText("open");
+
+  await alice.locator("#done").check();
+  await expect(alice.locator("#status")).toHaveText("done");
+  // Bob's page picks it up on its next check (every 15 s, or on focus).
+  await bob.evaluate(() => window.byagent.state.refresh());
+  await expect(bob.locator("#status")).toHaveText("done");
+  // And a fresh load remembers it.
+  await bob.reload();
+  await expect(bob.locator("#status")).toHaveText("done");
+
+  // The other page has state of its own.
+  await bob.goto(b.url);
+  await expect(bob.locator("#status")).toHaveText("open");
+  // Its script cannot reach page A's state, by URL or by form post.
+  const tried = await bob.evaluate(async (origin) => {
+    try {
+      return (await fetch(`${origin}/_state`, { credentials: "include" })).status;
+    } catch {
+      return "blocked";
+    }
+  }, new URL(a.url).origin);
+  expect(tried).toBe("blocked");
+
+  const owner = await api(`/api/artifacts/${a.id}/state`);
+  expect(owner.items).toEqual({ done: true });
+  expect((await api(`/api/artifacts/${b.id}/state`)).items).toEqual({});
+});
+
+test("with comments off the runtime only offers state, and --no-state removes it", async ({ page }) => {
+  const quiet = publish({ "index.html": STATE_PAGE }, undefined, { manifest: { comments_enabled: false } });
+  await page.goto(quiet.url);
+  await expect(page.locator("#status")).toHaveText("open");
+  await expect(page.locator("#artifacts-rt")).toHaveCount(0);
+  await page.locator("#done").check();
+  await expect.poll(async () => (await api(`/api/artifacts/${quiet.id}/state`)).items).toEqual({ done: true });
+
+  publish({ "index.html": STATE_PAGE }, quiet.id, { manifest: { state_enabled: false } });
+  await page.reload();
+  await expect(page.locator("#status")).toHaveText("no state");
+  expect(await page.locator("script[data-artifact]").count()).toBe(0);
 });

@@ -15,8 +15,9 @@ import (
 // PageHost is a request being answered on a page's own host,
 // https://{slug}.{CONTENT_DOMAIN}/. The host serves that page and nothing
 // else: its content at /, pinned versions at /v/{n}/, the cover at
-// /_cover.svg, the gate's form at /_unlock, the comment runtime at
-// /_rt/comments.js and the page's comment routes at /c/{its id}/.
+// /_cover.svg, the gate's form at /_unlock, the page's state at /_state,
+// the comment runtime at /_rt/comments.js and the page's comment routes at
+// /c/{its id}/.
 //
 // That is what makes a page an origin of its own. Its script can read and
 // write only its own host, and the cookies a visitor holds for it (an
@@ -159,6 +160,8 @@ func (h *Handler) pageRoutes() map[string]http.HandlerFunc {
 		http.MethodPost + " " + accessCodePath:  h.submitAccessCode,
 		http.MethodGet + " " + accessLinkPath:   h.openAccessLink,
 		http.MethodPost + " " + accessLinkPath:  h.confirmAccessLink,
+		http.MethodGet + " " + statePath:        h.readState,
+		http.MethodPost + " " + statePath:       h.writeState,
 	}
 }
 

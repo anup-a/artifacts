@@ -56,6 +56,10 @@ type Artifact struct {
 	// /c/* routes. New artifacts start enabled; CreateArtifact ignores this
 	// field and SetCommentsEnabled changes it.
 	CommentsEnabled bool
+	// StateEnabled is whether the page's script may use page state
+	// (window.byagent.state and the page's _state route). New artifacts
+	// start enabled; SetStateEnabled changes it.
+	StateEnabled bool
 	// Project and Tags are publisher-supplied labels for the gallery. Tags is
 	// never nil when read back: an artifact without tags has an empty slice.
 	Project *string
@@ -125,6 +129,9 @@ type Version struct {
 	// RestoredAt is when a restore last made this version live again; nil
 	// when it never was.
 	RestoredAt *time.Time
+	// Summary is the publisher's short note on what changed, one change
+	// per line; empty when none was given.
+	Summary string
 }
 
 type File struct {
@@ -201,6 +208,7 @@ type Store interface {
 	AccessStore
 	VariableStore
 	DomainStore
+	StateStore
 	Migrate(ctx context.Context) error
 	CreateKey(ctx context.Context, hash, email string) (Key, error)
 	// CreateGuest makes a guest workspace with one key, for publishing
@@ -227,6 +235,7 @@ type Store interface {
 	Totals(ctx context.Context, now time.Time) (Totals, error)
 	UpdateTitle(ctx context.Context, id, title string) error
 	SetCommentsEnabled(ctx context.Context, id string, on bool) error
+	SetStateEnabled(ctx context.Context, id string, on bool) error
 	SetVisibility(ctx context.Context, id, visibility string) error
 	// SetShareCode stores or clears a share code and its end (nil: none).
 	SetShareCode(ctx context.Context, id, code string, expires *time.Time) error

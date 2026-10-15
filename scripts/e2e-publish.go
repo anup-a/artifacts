@@ -58,6 +58,11 @@ func main() {
 	if v := os.Getenv("ARTIFACT_VISIBILITY"); v != "" {
 		m["visibility"] = v
 	}
+	// ARTIFACT_MANIFEST is JSON merged into the manifest, for fields the
+	// suite needs now and then (comments_enabled, state_enabled, summary).
+	if extra := os.Getenv("ARTIFACT_MANIFEST"); extra != "" {
+		check(json.Unmarshal([]byte(extra), &m))
+	}
 	manifest, _ := json.Marshal(m)
 	fw, err := w.CreateFormField("manifest")
 	check(err)
