@@ -48,7 +48,7 @@
 }
 .bare:has(.lp3) { background: var(--bg); }
 
-.landing.lp3 { max-width: none; padding: 0 0 56px; color: var(--ink); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.landing.lp3 { max-width: none; padding: 0 0 56px; overflow-x: clip; color: var(--ink); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 .landing.lp3::before { display: none; }
 .lp3 a { text-decoration: none; }
 .lp3 h2 { margin: 12px 0 0; font: 700 clamp(30px, 4vw, 42px)/1.12 var(--sans); letter-spacing: -.04em; color: var(--ink); }
