@@ -275,6 +275,33 @@ test("diff lists the files that changed between versions", () => {
   assert.match(human.stdout, /- old\.css/);
 });
 
+test("pull reads a private page back with the key alone", () => {
+  const dir = siteDir("<h1>one</h1>");
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0xff]);
+  writeFileSync(join(dir, "assets", "dot.png"), png);
+  const pub = json(["publish", dir, "--private"]);
+  writeFileSync(join(dir, "index.html"), "<!doctype html><html><body><h1>two</h1></body></html>");
+  json(["publish", dir]);
+
+  const out = join(tmp("artifacts-pull-"), "page");
+  const p = json(["pull", pub.id, out]);
+  assert.equal(p.version, 2);
+  assert.deepEqual(p.files.map((f) => f.path), ["assets/app.css", "assets/dot.png", "index.html"]);
+  assert.match(readFileSync(join(out, "index.html"), "utf8"), /<h1>two<\/h1>/);
+  assert.ok(readFileSync(join(out, "assets", "dot.png")).equals(png), "binary files survive the round trip");
+
+  const old = join(tmp("artifacts-pull-"), "v1");
+  assert.equal(json(["pull", pub.id, old, "--at", "v1"]).version, 1);
+  assert.match(readFileSync(join(old, "index.html"), "utf8"), /<h1>one<\/h1>/);
+
+  // A non-empty directory is never written into.
+  const again = run(["pull", pub.id, out, "--json"]);
+  assert.equal(again.code, 2);
+  const missing = run(["pull", pub.id, join(tmp("artifacts-pull-"), "x"), "--at", "9", "--json"]);
+  assert.equal(missing.code, 1);
+  assert.equal(JSON.parse(missing.stderr).error.code, "NOT_FOUND");
+});
+
 test("comments, reply and resolve walk a viewer thread end to end", async () => {
   const dir = siteDir("<p>The quick brown fox.</p>");
   const pub = json(["publish", dir]);

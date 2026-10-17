@@ -105,6 +105,7 @@ The value is read from stdin (or a hidden prompt, or `--from-env VAR`), never fr
 
 ```
 byagent get <id>                       # url, title, version, open comments, labels, share link
+byagent pull <id> [<dir>] [--at <v>]   # download a page's files as published, private ones too
 byagent list [--project <name>]
 byagent collections                    # every --project label: count, last update, share URL
 byagent collection <name>              # one collection's artifacts in reading order, with urls

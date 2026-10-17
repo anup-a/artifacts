@@ -119,6 +119,10 @@ test("republishing makes v2; versions, diff, rollback and old-version links work
   const d = json(["diff", id, "1", "--local"]);
   assert.deepEqual([d.added.length, d.removed.length, d.changed.length, d.unchanged], [1, 0, 1, 1]);
   assert.match(await (await fetch(`${BASE}/a/${id}/v/1/`)).text(), /Plan v1/);
+  const out = join(mkdtempSync(join(tmpdir(), "byagent-pull-")), "page");
+  const p = json(["pull", id, out, "--at", "1", "--local"]);
+  assert.equal(p.version, 1);
+  assert.match(readFileSync(join(out, "index.html"), "utf8"), /Plan v1/);
 
   assert.equal(json(["rollback", id, "v1", "--local"]).previous_version, 2);
   assert.match(await (await fetch(`${BASE}/a/${id}/`)).text(), /Plan v1/);

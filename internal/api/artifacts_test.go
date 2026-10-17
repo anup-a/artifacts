@@ -144,4 +144,46 @@ func TestArtifactFileReadsSourceBack(t *testing.T) {
 	if code, _, _ = read("brief.md", mintKey(t, d, "personal")); code != 404 {
 		t.Fatalf("other workspace: %d", code)
 	}
+	if code, _, _ = read("brief.md?version=9", tok); code != 404 {
+		t.Fatalf("missing version: %d", code)
+	}
+}
+
+func TestListArtifactFiles(t *testing.T) {
+	srv, d, tok := newTestServer(t, false)
+	_, b := do(t, publishReq(t, "POST", srv.URL+"/api/artifacts", tok, "Page", []pubFile{{"index.html", "<h1>v1</h1>"}}, nil))
+	id := b["id"].(string)
+	if code, _ := do(t, publishReq(t, "PUT", srv.URL+"/api/artifacts/"+id, tok, "Page", []pubFile{{"index.html", "<h1>v2</h1>"}, {"css/site.css", "a{}"}}, nil)); code != 200 {
+		t.Fatal(code)
+	}
+	list := func(query, tok string) (int, map[string]any) {
+		t.Helper()
+		return do(t, authReq(t, "GET", srv.URL+"/api/artifacts/"+id+"/files"+query, tok))
+	}
+	paths := func(b map[string]any) []string {
+		var out []string
+		for _, f := range b["files"].([]any) {
+			out = append(out, f.(map[string]any)["path"].(string))
+		}
+		return out
+	}
+	code, b := list("", tok)
+	if code != 200 || b["version"].(float64) != 2 || strings.Join(paths(b), ",") != "css/site.css,index.html" {
+		t.Fatalf("current: %d %v", code, b)
+	}
+	if f := b["files"].([]any)[1].(map[string]any); f["size"].(float64) != 11 || !strings.HasPrefix(f["content_type"].(string), "text/html") {
+		t.Fatalf("entry %v", f)
+	}
+	if code, b = list("?version=1", tok); code != 200 || b["version"].(float64) != 1 || b["current_version"].(float64) != 2 || strings.Join(paths(b), ",") != "index.html" {
+		t.Fatalf("pinned: %d %v", code, b)
+	}
+	if code, _ = list("?version=9", tok); code != 404 {
+		t.Fatalf("missing version: %d", code)
+	}
+	if code, _ = list("?version=x", tok); code != 400 {
+		t.Fatalf("bad version: %d", code)
+	}
+	if code, _ = list("", mintKey(t, d, "personal")); code != 404 {
+		t.Fatalf("other workspace: %d", code)
+	}
 }

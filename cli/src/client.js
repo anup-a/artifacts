@@ -23,21 +23,32 @@ async function send(cfg, method, path, { query, body, headers } = {}) {
   return res;
 }
 
-// apiText returns a raw body, such as a published file read back. Errors
-// carry the server's code like apiJson's do.
-export async function apiText(cfg, method, path, opts = {}) {
-  const res = await send(cfg, method, path, opts);
-  const text = await res.text();
-  if (res.ok) return text;
+// rawError turns a failed raw read into a CliError carrying the server's code
+// like apiJson's do.
+async function rawError(res) {
   let e = {};
   try {
-    e = JSON.parse(text).error || {};
+    e = JSON.parse(await res.text()).error || {};
   } catch {}
-  throw new CliError(e.message || `request failed with ${res.status}`, {
+  return new CliError(e.message || `request failed with ${res.status}`, {
     code: e.code || "HTTP_ERROR",
     status: res.status,
     requestId: res.headers.get("X-Request-Id") || "",
   });
+}
+
+// apiText returns a raw body, such as a published file read back.
+export async function apiText(cfg, method, path, opts = {}) {
+  const res = await send(cfg, method, path, opts);
+  if (!res.ok) throw await rawError(res);
+  return res.text();
+}
+
+// apiBytes is apiText for files that may not be text, such as images.
+export async function apiBytes(cfg, method, path, opts = {}) {
+  const res = await send(cfg, method, path, opts);
+  if (!res.ok) throw await rawError(res);
+  return Buffer.from(await res.arrayBuffer());
 }
 
 // apiJson returns the parsed body, or null for 204. Any non-2xx becomes a

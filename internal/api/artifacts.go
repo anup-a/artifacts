@@ -155,29 +155,57 @@ func (s *server) listVersions(w http.ResponseWriter, r *http.Request) {
 	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "current_version": a.CurrentVersion, "versions": out})
 }
 
+// versionFiles reads the files of the current version, or of ?version=N,
+// for a key that owns the artifact. A version with no files does not exist:
+// every publish ships at least one.
+func (s *server) versionFiles(r *http.Request) (store.Artifact, int, []store.File, *apierr.Error) {
+	a, e := s.ownedArtifact(r, r.PathValue("id"))
+	if e != nil {
+		return a, 0, nil, e
+	}
+	version := a.CurrentVersion
+	if v := r.URL.Query().Get("version"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 {
+			return a, 0, nil, apierr.Invalid("version must be a positive integer")
+		}
+		version = n
+	}
+	files, err := s.Store.Files(r.Context(), a.ID, version)
+	if err != nil {
+		return a, 0, nil, apierr.Internal(err)
+	}
+	if len(files) == 0 {
+		return a, 0, nil, apierr.NotFound("version")
+	}
+	return a, version, files, nil
+}
+
+// listArtifactFiles answers GET /api/artifacts/{id}/files with the paths of
+// one version's files, so a key holder can read a whole page back (byagent
+// pull), private ones included, without a browser session.
+func (s *server) listArtifactFiles(w http.ResponseWriter, r *http.Request) {
+	a, version, files, e := s.versionFiles(r)
+	if e != nil {
+		apierr.Write(w, r, e)
+		return
+	}
+	out := make([]map[string]any, 0, len(files))
+	for _, f := range files {
+		out = append(out, map[string]any{"path": f.Path, "size": f.Size, "content_type": f.ContentType})
+	}
+	apierr.WriteJSON(w, 200, map[string]any{"id": a.ID, "version": version, "current_version": a.CurrentVersion, "files": out})
+}
+
 // artifactFile streams one file of the current version, or of ?version=N,
 // exactly as published: no comment runtime, no meta tags. It is how a key
 // holder reads a page's source back, such as the brief.md that brief push
 // ships next to the rendered page. The bytes go out as an attachment under a
 // sandbox CSP, so a browser never runs them on the API origin.
 func (s *server) artifactFile(w http.ResponseWriter, r *http.Request) {
-	a, e := s.ownedArtifact(r, r.PathValue("id"))
+	_, _, files, e := s.versionFiles(r)
 	if e != nil {
 		apierr.Write(w, r, e)
-		return
-	}
-	version := a.CurrentVersion
-	if v := r.URL.Query().Get("version"); v != "" {
-		n, err := strconv.Atoi(v)
-		if err != nil || n < 1 {
-			apierr.Write(w, r, apierr.Invalid("version must be a positive integer"))
-			return
-		}
-		version = n
-	}
-	files, err := s.Store.Files(r.Context(), a.ID, version)
-	if err != nil {
-		apierr.Write(w, r, apierr.Internal(err))
 		return
 	}
 	path := r.PathValue("path")
