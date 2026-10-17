@@ -68,6 +68,12 @@ To open a private page yourself in a browser that is not signed in to byagent (a
 headless or shared preview), run `byagent share <id> --expires 1d --json` and open
 its one-click link; `byagent share <id> --off` withdraws it.
 
+To read a page yourself, private ones included, run `byagent pull <id> [<dir>] --json`.
+It downloads the live version's files exactly as published (`--at <version>` for an
+older one) into an empty directory, `./<id>` by default; a Markdown page comes back as
+its rendered `index.html`. It needs only the key, so use it instead of a share link or
+a browser whenever you need what a page says.
+
 **Who can open a page.** `byagent access <id> --json` shows it: `mode` is `anyone_with_link`, `password` or `restricted`, and `share_url` is the link to hand out. Readers never need an account, and readers who get in can comment.
 
 - "Put a password on this page": `printf '%s' "$PASSWORD" | byagent access <id> --password --json`, or `byagent publish ./site --password` the first time. The password is read from stdin, never from argv; do not put it in a command line, a file or the page. Give the user `share_url` and tell them to send the password separately. Setting a new password signs every visitor out.

@@ -3,7 +3,7 @@ import { resolveConfig, trimSlash } from "./config.js";
 import { createGuest } from "./guest.js";
 import { CliError, usage } from "./errors.js";
 import { publish } from "./commands/publish.js";
-import { get, list, share, versions, rollback, remove, expire } from "./commands/artifacts.js";
+import { get, list, pull, share, versions, rollback, remove, expire } from "./commands/artifacts.js";
 import { comments, reply, resolve, mark } from "./commands/comments.js";
 import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
@@ -24,6 +24,7 @@ const COMMANDS = {
   "portal-link": { run: portalLink, needsConfig: true },
   publish: { run: publish, needsConfig: true },
   get: { run: get, needsConfig: true },
+  pull: { run: pull, needsConfig: true },
   list: { run: list, needsConfig: true },
   collections: { run: collections, needsConfig: true },
   collection: { run: collection, needsConfig: true },
@@ -64,6 +65,7 @@ Usage:
                   [--agent <name>] [--model <name>] [--expires <when>]
                   [--password]
   byagent get <id>
+  byagent pull <id> [<dir>] [--at <version>]
   byagent share <id> [--off] [--expires <when>]
   byagent expire <id> <when|never>
   byagent access <id> [--public | --password | --restricted --allow <email|@domain>...
@@ -148,6 +150,10 @@ the next publish still gets a new number. version rm deletes one old version
 for good (its link stops working, its files are erased once nothing else uses
 them); the live version cannot be deleted. diff lists files added, removed and
 changed between two versions; <to> defaults to the live one.
+pull downloads a page's files exactly as published (the live version, or
+--at 3) into <dir>, default ./<id>, which must be empty or missing. It needs
+only the key, so it reads private pages back too; a Markdown page comes back
+as the rendered index.html.
 <when> is a duration from now (30m, 12h, 7d, 2w), an RFC 3339 time, or never.
 expire (or publish --expires) makes a page stop working at that moment; it
 then answers 410 and is erased like a delete. expire <id> never keeps it.

@@ -320,10 +320,20 @@ export function createLocalServer({ dir, port, now = () => new Date() }) {
     }
     if (sub === "diff" && m === "GET") return [200, diff(a, url.searchParams)];
     if (sub === "files" && m === "GET") {
+      const q = url.searchParams.get("version");
+      if (q !== null && !/^[1-9]\d*$/.test(q)) throw invalid("version must be a positive integer");
+      const v = q === null ? live(a) : versionOf(a, q);
+      const typeOf = (p) => TYPES[extname(p).toLowerCase()] || "application/octet-stream";
       const want = parts.slice(2).join("/");
-      const f = live(a).files.find((z) => z.path === want);
+      if (!want) {
+        return [200, {
+          id: a.id, version: v.version, current_version: a.current_version,
+          files: [...v.files].sort((x, y) => (x.path < y.path ? -1 : 1)).map((f) => ({ path: f.path, size: f.size, content_type: typeOf(f.path) })),
+        }];
+      }
+      const f = v.files.find((z) => z.path === want);
       if (!f) throw notFound("file");
-      return [200, store.blob(f.sha256), TYPES[extname(f.path).toLowerCase()] || "application/octet-stream"];
+      return [200, store.blob(f.sha256), typeOf(f.path)];
     }
     if (sub === "comments" && !x && m === "GET") {
       const status = url.searchParams.get("status") || "open";

@@ -1,4 +1,6 @@
-import { apiJson } from "../client.js";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve, sep } from "node:path";
+import { apiBytes, apiJson } from "../client.js";
 import { usage } from "../errors.js";
 
 function need(positional, n, message) {
@@ -140,6 +142,32 @@ export async function diff(cfg, { positional }) {
   return {
     json: res,
     human: [`v${res.from} -> v${res.to}: ${res.added.length} added, ${res.removed.length} removed, ${res.changed.length} changed, ${res.unchanged} unchanged`, ...lines],
+  };
+}
+
+// pull downloads every file of a version (the live one unless --at) into
+// a directory, exactly as published. It is how an agent reads a page back,
+// private ones included: the key is enough, no browser session or share code.
+export async function pull(cfg, { positional, flags }) {
+  need(positional, 1, "usage: byagent pull <id> [<dir>] [--at <version>]");
+  const id = positional[0];
+  const query = flags.at !== undefined ? { version: versionArg(flags.at) } : {};
+  const res = await apiJson(cfg, "GET", `/api/artifacts/${encodeURIComponent(id)}/files`, { query });
+  const dir = resolve(positional[1] || id);
+  if (existsSync(dir) && readdirSync(dir).length) throw usage(`${dir} is not empty; pass another directory`);
+  const files = [];
+  for (const f of res.files) {
+    const local = resolve(dir, f.path);
+    if (!local.startsWith(dir + sep)) throw usage(`refusing to write ${f.path} outside ${dir}`);
+    const path = f.path.split("/").map(encodeURIComponent).join("/");
+    const body = await apiBytes(cfg, "GET", `/api/artifacts/${encodeURIComponent(id)}/files/${path}`, { query: { version: res.version } });
+    mkdirSync(dirname(local), { recursive: true });
+    writeFileSync(local, body);
+    files.push({ path: f.path, size: f.size, content_type: f.content_type, local });
+  }
+  return {
+    json: { id: res.id, version: res.version, current_version: res.current_version, dir, files },
+    human: [`pulled v${res.version} of ${res.id}: ${files.length} files into ${dir}`, ...files.map((f) => `  ${f.path}  ${f.size} bytes`)],
   };
 }
 
