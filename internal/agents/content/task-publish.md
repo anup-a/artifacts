@@ -16,7 +16,7 @@ byagent publish ./notes.md --project "<collection>" --tag notes --json
 byagent publish ./site --title "Q3 plan" --project "<collection>" --tag plan --json
 ```
 
-- Always pass `--project` and one to three `--tag`s. Run `byagent collections --json` first and reuse the exact project string.
+- Always pass `--project` and one to three `--tag`s. Run `byagent collections --names --json` first and reuse the exact project string.
 - The JSON output has `url`. That link is the deliverable; hand it back to the user. Do not build share URLs yourself.
 - Republish from the **same** directory to update the same link (`.artifacts.json` binds it). A new directory makes a new link.
 - `--private` limits the page to workspace members; `--public` opens it. Without either, a republish keeps the current visibility.

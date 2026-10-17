@@ -35,7 +35,7 @@ or start from the terminal and approve in the browser:
 ```
 byagent login --browser              # prints a link and waits for you to approve it
 byagent login --browser --no-wait    # prints the link and exits; then:
-byagent login --wait                 # exit 3 while not approved yet
+byagent login --wait                 # waits up to 90 s (--timeout); exit 3 while not approved yet
 ```
 
 Either way the CLI gets a key of its own, named after the agent (`claude-code on laptop`, or `--name`), which you can revoke under API keys. Codes work once and expire in 10 minutes.
@@ -107,6 +107,7 @@ The value is read from stdin (or a hidden prompt, or `--from-env VAR`), never fr
 ```
 byagent get <id>                       # url, title, version, open comments, labels, share link
 byagent pull <id> [<dir>] [--at <v>]   # download a page's files as published, private ones too
+byagent init [--global]                # add a byagent line to AGENTS.md / CLAUDE.md so agents know it
 byagent list [--project <name>]
 byagent collections                    # every --project label: count, last update, share URL
 byagent collection <name>              # one collection's artifacts in reading order, with urls

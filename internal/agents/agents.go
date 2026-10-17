@@ -36,7 +36,7 @@ var tasks = []Task{
 	{"publish", "Publish a page", "Turn a Markdown file or an HTML directory into a shareable link.", "byagent publish ./notes.md --project \"<name>\" --tag notes --json"},
 	{"read-comments", "Read comments on a page", "Fetch the open threads readers left on a published page.", "byagent comments <id> --open --json"},
 	{"resolve-threads", "Reply to and resolve threads", "Act on a comment, answer it, and close the thread.", "byagent resolve <id> <thread> --json"},
-	{"collections", "List collections", "Find the pages that belong together before publishing another one.", "byagent collections --json"},
+	{"collections", "List collections", "Find the pages that belong together before publishing another one.", "byagent collections --names --json"},
 	{"brief", "Start from a project brief", "Pick up work in a folder from its BRIEF.md and the open comments on it.", "byagent brief --json"},
 }
 

@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { apiJson } from "../client.js";
 import { clientHeaders, keyName } from "../agent.js";
-import { DEFAULT_API, configPath, saveConfig, trimSlash } from "../config.js";
+import { DEFAULT_API, configPath, envApi, envToken, saveConfig, trimSlash } from "../config.js";
 import { CliError, usage } from "../errors.js";
 import { createGuest, guestLines } from "../guest.js";
 
@@ -89,6 +89,29 @@ async function loginWithCode(api, code, name, home) {
   return connected(api, r.body, home);
 }
 
+// WAIT_MS bounds --wait when no --timeout is given: under the two minutes an
+// agent's tool call usually gets, so a call that is still waiting comes back
+// (exit 3) instead of being cut off. Running it again keeps waiting.
+export const WAIT_MS = 90_000;
+
+// handoff is what --no-wait prints: the link is for a person, so the output
+// leads with the exact sentence to show them and says to stop until they act.
+function handoff(p, now) {
+  const left = Math.max(0, Math.round((Date.parse(p.expires_at) - now()) / 1000));
+  const at = new Date(p.expires_at).toISOString().slice(11, 16);
+  const message = `Open ${p.verify_url} to connect this agent to byagent (code ${p.user_code}, expires ${at} UTC).`;
+  return {
+    json: {
+      ok: true, pending: true, status: "awaiting_user",
+      verify_url: p.verify_url, user_code: p.user_code, expires_at: p.expires_at, expires_in_seconds: left,
+      action_required: { for: "user", message, url: p.verify_url, code: p.user_code, expires_at: p.expires_at, expires_in_seconds: left },
+      instruction: "Stop and send the user action_required.message now, before anything else. Run next only after they approve, or in the background.",
+      next: "byagent login --wait --json",
+    },
+    human: [message, "Waiting on you: once approved, run byagent login --wait"],
+  };
+}
+
 // browserLogin asks the server for an approval link, then waits until a
 // signed-in person approves it. --no-wait stops after printing the link and
 // --wait picks the same request up again, so an agent never has to block on
@@ -105,16 +128,11 @@ export async function browserLogin(api, { name, wait, noWait, timeoutMs, home, n
     p = { api, ...r.body };
     savePending(p, home);
   }
-  const lines = [`open ${p.verify_url}`, `and approve code ${p.user_code} (it expires at ${p.expires_at})`];
-  if (noWait) {
-    return {
-      json: { ok: false, pending: true, verify_url: p.verify_url, user_code: p.user_code, expires_at: p.expires_at, next: "byagent login --wait" },
-      human: [...lines, "then run: byagent login --wait"],
-    };
-  }
+  if (noWait) return handoff(p, now);
   if (!wait) openBrowser(p.verify_url);
-  note(lines.join(" "));
-  const deadline = Math.min(Date.parse(p.expires_at) || now() + 600000, timeoutMs ? now() + timeoutMs : Infinity);
+  note(`open ${p.verify_url} and approve code ${p.user_code} (it expires at ${p.expires_at})`);
+  const expires = Date.parse(p.expires_at) || now() + 600000;
+  const deadline = Math.min(expires, now() + (timeoutMs || (wait ? WAIT_MS : Infinity)));
   const interval = Math.max(1, Number(p.interval) || 2) * 1000;
   for (;;) {
     const r = await post(p.api, "/api/connect/device/token", { device_code: p.device_code });
@@ -127,7 +145,15 @@ export async function browserLogin(api, { name, wait, noWait, timeoutMs, home, n
       throw failure(r, "connect");
     }
     if (now() + interval > deadline) {
-      throw new CliError(`not approved yet: open ${p.verify_url}, approve code ${p.user_code}, then run byagent login --wait`, {
+      if (now() + interval > expires) {
+        rmSync(pendingPath(home), { force: true });
+        throw new CliError(`code ${p.user_code} expired before anyone approved it: run byagent login --browser --no-wait for a new link`, {
+          code: "EXPIRED",
+          exit: 3,
+        });
+      }
+      const mins = Math.max(1, Math.round((expires - now()) / 60000));
+      throw new CliError(`not approved yet: open ${p.verify_url}, approve code ${p.user_code} (about ${mins} min left), then run byagent login --wait`, {
         code: "PENDING",
         exit: 3,
       });
@@ -138,7 +164,7 @@ export async function browserLogin(api, { name, wait, noWait, timeoutMs, home, n
 
 export async function login(_cfg, { flags, env = process.env, home }) {
   if (flags.guest) {
-    const { cfg, guest } = await createGuest({ env: flags.api ? { ...env, ARTIFACTS_API: flags.api } : env });
+    const { cfg, guest } = await createGuest({ env: flags.api ? { ...env, BYAGENT_API: flags.api } : env });
     return {
       json: { api: cfg.api, config: configPath(), ok: true, guest: true, expires_at: guest.expires_at, claim_url: guest.claim_url },
       human: [`saved a guest key for ${cfg.api}`, ...guestLines(guest)],
@@ -146,12 +172,12 @@ export async function login(_cfg, { flags, env = process.env, home }) {
   }
   const name = flags.name || keyName(env);
   if (flags.code) {
-    return loginWithCode(trimSlash(flags.api || env.ARTIFACTS_API || DEFAULT_API), flags.code, name, home);
+    return loginWithCode(trimSlash(flags.api || envApi(env) || DEFAULT_API), flags.code, name, home);
   }
   if (flags.browser || flags.wait) {
     const timeout = flags.timeout === undefined ? 0 : Number(flags.timeout);
     if (!Number.isFinite(timeout) || timeout < 0) throw usage("--timeout must be a number of seconds");
-    return browserLogin(trimSlash(flags.api || env.ARTIFACTS_API || DEFAULT_API), {
+    return browserLogin(trimSlash(flags.api || envApi(env) || DEFAULT_API), {
       name,
       wait: Boolean(flags.wait),
       noWait: Boolean(flags["no-wait"]),
@@ -159,9 +185,9 @@ export async function login(_cfg, { flags, env = process.env, home }) {
       home,
     });
   }
-  const api = trimSlash(flags.api || env.ARTIFACTS_API || "");
+  const api = trimSlash(flags.api || envApi(env) || "");
   if (!api) throw usage("usage: byagent login --code <code> | --browser | --api <url> [--token <key>]  (token may come from stdin)");
-  const token = flags.token || env.ARTIFACTS_TOKEN || (await readStdin());
+  const token = flags.token || envToken(env) || (await readStdin());
   if (!token) throw usage(`no token: run byagent login --browser, or create a key at ${api}/app/keys and pass --token or pipe it on stdin`);
 
   // Verify before saving so a typo does not leave a config that fails later.

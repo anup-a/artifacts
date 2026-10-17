@@ -206,12 +206,17 @@ export async function publish(cfg, { positional, flags, source, env = process.en
       ...(access ? { access: access.mode, share_url: access.share_url } : {}),
       ...(res.guest ? { guest: true, claim_url: res.claim_url } : {}),
       ...(res.proxy ? { proxy: res.proxy } : {}),
+      // A private page is easy to publish without noticing that nobody outside
+      // the workspace can open or comment on it; say how to change that.
+      ...(res.visibility === "private" && !access
+        ? { hint: `Only your workspace can open this page; readers outside it cannot open or comment. To share it: byagent share ${res.id} or byagent access ${res.id} --restricted --allow <email>` }
+        : {}),
     },
     human: [
       `${res.url}`,
       `version ${res.version}, ${files.length} files, ${bytes} bytes, ${sent.size} uploaded${commentsOn ? "" : ", comments off"}${stateOn ? "" : ", page state off"}`,
       ...(labelLine ? [labelLine] : []),
-      ...(access ? [`password set; share ${access.share_url}`] : res.visibility === "private" ? ["private — sign in to the owning workspace to view"] : []),
+      ...(access ? [`password set; share ${access.share_url}`] : res.visibility === "private" ? [`private: only your workspace can open it; share with byagent share ${res.id}`] : []),
       ...(res.expires_at && !res.guest ? [`stops working at ${res.expires_at}, then is erased`] : []),
       ...guestLines(res),
       ...(res.proxy ? [`proxy routes: ${res.proxy.routes.join(", ")}`, ...res.proxy.warnings.map((w) => `warning: ${w}`)] : []),
