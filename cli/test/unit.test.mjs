@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { parseArgs } from "../src/args.js";
 import { resolveConfig, saveConfig, configPath } from "../src/config.js";
-import { collectFiles, readLink, writeLink } from "../src/files.js";
+import { collectFiles, htmlTitle, readLink, writeLink } from "../src/files.js";
 import { publish, labelsOf, resolveCover } from "../src/commands/publish.js";
 import { list, share } from "../src/commands/artifacts.js";
 import { comments, waitForComments } from "../src/commands/comments.js";
@@ -74,6 +74,24 @@ test("collectFiles publishes a lone html file as index.html", () => {
   assert.equal(files[0].path, "index.html");
   assert.equal(files[0].size, 11);
   assert.match(files[0].sha256, /^[0-9a-f]{64}$/);
+});
+
+test("collectFiles names an html page by its <title> unless --title is given", () => {
+  const dir = tmp();
+  writeFileSync(join(dir, "index.html"), "<html><head><title>\n  Tools &amp; resources:  who decides\n</title></head><body></body></html>");
+  assert.equal(collectFiles(dir).title, "Tools & resources: who decides");
+  assert.equal(collectFiles(dir, { title: "Mine" }).title, "Mine");
+  writeFileSync(join(dir, "page.html"), "<TITLE>Lone &#8220;page&#x201D;</TITLE>");
+  assert.equal(collectFiles(join(dir, "page.html")).title, "Lone \u201cpage\u201d");
+  writeFileSync(join(dir, "bare.html"), "<h1>no title tag</h1><title>   </title>");
+  assert.equal(collectFiles(join(dir, "bare.html")).title, undefined);
+});
+
+test("htmlTitle keeps a long title under the server's 200-byte limit", () => {
+  const t = htmlTitle(Buffer.from(`<title>${"\u00e9".repeat(150)}</title>`));
+  assert.ok(Buffer.byteLength(t) <= 200);
+  assert.equal(t, "\u00e9".repeat(100));
+  assert.equal(htmlTitle(Buffer.from("<p>none</p>")), undefined);
 });
 
 test("collectFiles walks nested dirs and skips .git, node_modules and the link file", () => {

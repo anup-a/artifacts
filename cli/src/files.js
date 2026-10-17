@@ -44,6 +44,27 @@ function isMarkdown(path) {
   return MARKDOWN_EXTS.has(extname(path).toLowerCase());
 }
 
+const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+// The server refuses a title over this many bytes.
+const MAX_TITLE_BYTES = 200;
+
+// htmlTitle reads an HTML page's <title>, so a page published without --title
+// is named the way the browser tab names it rather than "Untitled".
+export function htmlTitle(body) {
+  const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(body.toString("utf8"));
+  if (!m) return undefined;
+  let t = m[1]
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (all, e) => {
+      if (e[0] !== "#") return ENTITIES[e.toLowerCase()] ?? all;
+      const n = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : all;
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+  while (Buffer.byteLength(t) > MAX_TITLE_BYTES) t = [...t].slice(0, -1).join("").trimEnd();
+  return t || undefined;
+}
+
 function renderedIndex(abs, body, title, lang) {
   const { html, title: pageTitle } = renderMarkdown(body.toString("utf8"), { title, lang, fallbackTitle: basename(abs, extname(abs)) });
   const buf = Buffer.from(html, "utf8");
@@ -55,7 +76,8 @@ function renderedIndex(abs, body, title, lang) {
 // single .md file is rendered to a page first; a directory with no index.html
 // but an index.md or README.md is served from that, rendered, with the other
 // files kept as assets so relative images and links still resolve. `title`
-// is the --title flag; the result's title is what the page ended up with.
+// is the --title flag; the result's title is what the page ended up with: an
+// HTML page without the flag takes its <title>.
 // `source` names a path to ship a single .md file's own text under, next to
 // the rendered page, so it can be read back as Markdown. `lang` is the --lang
 // flag: the rendered page's language when detection from its text is wrong.
@@ -69,7 +91,8 @@ export function collectFiles(target, { title, source, lang } = {}) {
   if (st.isDirectory()) {
     const files = walk(target, target, []);
     if (files.length === 0) throw new CliError(`${target} has no files to publish`, { exit: 2, code: "USAGE" });
-    if (files.some((f) => f.path === "index.html")) return { files, dir: target, title };
+    const index = files.find((f) => f.path === "index.html");
+    if (index) return { files, dir: target, title: title || htmlTitle(index.body) };
     const md = MARKDOWN_INDEX.map((name) => files.find((f) => f.path === name)).find(Boolean);
     if (!md) return { files, dir: target, title };
     const rendered = renderedIndex(md.abs, md.body, title, lang);
@@ -84,7 +107,7 @@ export function collectFiles(target, { title, source, lang } = {}) {
   }
   return {
     dir: null,
-    title,
+    title: title || htmlTitle(body),
     files: [{ path: "index.html", abs: target, body, sha256: sha256(body), size: body.length }],
   };
 }
