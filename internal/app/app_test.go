@@ -47,6 +47,12 @@ func baseConfig(dir string) config.Config {
 		EmailProvider: "log", APIOrigin: "http://api.test", ShareOrigin: "http://share.test"}
 }
 
+// fixtureStart is noon UTC today, the fixture clock's starting point. It
+// follows the real date because the client's cookie jar checks expiry
+// against the real clock: a fixed date drops every session cookie once it is
+// SessionTTL in the past.
+var fixtureStart = time.Now().UTC().Truncate(24 * time.Hour).Add(12 * time.Hour)
+
 func newEnv(t *testing.T, cfg config.Config, tweak func(*Handler)) *env {
 	t.Helper()
 	ctx := context.Background()
@@ -58,7 +64,7 @@ func newEnv(t *testing.T, cfg config.Config, tweak func(*Handler)) *env {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { st.Close() })
-	c := &clock{t: time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)}
+	c := &clock{t: fixtureStart}
 	h := New(st, cfg, c.now)
 	snd := &captureSender{}
 	if h.Magic != nil {

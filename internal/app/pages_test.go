@@ -42,7 +42,7 @@ func (e *env) publish(id, title string, endUser string) store.Artifact {
 // daysAgo moves the clock to noon n days before the fixture's start, so an
 // artifact published next lands in that day's section (or the older list).
 func (e *env) daysAgo(n int) {
-	e.clock.t = time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC).Add(-time.Duration(n) * 24 * time.Hour)
+	e.clock.t = fixtureStart.Add(-time.Duration(n) * 24 * time.Hour)
 }
 
 func (e *env) becomeIntegrator(name string) {
@@ -135,7 +135,7 @@ func TestKeysCreateListRevoke(t *testing.T) {
 	}
 	id := regexp.MustCompile(`/app/keys/(\d+)/revoke`).FindStringSubmatch(res.Body)
 	wantRedirect(t, e.post("/app/keys/"+id[1]+"/revoke", "/app/keys", nil), "/app/keys")
-	want(t, e.get("/app/keys"), 200, `class="revoked"`, "Revoked", `title="2026-09-16 12:00 UTC"`)
+	want(t, e.get("/app/keys"), 200, `class="revoked"`, "Revoked", `title="`+fixtureStart.Format("2006-01-02 15:04")+` UTC"`)
 	wantRedirect(t, e.post("/app/keys/"+id[1]+"/revoke", "/app/keys", nil), "/app/keys") // idempotent
 	want(t, e.post("/app/keys/abc/revoke", "/app/keys", nil), 404)
 	want(t, e.post("/app/keys/999/revoke", "/app/keys", nil), 404)
@@ -169,7 +169,7 @@ func TestEndUsersAndPortal(t *testing.T) {
 	want(t, e.post("/app/end-users/nobody/portal-link", "/app/end-users", nil), 404, "does not exist")
 	want(t, e.get("/app/end-users"), 200, `action="/app/end-users/customer%2Fone/portal-link"`)
 	res = e.post("/app/end-users/customer%2Fone/portal-link", "/app/end-users", nil)
-	want(t, res, 200, "Portal link for", "valid until 2026-09-23", "http://api.test/p/", "data-copy")
+	want(t, res, 200, "Portal link for", "valid until "+fixtureStart.AddDate(0, 0, 7).Format("2006-01-02"), "http://api.test/p/", "data-copy")
 	link := regexp.MustCompile(`value="http://api.test(/p/[^"]+)"`).FindStringSubmatch(res.Body)
 	if link == nil {
 		t.Fatal("no portal url")
@@ -178,7 +178,7 @@ func TestEndUsersAndPortal(t *testing.T) {
 	// The portal needs no session and shows only that end user's artifacts.
 	fresh := newClient(t)
 	p := e.do(fresh, "GET", link[1], nil)
-	want(t, p, 200, "Artifacts from Acme Inc", "For customer one", "http://share.test/a/aaaaaaaaaaaa/", "expires 2026-09-23")
+	want(t, p, 200, "Artifacts from Acme Inc", "For customer one", "http://share.test/a/aaaaaaaaaaaa/", "expires "+fixtureStart.AddDate(0, 0, 7).Format("2006-01-02"))
 	for _, s := range []string{"For customer two", "Nobody", "Delete", "Sign out"} {
 		if strings.Contains(p.Body, s) {
 			t.Fatalf("portal leaks %q", s)
@@ -233,7 +233,7 @@ func TestSettingsRenameSwitchAndIntegratorRules(t *testing.T) {
 func TestUsagePage(t *testing.T) {
 	e := fixture(t)
 	e.signIn("a@x.io")
-	want(t, e.get("/app/usage"), 200, "This month", "September 2026", "Last month", "August 2026", "Publishes", "Storage", "Page views", "Open comments")
+	want(t, e.get("/app/usage"), 200, "This month", fixtureStart.Format("January 2006"), "Last month", fixtureStart.AddDate(0, 0, -fixtureStart.Day()).Format("January 2006"), "Publishes", "Storage", "Page views", "Open comments")
 }
 
 func TestPageQuota(t *testing.T) {

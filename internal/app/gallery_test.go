@@ -64,7 +64,8 @@ func TestArtifactsSectionsAndHero(t *testing.T) {
 
 	res := e.get("/app/artifacts")
 	want(t, res, 200, `<h2 class="day-label">Today</h2>`, `<h2 class="day-label">Yesterday</h2>`, `<h2 class="day-label">Older</h2>`,
-		`data-day="2026-09-16"`, `data-at="2026-09-16T12:00:04Z"`, `data-day="2026-09-15"`,
+		`data-day="`+fixtureStart.Format("2006-01-02")+`"`, `data-at="`+fixtureStart.Add(4*time.Second).Format(time.RFC3339)+`"`,
+		`data-day="`+fixtureStart.AddDate(0, 0, -1).Format("2006-01-02")+`"`,
 		`class="tile is-hero"`, `class="tile-cover" href="/app/artifacts/today0000005" data-peek aria-label="Today e" title="Today e"`,
 		`class="tile-cover" href="/app/artifacts/yest00000003" data-peek aria-label="yest00000003" title="Untitled: yest00000003"`,
 		`<img src="http://share.test/a/today0000005/_cover.svg" alt="" loading="lazy"`,
