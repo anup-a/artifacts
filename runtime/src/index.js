@@ -8,6 +8,7 @@ import { mountCompose } from "./compose.js";
 import { resolveAnchor } from "./dom.js";
 import { paintThreads, clearHighlights } from "./highlight.js";
 import { LANG } from "./i18n.js";
+import { installState } from "./state.js";
 
 const HOST_ID = "artifacts-rt";
 
@@ -23,7 +24,10 @@ function readConfig() {
   // domain ("/docs/"); on byagent.dev it is absent and the page lives at
   // /a/<id>/.
   const base = el.getAttribute("data-base") || "";
-  return { artifactId, version, base: base.startsWith("/") && base.endsWith("/") ? base : "" };
+  // data-comments="off": the page's comments are off and the runtime is
+  // here for page state alone, with no panel.
+  const comments = el.getAttribute("data-comments") !== "off";
+  return { artifactId, version, comments, base: base.startsWith("/") && base.endsWith("/") ? base : "" };
 }
 
 function storage(artifactId) {
@@ -49,9 +53,19 @@ function storage(artifactId) {
 // The script tag is read at parse time; document.currentScript is null later.
 const CONFIG = readConfig();
 
+// Page state goes on window.byagent right away, before DOMContentLoaded, so
+// the page's own handlers for it can use it.
+if (CONFIG) {
+  try {
+    installState(CONFIG);
+  } catch {
+    /* the page keeps working without it */
+  }
+}
+
 async function boot() {
   const cfg = CONFIG;
-  if (!cfg) return;
+  if (!cfg || !cfg.comments) return;
 
   const host = document.createElement("div");
   host.id = HOST_ID;

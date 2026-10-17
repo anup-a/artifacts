@@ -673,6 +673,7 @@
  "Watch an agent use it.": "エージェントが使う様子を見てみましょう。",
  "Wed %s": "水曜 %s",
  "What byagent collects, why, where it is stored and for how long, and how to use your rights, in plain language.": "byagent が何を、なぜ収集し、どこにどれくらいの期間保存するのか、そしてあなたの権利の行使方法を、わかりやすく説明します。",
+ "What changed in v%d": "v%d の変更点",
  "What did people say since yesterday?": "昨日からどんなコメントがあった？",
  "What happens when I delete a page?": "ページを削除するとどうなりますか？",
  "What happens when I hit a limit?": "制限に達するとどうなりますか？",

@@ -8,7 +8,7 @@ import { parseArgs } from "../src/args.js";
 import { resolveConfig, saveConfig, configPath } from "../src/config.js";
 import { collectFiles, htmlTitle, readLink, writeLink } from "../src/files.js";
 import { publish, labelsOf, resolveCover } from "../src/commands/publish.js";
-import { list, share } from "../src/commands/artifacts.js";
+import { list, share, state, versions } from "../src/commands/artifacts.js";
 import { comments, waitForComments } from "../src/commands/comments.js";
 import { findProject } from "../src/project.js";
 import { main } from "../src/main.js";
@@ -340,6 +340,64 @@ test("publish --no-comments and --comments set comments_enabled in the manifest"
     () => publish({ token: "t", api: "https://api.example" }, { positional: [file], flags: { comments: true, "no-comments": true } }),
     /mutually exclusive/,
   );
+});
+
+test("publish --no-state, --state and --summary reach the manifest", async (t) => {
+  const file = join(tmp(), "index.html");
+  writeFileSync(file, "<h1>stateful report</h1>");
+  const cases = [
+    [{ "no-state": true, summary: "added the chart\\nfixed totals " }, false, "added the chart\nfixed totals"],
+    [{ state: true }, true, undefined],
+    [{}, undefined, undefined],
+  ];
+  for (const [flags, expected, summary] of cases) {
+    const calls = [];
+    t.mock.method(globalThis, "fetch", async (url, options) => {
+      calls.push({ url, ...options });
+      return Response.json(url.pathname.endsWith("preflight") ? { missing: [] } : {
+        id: "artifact1234", url: "https://share.example/a/artifact1234/", version: 1, end_user: null,
+        state_enabled: expected !== false,
+      });
+    });
+    const result = await publish({ token: "test-token", api: "https://api.example" }, { positional: [file], flags });
+    const manifest = JSON.parse(calls[1].body.get("manifest"));
+    assert.equal(manifest.state_enabled, expected);
+    assert.equal(manifest.summary, summary);
+    assert.equal(result.json.state_enabled, expected !== false);
+    assert.equal(result.human[1].endsWith("page state off"), expected === false);
+  }
+  await assert.rejects(
+    () => publish({ token: "t", api: "https://api.example" }, { positional: [file], flags: { state: true, "no-state": true } }),
+    /mutually exclusive/,
+  );
+  await assert.rejects(
+    () => publish({ token: "t", api: "https://api.example" }, { positional: [file], flags: { summary: "x".repeat(1001) } }),
+    /1000 characters/,
+  );
+});
+
+test("state prints a page's state as JSON and --clear empties it", async (t) => {
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls.push(`${options.method} ${url.pathname}`);
+    return Response.json(options.method === "DELETE" ? { id: "artifact1234", revision: 4, cleared: true } : { id: "artifact1234", revision: 3, items: { done: true } });
+  });
+  const cfg = { token: "t", api: "https://api.example" };
+  const shown = await state(cfg, { positional: ["artifact1234"], flags: {} });
+  assert.deepEqual(JSON.parse(shown.human.join("\n")), { done: true });
+  assert.equal(shown.json.revision, 3);
+  const cleared = await state(cfg, { positional: ["artifact1234"], flags: { clear: true } });
+  assert.match(cleared.human[0], /cleared .*revision 4/);
+  assert.deepEqual(calls, ["GET /api/artifacts/artifact1234/state", "DELETE /api/artifacts/artifact1234/state"]);
+});
+
+test("versions lists each version's summary as one change per line", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => Response.json({ id: "artifact1234", current_version: 2, versions: [
+    { version: 1, files: 1, bytes: 9, comment_count: 0, created_at: "t1", summary: "" },
+    { version: 2, current: true, files: 1, bytes: 9, comment_count: 0, created_at: "t2", summary: "added the chart\nfixed totals" },
+  ] }));
+  const res = await versions({ token: "t", api: "https://api.example" }, { positional: ["artifact1234"], flags: {} });
+  assert.deepEqual(res.human.slice(1), ["v2  live  1 files  9 bytes  0 comments  t2", "    - added the chart", "    - fixed totals"]);
 });
 
 test("publish visibility flags set the manifest and omission preserves server visibility", async (t) => {

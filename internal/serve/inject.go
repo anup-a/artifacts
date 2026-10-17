@@ -10,18 +10,34 @@ import (
 // tag builds the runtime script tag. rev, when set, is appended as a query
 // string so that a redeployed runtime gets a fresh URL: /_rt/comments.js is
 // served immutable for a year, and without a revision returning viewers would
-// keep the old bundle until their cache expired.
-func tag(artifactID string, version int, rev string) []byte {
+// keep the old bundle until their cache expired. base, when set, is
+// data-base (see InjectBase). comments false marks a page whose comments are
+// off: the runtime then only offers page state, with no panel.
+func tag(artifactID string, version int, rev, base string, comments bool) []byte {
 	src := "/_rt/comments.js"
 	if rev != "" {
 		src += "?v=" + rev
 	}
-	return []byte(fmt.Sprintf(`<script src="%s" data-artifact="%s" data-version="%d" defer></script>`, src, artifactID, version))
+	t := fmt.Sprintf(`<script src="%s" data-artifact="%s" data-version="%d"`, src, artifactID, version)
+	if base != "" {
+		t += ` data-base="` + html.EscapeString(base) + `"`
+	}
+	if !comments {
+		t += ` data-comments="off"`
+	}
+	return []byte(t + ` defer></script>`)
 }
 
 // Inject places the runtime tag before the last </body> (any case) or appends it.
 func Inject(html []byte, artifactID string, version int, rev string) []byte {
-	return insertBeforeBody(html, tag(artifactID, version, rev))
+	return insertBeforeBody(html, tag(artifactID, version, rev, "", true))
+}
+
+// InjectRuntime places the runtime tag with every option: base as
+// InjectBase takes it ("" on the share origin), and whether the page's
+// comments are on.
+func InjectRuntime(doc []byte, artifactID string, version int, rev, base string, comments bool) []byte {
+	return insertBeforeBody(doc, tag(artifactID, version, rev, base, comments))
 }
 
 // insertBeforeBody puts chunk before the last </body> (any case), or appends
@@ -82,9 +98,7 @@ func InjectIconHref(doc []byte, href string) []byte {
 // runtime's version switcher where the page lives ("/" on its own host, the
 // mount's base on a custom domain).
 func InjectBase(doc []byte, artifactID string, version int, rev, base string) []byte {
-	t := tag(artifactID, version, rev)
-	t = append(t[:len(t)-len(" defer></script>")], []byte(` data-base="`+html.EscapeString(base)+`" defer></script>`)...)
-	return insertBeforeBody(doc, t)
+	return insertBeforeBody(doc, tag(artifactID, version, rev, base, true))
 }
 
 // hasIcon reports whether the document's head already has a <link> tag

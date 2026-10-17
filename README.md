@@ -192,14 +192,15 @@ byagent publish ./site --title "Hello" --json
 | `login --code <code> [--api <url>] [--name <n>]` | Trades a one-time code from `<url>/app/connect` for a key named after the agent (`POST /api/connect`) and writes `~/.artifacts/config.json` |
 | `login --browser [--no-wait] [--timeout <s>]`, `login --wait` | Asks for an approval link (`POST /api/connect/device`), then polls `POST /api/connect/device/token` until a signed-in person approves it; `--no-wait` exits after printing the link, `--wait` resumes (exit 3 while pending) |
 | `login --api <url> [--token <key>]` | Verifies a key created at `<url>/app/keys`, then writes `~/.artifacts/config.json` (the token may be piped on stdin) |
-| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--private\|--public] [--comments\|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
+| `publish <dir\|file.html> [--id <id>] [--title <t>] [--end-user <id>] [--private\|--public] [--comments\|--no-comments] [--state\|--no-state] [--summary <text>] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>]` | Uploads missing blobs and publishes a version, optionally attributed to a customer. `--no-comments` hides the comment panel from viewers and closes the viewer API for that artifact; `--comments` turns it back on; neither keeps the current setting. `--no-state` turns [page state](#page-state) off (`--state` back on), kept the same way. `--summary` records what this version changed, one change per line (newlines or a literal `\n`), 1000 characters at most. `--project` and repeatable `--tag` label the artifact for the gallery and are remembered in `.artifacts.json`. `--cover` is an svg/png/jpg/webp shown as the card cover and `og:image` (a file inside the directory is used in place, any other is copied in as `_cover.<ext>`); without one the server generates a quiet OG-style card in `--cover-style` (`dots`, `grid`, `lines`, `wash`, `rings`, `plain`; default derived from the id) |
 | `get <id>` | URL, title, current version, open comment count, project and tags; the share code and its link when one is set |
 | `share <id> [--off]` | Issues a six-digit share code for a private artifact and prints it with a one-click link. Running it again rotates the code, stopping every link that carried the old one; `--off` withdraws it |
 | `access <id> [--public\|--password\|--restricted --allow <email\|@domain>...\|--add <entry>...\|--off] [--invite <email>...]` | Shows or sets who can open the page (see Page access below). `--password` reads the password from stdin or a hidden prompt, never argv. `publish --password` publishes privately and then sets one |
 | `list [--search <text>] [--end-user <id>] [--project <name>]` | Workspace artifacts, optionally narrowed by a case-insensitive title match, one customer or one project; prints project and tags |
 | `whoami` | Current tenant ID, kind and name, plus the key ID and name |
 | `portal-link <end-user id>` | Seven-day read-only customer portal URL, integrator workspaces only |
-| `versions <id>` | Version history with per-version comment counts, the live version marked, and an owner-only preview link per version |
+| `versions <id>` | Version history with per-version comment counts and summaries, the live version marked, and an owner-only preview link per version |
+| `state <id> [--clear]` | Prints the page's [state](#page-state) (what `window.byagent.state` holds for every reader) as JSON; `--clear` empties it |
 | `rollback <id> <version>` | Makes an old version live again (a pointer flip: nothing is re-uploaded, and visibility, share code, expiry and comments stay as they are) |
 | `version rm <id> <version>` | Deletes one old version for good; the live version cannot be deleted |
 | `diff <id> <from> [<to>]` | Files added, removed and changed between two versions; `<to>` defaults to the live one |
@@ -354,13 +355,15 @@ take no auth; the artifact id is the capability.
 | `GET` | `/api/me` | `{tenant:{id,kind,name},key:{id,name}}`. |
 | `POST` | `/api/end-users/{external_id}/portal-link` | `{url,expires_at}`. Integrator tenant required; URL uses the API origin and lasts seven days. |
 | `POST` | `/api/artifacts/preflight` | `{files:[{path, sha256, size}]}` → `{missing:[sha256]}`. Lets the CLI upload only new blobs. |
-| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, visibility?, comments_enabled?, project?, tags?, cover?, cover_style?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user,visibility,comments_enabled,project,tags,cover,cover_url,cover_style}`. Requires root `index.html`. `project` is 1 to 64 characters (trimmed; `null` or empty clears), `tags` up to 10 strings of 1 to 32 characters (lowercased, deduplicated), `cover` the path of an svg/png/jpg/webp in the same manifest, `cover_style` one of `dots`, `grid`, `lines`, `wash`, `rings`, `plain`. Bad values return 400 `INVALID_ARGUMENT` naming the field. |
-| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version; returns the same shape with `version:n`. A different end user returns 403 `FORBIDDEN`. `comments_enabled` (boolean, optional) switches viewer comments; omitted keeps the current setting. Omitted `project`, `tags`, `cover` and `cover_style` keep their values; `null` clears `project` or `cover`, `[]` clears `tags`. |
-| `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, visibility, comments_enabled, end_user, project, tags, cover, cover_url, cover_style, created_at, updated_at, published_at}`. `published_at` equals `created_at`; `cover_style` is the effective generator name even when the publisher never chose one. |
+| `POST` | `/api/artifacts` | multipart: part `manifest` (JSON `{title?, visibility?, comments_enabled?, state_enabled?, summary?, project?, tags?, cover?, cover_style?, files:[{path, sha256, size}]}`) then one part per missing blob named by sha256. Optional `X-Artifact-End-User` header. Returns `{id,url,version:1,end_user,visibility,comments_enabled,state_enabled,project,tags,cover,cover_url,cover_style}`. Requires root `index.html`. `project` is 1 to 64 characters (trimmed; `null` or empty clears), `tags` up to 10 strings of 1 to 32 characters (lowercased, deduplicated), `cover` the path of an svg/png/jpg/webp in the same manifest, `cover_style` one of `dots`, `grid`, `lines`, `wash`, `rings`, `plain`. Bad values return 400 `INVALID_ARGUMENT` naming the field. |
+| `PUT` | `/api/artifacts/:id` | Same body and optional header. New version; returns the same shape with `version:n`. A different end user returns 403 `FORBIDDEN`. `comments_enabled` (boolean, optional) switches viewer comments and `state_enabled` page state; omitted keeps the current setting. `summary` (optional, 1000 characters) describes this version, one change per line; line endings are normalised and blank lines dropped. Omitted `project`, `tags`, `cover` and `cover_style` keep their values; `null` clears `project` or `cover`, `[]` clears `tags`. |
+| `GET` | `/api/artifacts/:id` | `{id, title, url, current_version, versions_count, open_comments, visibility, comments_enabled, state_enabled, end_user, project, tags, cover, cover_url, cover_style, created_at, updated_at, published_at}`. `published_at` equals `created_at`; `cover_style` is the effective generator name even when the publisher never chose one. |
 | `GET` | `/api/artifacts?limit&cursor&end_user&project` | Tenant's artifacts, newest first. Items have the same shape as `GET /api/artifacts/:id`; `end_user` is an external ID or `null`; `project` filters by exact label. |
 | `GET` | `/api/projects` | `{projects:[{name,count}]}`: the workspace's project labels with live artifact counts, most used first. |
 | `DELETE` | `/api/artifacts/:id` | Soft delete; page returns 410; blobs GC'd later. |
-| `GET` | `/api/artifacts/:id/versions` | `{id, current_version, versions:[{version, created_at, bytes, files, comment_count, agent, model, key, current, restored_at, url, preview_url}]}`, oldest first. `url` is the pinned address (`/a/:id/v/:n/` for a public page, the signed-in viewer for a private one). `preview_url` is `<PUBLIC_API_ORIGIN>/app/view/:id/v/:n/`: it opens that version only for a signed-in member of the owning workspace, sandboxed and never counted as a view. It is `null` for guest keys and on servers without sign-in. |
+| `GET` | `/api/artifacts/:id/versions` | `{id, current_version, versions:[{version, created_at, bytes, files, comment_count, agent, model, key, summary, current, restored_at, url, preview_url}]}`, oldest first. `summary` is the publisher's note on the version (`""` when none), one change per line. `url` is the pinned address (`/a/:id/v/:n/` for a public page, the signed-in viewer for a private one). `preview_url` is `<PUBLIC_API_ORIGIN>/app/view/:id/v/:n/`: it opens that version only for a signed-in member of the owning workspace, sandboxed and never counted as a view. It is `null` for guest keys and on servers without sign-in. |
+| `GET` | `/api/artifacts/:id/state` | `{id, revision, items:{key: value}, keys, bytes, max_keys, max_bytes, state_enabled}`: the page's [state](#page-state). Answers with state switched off too. |
+| `DELETE` | `/api/artifacts/:id/state` | Empties it: `{id, revision, cleared:true}`. The revision moves on, so open pages pick the empty state up. |
 | `GET` | `/api/artifacts/:id/analytics?range=24h\|7d\|30d\|90d\|all` | `{id, url, range, bucket, from, to, first_view_day, totals:{all_time_views, range_views, range_visitors}, series:[{bucket, views, visitors}], top_referrers:[{referrer, views}], top_countries:[{country, views}], top_paths:[{path, views}], top_devices:[{device, views}]}`. `range` defaults to `30d`; anything else is 400. `bucket` is `hour` for `24h` (RFC 3339 hour starts) and `day` otherwise (UTC dates), zero-filled. `referrer` is a host, `(direct)` or `(other)`. Visitors are unique per page per day. Guest keys get 403. |
 | `GET` | `/api/analytics?range=...` | The same report across every live page of the workspace, with `top_pages:[{id, title, url, views, visitors}]` and `top_paths` items carrying `id`. Visitors add up per page. |
 | `GET` | `/api/variables` | `{variables:[{name, allowed_upstreams, created_at, updated_at}], limit}`. Values are write-only and never returned. |
@@ -386,6 +389,7 @@ take no auth; the artifact id is the capability.
 | `POST` | `/a/:id/_unlock` | Gate form: `code` for a share code, or `password` on a password page. 303 to the page with the unlock cookie, or the gate again. |
 | `POST` | `/a/:id/_access/email`, `/a/:id/_access/code` | Restricted gate: ask for a code by `email`, then send `email` and `code`. |
 | `GET`/`POST` | `/a/:id/_access/link?t=` | The mailed link. GET shows a button (so mail scanners do not spend it); the POST spends it and sets the cookie. |
+| `GET`/`POST` | `/a/:id/_state` | The page's [state](#page-state), for its own script (on a page host: `/_state`). GET → `{revision, items}`; `?since=n` answers `{revision}` alone while nothing changed. POST `{items:{key: value\|null}}` sets or (`null`) deletes keys in one write → `{revision}`. Admits whoever may open the page; 404 while the page is gated for this visitor or its state is off. |
 | `GET` | `/a/:id/_cover.svg` | The cover: the publisher's `cover` file from the current version when present, else a generated 1200 x 630 SVG card (title, project, share host and publish date over a subtle `cover_style` pattern). `Cache-Control: public, max-age=3600` with an ETag; 404 / 410 like pages. |
 | `GET` | `/healthz` | |
 | `GET` | `/api/domains` | `{domains:[domain]}`: the workspace's custom domains with their mounts. A domain is `{domain, status, verified, ssl_status, is_apex, url, dns_instructions:[{type, host, name, value, purpose}], verification?:{state, message}, mounts:[mount], created_at, verified_at, checked_at}`; `status` is `pending`, `active` or `error`. Every domain route answers 404 when the server has no `DOMAINS_PROVIDER`, and 403 for a guest key. |
@@ -406,7 +410,7 @@ Errors: `{"error":{"code","message","request_id"}}`. Codes:
 
 Limits (managed free tier): 25 MB per version, 500 files, 10 publishes/min
 per key, 200 artifacts per tenant, 20 versions kept, 2 KB comment body,
-20 comments/min per IP on `/c/*`.
+20 comments/min per IP on `/c/*`, 120 state reads and 60 state writes/min per IP.
 Email sign-in is limited to 5 requests/hour per address and 20/hour per IP;
 key creation to 20/hour per tenant; portal links to 60/minute per tenant.
 
@@ -583,13 +587,49 @@ to the operator, `none` is for tests and for TLS handled outside byagent.
 Unset turns custom domains off. Setup steps are in
 [deploy/RUNBOOK.md](deploy/RUNBOOK.md#custom-domains-cloudflare-for-saas).
 
+## Page state
+
+A published page's script can keep shared state on byagent through
+`window.byagent.state`, so a checklist, a vote or a form survives a reload and
+shows the same values to everyone who opens the page:
+
+```js
+addEventListener("DOMContentLoaded", async () => {
+  const state = window.byagent?.state;           // absent where the runtime is not injected
+  if (!state) return;
+  const done = (await state.get("done")) === true; // null when unset
+  await state.set("done", !done);                  // any JSON value; null deletes
+  await state.patch({ "vote:sam": "yes", "vote:old": null });
+  state.on("change", (e) => render(e));            // e.source: initial, local or remote
+});
+```
+
+`get(key)`, `all()`, `set(key, value)`, `delete(key)` and `patch({key: value|null})`
+return promises; `on("change", fn)` / `off` and the `byagent:state` window event
+report the first load, the page's own writes and other readers' writes. An open
+page checks for other readers' writes every 15 seconds and when the tab regains
+focus (`refresh()` asks at once).
+
+- **Who:** anyone who can open the page reads and writes it, through the same
+  gate as the page (public, share code, password, restricted), like viewer comments.
+  Requests must come from the page itself (its Origin), and on a page host the
+  route names no page, so one page can never read or write another's state.
+- **What:** keys are 1 to 128 of `A-Z a-z 0-9 . _ : -`; values are JSON up to
+  64 KiB; one write changes at most 256 keys; a page holds at most 1000 keys
+  and 2 MiB.
+- **Lifetime:** state belongs to the page, not a version: every version sees
+  it, and a write never makes one. `byagent state <id>` shows it, `--clear`
+  empties it, deleting the page erases it, and `byagent publish --no-state`
+  turns it off.
+
 ## Comments runtime
 
 Every served HTML page gets `<script src="/_rt/comments.js" data-artifact="…" data-version="…" defer>`
-injected before `</body>` on public artifacts, unless comments are switched off for that artifact
+injected before `</body>` on public artifacts. With comments switched off for that artifact
 (`byagent publish --no-comments`, `comments_enabled:false` in the manifest,
-or the Comments switch on the dashboard's artifact page), in which case the
-page is served exactly as published. The runtime is vanilla JS with no dependencies, lives
+or the Comments switch on the dashboard's artifact page) the tag carries
+`data-comments="off"` and the runtime only offers page state; with page state
+off as well the page is served exactly as published. The runtime is vanilla JS with no dependencies, lives
 entirely in a shadow root, and fails closed: if the comments API is unreachable
 the page renders exactly as published.
 

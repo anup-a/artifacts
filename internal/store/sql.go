@@ -78,8 +78,8 @@ func (s *sqlStore) AddVersion(ctx context.Context, v Version, files []File) erro
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO versions(artifact_id,version,created_at,bytes,file_count,agent,model,key_name) VALUES (?,?,?,?,?,?,?,?)`),
-		v.ArtifactID, v.Version, v.CreatedAt, v.Bytes, v.FileCount, v.Agent, v.Model, v.KeyName); err != nil {
+	if _, err := tx.ExecContext(ctx, s.q(`INSERT INTO versions(artifact_id,version,created_at,bytes,file_count,agent,model,key_name,summary) VALUES (?,?,?,?,?,?,?,?,?)`),
+		v.ArtifactID, v.Version, v.CreatedAt, v.Bytes, v.FileCount, v.Agent, v.Model, v.KeyName, v.Summary); err != nil {
 		return err
 	}
 	for _, f := range files {
@@ -118,7 +118,7 @@ func (s *sqlStore) NextVersion(ctx context.Context, artifactID string) (int, err
 }
 
 func (s *sqlStore) Versions(ctx context.Context, artifactID string) ([]Version, error) {
-	rows, err := s.db.QueryContext(ctx, s.q(`SELECT artifact_id,version,created_at,bytes,file_count,agent,model,key_name,restored_at FROM versions WHERE artifact_id=? ORDER BY version`), artifactID)
+	rows, err := s.db.QueryContext(ctx, s.q(`SELECT artifact_id,version,created_at,bytes,file_count,agent,model,key_name,restored_at,summary FROM versions WHERE artifact_id=? ORDER BY version`), artifactID)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (s *sqlStore) Versions(ctx context.Context, artifactID string) ([]Version, 
 	var out []Version
 	for rows.Next() {
 		var v Version
-		if err := rows.Scan(&v.ArtifactID, &v.Version, &v.CreatedAt, &v.Bytes, &v.FileCount, &v.Agent, &v.Model, &v.KeyName, &v.RestoredAt); err != nil {
+		if err := rows.Scan(&v.ArtifactID, &v.Version, &v.CreatedAt, &v.Bytes, &v.FileCount, &v.Agent, &v.Model, &v.KeyName, &v.RestoredAt, &v.Summary); err != nil {
 			return nil, err
 		}
 		out = append(out, v)

@@ -10,17 +10,19 @@ import { collectFiles, readLink, writeLink } from "../files.js";
 import { findProject } from "../project.js";
 import { CliError, usage } from "../errors.js";
 
-const USAGE = "usage: byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>] [--private|--public] [--password] [--comments|--no-comments] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>] [--lang <tag>]";
+const USAGE = "usage: byagent publish <dir|file.html|file.md> [--id <id>] [--title <t>] [--end-user <id>] [--private|--public] [--password] [--comments|--no-comments] [--state|--no-state] [--summary <text>] [--project <name>] [--tag <t>]... [--cover <file>] [--cover-style <name>] [--lang <tag>]";
 
 // Image types the server will stream as a cover.
 const COVER_EXTS = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp"]);
 
 // comments is true/false for --comments/--no-comments, undefined when neither
 // is given so the server leaves the artifact's switch alone.
-function manifestOf(files, title, comments, labels, visibility) {
+function manifestOf(files, title, comments, labels, visibility, state, summary) {
   const m = { files: files.map((f) => ({ path: f.path, sha256: f.sha256, size: f.size })) };
   if (title) m.title = title;
   if (comments !== undefined) m.comments_enabled = comments;
+  if (state !== undefined) m.state_enabled = state;
+  if (summary) m.summary = summary;
   if (visibility !== undefined) m.visibility = visibility;
   if (labels.project !== undefined) m.project = labels.project;
   if (labels.tags !== undefined) m.tags = labels.tags;
@@ -46,6 +48,22 @@ function commentsFlag(flags) {
   if (flags.comments) return true;
   if (flags["no-comments"]) return false;
   return undefined;
+}
+
+function stateFlag(flags) {
+  if (flags.state && flags["no-state"]) throw usage("--state and --no-state are mutually exclusive");
+  if (flags.state) return true;
+  if (flags["no-state"]) return false;
+  return undefined;
+}
+
+// summaryOf reads --summary: one change per line. A shell argument rarely
+// holds a real newline, so a literal \n separates lines too.
+export function summaryOf(flags) {
+  if (flags.summary === undefined) return undefined;
+  const text = String(flags.summary).replace(/\\n/g, "\n").split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join("\n");
+  if ([...text].length > 1000) throw usage("--summary is at most 1000 characters");
+  return text || undefined;
 }
 
 // resolveCover returns the manifest path for --cover. A file inside the
@@ -129,7 +147,7 @@ export async function publish(cfg, { positional, flags, source, env = process.en
   const labels = labelsOf(flags, link.api === cfg.api ? link : {}, folder && folder.collection);
   const { cover, files } = resolveCover(flags.cover, dir, collected.files, flags.title);
   if (cover !== undefined) labels.cover = cover;
-  const manifest = { ...manifestOf(files, collected.title, commentsFlag(flags), labels, visibility), ...provenanceOf(flags, env) };
+  const manifest = { ...manifestOf(files, collected.title, commentsFlag(flags), labels, visibility, stateFlag(flags), summaryOf(flags)), ...provenanceOf(flags, env) };
 
   // The link file only applies when it was written against this same API, so a
   // directory published to a staging server does not silently update production.
@@ -176,10 +194,11 @@ export async function publish(cfg, { positional, flags, source, env = process.en
 
   const bytes = files.reduce((n, f) => n + f.size, 0);
   const commentsOn = res.comments_enabled !== false;
+  const stateOn = res.state_enabled !== false;
   const labelLine = [project ? `project ${project}` : "", tags.length ? `tags ${tags.join(", ")}` : ""].filter(Boolean).join(", ");
   return {
     json: {
-      id: res.id, url: res.url, version: res.version, end_user: res.end_user, comments_enabled: commentsOn,
+      id: res.id, url: res.url, version: res.version, end_user: res.end_user, comments_enabled: commentsOn, state_enabled: stateOn,
       visibility: res.visibility ?? "public",
       project: project ?? null, tags, cover_url: res.cover_url, cover_style: res.cover_style,
       files: files.length, bytes, uploaded: sent.size,
@@ -190,7 +209,7 @@ export async function publish(cfg, { positional, flags, source, env = process.en
     },
     human: [
       `${res.url}`,
-      `version ${res.version}, ${files.length} files, ${bytes} bytes, ${sent.size} uploaded${commentsOn ? "" : ", comments off"}`,
+      `version ${res.version}, ${files.length} files, ${bytes} bytes, ${sent.size} uploaded${commentsOn ? "" : ", comments off"}${stateOn ? "" : ", page state off"}`,
       ...(labelLine ? [labelLine] : []),
       ...(access ? [`password set; share ${access.share_url}`] : res.visibility === "private" ? ["private — sign in to the owning workspace to view"] : []),
       ...(res.expires_at && !res.guest ? [`stops working at ${res.expires_at}, then is erased`] : []),

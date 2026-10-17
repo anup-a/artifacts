@@ -67,6 +67,7 @@ type Handler struct {
 	// or "" to serve them here.
 	Primary     func(ctx context.Context, artifactID string) string
 	unlock      *unlockGuard
+	state       *stateGuards
 	runtimeETag string
 	runtimeRev  string // short content hash, cache-busts the injected script URL
 }
@@ -105,6 +106,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	h.runtimeRev = hexSum[:12]
 	h.unlock = newUnlockGuard(h.Now)
 	h.access = newAccessGuards(h.Now, h.MailPerWorkspaceDay, h.MailPerDay)
+	h.state = newStateGuards()
 	mux.HandleFunc("GET /_rt/comments.js", h.runtime)
 	mux.HandleFunc("GET /skill.md", h.skill)
 	mux.HandleFunc("POST /a/{id}/"+unlockPath, h.publicArtifact(h.submitCode))
@@ -113,6 +115,8 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /a/{id}/"+accessLinkPath, h.publicArtifact(h.openAccessLink))
 	mux.HandleFunc("POST /a/{id}/"+accessLinkPath, h.publicArtifact(h.confirmAccessLink))
 	mux.HandleFunc("GET /a/{id}/"+coverPath, h.publicArtifact(h.cover))
+	mux.HandleFunc("GET /a/{id}/"+statePath, h.publicArtifact(h.readState))
+	mux.HandleFunc("POST /a/{id}/"+statePath, h.publicArtifact(h.writeState))
 	mux.HandleFunc("GET /a/{id}/v/{version}/{path...}", h.publicArtifact(h.pinned))
 	mux.HandleFunc("GET /a/{id}/{path...}", h.publicArtifact(h.current))
 	h.registerRoutes(mux)
@@ -281,16 +285,20 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		h.redirectToViewCap(w, r, a, addrVersion, rest)
 		return
 	}
-	// HTML gets the runtime injected only while comments are on, so the ETag
-	// carries that state too: flipping the switch must not be masked by a
-	// cached copy of the other variant.
-	inject := isHTML && a.CommentsEnabled && !isPrivateViewer(r)
+	// HTML gets the runtime injected while comments or page state are on,
+	// so the ETag carries both switches too: flipping one must not be
+	// masked by a cached copy of the other variant. With comments off the
+	// runtime only offers page state.
+	inject := isHTML && (a.CommentsEnabled || a.StateEnabled) && !isPrivateViewer(r)
 	// The root page also gets Open Graph tags carrying the title, so the tag
 	// changes with a retitle as well.
 	meta := isHTML && p == "index.html" && !isPrivateViewer(r)
 	etag := `"` + f.SHA256 + `"`
 	if inject {
 		etag = `"` + f.SHA256 + "-rt-" + strconv.Itoa(version) + `"`
+		if !a.CommentsEnabled {
+			etag = etag[:len(etag)-1] + "-nc" + `"`
+		}
 	} else if isHTML {
 		etag = `"` + f.SHA256 + "-nort-" + strconv.Itoa(version) + `"`
 	}
@@ -351,11 +359,11 @@ func (h *Handler) serve(w http.ResponseWriter, r *http.Request, id string, versi
 		}
 	}
 	if inject {
+		base := ""
 		if OnPageHost(r) || OnMount(r) {
-			body = InjectBase(body, id, version, h.runtimeRev, PageBase(r, id))
-		} else {
-			body = Inject(body, id, version, h.runtimeRev)
+			base = PageBase(r, id)
 		}
+		body = InjectRuntime(body, id, version, h.runtimeRev, base, a.CommentsEnabled)
 	}
 	if badge {
 		body = InjectGuestBadge(body, h.ShareOrigin)

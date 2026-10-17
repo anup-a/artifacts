@@ -151,6 +151,7 @@ func TestServedPageCarriesOpenGraphTags(t *testing.T) {
 		t.Fatalf("pinned page lacks og tags: %s", pinned)
 	}
 	_ = st.SetCommentsEnabled(ctx, id, false)
+	_ = st.SetStateEnabled(ctx, id, false)
 	if _, off := get(t, srv.URL+"/a/"+id+"/", nil); !strings.Contains(off, "og:image") || strings.Contains(off, "<script") {
 		t.Fatalf("comments-off page: %s", off)
 	}

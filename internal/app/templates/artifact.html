@@ -282,7 +282,7 @@
       <thead><tr><th>{{t "Version"}}</th><th>{{t "Published"}}</th><th>{{t "By"}}</th><th class="num">{{t "Size"}}</th><th class="num">{{t "Files"}}</th><th class="num">{{t "Comments"}}</th><th class="actions"></th></tr></thead>
       <tbody>
       {{range .Data.Versions}}
-      <tr{{if .Current}} class="is-current"{{end}}>
+      <tr class="{{if .Current}}is-current{{end}}{{if .Changes}} has-changes{{end}}">
         <td><span class="badge mono">v{{.N}}</span>{{if .Current}} <span class="badge ok">{{t "Current"}}</span>{{end}}</td>
         <td class="when"><time title="{{when .CreatedAt}} UTC">{{ago .CreatedAt $.Now}}</time>{{if .RestoredAt}}<br><span class="muted">{{th `restored <time title="%s UTC">%s</time>` (when .RestoredAt) (ago .RestoredAt $.Now)}}</span>{{end}}</td>
         <td class="muted"{{if .Key}} title="{{t "key: %s" .Key}}"{{end}}>{{if .By}}{{.By}}{{else}}&ndash;{{end}}</td>
@@ -309,6 +309,15 @@
           </div>
         </td>
       </tr>
+      {{if .Changes}}
+      <tr class="ver-changes{{if .Current}} is-current{{end}}">
+        <td colspan="7">
+          <ul aria-label="{{t "What changed in v%d" .N}}">
+            {{range .Changes}}<li>{{.}}</li>{{end}}
+          </ul>
+        </td>
+      </tr>
+      {{end}}
       {{end}}
       </tbody>
     </table>

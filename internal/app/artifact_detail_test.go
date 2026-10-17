@@ -87,6 +87,22 @@ func TestArtifactDetailVersionsAndRollback(t *testing.T) {
 	want(t, e.get("/app/artifacts/aaaaaaaaaaaa"), 404)
 }
 
+func TestArtifactDetailShowsVersionSummaries(t *testing.T) {
+	e := fixture(t)
+	e.signIn("a@x.io")
+	a := e.publish("summary00001", "Report", "")
+	e.version(a.ID, 1, 100)
+	v := store.Version{ArtifactID: a.ID, Version: 2, CreatedAt: e.clock.t, Summary: "added the chart\nfixed <b>totals</b>"}
+	if err := e.st.AddVersion(context.Background(), v, nil); err != nil {
+		t.Fatal(err)
+	}
+	res := e.get("/app/artifacts/summary00001")
+	want(t, res, 200, `<ul aria-label="What changed in v2">`, "<li>added the chart</li>", "<li>fixed &lt;b&gt;totals&lt;/b&gt;</li>")
+	if strings.Contains(res.Body, "What changed in v1") {
+		t.Fatal("a version without a summary got a change list")
+	}
+}
+
 func TestVersionActionsRefuseOtherWorkspaces(t *testing.T) {
 	e := fixture(t)
 	e.signIn("a@x.io")

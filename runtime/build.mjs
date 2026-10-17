@@ -8,7 +8,8 @@ import { readFileSync } from "node:fs";
 // threaded replies, inline icons) needed the extra headroom, and suggested
 // edits (2026-10) took it from 32 KB to 36 KB. The built-in translations for
 // nine languages (src/i18n.js, 2026-10) add about 15 KB, 6 KB gzipped.
-const LIMIT = 53248;
+// Page state (src/state.js, window.byagent.state) adds about 3.5 KB.
+const LIMIT = 55296;
 
 const result = await build({
   entryPoints: ["src/index.js"],
