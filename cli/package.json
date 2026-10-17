@@ -10,6 +10,7 @@
   "files": [
     "bin",
     "src",
+    "runtime",
     "README.md"
   ],
   "engines": {
@@ -47,7 +48,8 @@
     "access": "public"
   },
   "scripts": {
-    "test": "node --test test/unit.test.mjs test/hooks.test.mjs test/markdown.test.mjs test/e2e.test.mjs"
+    "test": "node --test test/unit.test.mjs test/hooks.test.mjs test/markdown.test.mjs test/local.test.mjs test/e2e.test.mjs",
+    "prepack": "node -e \"require('fs').mkdirSync('runtime',{recursive:true});require('fs').copyFileSync('../runtime/dist/comments.js','runtime/comments.js')\""
   },
   "dependencies": {
     "marked": "^18.0.13"

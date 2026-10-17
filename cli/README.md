@@ -14,6 +14,14 @@ npx byagent publish ./page.html
 
 With nothing configured, `publish` gets a guest key and saves it to `~/.artifacts/config.json`. Guest pages are public, three at most, 5 MB each, and stop working 24 hours after the key was made. The output ends with a claim link: open it, sign in and confirm, and the pages move into your workspace for good. The guest key stops working then, and the dashboard offers a connect prompt for your agent. `byagent login --guest` gets a guest key up front; `BYAGENT_GUEST=0` turns the automatic one off.
 
+## Keep it on your machine
+
+```
+byagent publish ./page.html --local
+```
+
+`--local` (or `BYAGENT_LOCAL=1`) runs any command against a small server on your own machine instead of byagent.dev. You need no account, and nothing is uploaded. The first `--local` command starts the server in the background. Pages open at `http://localhost:4790/a/<id>/` with the same comment panel, and `http://localhost:4790/` lists them all. `publish`, `get`, `list`, `versions`, `rollback`, `version rm`, `diff`, `delete`, `comments` (including `--wait`), `reply`, `resolve` and `mark` all work, so an agent can run the full comment loop offline. Pages, versions and comments are kept in `~/.byagent/local` (`BYAGENT_LOCAL_DIR`). The port is 4790 (`BYAGENT_LOCAL_PORT` or `--port`). `byagent local status` shows the server and `byagent local stop` ends it. When a page is ready to share, publish it again without `--local`: the folder keeps its local id separate from its byagent.dev one. Sharing, access, expiry, analytics, vars, domains and collections need byagent.dev.
+
 ## Sign in
 
 Connect an agent without pasting a key into its chat. Either paste the prompt from the dashboard's Connect agent page (`https://app.byagent.dev/app/connect`), which runs:

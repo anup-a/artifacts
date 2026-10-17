@@ -15,6 +15,7 @@ import { analytics } from "./commands/analytics.js";
 import { access } from "./commands/access.js";
 import { vars } from "./commands/vars.js";
 import { domains, domain } from "./commands/domains.js";
+import { local, localConfig } from "./commands/local.js";
 
 // needsConfig is false for login, which builds its own config from its flags.
 const COMMANDS = {
@@ -44,6 +45,7 @@ const COMMANDS = {
   vars: { run: vars, needsConfig: true },
   domains: { run: domains, needsConfig: true },
   domain: { run: domain, needsConfig: true },
+  local: { run: local, needsConfig: false },
 };
 
 const help = (api) => `byagent - publish a page, share the URL, read the comments on it
@@ -93,6 +95,8 @@ Usage:
   byagent domain rm <host>
   byagent domain unmount <host> [--path /x]
   byagent domain primary <id> <host> [--path /x] | --off
+  byagent local start|stop|status|serve [--port <n>]
+  byagent <command> --local
 
 A .md file (or a directory whose index is index.md / README.md) is rendered to
 a styled page on the way in; its first H1 becomes the title unless --title is
@@ -223,6 +227,19 @@ different paths. A page keeps its visibility, share code and comments there.
 domain primary makes the page's byagent.dev link 308-redirect to the domain
 (active domains only); --off stops that. domain rm disconnects the domain.
 No account (guest key), no custom domains.
+--local (or BYAGENT_LOCAL=1) runs a command against a server on this
+machine instead of byagent.dev: no account, no key, nothing uploaded.
+publish, get, list, versions, rollback, version rm, diff, delete, comments
+(with --wait), reply, resolve and mark all work; pages open at
+http://localhost:4790/a/<id>/ with the comment panel, and
+http://localhost:4790/ lists them. The first --local command starts the
+server in the background; local stop ends it. Pages, versions and comments
+live in ~/.byagent/local (BYAGENT_LOCAL_DIR); the port is 4790
+(BYAGENT_LOCAL_PORT or --port). A directory published locally keeps its
+local id apart from its byagent.dev one, so publishing it again without
+--local makes a real link. Sharing, access, expiry, analytics, vars,
+domains and collections need byagent.dev. local serve runs the server in
+the foreground.
 
 Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
 or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.
@@ -232,7 +249,8 @@ deprecated fallback.`;
 // configFor resolves the saved config. A publish with nothing configured gets
 // a guest key instead of an error, so the first page needs no account;
 // BYAGENT_GUEST=0 turns that off.
-async function configFor(command, env) {
+async function configFor(command, flags, env) {
+  if (flags.local || env.BYAGENT_LOCAL === "1") return localConfig(flags, env);
   try {
     return resolveConfig({ env });
   } catch (e) {
@@ -253,7 +271,7 @@ export async function main(argv, { out = console.log, err = console.error, env =
     const entry = COMMANDS[command];
     if (!entry) throw usage(`unknown command ${command}`);
 
-    const cfg = entry.needsConfig ? await configFor(command, env) : null;
+    const cfg = entry.needsConfig ? await configFor(command, flags, env) : null;
     const result = await entry.run(cfg, { positional, flags, env });
     if (json) out(JSON.stringify(result.json));
     else for (const line of result.human) out(line);
