@@ -943,6 +943,38 @@ test("login --wait gives up after 90 seconds by default, and says when the code 
   await assert.rejects(browserLogin("https://api.example", { wait: true, home, note: () => {} }), /nothing to wait for/);
 });
 
+test("init writes one byagent block, replaces it in place, and leaves the rest alone", async () => {
+  const { init, BLOCK } = await import("../src/commands/init.js");
+  const cwd = tmp();
+  const home = tmp();
+  writeFileSync(join(cwd, "CLAUDE.md"), "# Notes\nkeep me\n");
+  const first = await init(null, { flags: {}, cwd, home });
+  assert.deepEqual(first.json.files.map((f) => [f.path.split("/").pop(), f.action]), [["AGENTS.md", "created"], ["CLAUDE.md", "updated"]]);
+  assert.equal(readFileSync(join(cwd, "AGENTS.md"), "utf8"), BLOCK + "\n");
+  assert.equal(readFileSync(join(cwd, "CLAUDE.md"), "utf8"), "# Notes\nkeep me\n\n" + BLOCK + "\n");
+  assert.match(BLOCK, /npx -y byagent@latest publish/);
+  assert.match(BLOCK, /https:\/\/byagent\.dev\/skill\.md/);
+
+  // Again: nothing changes. An old block is replaced, not duplicated.
+  assert.ok((await init(null, { flags: {}, cwd, home })).json.files.every((f) => f.action === "unchanged"));
+  writeFileSync(join(cwd, "AGENTS.md"), "top\n<!-- byagent -->\nold text\n<!-- /byagent -->\nbottom\n");
+  await init(null, { flags: {}, cwd, home });
+  assert.equal(readFileSync(join(cwd, "AGENTS.md"), "utf8"), "top\n" + BLOCK + "\nbottom\n");
+
+  // A CLAUDE.md that only includes AGENTS.md is left alone.
+  const cwd2 = tmp();
+  writeFileSync(join(cwd2, "CLAUDE.md"), "@AGENTS.md\n");
+  const r = await init(null, { flags: {}, cwd: cwd2, home });
+  assert.equal(r.json.files[1].action, "skipped");
+  assert.equal(readFileSync(join(cwd2, "CLAUDE.md"), "utf8"), "@AGENTS.md\n");
+
+  // --global writes only for agents whose directory exists.
+  mkdirSync(join(home, ".claude"));
+  const g = await init(null, { flags: { global: true }, cwd, home });
+  assert.deepEqual(g.json.files.map((f) => f.action), ["created", "skipped"]);
+  assert.equal(readFileSync(join(home, ".claude", "CLAUDE.md"), "utf8"), BLOCK + "\n");
+});
+
 test("access sorts --allow into addresses and domains and replaces the list", async (t) => {
   const { splitEntries } = await import("../src/commands/access.js");
   assert.deepEqual(splitEntries(["sam@acme.com", "@acme.com", "other.org", "a@x.io,b@x.io"]),

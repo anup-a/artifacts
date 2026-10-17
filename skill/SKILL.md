@@ -11,7 +11,7 @@ The hand-back is the returned published URL (public: `https://<name>.byagent.dev
 
 ## Setting up
 
-"Set up byagent for all my projects" means install this file where you read it in every project, not in one repo: for Claude Code, save it as `~/.claude/skills/byagent/SKILL.md`; for Codex, add it to `~/.codex/AGENTS.md`; for any other agent, its user-level instructions. Then connect (see **Connecting** below) and tell the user it is set up. "For this project" means the repo's own skills or `AGENTS.md` instead.
+"Set up byagent for all my projects" means install this file where you read it in every project, not in one repo: for Claude Code, save it as `~/.claude/skills/byagent/SKILL.md`; for Codex, add it to `~/.codex/AGENTS.md`; for any other agent, its user-level instructions. Then connect (see **Connecting** below), run `byagent init --global --json` (it adds a short byagent line to `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, so later sessions know byagent without this file), and tell the user it is set up. "For this project" means the repo's own skills or `AGENTS.md` instead; `byagent init --json` writes that line into the repo's `AGENTS.md`.
 
 ## Markdown or HTML?
 

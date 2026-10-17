@@ -138,9 +138,12 @@ func connectPrompt(cfg config.Config, code string) string {
 	if cfg.APIOrigin != defaultAPI {
 		login += " --api " + cfg.APIOrigin
 	}
+	// Step 3 makes it outlast this chat: init writes a line about byagent
+	// into the instructions file every later session reads.
 	return "Set up byagent so you can publish pages I can comment on.\n\n" +
 		"1. Run: " + login + "\n" +
-		"2. Read " + cfg.ShareOrigin + "/skill.md and follow it.\n\n" +
+		"2. Read " + cfg.ShareOrigin + "/skill.md and follow it.\n" +
+		"3. Run: npx -y byagent@latest init --global\n\n" +
 		"The code works once in the next 10 minutes. Never ask me for a key."
 }
 

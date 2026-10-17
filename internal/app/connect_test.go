@@ -20,7 +20,7 @@ func TestConnectPrompt(t *testing.T) {
 	e := fixture(t)
 	e.signIn("ann@example.test")
 	res := e.get("/app/connect")
-	want(t, res, 200, "Connect your agent", `href="/app/connect" class="active"`, "npx -y byagent@latest login --code ", "/skill.md", "Copy prompt")
+	want(t, res, 200, "Connect your agent", `href="/app/connect" class="active"`, "npx -y byagent@latest login --code ", "/skill.md", "byagent@latest init --global", "Copy prompt")
 	if strings.Contains(res.Body, "ak_") {
 		t.Fatal("the prompt page shows a key")
 	}

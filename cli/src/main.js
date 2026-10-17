@@ -9,6 +9,7 @@ import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
 import { whoami, portalLink } from "./commands/account.js";
 import { hooks } from "./commands/hooks.js";
+import { init } from "./commands/init.js";
 import { brief } from "./commands/brief.js";
 import { version, diff } from "./commands/artifacts.js";
 import { analytics } from "./commands/analytics.js";
@@ -42,6 +43,7 @@ const COMMANDS = {
   resolve: { run: resolve, needsConfig: true },
   mark: { run: mark, needsConfig: true },
   hooks: { run: hooks, needsConfig: false },
+  init: { run: init, needsConfig: false },
   brief: { run: brief, needsConfig: true },
   analytics: { run: analytics, needsConfig: true },
   vars: { run: vars, needsConfig: true },
@@ -107,6 +109,7 @@ Usage:
   byagent mark <id> <thread> seen|working|declined [--note "<text>"]
   byagent delete <id>
   byagent hooks install|uninstall claude|codex [--scope user|project]
+  byagent init [--global]
   byagent brief [push [--private|--public] [--project <name>]]
   byagent analytics [<id>] [--range 24h|7d|30d|90d|all]
   byagent vars
@@ -225,6 +228,11 @@ note to its context suggesting byagent publish, or a republish when the
 directory is already bound. It never publishes. Each file is mentioned once
 per session, five at most; BYAGENT_NUDGE=0 silences it. byagent must be on
 PATH (npm install -g byagent). hooks uninstall removes only this hook.
+init writes one short block about byagent into the instructions an agent
+already reads, so it knows byagent without searching the web: AGENTS.md here
+(created if missing) and CLAUDE.md if there is one that does not include
+AGENTS.md; --global writes ~/.claude/CLAUDE.md and ~/.codex/AGENTS.md for the
+agents that are installed. Running it again replaces the block in place.
 A .byagent.json at a project root, {"collection": "<name>"}, makes that
 collection the default --project for every publish below it; the nearest file
 wins. Commit it: it holds no key.
