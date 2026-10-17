@@ -32,12 +32,12 @@ Default to Markdown. It is faster to write, comments attach to real text, and th
 
 ## CLI
 
-The CLI is the npm package `byagent` (`npm install -g byagent`, or `npx byagent <command>`). Never `npx artifacts`, which is an unrelated package. Credentials: `ARTIFACTS_TOKEN` / `ARTIFACTS_API`, else `~/.artifacts/config.json`.
+The CLI is the npm package `byagent`. Prefer `npm install -g byagent` once; with `npx`, run `NPM_CONFIG_UPDATE_NOTIFIER=false npx -y byagent@latest <command>` so npm's update notices stay out of the output you parse. Never `npx artifacts`, which is an unrelated package. Credentials: `BYAGENT_TOKEN` / `BYAGENT_API` (the older `ARTIFACTS_*` names still work), else `~/.artifacts/config.json`.
 
 **Connecting:** never ask the user to paste a key into the chat. Either:
 
 - The user pastes a prompt from the dashboard's **Connect agent** page. It carries a one-time code; run the line it gives you, e.g. `npx -y byagent@latest login --code K7QD-M3XR --json`.
-- Or you start it: `byagent login --browser --no-wait --json` prints `verify_url` and `user_code`. Give the user the link and the code, ask them to approve it, then run `byagent login --wait --json` (exit 3 means not approved yet; ask again or retry).
+- Or you start it: `byagent login --browser --no-wait --json`. **Stop there.** Your next message to the user starts with its `action_required.message`, word for word (the link, the code and when it expires), and you do nothing else until they reply. The code dies in 10 minutes, so never bury the link under other work. Then run `byagent login --wait --json`, or start it in the background as soon as you have sent the message. It waits up to 90 seconds (`--timeout` to change); exit 3 with `PENDING` means not approved yet, so run it again; `EXPIRED` means start over with a new link.
 
 Either way you get a key of your own, named after you (`claude-code on <host>`), saved to `~/.artifacts/config.json`. Codes work once and expire in 10 minutes. Never print the token. Every command takes `--json`; parse that object. For CI, a person creates a key at `https://<api-host>/app/keys` and pipes it to `byagent login --api https://<api-host>`.
 
@@ -52,7 +52,7 @@ byagent publish ./notes.md --project "Hi Travel" --tag notes --json     # Markdo
 
 Always pass `--project` and 1–3 `--tag`s. Pass `--agent <you>` (for example `codex`, `cursor`) and `--model <model id>` when you know them, so the version history shows what produced each version; Claude Code and Codex are detected for you. Output includes `url` — that is the deliverable. Republish from the **same directory** to keep the URL (`.artifacts.json` binds it). New directory = new link.
 
-**Collections:** every artifact sharing a `--project` label forms a collection (read in publish order unless the owner reorders it). Before publishing a page that belongs with earlier ones, run `byagent collections --json` and reuse the **exact** existing project string; a near-miss like `Hi-Travel` vs `Hi Travel` starts a second collection. `byagent collection "<name>" --json` lists one collection's pages with their URLs.
+**Collections:** every artifact sharing a `--project` label forms a collection (read in publish order unless the owner reorders it). Before publishing a page that belongs with earlier ones, run `byagent collections --names --json` and reuse the **exact** existing project string; a near-miss like `Hi-Travel` vs `Hi Travel` starts a second collection. `byagent collection "<name>" --json` lists one collection's pages with their URLs.
 
 Use `--private` when the user requests non-public or workspace-only access. Use
 `--public` only when public access is intended; the two flags are mutually

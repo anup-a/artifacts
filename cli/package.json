@@ -1,6 +1,6 @@
 {
   "name": "byagent",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Publish what Claude Code, Codex or Cursor writes as a shareable link. Readers comment on any line; your agent reads the comments back.",
   "license": "MIT",
   "type": "module",
@@ -35,13 +35,8 @@
     "cli"
   ],
   "homepage": "https://byagent.dev",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/anup-a/artifacts.git",
-    "directory": "cli"
-  },
   "bugs": {
-    "url": "https://github.com/anup-a/artifacts/issues"
+    "url": "https://github.com/anup-a/agent-artifacts/issues"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

@@ -8,10 +8,17 @@ function table(rows) {
 }
 
 // collections lists every project label of the workspace as a collection,
-// most recently active first.
-export async function collections(cfg) {
+// most recently active first. --names keeps only what an agent needs to reuse
+// a label exactly: the full listing carries each collection's latest pages.
+export async function collections(cfg, { flags = {} } = {}) {
   const res = await apiJson(cfg, "GET", "/api/collections");
   const rows = res.collections || [];
+  if (flags.names) {
+    return {
+      json: { collections: rows.map((c) => ({ name: c.name, count: c.count, updated_at: c.updated_at })) },
+      human: rows.length ? rows.map((c) => c.name) : ["no collections"],
+    };
+  }
   return {
     json: res,
     human: rows.length

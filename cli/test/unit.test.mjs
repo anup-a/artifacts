@@ -54,7 +54,13 @@ test("resolveConfig trims the trailing slash and fails when unconfigured", () =>
     token: "t",
     api: "https://a.example",
   });
-  assert.throws(() => resolveConfig({ env: {}, home }), (e) => e.exit === 2 && e.code === "NOT_CONFIGURED");
+  assert.throws(() => resolveConfig({ env: {}, home }), (e) => e.exit === 2 && e.code === "NOT_CONFIGURED"
+    && /byagent login/.test(e.message) && !/run artifacts login/.test(e.message));
+  // BYAGENT_* names win over the older ARTIFACTS_* ones.
+  assert.deepEqual(resolveConfig({ env: { BYAGENT_TOKEN: "b", BYAGENT_API: "https://b.example", ARTIFACTS_TOKEN: "t", ARTIFACTS_API: "https://a.example" }, home }), {
+    token: "b",
+    api: "https://b.example",
+  });
 });
 
 test("saveConfig writes 0600 JSON", () => {
@@ -522,12 +528,24 @@ test("help explains tenant commands and resolves the key creation URL", async ()
   assert.match(help, /--cover-style dots\|grid\|lines\|wash\|rings\|plain/);
   assert.match(help, /byagent whoami/);
   assert.match(help, /byagent portal-link <end-user id>/);
-  assert.match(help, /byagent collections\n/);
+  assert.match(help, /byagent collections \[--names\]\n/);
   assert.match(help, /byagent collection <name>/);
   assert.match(help, /https:\/\/api\.example\/app\/keys/);
   assert.match(help, /POST \/api\/keys.*removed/);
+  // The client manual says nothing about running a server, and has no placeholders.
+  assert.doesNotMatch(help, /KEY_SIGNING_SECRET|RESEND_API_KEY|LIMIT_ARTIFACTS|<PUBLIC_API_ORIGIN>/);
   const explicit = await command(["login", "--api", "https://custom.example/", "--help"]);
-  assert.match(explicit.output.join("\n"), /https:\/\/custom\.example\/app\/keys/);
+  const loginHelp = explicit.output.join("\n");
+  assert.match(loginHelp, /https:\/\/custom\.example\/app\/keys/);
+  // <command> --help is that command alone, not the whole manual.
+  assert.match(loginHelp, /byagent login --wait/);
+  assert.match(loginHelp, /action_required\.message/);
+  assert.doesNotMatch(loginHelp, /byagent publish|byagent domain/);
+  assert.ok(loginHelp.length < help.length / 3);
+  const publishHelp = (await command(["help", "publish"])).output.join("\n");
+  assert.match(publishHelp, /byagent publish <dir/);
+  assert.match(publishHelp, /--password/, "continuation lines of a usage entry are kept");
+  assert.doesNotMatch(publishHelp, /byagent login/);
 });
 
 test("share sends the action in the request body, so --off actually revokes", async (t) => {
@@ -881,7 +899,16 @@ test("login --browser polls until approved; --no-wait and --wait split it in two
 
   const later = await browserLogin("https://api.example", { name: "n", noWait: true, home, note: () => {} });
   assert.equal(later.json.pending, true);
+  assert.equal(later.json.status, "awaiting_user");
   assert.equal(later.json.user_code, "K7QD-M3XR");
+  // The handoff hands the agent the sentence for the person, and says to stop.
+  const act = later.json.action_required;
+  assert.equal(act.for, "user");
+  assert.match(act.message, /https:\/\/api\.example\/app\/connect\?code=K7QD-M3XR/);
+  assert.match(act.message, /K7QD-M3XR/);
+  assert.ok(act.expires_in_seconds > 0);
+  assert.match(later.json.instruction, /^Stop/);
+  assert.equal(later.human[0], act.message);
   assert.equal(polls, 0);
 
   // Not approved within the timeout: exit 3, and the request is kept for --wait.
@@ -891,6 +918,28 @@ test("login --browser polls until approved; --no-wait and --wait split it in two
   assert.equal(res.json.ok, true);
   assert.equal(polls, 3);
   assert.deepEqual(JSON.parse(readFileSync(configPath(home), "utf8")), { token: "ak_new", api: "https://api.example" });
+  await assert.rejects(browserLogin("https://api.example", { wait: true, home, note: () => {} }), /nothing to wait for/);
+});
+
+test("login --wait gives up after 90 seconds by default, and says when the code expired", async (t) => {
+  const { browserLogin, WAIT_MS } = await import("../src/commands/login.js");
+  const home = tmp();
+  const start = { device_code: "dc_y", user_code: "AB12-CD34", verify_url: "https://api.example/app/connect?code=AB12-CD34", expires_at: new Date(600_000).toISOString(), interval: 2 };
+  t.mock.method(globalThis, "fetch", async (url) =>
+    String(url).endsWith("/api/connect/device") ? Response.json(start, { status: 201 }) : Response.json({ status: "pending" }, { status: 202 }));
+  await browserLogin("https://api.example", { name: "n", noWait: true, home, now: () => 0 });
+
+  // No --timeout: back within WAIT_MS, before an agent's tool call is cut off.
+  const clock = fakeClock();
+  await assert.rejects(browserLogin("https://api.example", { wait: true, home, note: () => {}, ...clock }),
+    (e) => e.exit === 3 && e.code === "PENDING" && /min left/.test(e.message));
+  assert.ok(clock.now() <= WAIT_MS && WAIT_MS < 120_000);
+
+  // Past the code's expiry: EXPIRED, the request is dropped, and it says how to start over.
+  const late = fakeClock();
+  await late.sleep(590_000);
+  await assert.rejects(browserLogin("https://api.example", { wait: true, home, note: () => {}, ...late }),
+    (e) => e.exit === 3 && e.code === "EXPIRED" && /login --browser --no-wait/.test(e.message));
   await assert.rejects(browserLogin("https://api.example", { wait: true, home, note: () => {} }), /nothing to wait for/);
 });
 

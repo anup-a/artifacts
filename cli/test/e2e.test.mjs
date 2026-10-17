@@ -280,6 +280,9 @@ test("pull reads a private page back with the key alone", () => {
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0xff]);
   writeFileSync(join(dir, "assets", "dot.png"), png);
   const pub = json(["publish", dir, "--private"]);
+  // A private publish says who can open it and how to share it.
+  assert.match(pub.hint, new RegExp(`byagent share ${pub.id}`));
+  assert.equal(json(["publish", siteDir("<p>public</p>")]).hint, undefined);
   writeFileSync(join(dir, "index.html"), "<!doctype html><html><body><h1>two</h1></body></html>");
   json(["publish", dir]);
 
@@ -490,6 +493,10 @@ test("collections and collection read a project label back in publish order", ()
   assert.equal(firstAgain.id, first.id);
 
   const listed = json(["collections"]).collections.find((c) => c.name === project);
+  // --names is the small listing: no pages, just what reusing a label needs.
+  const named = json(["collections", "--names"]).collections.find((c) => c.name === project);
+  assert.deepEqual(Object.keys(named).sort(), ["count", "name", "updated_at"]);
+  assert.equal(named.count, listed.count);
   assert.equal(listed.count, 2);
   assert.equal(listed.share_url, null);
   assert.deepEqual(listed.latest.map((a) => a.id), [first.id, second.id]);
@@ -659,6 +666,8 @@ test("login --browser asks the real server for an approval link and waits for a 
   assert.equal(start.status, 0, start.stderr);
   const p = JSON.parse(start.stdout);
   assert.equal(p.pending, true);
+  assert.equal(p.status, "awaiting_user");
+  assert.match(p.action_required.message, new RegExp(p.user_code));
   assert.match(p.user_code, /^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
   assert.equal(p.verify_url, `${BASE}/app/connect?code=${p.user_code}`);
   assert.equal(existsSync(join(home, ".artifacts", "config.json")), false);

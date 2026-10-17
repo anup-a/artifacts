@@ -22,11 +22,11 @@ Part of {{.Share}}/agents.
      npx -y byagent@latest login --code K7QD-M3XR --json
      ```
 
-   - Or start it yourself, give the user `verify_url` and `user_code`, and wait for them to approve:
+   - Or start it yourself. **Stop after the first command**: your next message to the user is its `action_required.message`, word for word, before any other work. The code expires in 10 minutes.
 
      ```sh
      byagent login --browser --no-wait --json
-     byagent login --wait --json      # exit 3: not approved yet
+     byagent login --wait --json      # waits up to 90 s; exit 3 PENDING: run again, EXPIRED: start over
      ```
 
    Either way the CLI saves a key of its own, named after the agent, to `~/.artifacts/config.json`. A signed-in person approved it; the key itself never passes through the chat. Codes work once and expire in 10 minutes.

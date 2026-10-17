@@ -1,5 +1,5 @@
 import { CliError } from "./errors.js";
-import { DEFAULT_API, saveConfig, trimSlash } from "./config.js";
+import { DEFAULT_API, envApi, saveConfig, trimSlash } from "./config.js";
 import { clientHeaders } from "./agent.js";
 
 // createGuest asks the server for a 24-hour guest key and saves it as the
@@ -7,7 +7,7 @@ import { clientHeaders } from "./agent.js";
 // publishes up to three public pages; claim_url moves them into a real
 // workspace and retires the guest key.
 export async function createGuest({ env = process.env, home } = {}) {
-  const api = trimSlash(env.ARTIFACTS_API || DEFAULT_API);
+  const api = trimSlash(envApi(env) || DEFAULT_API);
   let res;
   try {
     res = await fetch(api + "/api/guest", { method: "POST", headers: clientHeaders() });

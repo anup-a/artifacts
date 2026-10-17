@@ -1,5 +1,5 @@
 import { parseArgs } from "./args.js";
-import { resolveConfig, trimSlash } from "./config.js";
+import { DEFAULT_API, envApi, envToken, resolveConfig, trimSlash } from "./config.js";
 import { createGuest } from "./guest.js";
 import { CliError, usage } from "./errors.js";
 import { publish } from "./commands/publish.js";
@@ -50,6 +50,24 @@ const COMMANDS = {
   local: { run: local, needsConfig: false },
 };
 
+// loginNotes is the part of the manual about connecting; login --help prints
+// it on its own.
+const loginNotes = (api) => `Config comes from BYAGENT_TOKEN / BYAGENT_API (or the older ARTIFACTS_TOKEN /
+ARTIFACTS_API), else ~/.artifacts/config.json.
+Connecting an agent never needs a key in the chat. login --code takes the
+one-time code from a prompt made on the dashboard's Connect agent page
+(${api}/app/connect); login --browser prints a link where a signed-in person
+approves this agent. Either way the agent gets a key of its own, named after it
+("claude-code on laptop", or --name), which the dashboard can revoke. Codes work
+once and expire in 10 minutes. login --browser --no-wait prints the link and
+exits: its JSON carries action_required.message, the sentence to show the
+person, and an agent should stop and show it before anything else.
+login --wait picks the same request up again and blocks until it is approved
+or --timeout seconds pass (default 90), then exits 3 (code PENDING) so a tool
+call is never cut off; run it again to keep waiting. Once the code expires it
+exits 3 with code EXPIRED: start over with login --browser --no-wait.
+For CI or a script, create a key at ${api}/app/keys and pipe it to login.`;
+
 const help = (api) => `byagent - publish a page, share the URL, read the comments on it
 
 Usage:
@@ -73,7 +91,7 @@ Usage:
   byagent access <id> [--public | --password | --restricted --allow <email|@domain>...
                       | --add <email|@domain>... | --off] [--invite <email>...]
   byagent list [--search <text>] [--end-user <id>] [--project <name>]
-  byagent collections
+  byagent collections [--names]
   byagent collection <name>
   byagent whoami
   byagent portal-link <end-user id>
@@ -108,17 +126,9 @@ a styled page on the way in; its first H1 becomes the title unless --title is
 given, and images or links relative to it keep working. Its language (Chinese,
 Japanese, Korean or English) is detected from the text; --lang zh-CN overrides.
 Every command takes --json and then prints exactly one JSON object.
-Config comes from ARTIFACTS_TOKEN / ARTIFACTS_API, else ~/.artifacts/config.json.
-Connecting an agent never needs a key in the chat. login --code takes the
-one-time code from a prompt made on the dashboard's Connect agent page
-(${api}/app/connect); login --browser prints a link where a signed-in person
-approves this agent. Either way the agent gets a key of its own, named after it
-("claude-code on laptop", or --name), which the dashboard can revoke. Codes work
-once and expire in 10 minutes. login --browser --no-wait prints the link and
-exits; login --wait picks the same request up again (exit 3 while not approved).
-For CI or a script, create a key at ${api}/app/keys and pipe it to login.
+${loginNotes(api)}
 With nothing configured, publish gets a guest key from https://app.byagent.dev
-(or ARTIFACTS_API) and saves it: no account needed. Guest pages are public,
+(or BYAGENT_API) and saves it: no account needed. Guest pages are public,
 three at most, 5 MB each, and stop working 24 hours after the key was made.
 Publish prints a claim_url: open it, sign in and confirm to keep the pages;
 the guest key stops working then, and the dashboard offers a connect prompt
@@ -204,7 +214,9 @@ carries project, tags, cover_url, cover_style and published_at.
 Every artifact sharing a --project label forms a collection. collections lists
 them (name, count, last update, public share URL if shared), most recently
 active first; collection <name> lists one collection's artifacts in reading
-order: its saved order first, then by publish time. Reuse the exact same
+order: its saved order first, then by publish time. collections --names prints
+only each name, count and last update, which is all an agent needs to reuse
+a label exactly. Reuse the exact same
 --project string for pages that belong together.
 hooks install adds a PostToolUse hook to Claude Code (~/.claude/settings.json)
 or Codex (~/.codex/hooks.json); --scope project writes ./.claude or ./.codex
@@ -258,12 +270,27 @@ live in ~/.byagent/local (BYAGENT_LOCAL_DIR); the port is 4790
 local id apart from its byagent.dev one, so publishing it again without
 --local makes a real link. Sharing, access, expiry, analytics, vars,
 domains and collections need byagent.dev. local serve runs the server in
-the foreground.
+the foreground.`;
 
-Server sign-in: KEY_SIGNING_SECRET plus GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
-or EMAIL_PROVIDER=log|resend. Resend uses RESEND_API_KEY and EMAIL_FROM.
-The artifact quota is LIMIT_ARTIFACTS_PER_TENANT; LIMIT_ARTIFACTS_PER_KEY is a
-deprecated fallback.`;
+// commandHelp is <command> --help: that command's usage lines, so an agent
+// asking about one command does not read the whole manual.
+function commandHelp(command, api) {
+  const lines = help(api).split("\n");
+  const usageLines = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].startsWith(`  byagent ${command} `) && lines[i] !== `  byagent ${command}`) continue;
+    usageLines.push(lines[i]);
+    // Continuation lines are indented past "  byagent ".
+    while (lines[i + 1] && /^ {10,}\S/.test(lines[i + 1])) usageLines.push(lines[++i]);
+  }
+  return [
+    "Usage:",
+    ...usageLines,
+    ...(command === "login" ? ["", loginNotes(api)] : []),
+    "",
+    "Every command takes --json. byagent --help prints the whole manual.",
+  ].join("\n");
+}
 
 // configFor resolves the saved config. A publish with nothing configured gets
 // a guest key instead of an error, so the first page needs no account;
@@ -273,7 +300,7 @@ async function configFor(command, flags, env) {
   try {
     return resolveConfig({ env });
   } catch (e) {
-    if (command !== "publish" || e.code !== "NOT_CONFIGURED" || env.BYAGENT_GUEST === "0" || env.ARTIFACTS_TOKEN) throw e;
+    if (command !== "publish" || e.code !== "NOT_CONFIGURED" || env.BYAGENT_GUEST === "0" || envToken(env)) throw e;
     return (await createGuest({ env })).cfg;
   }
 }
@@ -284,7 +311,9 @@ export async function main(argv, { out = console.log, err = console.error, env =
     const { command, positional, flags } = parseArgs(argv);
     json = Boolean(flags.json);
     if (!command || flags.help || command === "help") {
-      out(help(trimSlash(flags.api || env.ARTIFACTS_API || "<PUBLIC_API_ORIGIN>")));
+      const api = trimSlash(flags.api || envApi(env) || DEFAULT_API);
+      const named = command === "help" ? positional[0] : command;
+      out(named && COMMANDS[named] ? commandHelp(named, api) : help(api));
       return command || flags.help ? 0 : 2;
     }
     const entry = COMMANDS[command];
