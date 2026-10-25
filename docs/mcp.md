@@ -1,4 +1,22 @@
-# byagent MCP (stdio)
+# byagent MCP
+
+There are two servers. Both expose the same read and comment tools; only the
+remote one can publish.
+
+## Remote (Streamable HTTP): `https://mcp.byagent.dev/mcp`
+
+For clients that take an MCP URL rather than a command: Grok Bot connectors,
+claude.ai, ChatGPT. Source: `mcp/` (Node, reuses the CLI's API client and
+Markdown renderer). Runs as the `mcp` service on the box (`deploy/box`) and is
+shipped with the app by `deploy/box/ship.sh`.
+
+- Stateless: every `POST /mcp` is answered with plain JSON; no sessions, no SSE. `GET /mcp` is 405.
+- Auth: the caller's own byagent key on every request, `Authorization: Bearer <key>` (or `X-Byagent-Token`). `initialize` and `tools/list` work without one; `tools/call` does not. The server stores no keys.
+- Tools: `artifact_publish` (Markdown or HTML, new page or new version with `id`) plus the stdio tools below.
+- Health: `GET /health`. Tests: `node --test mcp/test/*.test.mjs` (after `npm --prefix cli ci`).
+- Routing: the Cloudflare tunnel sends `mcp.byagent.dev` to `http://mcp:8090`; that rule sits above the `*.byagent.dev` wildcard.
+
+## Local (stdio): `byagent-mcp`
 
 Install the P0 MCP server so agents can list/get artifacts and work comments without inventing API calls.
 

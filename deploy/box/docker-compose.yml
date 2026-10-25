@@ -1,7 +1,7 @@
 # byagent on one VPS (OVHcloud VPS-1), behind a Cloudflare Tunnel.
 #
 # cloudflared dials out to Cloudflare and carries byagent.dev and
-# app.byagent.dev to the server over the compose network, so the box opens no
+# app.byagent.dev to the server (and mcp.byagent.dev to the MCP server) over the compose network, so the box opens no
 # web ports at all: its firewall allows ssh and nothing else, and nobody can
 # reach the app without passing Cloudflare (ufw admits ssh only). That is what makes
 # TRUST_PROXY_HEADERS=true safe here: CF-Connecting-IP is set by Cloudflare,
@@ -28,6 +28,21 @@ services:
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "5" }
+
+  # The remote MCP server at mcp.byagent.dev/mcp (mcp/server.js). It holds
+  # no keys or data: every call carries the caller's own byagent key and goes
+  # to the public API like any CLI would.
+  mcp:
+    image: ${MCP_IMAGE:-byagent-mcp:local}
+    environment:
+      BYAGENT_API: https://app.byagent.dev
+      PORT: "8090"
+    ports: ["127.0.0.1:8090:8090"]
+    mem_limit: 256m
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
 
   cloudflared:
     image: cloudflare/cloudflared:2026.9.3
