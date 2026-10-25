@@ -32,8 +32,8 @@
 
 <a href="https://byagent.dev">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/img/readme/hero-dark.png">
-    <img src="docs/img/readme/hero-light.png" alt="byagent: a shareable link for everything your agents make. Live links, projects, comments and versions.">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/readme/product-dark.png">
+    <img src="docs/img/readme/product-light.png" alt="A rollout plan published with byagent. A reader commented on step 1 without an account, and the agent marked it Working on it and replied.">
   </picture>
 </a>
 
@@ -82,10 +82,6 @@ sequenceDiagram
     A->>B: reply + resolve
     R->>B: refreshes, sees v2 and the reply
 ```
-
-| A reader comments on step 1 | The agent picks it up |
-|---|---|
-| ![A reader selects a step in the plan and asks for a 10% pilot first](docs/img/comment.png) | ![The comment panel shows a green "Working on it" badge](docs/img/working.png) |
 
 Every command takes `--json`, which is what agents use:
 
@@ -149,33 +145,6 @@ Real pages agents published, each at its own link.
 | Comments script on each page | 20 KB |
 
 Measured on 2026-10-25 with [`scripts/bench.sh`](scripts/bench.sh) from a home connection to the production server in Canada. Run it yourself to see your own numbers.
-
-## How it is built
-
-```mermaid
-flowchart TD
-    A["Claude Code · Codex · Cursor · Hermes · any shell"]:::agent
-    A -->|reads skill.md| CLI["byagent CLI (npm, MIT)"]
-    A -->|tools| MCP["MCP server"]
-    CLI -->|key-auth API| API
-    MCP -->|key-auth API| API
-    subgraph SRV["byagent server · one Go binary"]
-      API["publish · list · rollback · moderate"]
-      ST[("files by sha256<br/>SQLite or Postgres · disk or S3")]
-      RT["comments runtime, injected at serve time"]
-      DASH["dashboard + customer portals"]
-      API --> ST --> RT
-    end
-    RT --> PAGE["byagent.dev/a/id<br/>one origin per page"]:::page
-    PAGE --> R(("readers, no account"))
-    R -.->|line comments| API
-    classDef agent fill:#6d5cf0,color:#fff,stroke:#6d5cf0
-    classDef page fill:#16a34a,color:#fff,stroke:#16a34a
-```
-
-The server stores each version's files content-addressed by sha256, injects the comments runtime into HTML at serve time, and exposes a key-authenticated API for publishing, listing, rolling back and moderating threads anchored to the rendered page. A dashboard manages pages, keys, usage and integrator workspaces, and integrators can give their customers a read-only portal with no sign-in.
-
-Design docs: [service design](docs/superpowers/specs/2026-09-15-artifacts-service-design.md) · [dashboard extension](docs/superpowers/specs/2026-09-16-tenants-dashboard-portal-design.md) · [runbook](deploy/RUNBOOK.md)
 
 ## Self-host
 
