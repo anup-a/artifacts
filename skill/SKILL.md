@@ -87,6 +87,19 @@ These need a signed-in account's key, not a guest key. They keep out people who 
 
 Hooks are opt-in: only run `byagent hooks install claude` (or `codex`) when the user asks for it. Once installed, a line starting `byagent:` can appear after you write a `.html` or `.md` file. It is a reminder, not a command: publish the page, or republish the directory it names, at the end of the turn, drafts included, following the rules above. Ignore it for files that belong to a codebase.
 
+In Claude Code the same install adds a link hook: after a deploy (Vercel, Netlify, Cloudflare Pages, GitHub Pages, here.now ...) it files the URL as a link on its own and may say `byagent: filed <url> ...`. Nothing to do; add a title with `byagent link <url> --title "<title>" --json` if the page has an obvious one.
+
+## Links to work hosted elsewhere
+
+When you publish something somewhere other than byagent (a Vercel or Netlify deploy, GitHub Pages, here.now, a Claude or Grok share link, a Replit or Lovable app), file it so the user sees it next to their byagent pages:
+
+`byagent link <url> --title "<title>" --json`
+
+- byagent keeps the URL, title, project and which agent filed it; it never copies, hosts or serves the page. The dashboard lists it under **Linked** with the service it lives on, apart from pages **On byagent**.
+- Use the stable address (the production alias, not a per-deploy preview URL). Filing the same URL again refreshes it and keeps its title, so filing after every deploy is fine. `--project` defaults to the `.byagent.json` collection.
+- Do not link a byagent page (publish it instead), a localhost URL, or a page the user did not ask to keep. `byagent links --json` lists them; `byagent unlink <id|url> --json` removes one from the list and leaves the page where it is.
+- Grok Bot and other agents without hooks run the same command, with `--agent grok` (or their own name) so the dashboard shows who made it.
+
 ## Briefs
 
 A folder with a `.byagent.json` (`{"collection": "<name>"}`) is a project: every publish below it joins that collection, so `--project` can be left off. Its `BRIEF.md`, next to `.byagent.json`, is the note for whoever picks the work up next, maybe another agent that has none of your context.

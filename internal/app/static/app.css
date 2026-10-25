@@ -1223,6 +1223,23 @@ textarea { resize: vertical; line-height: 1.45; }
 .artifacts-table .row-title { min-width: 0; }
 @media (max-width: 1100px) { .artifacts-table .c-id, .artifacts-table .c-version { display: none; } }
 @media (max-width: 720px) { .artifacts-table .c-project, .artifacts-table .c-comments, .artifacts-table .c-user { display: none; } }
+/* Links: work published elsewhere and filed here. The external glyph stands
+   where a hosted row has its cover, so the two kinds read apart at a glance. */
+.source-seg { margin: 0 0 12px; }
+.links-table { table-layout: fixed; }
+.links-table th.c-project { width: 140px; }
+.links-table th.c-host { width: 150px; }
+.links-table th.c-agent { width: 130px; }
+.links-table th.c-when { width: 92px; }
+.links-table th.actions { width: 124px; }
+.links-table td.c-host, .links-table td.c-agent { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.links-table .row-title { min-width: 0; }
+.link-glyph { flex: none; display: inline-grid; place-items: center; width: 44px; height: 26px; border: 1px dashed var(--line); border-radius: 6px; color: var(--fg-2); }
+.link-glyph svg { width: 14px; height: 14px; }
+.link-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.link-url { font-size: 12px; font-weight: 400; }
+@media (max-width: 1100px) { .links-table .c-agent { display: none; } }
+@media (max-width: 720px) { .links-table .c-project, .links-table .c-host, .links-table .c-when, .links-table .link-glyph { display: none; } }
 .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 30px 22px; padding-top: 14px; }
 .deck { display: block; color: inherit; padding: 12px 14px 0; border-radius: 12px; }
 .deck:hover { text-decoration: none; }

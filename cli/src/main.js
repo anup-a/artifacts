@@ -9,6 +9,7 @@ import { collections, collection } from "./commands/collections.js";
 import { login } from "./commands/login.js";
 import { whoami, portalLink } from "./commands/account.js";
 import { hooks } from "./commands/hooks.js";
+import { link, links, unlink } from "./commands/links.js";
 import { init } from "./commands/init.js";
 import { brief } from "./commands/brief.js";
 import { version, diff } from "./commands/artifacts.js";
@@ -42,6 +43,9 @@ const COMMANDS = {
   reply: { run: reply, needsConfig: true },
   resolve: { run: resolve, needsConfig: true },
   mark: { run: mark, needsConfig: true },
+  link: { run: link, needsConfig: true },
+  links: { run: links, needsConfig: true },
+  unlink: { run: unlink, needsConfig: true },
   hooks: { run: hooks, needsConfig: false },
   init: { run: init, needsConfig: false },
   brief: { run: brief, needsConfig: true },
@@ -108,6 +112,9 @@ Usage:
   byagent resolve <id> <thread>
   byagent mark <id> <thread> seen|working|declined [--note "<text>"]
   byagent delete <id>
+  byagent link <url> [--title "<t>"] [--project <name>] [--agent <name>] [--model <name>]
+  byagent links [--search <text>] [--project <name>]
+  byagent unlink <id|url>
   byagent hooks install|uninstall claude|codex [--scope user|project]
   byagent init [--global]
   byagent brief [push [--private|--public] [--project <name>]]
@@ -221,13 +228,29 @@ order: its saved order first, then by publish time. collections --names prints
 only each name, count and last update, which is all an agent needs to reuse
 a label exactly. Reuse the exact same
 --project string for pages that belong together.
+link files work an agent published somewhere other than byagent (a Vercel
+or Netlify deploy, GitHub Pages, here.now, a Claude or Grok share link) in the
+workspace, so the dashboard lists everything the workspace's agents made in
+one place. byagent stores the URL, title, project and the agent that filed it,
+never a copy: it is not hosted, served or counted as a page, and the dashboard
+shows it under Linked with the service it lives on. The same URL again
+refreshes the link and keeps its title, so filing after every deploy is fine.
+--project defaults to the .byagent.json collection. links lists them, newest
+first; unlink removes one from the list (by id or URL) and leaves the page
+where it is. Guest keys cannot file links.
 hooks install adds a PostToolUse hook to Claude Code (~/.claude/settings.json)
 or Codex (~/.codex/hooks.json); --scope project writes ./.claude or ./.codex
 instead. After the agent writes a .html or .md page, the hook adds a short
 note to its context suggesting byagent publish, or a republish when the
 directory is already bound. It never publishes. Each file is mentioned once
-per session, five at most; BYAGENT_NUDGE=0 silences it. byagent must be on
-PATH (npm install -g byagent). hooks uninstall removes only this hook.
+per session, five at most; BYAGENT_NUDGE=0 silences it. For Claude Code it
+also adds a link hook: when a Bash command deploys (vercel, netlify deploy,
+wrangler pages deploy, firebase deploy, fly deploy, gh-pages, npm run deploy,
+a deploy.sh or publish.sh script) or an MCP deploy tool runs, and the output
+names a URL on a hosting service, it runs the equivalent of byagent link on
+the stable URL. It says one line only when the link is new, and nothing on
+any other call; BYAGENT_LINK=0 turns it off. byagent must be on PATH (npm
+install -g byagent). hooks uninstall removes only byagent's hooks.
 init writes one short block about byagent into the instructions an agent
 already reads, so it knows byagent without searching the web: AGENTS.md here
 (created if missing) and CLAUDE.md if there is one that does not include

@@ -27,6 +27,14 @@
 </section>
 {{end}}
 
+{{if .Data.HasLinks}}
+<nav class="seg source-seg" aria-label="{{t "Where it lives"}}">
+  <a href="{{.Data.SourceURL ""}}"{{if eq .Data.Source ""}} class="is-on" aria-current="true"{{end}}>{{t "Everything"}}</a>
+  <a href="{{.Data.SourceURL "hosted"}}"{{if eq .Data.Source "hosted"}} class="is-on" aria-current="true"{{end}} title="{{t "Pages published to byagent and served from it"}}">{{t "On byagent"}}</a>
+  <a href="{{.Data.SourceURL "linked"}}"{{if eq .Data.Source "linked"}} class="is-on" aria-current="true"{{end}} title="{{t "Work your agents published somewhere else and linked here"}}">{{t "Linked"}}</a>
+</nav>
+{{end}}
+
 {{if .Data.Projects}}
 {{/* data-collapse: app.js keeps this to one line with a "+N more" toggle.
      Without the script every chip simply wraps. */}}
@@ -38,6 +46,7 @@
   <button type="button" class="pchip pchip-more" data-chips-toggle hidden aria-expanded="false"></button>
 </nav>
 {{end}}
+
 
 {{if .Data.Count}}
 
@@ -58,7 +67,11 @@
   </div>
 </section>
 {{end}}
+{{end}}
 
+{{if .Data.Links}}{{template "links" $}}{{end}}
+
+{{if .Data.Count}}
 {{if .Data.Rows}}
 <section class="day">
   {{if or .Data.Sections .Data.Grid}}<h2 class="day-label">{{t "Older"}}</h2>{{end}}
@@ -120,6 +133,17 @@
 </div>
 {{end}}
 
+{{else if eq .Data.Source "linked"}}
+{{if not .Data.Links}}
+<div class="empty">
+  <span class="empty-icon">{{template "icon" "link"}}</span>
+  {{if .Data.Filtered}}<h2>{{t "No links match"}}</h2>{{else}}<h2>{{t "No links yet"}}</h2>{{end}}
+  <p>{{th "When an agent deploys somewhere else, it can file the URL here with <code>byagent link &lt;url&gt;</code>. byagent keeps the link, not a copy."}}</p>
+</div>
+{{end}}
+
+{{else if .Data.Links}}
+
 {{else if .Data.Filtered}}
 <div class="empty">
   <span class="empty-icon">{{template "icon" "search"}}</span>
@@ -138,4 +162,50 @@
   </div>
 </div>
 {{end}}
+{{end}}
+
+{{define "links"}}
+<section class="day linked" aria-label="{{t "Linked from elsewhere"}}">
+  {{if ne .Data.Source "linked"}}<h2 class="day-label">{{t "Linked from elsewhere"}}{{if .Data.LinksMore}} <a class="day-label-link" href="{{.Data.SourceURL "linked"}}">{{t "View all"}}</a>{{end}}</h2>{{end}}
+<div class="table-card">
+<table class="table links-table">
+  <thead><tr>
+    <th class="c-title">{{t "Title"}}</th><th class="c-project">{{t "Project"}}</th><th class="c-host">{{t "Hosted on"}}</th><th class="c-agent">{{t "Agent"}}</th><th class="c-when">{{t "Updated"}}</th><th class="actions"></th>
+  </tr></thead>
+  <tbody>
+  {{range .Data.Links}}
+  <tr>
+    <td class="c-title">
+      <a class="row-title" href="{{.Link.URL}}" target="_blank" rel="noopener nofollow"><span class="link-glyph" aria-hidden="true">{{template "icon" "external"}}</span><span class="link-text"><span class="truncate">{{if .Link.Title}}{{.Link.Title}}{{else}}{{.Shown}}{{end}}</span>{{if .Link.Title}}<span class="truncate muted link-url">{{.Shown}}</span>{{end}}</span></a>
+    </td>
+    <td class="c-project">{{if .Link.Project}}<a class="tile-project" href="{{$.Data.ChipURL (str .Link.Project)}}"><span class="dot" data-color="{{projectColor (str .Link.Project)}}"></span>{{str .Link.Project}}</a>{{else}}<span class="muted">—</span>{{end}}</td>
+    <td class="c-host"><span class="badge" title="{{t "Not hosted by byagent: this is a link to %s" .Link.Host}}">{{.Provider}}</span></td>
+    <td class="c-agent">{{if .Link.Agent}}<span class="badge mono" title="{{.Link.KeyName}}">{{.Link.Agent}}</span>{{else}}<span class="muted">—</span>{{end}}</td>
+    <td class="when c-when"><time datetime="{{.Link.UpdatedAt.UTC.Format "2006-01-02T15:04:05Z07:00"}}" title="{{when .Link.UpdatedAt}} UTC">{{ago .Link.UpdatedAt $.Now}}</time></td>
+    <td class="actions">
+      <div class="row-actions">
+        <a class="btn small" href="{{.Link.URL}}" target="_blank" rel="noopener nofollow">{{t "Open"}} {{template "icon" "external"}}</a>
+        <details class="menu-wrap">
+          <summary class="icon-btn" aria-label="{{t "More actions"}}" title="{{t "More"}}">{{template "icon" "more"}}</summary>
+          <div class="menu right" role="menu">
+            <button type="button" class="menu-item" data-copy-text="{{.Link.URL}}" role="menuitem">{{template "icon" "link"}}<span class="menu-item-text">{{t "Copy link"}}</span></button>
+            <div class="menu-sep"></div>
+            <details class="confirm">
+              <summary class="menu-item danger" role="menuitem">{{template "icon" "trash"}}<span class="menu-item-text">{{t "Remove…"}}</span></summary>
+              <form method="post" action="/app/links/{{.Link.ID}}/delete" class="confirm-body">
+                <input type="hidden" name="csrf" value="{{$.Viewer.CSRF}}">
+                <p>{{t "Removes it from this list. The page itself stays where it is."}}</p>
+                <button type="submit" class="btn small danger solid">{{t "Confirm remove"}}</button>
+              </form>
+            </details>
+          </div>
+        </details>
+      </div>
+    </td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+</section>
 {{end}}
