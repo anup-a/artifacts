@@ -9,7 +9,7 @@ Cursor's agent writes plenty that isn't code: design notes, investigation write-
 From your project:
 
 ```sh
-npx skills add anup-a/agent-artifacts -a cursor
+npx skills add anup-a/byagent -a cursor
 ```
 
 That installs the byagent skill to `.agents/skills/byagent`, where Cursor picks it up. If your setup doesn't load skills, add a project rule that tells the agent to follow {{.Share}}/skill.md.

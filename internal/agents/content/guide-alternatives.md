@@ -48,7 +48,7 @@ GitHub Pages, Netlify, Vercel and similar host HTML well and are the right choic
 ## Try byagent
 
 ```sh
-npx skills add anup-a/agent-artifacts
+npx skills add anup-a/byagent
 ```
 
 Then ask your agent to publish its next report. Details: [the Claude Code guide]({{.Share}}/guides/share-claude-code-plan), or the agent entrypoint at {{.Share}}/agents.

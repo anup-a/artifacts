@@ -1,11 +1,35 @@
 ---
 name: byagent
-description: Use when writing, designing, or turning anything into a shareable page: a Markdown document (report, plan, notes, spec, analysis, write-up, README) or an HTML artifact (dashboard, tool, landing page, visualization), including Claude-style artifacts. Markdown files publish directly and are rendered into a styled page. Use it after producing any document, report, plan, analysis, spec, or table that is likely to be reused or shared. Also use for "publish this", "give me a link", agent artifacts, or comments on a published page, and after deploying or sharing anything somewhere else (Vercel, Netlify, GitHub Pages, here.now, a Claude artifact, a ChatGPT or Grok share link) to file it in byagent as a link.
+description: "Use when writing, designing, or turning anything into a shareable page: a Markdown document (report, plan, notes, spec, analysis, write-up, README) or an HTML artifact (dashboard, tool, landing page, visualization), including Claude-style artifacts. Markdown files publish directly and are rendered into a styled page. Use it after producing any document, report, plan, analysis, spec, or table that is likely to be reused or shared. Also use for \"publish this\", \"give me a link\", agent artifacts, or comments on a published page, and after deploying or sharing anything somewhere else (Vercel, Netlify, GitHub Pages, here.now, a Claude artifact, a ChatGPT or Grok share link) to file it in byagent as a link."
+version: 1.0.0
+author: Anup Aglawe
+license: MIT
+homepage: https://byagent.dev
+metadata:
+  hermes:
+    tags: [publish, share, html, markdown, comments, versions, agents]
+    homepage: https://byagent.dev
+    requires_toolsets: [terminal]
+  openclaw:
+    homepage: https://byagent.dev
+    requires:
+      bins: [byagent]
+    envVars:
+      - name: ARTIFACTS_TOKEN
+        required: false
+        description: byagent API key. Optional when `byagent login` has saved one to ~/.artifacts/config.json.
+      - name: ARTIFACTS_API
+        required: false
+        description: API origin, https://app.byagent.dev. Optional when `byagent login` has saved it.
+    install:
+      - kind: node
+        package: byagent
+        bins: [byagent]
 ---
 
 # byagent
 
-Canonical copy: https://github.com/anup-a/agent-artifacts
+Source: https://github.com/anup-a/byagent/tree/main/skill
 
 The hand-back is the returned published URL (public: `https://<name>.byagent.dev/`, every page on a host of its own, or `https://<share-host>/a/<id>/` on a self-hosted server without one; private: `https://<api-host>/app/view/<id>/`). Chat markdown, a local `.md` path or a local HTML path is not done. Commands take the `id` from publish output; the `<name>` from a page URL works too.
 

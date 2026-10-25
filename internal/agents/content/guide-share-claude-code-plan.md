@@ -9,7 +9,7 @@ Claude Code writes plans, reports and specs as files in your repo or as long cha
 Install the byagent skill so Claude knows when and how to publish:
 
 ```sh
-npx skills add anup-a/agent-artifacts
+npx skills add anup-a/byagent
 ```
 
 The skill uses the `byagent` CLI, which Claude can run with `npx byagent` or you can install globally:

@@ -7,7 +7,7 @@ Codex CLI is good at writing reports, migration plans and one-file HTML tools. T
 ## Install the skill
 
 ```sh
-npx skills add anup-a/agent-artifacts -a codex
+npx skills add anup-a/byagent -a codex
 ```
 
 That puts the byagent skill where Codex looks for skills (`.agents/skills/byagent`). You can also point your `AGENTS.md` at {{.Share}}/skill.md and ask Codex to follow it.
