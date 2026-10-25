@@ -17,9 +17,11 @@ SHA="$(git rev-parse --short HEAD)"
 
 echo "==> building linux/amd64 image artifacts:$SHA"
 docker build --platform linux/amd64 -t artifacts:local -t "artifacts:$SHA" .
+echo "==> building linux/amd64 image byagent-mcp:$SHA"
+docker build --platform linux/amd64 -f mcp/Dockerfile -t byagent-mcp:local -t "byagent-mcp:$SHA" .
 
-echo "==> loading it on $TARGET"
-docker save artifacts:local "artifacts:$SHA" | gzip | ssh "$TARGET" 'gunzip | docker load'
+echo "==> loading them on $TARGET"
+docker save artifacts:local "artifacts:$SHA" byagent-mcp:local "byagent-mcp:$SHA" | gzip | ssh "$TARGET" 'gunzip | docker load'
 
 echo "==> starting"
 scp deploy/box/docker-compose.yml deploy/box/otel-collector.yaml "$TARGET":/opt/artifacts/
@@ -27,11 +29,13 @@ ssh "$TARGET" 'cd /opt/artifacts && test -f .env || { echo "no /opt/artifacts/.e
   docker compose up -d --remove-orphans
   # Keep the five newest builds for rollback.
   docker images artifacts --format "{{.Tag}} {{.CreatedAt}}" | grep -v "^local " | sort -k2 -r | tail -n +6 |
-    cut -d" " -f1 | xargs -r -I{} docker rmi -f artifacts:{} >/dev/null'
+    cut -d" " -f1 | xargs -r -I{} docker rmi -f artifacts:{} >/dev/null
+  docker images byagent-mcp --format "{{.Tag}} {{.CreatedAt}}" | grep -v "^local " | sort -k2 -r | tail -n +6 |
+    cut -d" " -f1 | xargs -r -I{} docker rmi -f byagent-mcp:{} >/dev/null'
 
 echo "==> waiting for /healthz on the box"
 for _ in $(seq 1 30); do
-  ssh "$TARGET" 'curl -fsS http://127.0.0.1:8080/healthz' >/dev/null 2>&1 && { echo "healthy"; exit 0; }
+  ssh "$TARGET" 'curl -fsS http://127.0.0.1:8080/healthz && curl -fsS http://127.0.0.1:8090/health' >/dev/null 2>&1 && { echo "healthy"; exit 0; }
   sleep 2
 done
 echo "not healthy: ssh $TARGET 'cd /opt/artifacts && docker compose logs --tail 50 artifacts'"
