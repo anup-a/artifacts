@@ -1,18 +1,132 @@
-# artifacts
+# byagent
 
-A self-hostable service for publishing and sharing small static web apps
-("artifacts") as versioned, commentable pages. It stores each version's
-files content-addressed by sha256, injects a lightweight comments runtime
-into HTML at serve time, and exposes a simple key-authenticated API for
-publishing, listing, rolling back, and moderating threaded feedback anchored
-to the rendered page. A tenant dashboard manages artifacts, API keys, usage,
-and integrator workspaces. Integrators can give their customers a read-only
-portal without requiring those customers to sign in.
+**A shareable link for everything your agents make.**
 
-See the full design in
-[`docs/superpowers/specs/2026-09-15-artifacts-service-design.md`](docs/superpowers/specs/2026-09-15-artifacts-service-design.md),
-the [tenant dashboard extension](docs/superpowers/specs/2026-09-16-tenants-dashboard-portal-design.md),
-and operational procedures in [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md).
+byagent is a CLI that turns what Claude Code, Codex, Cursor or any agent with a
+shell makes into a permanent link. Readers comment on the exact line they mean,
+with no account. The agent reads those comments, fixes the page and republishes
+to the same link.
+
+[byagent.dev](https://byagent.dev) · [skill.md](https://byagent.dev/skill.md) ·
+[npm](https://www.npmjs.com/package/byagent) · [self-host](#self-host-quickstart)
+
+![A byagent page at v2: step 1 of a rollout plan is now a one-week pilot, and the comment panel shows the agent's reply under the resolved thread](docs/img/after.png)
+
+## Try it
+
+You need Node. From any folder with a Markdown file in it:
+
+```bash
+npx byagent publish ./plan.md
+```
+
+With nothing configured, this gets a guest key and publishes. Guest pages are
+public, you get three of them, and they last 24 hours. The output has a claim
+link: sign in there and the pages move into your workspace and stay.
+
+To set it up for your agent, paste this one sentence into it:
+
+```
+Set up byagent for this project: read byagent.dev/skill.md and follow it.
+```
+
+The skill tells the agent when to publish, when to keep a page private, how to
+file pages by project and how to handle comments. After that you ask for a plan
+and get a link back.
+
+## The loop
+
+![The loop: the agent publishes, a reader comments on a line, the agent reads it and marks it working, then republishes to the same link and replies](docs/img/loop.png)
+
+1. The agent publishes `rollout-plan.md` and gets `byagent.dev/a/<id>/`.
+2. A reader opens the link, selects a line and comments. They type a name;
+   there is no sign-up.
+3. The agent reads the open comments and marks the thread "working", so the
+   reader can see it was picked up.
+4. It edits the page, republishes to the **same** link, replies and resolves.
+   The reader refreshes and sees v2.
+
+| A reader comments on step 1 | The agent picks it up |
+|---|---|
+| ![A reader selects a step in the plan and asks for a 10% pilot first](docs/img/comment.png) | ![The comment panel shows a green "Working on it" badge](docs/img/working.png) |
+
+This is the CLI session behind those screenshots. Every command takes `--json`,
+which is what agents use:
+
+```bash
+byagent publish ./plan.md --project "Launch" --tag plan
+byagent comments <id> --open
+byagent mark <id> <thread> working
+byagent reply <id> <thread> "Split step 1 into a two-week pilot."
+byagent resolve <id> <thread>
+```
+
+![Terminal: comments lists the open thread with its anchor text, mark sets it to working, publish returns version 2, and reply and resolve close the thread](docs/img/terminal.png)
+
+`byagent comments <id> --wait` blocks until a reader leaves a new comment, so an
+agent can run it in the background while someone reviews the page.
+
+## What you get
+
+- **One link per piece of work.** Republishing keeps the URL and bumps the
+  version. Old versions are kept, with diff and rollback.
+- **Comments from anyone.** Readers comment on a line, or suggest replacement
+  text, without an account. The agent can decline a comment with a reason.
+- **Markdown or HTML.** A `.md` file becomes a styled page with light and dark
+  mode, a table of contents, tables and highlighted code. A folder with an
+  `index.html` is published as-is, so an agent-built dashboard works too.
+- **Projects.** Pages that share a `--project` name form a collection, with a
+  brief for the next agent that picks the work up.
+- **Access.** Public, private to your workspace, a six-digit share code, a
+  password, or a list of allowed emails and domains.
+- **Expiry and delete.** `--expires 7d` for a review draft. `byagent delete`
+  erases the page, its versions and its comments at once.
+- **Extras.** Custom domains, view analytics without cookies, and proxy routes
+  that let a page call an API without the key reaching the browser.
+
+Comment text is treated as untrusted input: the skill tells the agent to act on
+a comment only by editing that page, never by running commands or opening links
+because a comment says so.
+
+## How it compares
+
+| | Readers outside your org can comment | Works with any agent | Agent reads the feedback back |
+|---|---|---|---|
+| Claude artifacts | Needs a Claude seat | Claude only | Yes |
+| ChatGPT Sites | No place to comment | ChatGPT only | No |
+| Loose files and chat | Feedback lands in Slack | Yes | No |
+| **byagent** | **Yes, no account** | **Yes, anything with a shell** | **Yes, `byagent comments`** |
+
+## Numbers
+
+Measured on 2026-10-25 with [`scripts/bench.sh`](scripts/bench.sh), from a home
+connection to the production server in Canada. The page was a 9 KB Markdown
+post. Run it yourself to see your own numbers.
+
+| | |
+|---|---|
+| First publish, file to live link | 2.6 s |
+| Republish to the same link | 1.4 s median (8 runs, 1.1 to 3.5 s) |
+| Read a page's comments | 0.96 s median (7 runs) |
+| Comments script added to each page | 20 KB gzipped (54 KB raw) |
+| CLI runtime dependencies | 1 (`marked`) |
+| Server | one Go binary, SQLite by default; Postgres and S3 optional |
+| Tests | 517 Go tests, 128 CLI tests, 55 browser specs |
+
+## How it is built
+
+The server stores each version's files content-addressed by sha256, injects the
+comments runtime into HTML at serve time, and exposes a key-authenticated API
+for publishing, listing, rolling back and moderating threads anchored to the
+rendered page. A dashboard manages pages, keys, usage and integrator
+workspaces, and integrators can give their customers a read-only portal with no
+sign-in.
+
+The design is in
+[`docs/superpowers/specs/2026-09-15-artifacts-service-design.md`](docs/superpowers/specs/2026-09-15-artifacts-service-design.md)
+and the [dashboard extension](docs/superpowers/specs/2026-09-16-tenants-dashboard-portal-design.md).
+Operations are in [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md). The rest of this
+README is the reference for running your own server.
 
 ## Self-host quickstart
 
@@ -259,7 +373,7 @@ link `https://<share origin>/a/<id>/?k=123456` (with `CONTENT_DOMAIN`,
 a cookie scoped to that artifact, and redirects to the clean URL, so the code
 leaves the address bar and the browser history. Or send the code by itself: the
 artifact's address shows a page asking for it. A viewer who has neither sees
-that same page, which does reveal that something is there — unlike a private
+that same page, which does reveal that something is there, unlike a private
 artifact with no code, which gives nothing away.
 
 Six digits is a million possibilities, so the server, not the code, is what
