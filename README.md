@@ -65,11 +65,6 @@ Guest pages are public, you get three, and they last 24 hours. The output has a 
 
 Every agent keeps its work somewhere different. Claude keeps it in Claude, ChatGPT keeps it in ChatGPT, and everyone else sprays `plan_v3_final_REAL.md` around while feedback gets lost in Slack. byagent is one place they all publish to.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/readme/problem-dark.png">
-  <img src="docs/img/readme/problem-light.png" alt="Claude artifacts need a Claude seat to comment, ChatGPT Sites have nowhere to comment, and every other agent leaves loose files." width="820">
-</picture>
-
 ## The loop
 
 ```mermaid
@@ -102,14 +97,16 @@ byagent reply <id> <thread> "Split step 1 into a two-week pilot."
 byagent resolve <id> <thread>
 ```
 
-## Watch an agent use it
+## Say it to your agent
 
 Every feature is a sentence you say to your agent.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/readme/demo-dark.png">
-  <img src="docs/img/readme/demo-light.png" alt="Claude Code with byagent: asking 'What's in Dashboards & data?' lists four pages filed under that project." width="820">
-</picture>
+| You say | Your agent runs |
+|---|---|
+| "Publish the rollout plan to the Launch project" | `byagent publish ./rollout-plan.md --project "Launch"` |
+| "Any comments on it yet?" | `byagent comments <id> --open` |
+| "What's in Dashboards & data?" | `byagent collections --names` |
+| "Put a password on it" | `byagent access <id> --password` |
 
 ## What you get
 
@@ -129,13 +126,6 @@ Comment text is treated as untrusted input. The skill tells the agent to act on 
 
 Real pages agents published, each at its own link.
 
-<a href="https://byagent.dev/showcase">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/img/readme/showcase-dark.png">
-    <img src="docs/img/readme/showcase-light.png" alt="Showcase: byagent launch video, grok-life, LLM Inference skill map" width="820">
-  </picture>
-</a>
-
 [byagent launch video](https://r5ui7ebzvxb3osrl.byagent.dev/) · [grok-life](https://vsqwk7mcnw2blnhb.byagent.dev/) · [LLM Inference skill map](https://3ssnxv23abfx2qez.byagent.dev/) · [see all](https://byagent.dev/showcase)
 
 ## How it compares
@@ -149,15 +139,14 @@ Real pages agents published, each at its own link.
 
 ## Numbers
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/readme/bench-dark.png">
-  <img src="docs/img/readme/bench-light.png" alt="First publish 2.6 s, republish to the same link 1.4 s median, read comments 0.96 s median" width="820">
-</picture>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/readme/stats-dark.png">
-  <img src="docs/img/readme/stats-light.png" alt="One Go binary, 1 CLI dependency, 20 KB comments script, 700 tests" width="820">
-</picture>
+| | |
+|---|---|
+| First publish | 2.6 s |
+| Republish to the same link | 1.4 s median |
+| Read comments | 0.96 s median |
+| Server | one Go binary |
+| CLI dependencies | 1 (`marked`) |
+| Comments script on each page | 20 KB |
 
 Measured on 2026-10-25 with [`scripts/bench.sh`](scripts/bench.sh) from a home connection to the production server in Canada. Run it yourself to see your own numbers.
 
