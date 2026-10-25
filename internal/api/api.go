@@ -3,19 +3,19 @@ package api
 
 import (
 	"context"
-	"github.com/anup-a/artifacts/internal/agents"
+	"github.com/anup-a/byagent/internal/agents"
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/blob"
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/domains"
-	"github.com/anup-a/artifacts/internal/proxy"
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/serve"
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/internal/variables"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/blob"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/domains"
+	"github.com/anup-a/byagent/internal/proxy"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/serve"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/internal/variables"
 )
 
 type Deps struct {

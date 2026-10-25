@@ -3,10 +3,10 @@ package app
 import (
 	"net/http"
 
-	"github.com/anup-a/artifacts/internal/agents"
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/i18n"
-	"github.com/anup-a/artifacts/internal/pageurl"
+	"github.com/anup-a/byagent/internal/agents"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/i18n"
+	"github.com/anup-a/byagent/internal/pageurl"
 )
 
 // siteData is what the bar and the footer of every public page need: the

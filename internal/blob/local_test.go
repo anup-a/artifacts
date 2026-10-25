@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 func stores(t *testing.T) map[string]Store {

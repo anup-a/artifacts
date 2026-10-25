@@ -16,8 +16,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/pageurl"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/pageurl"
 )
 
 //go:embed content/*.md content/*.txt content/*.html

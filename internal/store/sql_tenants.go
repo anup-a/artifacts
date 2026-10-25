@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/byagent/internal/ids"
 )
 
 func scanTenant(row interface{ Scan(...any) error }) (Tenant, error) {

@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/blob"
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/blob"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // newTestServer boots sqlite+local in a temp dir. managed=false uses ADMIN_TOKEN "admin-token".

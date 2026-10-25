@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/i18n"
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/internal/usage"
+	"github.com/anup-a/byagent/internal/i18n"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/internal/usage"
 )
 
 // The chart's drawing box. The SVG scales to the card's width; bars keep

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/i18n"
+	"github.com/anup-a/byagent/internal/i18n"
 )
 
 // Sender delivers magic links. EMAIL_PROVIDER picks the implementation.

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/guest"
+	"github.com/anup-a/byagent/internal/guest"
 )
 
 // newGuestServer turns guest publishing on and returns a clock the test can

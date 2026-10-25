@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/blob"
+	"github.com/anup-a/byagent/internal/blob"
 )
 
 // failingBlobStore is a blob.Store that fails on Delete.

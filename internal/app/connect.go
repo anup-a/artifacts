@@ -7,10 +7,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/connect"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/connect"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // connectCookie carries a CLI's approval link through sign-in, the way

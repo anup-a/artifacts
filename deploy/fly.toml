@@ -1,7 +1,7 @@
 app = "artifacts"
 primary_region = "fra"
 [build]
-  image = "ghcr.io/anup-a/artifacts:latest"
+  image = "ghcr.io/anup-a/byagent:latest"
 [env]
   ADDR = ":8080"
   DB = "postgres"

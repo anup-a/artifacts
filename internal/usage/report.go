@@ -3,7 +3,7 @@ package usage
 import (
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // DefaultRange is the report range when none is asked for.

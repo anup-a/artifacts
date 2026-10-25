@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/domains"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/domains"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // registerDomains mounts the dashboard's custom domain forms. They exist

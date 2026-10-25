@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/guest"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/guest"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // guestWithPage makes a guest workspace holding one page, the way

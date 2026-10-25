@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/connect"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/connect"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // ClientHeader names the agent or harness behind a CLI call, e.g.

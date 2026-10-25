@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 var ldJSON = regexp.MustCompile(`<script type="application/ld\+json">([^<]*)</script>`)

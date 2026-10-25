@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // totalsEvery bounds how often the totals are counted: four COUNT(*)

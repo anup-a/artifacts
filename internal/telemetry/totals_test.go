@@ -9,7 +9,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 func TestObserveTotals(t *testing.T) {

@@ -1,6 +1,6 @@
 services:
   artifacts:
-    image: ghcr.io/anup-a/artifacts:latest
+    image: ghcr.io/anup-a/byagent:latest
     ports: ["8080:8080"]
     environment:
       DB: sqlite

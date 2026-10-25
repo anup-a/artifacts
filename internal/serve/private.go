@@ -7,9 +7,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 type privateViewerKey struct{}

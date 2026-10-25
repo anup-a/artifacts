@@ -10,9 +10,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/proxy"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/proxy"
 )
 
 type manifestFile struct {

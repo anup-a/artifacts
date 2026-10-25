@@ -3,7 +3,7 @@ package proxy
 import (
 	"fmt"
 
-	"github.com/anup-a/artifacts/internal/variables"
+	"github.com/anup-a/byagent/internal/variables"
 )
 
 // MaxSecretBytes bounds the variable values one call carries in total.

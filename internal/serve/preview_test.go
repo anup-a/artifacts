@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // The owner preview of an old version (the version list's preview_url) is the

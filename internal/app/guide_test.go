@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/agents"
+	"github.com/anup-a/byagent/internal/agents"
 )
 
 // A guide is dressed as a page of the site: the bar, the stylesheet and the

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/cover"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/cover"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // coverPath is the file name under /a/{id}/ that serves the cover image.

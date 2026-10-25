@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/ids"
 )
 
 var slugShape = regexp.MustCompile(`^[a-z2-7]{16}$`)

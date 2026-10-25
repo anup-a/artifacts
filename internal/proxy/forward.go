@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/byagent/internal/apierr"
 	"golang.org/x/net/publicsuffix"
 )
 

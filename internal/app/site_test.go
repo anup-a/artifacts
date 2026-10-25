@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 // siteEnv is a server with the managed limits, so the pricing page and the

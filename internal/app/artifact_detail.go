@@ -10,11 +10,11 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/anup-a/artifacts/internal/cover"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/serve"
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/internal/usage"
+	"github.com/anup-a/byagent/internal/cover"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/serve"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/internal/usage"
 )
 
 func contains(list []string, s string) bool {

@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/i18n"
-	"github.com/anup-a/artifacts/internal/pageurl"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/i18n"
+	"github.com/anup-a/byagent/internal/pageurl"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 const pageSize = 50

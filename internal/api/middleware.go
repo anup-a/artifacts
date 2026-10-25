@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 func requestID(next http.Handler) http.Handler {

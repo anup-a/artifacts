@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // Every HTML page of the current version reports a view with its path, so

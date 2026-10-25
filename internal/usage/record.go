@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // Direct is the referrer of a view that arrived with none: a typed or pasted

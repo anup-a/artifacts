@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/serve"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/serve"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // Page access, here.now style: anyone_with_link, password, or restricted to

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/internal/variables"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/internal/variables"
 )
 
 type variablesData struct {

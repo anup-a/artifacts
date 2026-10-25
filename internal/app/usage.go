@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/internal/usage"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/internal/usage"
 )
 
 type monthView struct {

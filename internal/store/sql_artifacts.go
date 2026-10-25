@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/guest"
-	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/byagent/internal/guest"
+	"github.com/anup-a/byagent/internal/ids"
 )
 
 // CreateArtifact inserts the row. comments_enabled is left to its column

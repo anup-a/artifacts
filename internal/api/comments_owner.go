@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 func (s *server) ownerListComments(w http.ResponseWriter, r *http.Request) {

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/i18n"
-	"github.com/anup-a/artifacts/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/i18n"
+	"github.com/anup-a/byagent/internal/ratelimit"
 )
 
 // clientIP mirrors the API's rule: proxy headers count only when the server

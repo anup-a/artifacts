@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 const maxNameLen = 64

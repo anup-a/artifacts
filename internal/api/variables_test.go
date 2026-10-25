@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/proxy"
-	"github.com/anup-a/artifacts/internal/serve"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/proxy"
+	"github.com/anup-a/byagent/internal/serve"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 const testSecret = "sk-or-v1-test-0123456789"

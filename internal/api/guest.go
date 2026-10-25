@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/guest"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/guest"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 type guestCtx struct{}

@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/i18n"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/i18n"
 )
 
 // exampleSlug is a made-up page host label, the same shape as ids.NewSlug.

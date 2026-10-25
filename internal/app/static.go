@@ -13,7 +13,7 @@ import (
 	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/js"
 
-	"github.com/anup-a/artifacts/internal/i18n"
+	"github.com/anup-a/byagent/internal/i18n"
 )
 
 //go:embed static/app.css static/app.js static/theme.js static/ga.js static/i18n.js static/favicon.svg static/favicon.ico static/favicon-48.png static/favicon-192.png static/apple-touch-icon.png static/og-card.png static/landing.css static/landing.js static/dashboard-light*.webp static/dashboard-dark*.webp static/covers/*.webp

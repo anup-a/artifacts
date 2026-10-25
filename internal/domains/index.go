@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // indexTTL is how stale the serving index may get when another process

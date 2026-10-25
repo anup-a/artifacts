@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 var lim = config.Limits{VersionBytes: 100, Files: 3}

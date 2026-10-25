@@ -9,9 +9,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/anup-a/artifacts/internal/cover"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/cover"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // maxDescriptionChars bounds a collection description: a paragraph, not a page.

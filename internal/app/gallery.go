@@ -4,9 +4,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/cover"
-	"github.com/anup-a/artifacts/internal/i18n"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/cover"
+	"github.com/anup-a/byagent/internal/i18n"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // recentWindow is how far back the bento sections reach; anything published

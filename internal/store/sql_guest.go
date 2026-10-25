@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/guest"
-	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/byagent/internal/guest"
+	"github.com/anup-a/byagent/internal/ids"
 )
 
 // CreateGuest makes a personal tenant on the guest plan and its one key, in

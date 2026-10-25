@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/variables"
+	"github.com/anup-a/byagent/internal/variables"
 )
 
 // ManifestPath is where a published page declares its routes. Files under

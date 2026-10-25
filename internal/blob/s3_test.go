@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 // fakeS3 is the smallest S3 surface the adapter touches: HEAD bucket, and

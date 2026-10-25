@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // StateTTL bounds how long a started OAuth flow may take.

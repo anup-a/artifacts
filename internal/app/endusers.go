@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/portal"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/portal"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // PortalLinkTTL is how long a link minted from the dashboard stays valid.

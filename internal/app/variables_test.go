@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/variables"
+	"github.com/anup-a/byagent/internal/variables"
 )
 
 func TestVariablesPage(t *testing.T) {

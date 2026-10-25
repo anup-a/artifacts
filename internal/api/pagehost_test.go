@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/serve"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/serve"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // pageHostServer runs a server with page hosts on: CONTENT_DOMAIN page.test

@@ -11,12 +11,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/proxy"
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/serve"
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/internal/variables"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/proxy"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/serve"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/internal/variables"
 )
 
 // variablesSetup turns on variables and proxy routes when the config asks

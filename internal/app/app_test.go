@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/i18n"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/i18n"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 type captureSender struct{ to, url string }

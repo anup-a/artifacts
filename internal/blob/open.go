@@ -3,7 +3,7 @@ package blob
 import (
 	"fmt"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 func Open(cfg config.Config) (Store, error) {
