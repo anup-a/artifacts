@@ -38,6 +38,7 @@ var tasks = []Task{
 	{"resolve-threads", "Reply to and resolve threads", "Act on a comment, answer it, and close the thread.", "byagent resolve <id> <thread> --json"},
 	{"collections", "List collections", "Find the pages that belong together before publishing another one.", "byagent collections --names --json"},
 	{"brief", "Start from a project brief", "Pick up work in a folder from its BRIEF.md and the open comments on it.", "byagent brief --json"},
+	{"link", "Link work hosted elsewhere", "File a deploy, Claude artifact or ChatGPT/Grok share link in the user's dashboard without byagent hosting it.", "byagent link <url> --title \"<title>\" --json"},
 }
 
 // Entrypoint is one public URL an agent can fetch.

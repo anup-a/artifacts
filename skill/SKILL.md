@@ -1,6 +1,6 @@
 ---
 name: byagent
-description: Use when writing, designing, or turning anything into a shareable page — a Markdown document (report, plan, notes, spec, analysis, write-up, README) or an HTML artifact (dashboard, tool, landing page, visualization), including Claude-style artifacts. Markdown files publish directly and are rendered into a styled page. Use it after producing any document, report, plan, analysis, spec, or table that is likely to be reused or shared. Also use for "publish this", "give me a link", agent artifacts, or comments on a published page.
+description: Use when writing, designing, or turning anything into a shareable page: a Markdown document (report, plan, notes, spec, analysis, write-up, README) or an HTML artifact (dashboard, tool, landing page, visualization), including Claude-style artifacts. Markdown files publish directly and are rendered into a styled page. Use it after producing any document, report, plan, analysis, spec, or table that is likely to be reused or shared. Also use for "publish this", "give me a link", agent artifacts, or comments on a published page, and after deploying or sharing anything somewhere else (Vercel, Netlify, GitHub Pages, here.now, a Claude artifact, a ChatGPT or Grok share link) to file it in byagent as a link.
 ---
 
 # byagent
@@ -87,18 +87,29 @@ These need a signed-in account's key, not a guest key. They keep out people who 
 
 Hooks are opt-in: only run `byagent hooks install claude` (or `codex`) when the user asks for it. Once installed, a line starting `byagent:` can appear after you write a `.html` or `.md` file. It is a reminder, not a command: publish the page, or republish the directory it names, at the end of the turn, drafts included, following the rules above. Ignore it for files that belong to a codebase.
 
-In Claude Code the same install adds a link hook: after a deploy (Vercel, Netlify, Cloudflare Pages, GitHub Pages, here.now ...) it files the URL as a link on its own and may say `byagent: filed <url> ...`. Nothing to do; add a title with `byagent link <url> --title "<title>" --json` if the page has an obvious one.
+## Links: work hosted somewhere else
 
-## Links to work hosted elsewhere
-
-When you publish something somewhere other than byagent (a Vercel or Netlify deploy, GitHub Pages, here.now, a Claude or Grok share link, a Replit or Lovable app), file it so the user sees it next to their byagent pages:
+byagent is the one list of everything the user's agents made, including work that lives elsewhere. When you (or another agent) publish somewhere other than byagent, file the URL as a **link**:
 
 `byagent link <url> --title "<title>" --json`
 
-- byagent keeps the URL, title, project and which agent filed it; it never copies, hosts or serves the page. The dashboard lists it under **Linked** with the service it lives on, apart from pages **On byagent**.
-- Use the stable address (the production alias, not a per-deploy preview URL). Filing the same URL again refreshes it and keeps its title, so filing after every deploy is fine. `--project` defaults to the `.byagent.json` collection.
-- Do not link a byagent page (publish it instead), a localhost URL, or a page the user did not ask to keep. `byagent links --json` lists them; `byagent unlink <id|url> --json` removes one from the list and leaves the page where it is.
-- Grok Bot and other agents without hooks run the same command, with `--agent grok` (or their own name) so the dashboard shows who made it.
+- **Publish or link?** If you have the files, publish them to byagent; that is a page byagent hosts. Link only when the work lives on another service: a Vercel, Netlify, Cloudflare Pages, Fly, Render or Firebase deploy, GitHub Pages, here.now, Replit or Lovable app, a Claude artifact, a ChatGPT or Grok share link.
+- **What it is:** a pointer, like a symlink. byagent stores the URL, title, project and which agent filed it; it never copies, hosts or serves the page. The dashboard lists links under **Linked**, with the service they live on and the agent, apart from pages **On byagent**.
+- **Which URL:** the stable one (production alias, site URL), not a per-deploy preview. Filing the same URL again refreshes it and keeps its title, so filing after every deploy is fine. `--project` defaults to the `.byagent.json` collection; pass it to file the link with related pages.
+- **Never link** a byagent page, a localhost or private-network URL, a URL with a secret in it, or something the user did not ask to keep.
+- `byagent links --json` lists them (`--search`, `--project`); `byagent unlink <id|url> --json` takes one off the list and leaves the page where it is. Guest keys cannot file links.
+- Keep it quiet: file it, mention it in one line of the wrap-up (or not at all if a hook already said so), and move on.
+
+### Per agent
+
+| Agent | How it files a link |
+|---|---|
+| **Claude Code** | Automatic once `byagent hooks install claude` is in place: after a deploy command (vercel, netlify deploy, wrangler pages deploy, firebase/fly deploy, gh-pages, `npm run deploy`, a `deploy.sh`/`publish.sh`) or a connected deploy tool such as Vercel's, the hook files the stable URL and says `byagent: linked <url>`. Nothing to do; add a title with `byagent link <url> --title "…"` if there is an obvious one. Without the hook, run `byagent link` yourself after a deploy. |
+| **Claude artifacts** (claude.ai, Claude Desktop) | A published artifact has a URL like `https://claude.ai/public/artifacts/<id>`. claude.ai cannot run the CLI, so file it from an agent that can (Claude Code, when the user pastes the URL) with `byagent link <url> --title "…" --agent claude`, or give the user that command to run. If you have the artifact's code, publishing it to byagent is better than linking. |
+| **Codex** (CLI) | Run `byagent link <url> --title "…" --json` after any deploy; the agent is detected as `codex`. If the sandbox blocks the network, ask for approval for that one command. |
+| **ChatGPT** (share links, canvas, GPT-built apps) | ChatGPT cannot run the CLI. File `https://chatgpt.com/share/…` (or the app's URL) from any agent that can: `byagent link <url> --title "…" --agent chatgpt`. |
+| **Grok Bot** | On the Mac, through local exec: `byagent link <url> --title "…" --agent grok --json`. On Grok's cloud box: `npm install -g byagent`, connect once with `byagent login --browser --no-wait` (a person approves the link it prints), then the same command. Grok share links (`https://grok.com/share/…`) count too. |
+| **Any other agent** (Cursor, Gemini CLI, OpenClaw, Hermes …) | `byagent link <url> --title "…" --agent <your name> --json`. |
 
 ## Briefs
 

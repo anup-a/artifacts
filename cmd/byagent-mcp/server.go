@@ -30,6 +30,9 @@ type callResult struct {
 
 type server struct {
 	client *apiClient
+	// clientName is the MCP client's name from initialize ("claude-ai",
+	// "codex-mcp-client" ...), filed as the agent on links it adds.
+	clientName string
 }
 
 func newServer(c *apiClient) *server {
@@ -77,6 +80,14 @@ func (s *server) handle(out io.Writer, req jsonRPCRequest) error {
 	case "initialize":
 		if isNotify {
 			return nil
+		}
+		var init struct {
+			ClientInfo struct {
+				Name string `json:"name"`
+			} `json:"clientInfo"`
+		}
+		if json.Unmarshal(req.Params, &init) == nil {
+			s.clientName = agentSlug(init.ClientInfo.Name)
 		}
 		return writeResponse(out, req.ID, map[string]any{
 			"protocolVersion": "2024-11-05",
@@ -174,6 +185,33 @@ func toolCatalog() []toolDef {
 					"thread": map[string]any{"type": "string", "description": "Thread id"},
 				},
 				"required": []string{"id", "thread"},
+			},
+		},
+		{
+			Name:        "link_add",
+			Description: "File work you published somewhere other than byagent (a Vercel/Netlify/Cloudflare deploy, GitHub Pages, here.now, a Claude artifact or ChatGPT/Grok share link) so the user's byagent dashboard lists it under Linked, next to the pages byagent hosts. byagent stores the URL and labels only: it never copies or serves the page. Use the stable URL, not a per-deploy preview. The same URL again refreshes the link and keeps its title. Not for byagent pages or localhost. Maps to POST /api/links.",
+			InputSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"url":     map[string]any{"type": "string", "description": "The public http(s) URL of the published work"},
+					"title":   map[string]any{"type": "string", "description": "What it is, as the user would name it (200 chars max)"},
+					"project": map[string]any{"type": "string", "description": "Collection / project label, to file it with related pages"},
+					"agent":   map[string]any{"type": "string", "description": "Who made it (claude, chatgpt, grok ...); defaults to this MCP client's name"},
+				},
+				"required":             []string{"url"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "link_list",
+			Description: "List links to work hosted elsewhere, newest first, each with url, provider (Vercel, Netlify ...), title, project and the agent that filed it. Maps to GET /api/links?q&project.",
+			InputSchema: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"q":       map[string]any{"type": "string", "description": "Case-insensitive match on title or URL"},
+					"project": map[string]any{"type": "string", "description": "Filter by project label"},
+				},
+				"additionalProperties": false,
 			},
 		},
 		{
@@ -335,6 +373,23 @@ func (s *server) callTool(params json.RawMessage) callResult {
 			return errResult("id and thread are required")
 		}
 		raw, err = s.client.resolve(ctx, id, thread)
+	case "link_add":
+		u := strings.TrimSpace(strArg(args, "url"))
+		if u == "" {
+			return errResult("url is required")
+		}
+		body := map[string]string{"url": u}
+		for _, k := range []string{"title", "project", "agent"} {
+			if v := strings.TrimSpace(strArg(args, k)); v != "" {
+				body[k] = v
+			}
+		}
+		if body["agent"] == "" && s.clientName != "" {
+			body["agent"] = s.clientName
+		}
+		raw, err = s.client.addLink(ctx, body)
+	case "link_list":
+		raw, err = s.client.listLinks(ctx, strArg(args, "q"), strArg(args, "project"))
 	case "collection_list":
 		raw, err = s.client.listCollections(ctx)
 	case "collection_get":
@@ -356,6 +411,28 @@ func (s *server) callTool(params json.RawMessage) callResult {
 		return errResult(err.Error())
 	}
 	return callResult{Content: []textContent{{Type: "text", Text: string(raw)}}}
+}
+
+// agentSlug turns an MCP client name ("Claude Desktop", "codex-mcp-client")
+// into the short lower-case label the dashboard shows.
+func agentSlug(name string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '.':
+			b.WriteRune(r)
+			dash = false
+		case !dash && b.Len() > 0:
+			b.WriteByte('-')
+			dash = true
+		}
+	}
+	out := strings.TrimSuffix(b.String(), "-")
+	if len(out) > 64 {
+		out = out[:64]
+	}
+	return out
 }
 
 func errResult(msg string) callResult {
