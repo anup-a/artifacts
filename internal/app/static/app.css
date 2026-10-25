@@ -856,6 +856,7 @@ textarea { resize: vertical; line-height: 1.45; }
 /* The site's tabs: a few public pages, beside the name, like a product site. */
 .lp-tabs { display: flex; align-items: center; gap: 2px; margin-left: 12px; }
 .lp-tab { padding: 6px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: var(--fg-2); text-decoration: none; }
+.lp-gh { display: inline-flex; align-items: center; gap: 6px; }
 .lp-tab:hover { background: var(--hover); color: var(--fg); }
 .lp-tab[aria-current="page"] { color: var(--fg); background: var(--hover); }
 

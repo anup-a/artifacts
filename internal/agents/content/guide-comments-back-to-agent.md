@@ -52,7 +52,7 @@ Anyone with a public link can comment. The byagent skill tells agents to act on 
 ## Get started
 
 ```sh
-npx skills add anup-a/agent-artifacts
+npx skills add anup-a/byagent
 ```
 
 Then ask your agent to publish something. More: [the Claude Code guide]({{.Share}}/guides/share-claude-code-plan), [Codex]({{.Share}}/guides/codex), [Cursor]({{.Share}}/guides/cursor).

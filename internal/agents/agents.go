@@ -79,7 +79,7 @@ func (d data) MB() int64 { return d.Limits.VersionBytes / (1 << 20) }
 // CommentKB is the comment size limit in whole kilobytes, for prose.
 func (d data) CommentKB() int { return d.Limits.CommentBytes / 1024 }
 
-const skillRepo = "https://github.com/anup-a/agent-artifacts"
+const skillRepo = "https://github.com/anup-a/byagent/tree/main/skill"
 
 func entrypoints(api string) []Entrypoint {
 	return []Entrypoint{
@@ -93,7 +93,7 @@ func entrypoints(api string) []Entrypoint {
 		{"/sitemap.xml", "XML", "Every public page listed here"},
 		{"npm install -g byagent", "CLI", "The CLI itself (or npx byagent <command>)"},
 		{api + "/app/keys", "HTML", "Where a signed-in person creates the key the CLI asks for"},
-		{skillRepo, "GitHub", "Canonical copy of the skill"},
+		{skillRepo, "GitHub", "The skill in the byagent repo"},
 	}
 }
 

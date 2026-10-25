@@ -8,6 +8,7 @@
   <nav class="lp-tabs" aria-label="{{t "Main"}}">
     <a class="lp-tab" href="/showcase"{{if eq .Here "/showcase"}} aria-current="page"{{end}}>{{t "Showcase"}}</a>
     <a class="lp-tab" href="/guides"{{if eq .Here "/guides"}} aria-current="page"{{end}}>{{t "Guides"}}</a>
+    <a class="lp-tab lp-gh" href="https://github.com/anup-a/byagent" rel="noopener">{{template "icon" "github"}}GitHub</a>
   </nav>
   <div class="lp-theme" role="group" aria-label="{{t "Theme"}}" data-theme-picker>
     <button type="button" class="lp-theme-btn" data-set-theme="auto" aria-pressed="true" title="{{t "Match system"}}" aria-label="{{t "Match system"}}">{{template "icon" "monitor"}}</button>
@@ -45,6 +46,7 @@
       <a href="/guides">{{t "Guides"}}</a>
       <a href="{{.SkillURL}}">skill.md</a>
       <a href="https://www.npmjs.com/package/byagent" rel="noopener">{{t "npm package"}}</a>
+      <a href="https://github.com/anup-a/byagent" rel="noopener">GitHub</a>
       <a href="{{.AppURL}}">{{t "Dashboard"}}</a>
     </div>
     <div class="lp-foot-col">

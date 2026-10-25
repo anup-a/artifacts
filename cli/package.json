@@ -35,8 +35,13 @@
     "cli"
   ],
   "homepage": "https://byagent.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anup-a/byagent.git",
+    "directory": "cli"
+  },
   "bugs": {
-    "url": "https://github.com/anup-a/agent-artifacts/issues"
+    "url": "https://github.com/anup-a/byagent/issues"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

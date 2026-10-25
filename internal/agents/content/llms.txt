@@ -32,6 +32,6 @@ Agents: use the `byagent` CLI (`npm install -g byagent`, or `npx byagent <comman
 ## Optional
 
 - [Everything in one file]({{.Share}}/llms-full.txt): the agents page and every task page
-- [Skill source]({{"https://github.com/anup-a/agent-artifacts"}}): canonical copy on GitHub
+- [Skill source]({{"https://github.com/anup-a/byagent/tree/main/skill"}}): the skill in the byagent repo on GitHub
 - [Home]({{.Share}}/): the page for people
 {{end}}
