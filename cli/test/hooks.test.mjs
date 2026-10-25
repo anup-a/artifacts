@@ -87,9 +87,11 @@ test("install is idempotent and uninstall removes only the byagent hook", () => 
   const once = installInto(settings, "claude");
   const twice = installInto(once, "claude");
   assert.deepEqual(twice, once);
-  assert.equal(once.hooks.PostToolUse.length, 2);
+  assert.equal(once.hooks.PostToolUse.length, 3);
   assert.deepEqual(once.hooks.PostToolUse[1], { matcher: "Write|Edit|MultiEdit", hooks: [{ type: "command", command: "byagent hooks run" }] });
-  assert.equal(installInto({}, "codex").hooks.PostToolUse[0].matcher, "apply_patch");
+  assert.deepEqual(once.hooks.PostToolUse[2], { matcher: "Bash|mcp__.*", hooks: [{ type: "command", command: "byagent hooks link" }] });
+  // Codex gets the nudge only: the link hook reads Claude Code's payloads.
+  assert.deepEqual(installInto({}, "codex").hooks.PostToolUse.map((g) => g.matcher), ["apply_patch"]);
 
   const back = uninstallFrom(twice);
   assert.deepEqual(back, settings);

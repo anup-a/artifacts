@@ -12,7 +12,8 @@ go build -o "$HOME/bin/byagent-mcp" ./cmd/byagent-mcp
 
 Auth (required): set `ARTIFACTS_TOKEN` (or `BYAGENT_API_KEY`) in the MCP server env, or rely on `~/.artifacts/config.json` from `byagent login`. Optional `ARTIFACTS_API` / `BYAGENT_API` (default `https://app.byagent.dev`).
 
-Tools: `artifact_list`, `artifact_get`, `artifact_comments`, `artifact_reply`, `artifact_resolve`, `collection_list`, `collection_get`, `brief_get`.  
+Tools: `artifact_list`, `artifact_get`, `artifact_comments`, `artifact_reply`, `artifact_resolve`, `collection_list`, `collection_get`, `brief_get`, `link_add`, `link_list`.
+`link_add` files work published somewhere else (a deploy, a Claude artifact, a ChatGPT or Grok share link) as a dashboard-only link; the agent defaults to the MCP client's name.  
 No publish in P0. **No fake search**: `artifact_list` takes `q`, which is the
 case-insensitive title match the dashboard's search box runs — not a semantic
 or full-text search of page contents. Combine it with `project` / `end_user`,

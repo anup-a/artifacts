@@ -119,6 +119,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /app/artifacts", h.private(h.artifacts))
 	mux.HandleFunc("GET /app/artifacts/{id}", h.private(h.artifactDetail))
 	mux.HandleFunc("POST /app/artifacts/{id}/delete", h.private(h.deleteArtifact))
+	mux.HandleFunc("POST /app/links/{id}/delete", h.private(h.deleteLink))
 	mux.HandleFunc("POST /app/artifacts/{id}/rollback/{version}", h.private(h.rollbackArtifact))
 	mux.HandleFunc("POST /app/artifacts/{id}/versions/{version}/delete", h.private(h.deleteVersion))
 	mux.HandleFunc("POST /app/artifacts/{id}/comments-enabled", h.private(h.setCommentsEnabled))

@@ -3,6 +3,10 @@ import { homedir, tmpdir } from "node:os";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { LINK_FILE } from "../files.js";
 import { usage } from "../errors.js";
+import { resolveConfig } from "../config.js";
+import { clientHeaders } from "../agent.js";
+import { deployOf } from "../deploys.js";
+import { linkBody } from "./links.js";
 
 const USAGE = "usage: byagent hooks install|uninstall claude|codex [--scope user|project]";
 
@@ -12,6 +16,15 @@ const HOOK_COMMAND = "byagent hooks run";
 
 // Claude Code edits with Write/Edit/MultiEdit; Codex edits with apply_patch.
 const MATCHERS = { claude: "Write|Edit|MultiEdit", codex: "apply_patch" };
+
+// The link hook files what an agent deploys elsewhere. Claude Code only: its
+// Bash and MCP payloads are the ones deployOf reads.
+const LINK_COMMAND = "byagent hooks link";
+const LINK_MATCHERS = { claude: "Bash|mcp__.*" };
+
+// A hook runs inside the agent's tool call, so the request gets a short leash;
+// a slow or down server costs one missing link, never a stuck agent.
+const LINK_TIMEOUT_MS = 4000;
 
 const PAGE_EXTS = new Set([".html", ".htm", ".md", ".markdown"]);
 
@@ -158,6 +171,49 @@ async function run(env) {
   }
 }
 
+// fileDeploy turns one PostToolUse payload into the hook's stdout object, or
+// null when the call was not a deploy, nothing is configured, or the server
+// did not answer. A new link gets one line for the user and one for the
+// agent; a deploy refreshing a link already filed says nothing.
+export async function fileDeploy(input, { env = process.env, fetchImpl = fetch, config, home } = {}) {
+  const url = deployOf(input);
+  if (!url) return null;
+  let cfg = config;
+  if (!cfg) {
+    try {
+      cfg = resolveConfig(home ? { env, home } : { env });
+    } catch {
+      return null;
+    }
+  }
+  const res = await fetchImpl(`${cfg.api}/api/links`, {
+    method: "POST",
+    headers: { ...clientHeaders(env), Authorization: `Bearer ${cfg.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(linkBody(url, {}, env, input.cwd || process.cwd())),
+    signal: AbortSignal.timeout(LINK_TIMEOUT_MS),
+  });
+  if (!res.ok) return null;
+  const l = await res.json();
+  if (!l.created) return null;
+  return {
+    systemMessage: `byagent: linked ${l.url}`,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: `byagent: filed ${l.url} in the user's byagent dashboard as a link (${l.provider}; byagent does not host it). Nothing to do; to give it a title run \`byagent link ${l.url} --title "<title>"\`.`,
+    },
+  };
+}
+
+async function runLink(env) {
+  if (env.BYAGENT_LINK === "0") return { json: {}, human: [] };
+  try {
+    const out = await fileDeploy(JSON.parse(await readStdin()), { env });
+    return out ? { json: out, human: [JSON.stringify(out)] } : { json: {}, human: [] };
+  } catch {
+    return { json: {}, human: [] };
+  }
+}
+
 export function settingsPath(agent, { project = false, home = homedir(), cwd = process.cwd() } = {}) {
   if (agent === "claude") return project ? join(cwd, ".claude", "settings.json") : join(home, ".claude", "settings.json");
   if (agent === "codex") return project ? join(cwd, ".codex", "hooks.json") : join(home, ".codex", "hooks.json");
@@ -170,7 +226,7 @@ function readSettings(path) {
   return parsed && typeof parsed === "object" ? parsed : {};
 }
 
-const isOurs = (h) => h && typeof h.command === "string" && h.command.startsWith(HOOK_COMMAND);
+const isOurs = (h) => h && typeof h.command === "string" && (h.command.startsWith(HOOK_COMMAND) || h.command.startsWith(LINK_COMMAND));
 
 // withoutOurs drops our command from every PostToolUse group and drops groups
 // it leaves empty; the user's other hooks stay exactly as they were.
@@ -183,6 +239,7 @@ function withoutOurs(groups) {
 export function installInto(settings, agent) {
   const hooks = { ...(settings.hooks || {}) };
   hooks.PostToolUse = [...withoutOurs(hooks.PostToolUse), { matcher: MATCHERS[agent], hooks: [{ type: "command", command: HOOK_COMMAND }] }];
+  if (LINK_MATCHERS[agent]) hooks.PostToolUse.push({ matcher: LINK_MATCHERS[agent], hooks: [{ type: "command", command: LINK_COMMAND }] });
   return { ...settings, hooks };
 }
 
@@ -196,6 +253,7 @@ export function uninstallFrom(settings) {
 export async function hooks(_cfg, { positional, flags, env = process.env }) {
   const [action, agent] = positional;
   if (action === "run") return run(env);
+  if (action === "link") return runLink(env);
   if (!["install", "uninstall"].includes(action) || !MATCHERS[agent]) throw usage(USAGE);
 
   const scope = flags.scope || "user";
@@ -206,9 +264,10 @@ export async function hooks(_cfg, { positional, flags, env = process.env }) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(after, null, 2) + "\n");
 
-  const human = [`${action === "install" ? "installed" : "removed"} the byagent PostToolUse nudge in ${path}`];
+  const human = [`${action === "install" ? "installed" : "removed"} the byagent PostToolUse hooks in ${path}`];
   if (action === "install") {
     human.push("It suggests publishing .html and .md pages the agent writes. It never publishes on its own.");
+    if (LINK_MATCHERS[agent]) human.push("When the agent deploys somewhere else (Vercel, Netlify, Cloudflare Pages, GitHub Pages, here.now ...), it files the URL in the dashboard as a link. BYAGENT_LINK=0 turns that off.");
     if (agent === "codex") human.push("Codex runs a new hook only after you trust it: open /hooks in Codex.");
     human.push("The hook runs `byagent hooks run`, so byagent must be on PATH: npm install -g byagent");
   }

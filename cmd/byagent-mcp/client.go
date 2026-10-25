@@ -100,6 +100,30 @@ func (c *apiClient) resolve(ctx context.Context, id, thread string) (json.RawMes
 	return c.do(ctx, http.MethodPost, path, nil)
 }
 
+// addLink files a URL hosted elsewhere: POST /api/links.
+func (c *apiClient) addLink(ctx context.Context, body map[string]string) (json.RawMessage, error) {
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	return c.do(ctx, http.MethodPost, "/api/links", payload)
+}
+
+func (c *apiClient) listLinks(ctx context.Context, q, project string) (json.RawMessage, error) {
+	v := url.Values{}
+	if q != "" {
+		v.Set("q", q)
+	}
+	if project != "" {
+		v.Set("project", project)
+	}
+	path := "/api/links"
+	if len(v) > 0 {
+		path += "?" + v.Encode()
+	}
+	return c.do(ctx, http.MethodGet, path, nil)
+}
+
 func (c *apiClient) listCollections(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/api/collections", nil)
 }
