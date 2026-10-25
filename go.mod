@@ -1,4 +1,4 @@
-module github.com/anup-a/artifacts
+module github.com/anup-a/byagent
 
 go 1.26.4
 

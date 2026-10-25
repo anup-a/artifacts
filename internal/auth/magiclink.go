@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // MagicLinkTTL is how long a sign-in link stays valid.

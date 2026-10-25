@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/serve"
+	"github.com/anup-a/byagent/internal/serve"
 )
 
 // TestMain hashes page passwords cheaply: argon2 at full cost takes seconds

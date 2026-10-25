@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/variables"
+	"github.com/anup-a/byagent/internal/variables"
 )
 
 type Limits struct {

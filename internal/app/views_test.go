@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 func TestViewsCardAndListCounts(t *testing.T) {

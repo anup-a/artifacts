@@ -29,7 +29,7 @@ import (
 
 // scope names the instrumentation library on every metric this server
 // records itself.
-const scope = "github.com/anup-a/artifacts"
+const scope = "github.com/anup-a/byagent"
 
 // defaultInterval is how often metrics are pushed when
 // OTEL_METRIC_EXPORT_INTERVAL is unset: the SDK's own default, and the one

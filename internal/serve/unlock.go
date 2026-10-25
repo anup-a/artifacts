@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // unlockParam carries the code on a shared link: /a/{id}/?k=123456.

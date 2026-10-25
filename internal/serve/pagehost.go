@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/pageurl"
-	"github.com/anup-a/artifacts/internal/proxy"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/pageurl"
+	"github.com/anup-a/byagent/internal/proxy"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // PageHost is a request being answered on a page's own host,

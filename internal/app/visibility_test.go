@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/portal"
+	"github.com/anup-a/byagent/internal/portal"
 )
 
 func TestArtifactVisibilityActionPermissionsAndPreservation(t *testing.T) {

@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
+	"github.com/anup-a/byagent/internal/apierr"
 )
 
 const secret = "sk-live-0123456789abcdef"

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // label sets project and tags on an artifact straight in the store.

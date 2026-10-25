@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 func TestV1TenantBackfill(t *testing.T) {

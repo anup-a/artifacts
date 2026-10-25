@@ -10,7 +10,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 
-	"github.com/anup-a/artifacts/internal/pageurl"
+	"github.com/anup-a/byagent/internal/pageurl"
 )
 
 var testHosts = Hosts{

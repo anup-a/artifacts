@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/byagent/internal/ids"
 	"sort"
 	"strconv"
 	"strings"

@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/serve"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/serve"
 )
 
 // getState answers GET /api/artifacts/{id}/state: the page's whole state as

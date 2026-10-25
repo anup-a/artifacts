@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/domains"
+	"github.com/anup-a/byagent/internal/domains"
 )
 
 type appTXT map[string]string

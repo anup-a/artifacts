@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/ratelimit"
 )
 
 // TestDeleteLetsGCReclaimBlobs covers the leak where an artifact deleted with an

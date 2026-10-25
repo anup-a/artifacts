@@ -10,11 +10,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/guest"
-	"github.com/anup-a/artifacts/internal/proxy"
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/guest"
+	"github.com/anup-a/byagent/internal/proxy"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // Routes runs pages' proxy routes: /a/{id}/_proxy/{route}[/{sub...}]. The

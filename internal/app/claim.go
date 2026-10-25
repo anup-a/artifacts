@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/guest"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/guest"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // claimCookie carries a claim link through sign-in: someone who opens it

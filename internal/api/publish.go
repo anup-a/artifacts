@@ -8,12 +8,12 @@ import (
 	"mime/multipart"
 	"net/http"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/blob"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/pageurl"
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/internal/telemetry"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/blob"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/pageurl"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/internal/telemetry"
 )
 
 // artifactViewURL is where the owner sends people to a page: its public

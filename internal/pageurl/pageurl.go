@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/ids"
 )
 
 // Builder makes page addresses for one deployment.

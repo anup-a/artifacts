@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/portal"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/portal"
 )
 
 func TestKeyEndpointRemoved(t *testing.T) {

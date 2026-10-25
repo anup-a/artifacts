@@ -5,12 +5,12 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/domains"
-	"github.com/anup-a/artifacts/internal/pageurl"
-	"github.com/anup-a/artifacts/internal/serve"
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/internal/telemetry"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/domains"
+	"github.com/anup-a/byagent/internal/pageurl"
+	"github.com/anup-a/byagent/internal/serve"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/internal/telemetry"
 )
 
 // hostKind is what a request's Host asks for.

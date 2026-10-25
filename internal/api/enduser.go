@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // endUserHeader is the header an integrator sets to attribute a publish to

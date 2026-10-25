@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/blob"
-	"github.com/anup-a/artifacts/internal/pageurl"
-	"github.com/anup-a/artifacts/internal/store"
-	"github.com/anup-a/artifacts/skill"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/blob"
+	"github.com/anup-a/byagent/internal/pageurl"
+	"github.com/anup-a/byagent/internal/store"
+	"github.com/anup-a/byagent/skill"
 )
 
 type Handler struct {

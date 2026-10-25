@@ -13,7 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/byagent/internal/ids"
 )
 
 // TTL is how long a connect code can be redeemed or approved.

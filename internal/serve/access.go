@@ -23,11 +23,11 @@ import (
 
 	"golang.org/x/crypto/argon2"
 
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/i18n"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/i18n"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // Page access beyond the share code: a password, or an allowlist checked by

@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/usage"
+	"github.com/anup-a/byagent/internal/usage"
 )
 
 // viewHoursKept is how long hourly view rows are kept.

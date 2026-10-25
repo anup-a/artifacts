@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/i18n"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/i18n"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // version stores one version with a single index.html blob for an artifact.

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // capFixture is two private artifacts in one workspace, each an index.html

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // fakeMail records what the gate mails.

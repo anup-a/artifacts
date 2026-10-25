@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anup-a/artifacts/internal/i18n"
+	"github.com/anup-a/byagent/internal/i18n"
 )
 
 func main() {

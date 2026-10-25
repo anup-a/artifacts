@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/cover"
-	"github.com/anup-a/artifacts/internal/i18n"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/cover"
+	"github.com/anup-a/byagent/internal/i18n"
 )
 
 //go:embed templates/*.html templates/partials/*.html

@@ -12,8 +12,8 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/pageurl"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/pageurl"
 )
 
 // Host kinds, the values of byagent.host_kind. They say which part of

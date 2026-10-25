@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 // newStore returns a migrated store. When TEST_PG_URL is set every test in this

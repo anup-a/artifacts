@@ -11,9 +11,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/domains"
-	"github.com/anup-a/artifacts/internal/ids"
-	"github.com/anup-a/artifacts/internal/serve"
+	"github.com/anup-a/byagent/internal/domains"
+	"github.com/anup-a/byagent/internal/ids"
+	"github.com/anup-a/byagent/internal/serve"
 )
 
 type txtMap struct {

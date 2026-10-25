@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/serve"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/serve"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // TestMain hashes page passwords cheaply: argon2 at full cost takes seconds

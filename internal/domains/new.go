@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/config"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/config"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // New builds the service from the server config, or returns nil when custom

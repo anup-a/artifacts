@@ -129,4 +129,4 @@ Run `byagent` with no arguments for the full reference.
 
 ## Self-host
 
-The server is Go and lives in the same repository: [github.com/anup-a/artifacts](https://github.com/anup-a/artifacts). Point the CLI at it with `--api` on login.
+The server is Go and lives in the same repository: [github.com/anup-a/byagent](https://github.com/anup-a/byagent). Point the CLI at it with `--api` on login.

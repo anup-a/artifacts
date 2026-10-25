@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/ids"
+	"github.com/anup-a/byagent/internal/ids"
 )
 
 func serverFor(t *testing.T, d Deps) *httptest.Server {

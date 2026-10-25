@@ -654,7 +654,7 @@ When HA matters, move to Fly.io using the same image, keeping
 `deploy/fly.toml` in the repo for this:
 
 ```
-fly launch --copy-config --image ghcr.io/anup-a/artifacts:<tag>
+fly launch --copy-config --image ghcr.io/anup-a/byagent:<tag>
 fly secrets set DATABASE_URL=<neon connection string>
 fly secrets set S3_ENDPOINT=<account>.r2.cloudflarestorage.com
 fly secrets set S3_BUCKET=artifacts

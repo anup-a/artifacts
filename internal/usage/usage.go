@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 const hourFormat = "2006-01-02T15"

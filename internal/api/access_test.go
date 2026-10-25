@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/serve"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/serve"
 )
 
 type captureMail struct {

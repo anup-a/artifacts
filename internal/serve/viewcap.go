@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/auth"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/auth"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // A private page's own requests carry no session. The viewer is sandboxed

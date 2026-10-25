@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/config"
+	"github.com/anup-a/byagent/internal/config"
 )
 
 // publishWith (from comments_toggle_test.go) builds a publish request whose

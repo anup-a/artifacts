@@ -7,8 +7,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/anup-a/artifacts/internal/cover"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/cover"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // Limits on the gallery labels, the same as the API's.

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/ratelimit"
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/ratelimit"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // stateFixture is the fixture's page on the share origin, with a handler

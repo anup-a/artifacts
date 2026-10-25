@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anup-a/artifacts/internal/serve"
+	"github.com/anup-a/byagent/internal/serve"
 )
 
 // sharedHostServer runs page hosts under the share host itself, the way

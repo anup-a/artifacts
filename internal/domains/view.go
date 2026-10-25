@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/anup-a/artifacts/internal/store"
+	"github.com/anup-a/byagent/internal/store"
 )
 
 // Record is one DNS record the owner adds at their DNS provider. Host is

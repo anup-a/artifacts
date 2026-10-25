@@ -7,9 +7,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/anup-a/artifacts/internal/apierr"
-	"github.com/anup-a/artifacts/internal/domains"
-	"github.com/anup-a/artifacts/internal/serve"
+	"github.com/anup-a/byagent/internal/apierr"
+	"github.com/anup-a/byagent/internal/domains"
+	"github.com/anup-a/byagent/internal/serve"
 )
 
 type siteKey struct{}
