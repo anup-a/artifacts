@@ -716,3 +716,12 @@ ADMIN_TOKEN=local-dev go run ./cmd/artifacts-server
 CGO_ENABLED=0 go test ./...
 ./scripts/smoke.sh   # end-to-end smoke test against a locally started server
 ```
+
+## License
+
+The server and everything else in this repository is licensed under the
+[GNU AGPL v3](LICENSE). The CLI (`cli/`) and the agent skill (`skill/`) are
+[MIT](cli/LICENSE), so you can embed them anywhere.
+
+Security issues: please email hello@byagent.dev instead of opening a public
+issue.
